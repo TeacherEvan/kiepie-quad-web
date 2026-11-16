@@ -13,6 +13,7 @@ Built with Godot 4.3, exported to HTML/WASM, hosted on Vercel.
 - `Shift` — **turbo** (hold while throttling): +30 % power, flames from the silencer
 - `C` — camera: chase ↔ free orbit (drag / scroll to zoom)
 - `R` — reset to spawn (also the on-screen Restart button)
+- On-screen touch overlay (◀ ▶ · BRAKE · GAS · TURBO) — auto-appears on touch devices; the **TOUCH** button (top-right) force-shows/hides it anywhere
 
 ## What's on the pad
 - 3 ramps, a cone-ringed start line, and **3 smashable buildings** — drive in at speed,
