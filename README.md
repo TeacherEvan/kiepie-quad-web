@@ -13,8 +13,8 @@ hosted on Vercel and installable as a PWA.
 - **Multiplayer** — Create Lobby / Join Auto / Join by code. `Join Auto` drops you
   into a waiting lobby (or creates one); the host starts the match and picks the
   kill target, rider cap, respawn delay, time limit and damage. First to the kill
-  target wins. Until a Supabase project is configured in Settings → Network, the
-  game runs against an offline mock backend.
+  target wins. Multiplayer runs on a free Talo backend with host-authoritative scoring;
+  builds without a game key fall back to an offline mock backend.
 
 ## Controls
 
@@ -52,4 +52,5 @@ Defaults** to reset.
 - Requires WebGL2 / a modern browser. Chrome, Firefox and Edge recommended.
 - Personal, non-commercial interactive model showcase of a Blaster-class sport quad.
 - Vehicle is raycast-suspension (4 × VehicleWheel3D) — for games, not for racing lines.
-- The publishable Supabase key is public by design; never put a secret key in Settings.
+- A scoped Talo **game** key is embedded in the public Web build by design; it is not a
+  secret. Never reuse an admin key or any credential with write access to other services.
