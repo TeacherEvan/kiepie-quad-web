@@ -35,6 +35,11 @@ Each rider has 100 armour; a kill explodes the bike and respawns it at a random
 point after the lobby's respawn delay. The shooter gets the point. The arena has
 cover, ramps, destructible buildings, a radar, a scoreboard and a kill feed.
 
+Pickups spawn around the arena: **shield** (temporary invulnerability), **rapid**
+(faster cannons), **repair** (+45 armour) and **overdrive** (more power). Red fuel
+drums explode when shot and chain-detonate nearby drums. Expect camera shake,
+hit-stop, damage numbers, tyre smoke, scorch marks and a full sound pack.
+
 ## Mobile / settings
 
 Responsive landscape layout with safe-area support. Settings (persisted on your
