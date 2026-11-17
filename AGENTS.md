@@ -241,7 +241,8 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   is a shared pointer and cannot drive two actions at once, which is why this layer exists. Holds are
   refcounted (touch + the deterministically paired emulated-mouse stream share symmetrical +1/-1);
   dodge neighbours swap on thumb slides, `BtnGas` stays latched. Manual `BtnFire`/`BtnTurbo`/`BtnBrake`
-  are omitted on mobile: pushing forward on `AnalogSteer` triggers `turbo`, and `CombatController`
+  are omitted on mobile: pushing forward on `AnalogSteer` triggers `turbo`, pulling it back holds
+  `move_back` (brake, then reverse — same as keyboard S/Down), and `CombatController`
   auto-fires when aiming at targets with clear LOS while `TouchHUD` is active. Both builders add
   the dodge pair above the steering cluster and `MenuBtn` (`Main Menu`) on `HUD` (`FOCUS_NONE`),
   paired with Android/Web Back (`NOTIFICATION_WM_GO_BACK_REQUEST` + `popstate`) + Esc handling.

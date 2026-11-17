@@ -19,6 +19,8 @@ const ANALOG := "res://src/AnalogSteer.gd"
 const DEADZONE := 0.15
 const TURBO_ENGAGE := 0.48
 const TURBO_RELEASE := 0.32
+const REVERSE_ENGAGE := 0.40
+const REVERSE_RELEASE := 0.25
 
 var _held: Dictionary = {}  # Input action -> Button (only actions this layer drives)
 var _counts: Dictionary = {}  # Input action -> hold references (fingers + signal holds)
@@ -27,6 +29,7 @@ var _signal_hold: Dictionary = {}  # Input action -> bool (held via button_down 
 var _analog: Dictionary = {}  # pointer index -> Vector2(x: -1..1 steer, y: -1..1 forward)
 var _analog_side := 0  # -1 = steer_left held by pad, +1 = steer_right, 0 = none
 var _analog_turbo := false  # true while analog forward deflection holds "turbo"
+var _analog_reverse := false  # true while analog back deflection holds "move_back" (brake/reverse)
 var _analog_pad: Control = null
 var _touch_toggle: Button
 var _force := false
@@ -228,11 +231,14 @@ func _process(_delta: float) -> void:
 	_sync_analog()
 
 func _sync_analog() -> void:
-	# Analog steering + push-forward turbo: strongest horizontal offset steers,
-	# and pushing forward past TURBO_ENGAGE holds "turbo" (refcounted alongside BtnTurbo).
+	# Analog steering + push-forward turbo + pull-back reverse: strongest
+	# horizontal offset steers, forward deflection past TURBO_ENGAGE holds
+	# "turbo" and backward deflection past REVERSE_ENGAGE holds "move_back"
+	# (brake, then reverse once slow — same feel as keyboard S).
 	var target := 0.0
 	var best := 0.0
 	var best_forward := -1.0
+	var best_backward := 1.0
 	for pointer in _analog:
 		var v: Vector2 = _analog[pointer]
 		if absf(v.x) > best:
@@ -240,6 +246,8 @@ func _sync_analog() -> void:
 			target = v.x
 		if v.y > best_forward:
 			best_forward = v.y
+		if v.y < best_backward:
+			best_backward = v.y
 	var steer := _curve(target)
 	if steer < -0.001:
 		Input.action_press("steer_left", -steer)
@@ -259,8 +267,23 @@ func _sync_analog() -> void:
 		var threshold := TURBO_RELEASE if _analog_turbo else TURBO_ENGAGE
 		want_turbo = best_forward >= threshold
 	_set_analog_turbo(want_turbo)
+	var want_reverse := false
+	if not _analog.is_empty():
+		var threshold := REVERSE_RELEASE if _analog_reverse else REVERSE_ENGAGE
+		want_reverse = -best_backward >= threshold
+	_set_analog_reverse(want_reverse)
 	var display_turbo := maxf(0.0, best_forward) if not _analog.is_empty() else 0.0
-	_update_pad_knob(steer, display_turbo, _analog_turbo)
+	var display_reverse := maxf(0.0, -best_backward) if not _analog.is_empty() else 0.0
+	_update_pad_knob(steer, display_turbo, _analog_turbo, display_reverse, _analog_reverse)
+
+func _set_analog_reverse(active: bool) -> void:
+	if active == _analog_reverse:
+		return
+	_analog_reverse = active
+	if active:
+		_hold("move_back")
+	else:
+		_drop("move_back")
 
 func _set_analog_turbo(active: bool) -> void:
 	if active == _analog_turbo:
@@ -278,7 +301,8 @@ func _release_analog_side() -> void:
 		Input.action_release("steer_right")
 	_analog_side = 0
 
-func _update_pad_knob(steer: float, turbo_val: float = 0.0, turbo_on: bool = false) -> void:
+func _update_pad_knob(steer: float, turbo_val: float = 0.0, turbo_on: bool = false,
+		rev_val: float = 0.0, rev_on: bool = false) -> void:
 	if _analog_pad == null:
 		return
 	var changed := false
@@ -290,6 +314,12 @@ func _update_pad_knob(steer: float, turbo_val: float = 0.0, turbo_on: bool = fal
 		changed = true
 	if bool(_analog_pad.get("turbo_active")) != turbo_on:
 		_analog_pad.set("turbo_active", turbo_on)
+		changed = true
+	if not is_equal_approx(_analog_pad.get("reverse_value"), rev_val):
+		_analog_pad.set("reverse_value", rev_val)
+		changed = true
+	if bool(_analog_pad.get("reverse_active")) != rev_on:
+		_analog_pad.set("reverse_active", rev_on)
 		changed = true
 	if changed:
 		_analog_pad.queue_redraw()
@@ -308,7 +338,7 @@ func _apply_visibility() -> void:
 	if not show_drive:
 		_release_all()
 		_release_analog_side()
-		_update_pad_knob(0.0, 0.0, false)
+		_update_pad_knob(0.0, 0.0, false, 0.0, false)
 
 func _on_toggle() -> void:
 	_force = not _force
@@ -326,6 +356,7 @@ func _release_all() -> void:
 	# are never wiped. Iterate _counts (not just _held) so analog-held
 	# "turbo" releases even with BtnTurbo removed.
 	_analog_turbo = false
+	_analog_reverse = false
 	for action in _counts.keys().duplicate():
 		var count := int(_counts.get(action, 0))
 		for i in range(count):
@@ -334,6 +365,7 @@ func _release_all() -> void:
 	_fingers.clear()
 	_analog.clear()
 	_analog_turbo = false
+	_analog_reverse = false
 
 func _notification(what: int) -> void:
 	# OS-level interruption (phone call, notification shade, app backgrounded)
@@ -342,7 +374,7 @@ func _notification(what: int) -> void:
 	if what == Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT:
 		_release_all()
 		_release_analog_side()
-		_update_pad_knob(0.0, 0.0, false)
+		_update_pad_knob(0.0, 0.0, false, 0.0, false)
 
 func _exit_tree() -> void:
 	_release_all()

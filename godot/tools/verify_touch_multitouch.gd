@@ -164,6 +164,26 @@ func _run() -> void:
 	_check(not Input.is_action_pressed("turbo"), "focus-out releases analog-held turbo")
 	_check(pad != null and not bool(pad.get("turbo_active")), "focus-out resets AnalogSteer turbo_active")
 
+	# ---- analog pull-back holds move_back (brake, then reverse)
+	_touch(2, _pad_at_xy(layer, 0.0, 0.0), true)
+	_drag(2, _pad_at_xy(layer, -0.30, -0.90))
+	await process_frame
+	_check(Input.is_action_pressed("move_back"), "pushing analog back engages move_back (brake/reverse)")
+	_check(Input.is_action_pressed("steer_left"), "pulling back-left still steers left")
+	_check(pad != null and bool(pad.get("reverse_active")), "AnalogSteer view reflects reverse_active=true")
+	_drag(2, _pad_at_xy(layer, -0.30, 0.0))
+	await process_frame
+	_check(not Input.is_action_pressed("move_back"), "returning analog to centre drops move_back")
+	_check(pad != null and not bool(pad.get("reverse_active")), "AnalogSteer view reflects reverse_active=false")
+	# co-hold focus-out during backward push releases move_back and clears view state
+	_drag(2, _pad_at_xy(layer, 0.0, -0.90))
+	await process_frame
+	_check(Input.is_action_pressed("move_back"), "analog pull-back holds move_back before focus-out")
+	layer._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
+	await process_frame
+	_check(not Input.is_action_pressed("move_back"), "focus-out releases analog-held move_back")
+	_check(pad != null and not bool(pad.get("reverse_active")), "focus-out resets AnalogSteer reverse_active")
+
 	# ---- two fingers on the same button: refcounted, one lift keeps the hold
 	_touch(0, _centre(layer, "BtnGas"), true)
 	_touch(1, _centre(layer, "BtnGas"), true)
