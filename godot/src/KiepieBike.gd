@@ -392,9 +392,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var trans := av - yaw
 	var lean := clampf(1.0 - up.dot(Vector3.UP), 0.0, 1.0)
 	if _dodge_time > 0.0:
-		# Mid-cartwheel: the spin IS roll, so leave transverse angular
-		# velocity undamped until the dodge window closes.
-		state.angular_velocity = yaw + trans
+		# Mid-cartwheel: the spin IS roll — leave it completely undamped.
 		return
 	var damp := lerpf(0.90, 0.997, lean)
 	state.angular_velocity = yaw + trans * (1.0 - damp)
@@ -403,6 +401,14 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	# effort scales with lean and is capped per physics step.
 	var axis := basis.y.cross(Vector3.UP)
 	var tilt := basis.y.angle_to(Vector3.UP)
+	if axis.length() <= 0.0001:
+		# y is parallel to world UP or its negative. Upright is handled by
+		# the deadzone; when fully inverted any horizontal axis fixes the
+		# bike (all great-circle arcs are equal). Pick horizontal projection
+		# of a side or forward vector.
+		axis = Vector3(basis.x.x, 0.0, basis.x.z)
+		if axis.length() <= 0.0001:
+			axis = Vector3(basis.z.x, 0.0, basis.z.z)
 	if tilt > 0.055 and axis.length() > 0.0001:
 		var effort := minf(tilt * (0.10 + lean * 1.5), 0.14)
 		basis = Basis(Quaternion(axis.normalized(), effort)) * basis

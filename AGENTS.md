@@ -27,7 +27,8 @@ This is a **Blender → Godot → Vercel** asset pipeline, not a normal code app
 - **Web build** lives at the repository root and is what Vercel serves. Re-exporting
   overwrites it in place; commit the refreshed `index.*` files and push to `main`.
   `web/` remains a local staging dir only (git-ignored). `godot/tools/deploy_web.sh`
-  still needs `--apply` for the gated export; plain `git push` does **not** auto-deploy.
+  remains the gated full path (gates → key → staging export → bundle check → sync →
+  push → live curl); pushes to `main` auto-deploy to Vercel (verified 2026-11-18).
 
 ## Commands that actually work
 
@@ -52,13 +53,14 @@ godot-4.3 --headless --path godot -s tools/_check_scripts.gd
 # Inject the Talo GAME key from repo-root .env into addons/talo/settings.cfg
 python3 godot/tools/inject_talo_key.py
 
-# Web deploy helper: gates → key → export → bundle checks (dry run)
+# Web deploy helper: gates → key → staging export to web/ → bundle checks (dry run)
 bash godot/tools/deploy_web.sh
-# …then commit/push web/, vercel deploy --prod, live curl check:
+# …then sync web/ → repo root, commit index.*, push (Vercel auto-deploys), curl check:
 bash godot/tools/deploy_web.sh --apply
 
-# Manual export only — the output path MUST be absolute:
+# Manual export only — the staging path MUST be absolute:
 godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
+# then copy the bundle to the repo root, commit index.* and push.
 ```
 
 ## Verification quirks
@@ -139,7 +141,7 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   MockBackend. `html/head_include` carries the fullscreen-on-launch bridge
   (`window.__kiepieSetFullscreen`) that `Settings.gd` drives via `JavaScriptBridge` on Web
   (fullscreen is now default-on; `Settings` schema v2 migrates v1 configs) — don't clobber it
-  when editing the preset. Expect `web/index.pck` ≈ **3 MB**; `deploy_web.sh` aborts above **4 MB**,
+  when editing the preset. Expect root `index.pck` ≈ **3 MB**; `deploy_web.sh` aborts above **4 MB**,
   so check the printed size after adding assets (and update the script's expected-size note if it changes).
 - The Talo **game** key (JWT, `eyJ…`) is injected from root `.env` `TALO_API_GAME` and ships in the
   public pck by design. `TALO_API_ADMIN` (`ta_…`) is rejected by the v1 API — never use it here.
