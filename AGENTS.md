@@ -13,7 +13,8 @@ This is a **Blender → Godot → Vercel** asset pipeline, not a normal code app
 - `Kiepie_Bike.blend` is the source; `.glb` / `.stl` are exports. `QA_debrief*`, `renders/*`,
   `.blend1` and `spatial_manifest.json` are regenerable QA artifacts, never sources.
 - `godot/` — Godot 4.3 project. All `.tscn` files are **generated** by `tools/build_*.gd`;
-  never hand-edit a scene. Main scene is `scenes/MainMenu.tscn`.
+  never hand-edit a scene. A `.tscn` diff alongside its `build_*.gd` is a rebuild artifact —
+  regenerate and commit them together, never patch one by hand. Main scene is `scenes/MainMenu.tscn`.
 - `godot/assets/sfx/` — generated WAVs + `generate_sfx.py`; edit the generator, not the WAVs by hand.
 - `supabase/` — **retired** migrations from the abandoned Supabase plan. Keep for history only;
   they are not applied anywhere and both connected Supabase MCP projects are unrelated apps.
@@ -65,15 +66,20 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   audit_regressions, controls, dodge, vfx, practice + `touch_multitouch` (runs under xvfb, not headless —
   synthesized touch needs a real window) + GdUnit4. `audit_regressions` locks the surgical-audit
   defects: forged `state` events, 3-stop VFX gradients, exhaust axis, malformed shot arrays and
-  `respawn_at` as a future deadline. `controls` locks the steering defect (see below) and the
+  `respawn_at` as a future deadline. `settings` locks `Settings` v2 defaults (`video/fullscreen = true`),
+  persistence, quality presets, reset, `v1 -> v2` fullscreen migration, and `SettingsMenu.tscn`'s
+  default toggle state. `controls` locks the steering defect (see below) and the
   `steer_sensitivity` setting; `dodge` locks the Q/E leap/cartwheel contract. `vfx` locks the
   effect contracts (reduced motion, quality scaling, scorch/scar caps, flat hit normals) and
   level counts: Arena = 10 ramps / 7 buildings, TestRide = 6 ramps / 4 buildings, with spawn
-  and ramp clearances. `touch_multitouch` locks two-thumb driving: raw screen-touch indices
+  and ramp clearances. `touch_multitouch` locks two-thumb driving (raw screen-touch indices
   own independent actions, refcounted holds, sliding steer/dodge swap, paired emulated-mouse
-  double-handling, desktop mouse clicks. `practice` locks practice-mode cannons: TestRide's
-  bike fires via desktop input AND mobile target-locked auto-fire, MenuBtn exists, and no network kill
-  broadcast happens in practice. Keep all green.
+  double-handling, desktop mouse clicks) plus `TouchCapture` `MOUSE_FILTER_IGNORE` pass-through so
+  `HUD/RestartBtn`, `HUD/ViewBtn`, `TouchHUD/BtnTouchToggle`, and keyboard `R` resets work cleanly.
+  `practice` locks practice-mode cannons: TestRide's bike continuously fires via desktop hold-to-fire
+  AND mobile target-locked auto-fire with zero overheat (`overheated`/`heat_changed` &
+  `HUD/HeatBar`/`HUD/HeatLabel` removed), `MenuBtn` exists, `RestartBtn` recovers dead riders, and
+  no network kill broadcast happens in practice. Keep all green.
   Exit 101 from GdUnit4 = pass with benign dummy-renderer orphan warnings; 100 = failure.
 - `run_gates.sh` exports `KIEPIE_MOCK_BACKEND=1` — gates must never touch the live Talo account.
   Backend-touching gates additionally hard-abort (`quit(2)`) if the mock is not active, instead of
@@ -90,10 +96,11 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   and script errors, not those.
 - `verify_appeal.gd` tests the drum chain with a **wall-clock timer**, not frame counts —
   frame-count loops are flaky in headless runs.
-- VFX live in `src/game/VfxFactory.gd`; the four VFX consumers are `CombatController`,
-  `Projectile` (scenery impacts only — bikes/hazards already emit their own), `Pickup` and
-  `DestructibleBuilding`. `KiepieBike.gd` adds landing/roost dust as visual-only hooks. The
-  five sprite textures are generated at runtime by `prewarm()` — do not add image assets for
+- VFX live in `src/game/VfxFactory.gd` and are used broadly: `CombatController`, `SideCannons`
+  (muzzle flash/casings), `Projectile` (scenery impacts only — bikes/hazards already emit their
+  own), `Pickup`, `DestructibleBuilding`, `FuelDrum`, `NetworkedBike` and `KiepieBike.gd`
+  (landing/roost dust hooks). The five sprite textures are generated at runtime by `prewarm()` —
+  do not add image assets for
   effects; keep bursts inside `_q()` and reduced-motion guards. Scorch (`MAX_SCORCH = 12`) and
   bullet scars (`MAX_SCAR = 24`) leave their groups before `queue_free()` or the next frame
   still counts them against the cap. `-s` tool scripts must `load()` VfxFactory at runtime
@@ -116,10 +123,13 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   that survives `.pck` updates, uses Cache-First within each content-hashed `CACHE_NAME` for
   `index.pck`, and Network-First with a 2.5 s timeout fallback for `index.html`/`index.js`.
 - `export_presets.cfg` excludes `addons/gdUnit4/*, addons/GDQuest_GDScript_formatter/*, tests/*,
-  extension_api.json` and **includes `addons/talo/settings.cfg`** — the export filter is
+  extension_api.json, reports/*, tools/*, docs/*, .env*` and **includes `addons/talo/settings.cfg`** — the export filter is
   `all_resources`, so a plain `.cfg` is otherwise dropped and the plugin silently falls back to
-  MockBackend. Expect `web/index.pck` ≈ **3.8 MB** (~3.94 MB after the VFX pass); deploy
-  aborts above 4 MB, so leave ~150 KB of headroom for new assets.
+  MockBackend. `html/head_include` carries the fullscreen-on-launch bridge
+  (`window.__kiepieSetFullscreen`) that `Settings.gd` drives via `JavaScriptBridge` on Web
+  (fullscreen is now default-on; `Settings` schema v2 migrates v1 configs) — don't clobber it
+  when editing the preset. Expect `web/index.pck` ≈ **3 MB**; `deploy_web.sh` aborts above **4 MB**,
+  so check the printed size after adding assets (and update the script's expected-size note if it changes).
 - The Talo **game** key (JWT, `eyJ…`) is injected from root `.env` `TALO_API_GAME` and ships in the
   public pck by design. `TALO_API_ADMIN` (`ta_…`) is rejected by the v1 API — never use it here.
 - Vercel project `kiepie-quad-web` (team `teacher-evans-projects`, Hobby). Auth/password
@@ -197,15 +207,25 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   needed: `ArenaNet._send_state()` already broadcasts position + quaternion at 15 Hz, so remote
   proxies reproduce the cartwheel. `verify_dodge.gd` locks direction, lift, cooldown, recovery.
 - Practice mode (TestRide) carries the full combat kit: the bike gets a `CombatController`
-  child with `practice_mode = true` (works without an arena lobby; desktop firing and mobile
-  target-locked auto-fire work standalone, while network kill broadcasts and the match gate
-  are skipped — the local death/respawn flow still works). `verify_practice.gd` locks
-  streamlined touch controls (no `BtnFire`/`BtnTurbo`/`BtnBrake`), `MenuBtn`, desktop fire,
-  mobile auto-fire, and offline drum/rider damage.
-- Touch/mobile: `TouchControls.gd` + `TouchCapture.gd` (full-rect, MOUSE_FILTER_PASS) implement
-  real two-thumb multi-touch: every overlay drive button is a MOUSE_FILTER_IGNORE shell,
-  hit-tested by the capture per `InputEventScreenTouch.index` — mouse emulation is a shared
-  pointer and cannot drive two actions at once, which is why this layer exists. Holds are
+  child with `practice_mode = true` (works without an arena lobby; desktop continuous hold-to-fire,
+  skipped while hovering a HUD `BaseButton`, and mobile target-locked forward-cone auto-fire work
+  standalone, while network kill broadcasts and the match gate are skipped — the local
+  death/respawn flow still works). `verify_practice.gd` locks streamlined touch controls (no
+  `BtnFire`/`BtnTurbo`/`BtnBrake`), `MenuBtn`, desktop hold-to-fire, mobile auto-fire, no
+  overheat/HUD heat bar, offline drum/rider damage, and `RestartBtn` recovery from death.
+- Cannon cooldown & restart: `SideCannons.gd` has **no overheat mechanic or `HeatBar`** (shots
+  are strictly cooldown-gated at `0.20s` normal / `0.09s` rapid; `heat_changed` and `HUD/HeatBar`
+  were removed). `KiepieBike.reset_bike()` (called by `HUD/RestartBtn`, `R` / `reset_bike`, and
+  `Hud._unhandled_key_input`) uses `PhysicsServer3D.body_set_state(...)` plus an
+  `_integrate_forces` `_pending_reset` latch because writing `VehicleBody3D.global_transform` from
+  GUI button callbacks gets overwritten on the next physics sync step; `Hud._on_restart()` also
+  calls `CombatController.reset_state()`.
+- Touch/mobile: `TouchControls.gd` + `TouchCapture.gd` implement real two-thumb multi-touch.
+  The capture is a full-rect `MOUSE_FILTER_IGNORE` `Control` reading `_input()` (with
+  `make_input_local`) so it never swallows HUD buttons on lower CanvasLayers or earlier
+  siblings (`BtnTouchToggle`, `MenuBtn`, `RestartBtn`); every overlay drive button is a
+  `MOUSE_FILTER_IGNORE` shell, hit-tested per `InputEventScreenTouch.index` — mouse emulation
+  is a shared pointer and cannot drive two actions at once, which is why this layer exists. Holds are
   refcounted (touch + the deterministically paired emulated-mouse stream share symmetrical +1/-1);
   dodge neighbours swap on thumb slides, `BtnGas` stays latched. Manual `BtnFire`/`BtnTurbo`/`BtnBrake`
   are omitted on mobile: pushing forward on `AnalogSteer` triggers `turbo`, and `CombatController`

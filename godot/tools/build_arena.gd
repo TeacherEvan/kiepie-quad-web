@@ -327,21 +327,6 @@ func _add_match_hud(root: Node) -> void:
 	health_bar.add_theme_stylebox_override("background", UI.bar_track())
 	hud.add_child(health_bar)
 
-	var heat_bar := ProgressBar.new()
-	heat_bar.name = "HeatBar"
-	heat_bar.max_value = 1.0
-	heat_bar.value = 0.0
-	heat_bar.show_percentage = false
-	heat_bar.anchor_left = 0.0
-	heat_bar.anchor_top = 1.0
-	heat_bar.offset_left = 210.0  # clear of the touch steering cluster
-	heat_bar.offset_right = 510.0
-	heat_bar.offset_top = -58.0
-	heat_bar.offset_bottom = -32.0
-	heat_bar.add_theme_stylebox_override("fill", UI.bar_fill(Color(0.95, 0.55, 0.12, 0.96)))
-	heat_bar.add_theme_stylebox_override("background", UI.bar_track())
-	hud.add_child(heat_bar)
-
 	var turbo := Label.new()
 	turbo.name = "Turbo"
 	turbo.text = "TURBO"

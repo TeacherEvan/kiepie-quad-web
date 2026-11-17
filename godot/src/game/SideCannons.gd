@@ -1,25 +1,18 @@
 extends Node3D
 ## Twin side cannons. One FIRE input fires both barrels forward with a slight
-## outward spread. Heat prevents infinite spam; the shot token is minted locally
-## by the Talo facade. Scoring is host-authoritative client logic — no server-side validation.
+## outward spread. Cooldown paces shots cleanly without any overheat lockout.
 
 signal fired(token: String)
-signal heat_changed(value: float, locked: bool)
 
 const PROJECTILE := preload("res://src/game/Projectile.gd")
 const VFX := preload("res://src/game/VfxFactory.gd")
 # Keep in sync with the remote-shot speed in ArenaNet._spawn_remote_shot.
 const SHOT_SPEED := 52.0
 const SHOT_SPREAD := 0.055
-const HEAT_PER_SHOT := 0.24
-const HEAT_DECAY := 0.42
-const OVERHEAT_RESUME := 0.35
 
 var owner_node: Node3D
 var owner_id := ""
 var hit_callback: Callable
-var heat := 0.0
-var overheated := false
 
 var _cooldown := 0.0
 var _rapid := false
@@ -69,13 +62,6 @@ func _find_named(root: Node, wanted: String) -> Node3D:
 
 func _process(delta: float) -> void:
 	_cooldown = maxf(0.0, _cooldown - delta)
-	var before := heat
-	heat = maxf(0.0, heat - HEAT_DECAY * delta)
-	if overheated and heat <= OVERHEAT_RESUME:
-		overheated = false
-		heat_changed.emit(heat, overheated)
-	elif absf(before - heat) > 0.01:
-		heat_changed.emit(heat, overheated)
 
 
 func set_rapid(value: bool) -> void:
@@ -83,18 +69,13 @@ func set_rapid(value: bool) -> void:
 
 
 func can_fire() -> bool:
-	return owner_node != null and not overheated and _cooldown <= 0.0
+	return owner_node != null and _cooldown <= 0.0
 
 
 func fire() -> void:
 	if not can_fire():
 		return
 	_cooldown = 0.09 if _rapid else 0.20
-	var added := HEAT_PER_SHOT * (0.55 if _rapid else 1.0)
-	heat = minf(1.0, heat + added)
-	if heat >= 1.0:
-		overheated = true
-	heat_changed.emit(heat, overheated)
 
 	# muzzle flash is instant; the token arrives a fraction of a second later
 	var sfx := get_node_or_null("/root/Sfx")
@@ -126,20 +107,11 @@ func fire() -> void:
 		# eject a brass casing out of the breech, opposite the barrel's side
 		var side := -1.0 if i == 0 else 1.0
 		VFX.casing(fx_parent, muzzle.global_position, right_vec * side + Vector3(0, 0.35, 0))
-	if heat >= 1.0:
-		# overheated: both barrels vent steam as the lockout engages
-		for muzzle in _muzzles:
-			VFX.steam_vent(fx_parent, muzzle.global_position)
 
 	var res: Dictionary = await Match.issue_shot()
 	var token := str(res.get("token", ""))
 	if token == "":
-		# dry-fire: refund the heat this shot spent; no resources burned for nothing
-		heat = maxf(0.0, heat - added)
-		if heat < 1.0:
-			overheated = false
-		heat_changed.emit(heat, overheated)
-		push_warning("SideCannons: backend issued no shot token — heat refunded")
+		push_warning("SideCannons: backend issued no shot token")
 		return
 	for i in range(_muzzles.size()):
 		var muzzle: Node3D = _muzzles[i]

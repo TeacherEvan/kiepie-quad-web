@@ -224,28 +224,6 @@ func _initialize() -> void:
 			UI.chip(Color(0.085, 0.075, 0.035, 0.82), Color(UI.GOLD.r, UI.GOLD.g, UI.GOLD.b, 0.28)))
 	layer.add_child(smashed)
 
-	var heat_label := Label.new()
-	heat_label.name = "HeatLabel"
-	heat_label.text = "CANNONS"
-	heat_label.position = Vector2(16, 228)
-	heat_label.offset_right = 216.0
-	heat_label.offset_bottom = 248.0
-	heat_label.add_theme_font_size_override("font_size", 12)
-	heat_label.add_theme_color_override("font_color", UI.TEXT)
-	layer.add_child(heat_label)
-
-	var heat_bar := ProgressBar.new()
-	heat_bar.name = "HeatBar"
-	heat_bar.position = Vector2(16, 250)
-	heat_bar.offset_right = 216.0
-	heat_bar.offset_bottom = 266.0
-	heat_bar.max_value = 100.0
-	heat_bar.value = 0.0
-	heat_bar.show_percentage = false
-	heat_bar.add_theme_stylebox_override("background", UI.bar_track())
-	heat_bar.add_theme_stylebox_override("fill", UI.bar_fill(UI.ACCENT))
-	layer.add_child(heat_bar)
-
 	var crosshair := Label.new()
 	crosshair.name = "Crosshair"
 	crosshair.text = "+"

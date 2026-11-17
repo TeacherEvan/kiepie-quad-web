@@ -69,5 +69,27 @@ func _run() -> void:
 	settings.call("reset_defaults")
 	_check(str(settings.call("display_name")) == "RIDER", "reset defaults restores name")
 	_check(float(settings.call("get_value", "video", "particles", 0.0)) == 1.0, "reset defaults restores particles")
+	_check(int(settings.call("get_value", "meta", "version", 0)) == 2, "settings schema version is 2")
+	_check(bool(settings.call("get_value", "video", "fullscreen", false)), "fullscreen defaults to true on launch")
+
+	# v1 -> v2 config migration forces fullscreen ON for existing players once.
+	var v1 := ConfigFile.new()
+	v1.set_value("meta", "version", 1)
+	v1.set_value("video", "fullscreen", false)
+	v1.save(SAV)
+	settings.call("_load")
+	_check(bool(settings.call("get_value", "video", "fullscreen", false)),
+			"v1 -> v2 migration enables fullscreen on launch")
+	_check(int(settings.call("get_value", "meta", "version", 0)) == 2,
+			"v1 -> v2 migration bumps schema version to 2")
+
+	var sm_ps := load("res://scenes/SettingsMenu.tscn") as PackedScene
+	_check(sm_ps != null, "SettingsMenu scene loads")
+	if sm_ps != null:
+		var sm := sm_ps.instantiate()
+		var fs := sm.get_node_or_null("SafeMargin/VBox/Scroll/Rows/FullscreenRow/Fullscreen") as BaseButton
+		_check(fs != null and fs.button_pressed, "SettingsMenu Fullscreen checkbox defaults to ON")
+		sm.free()
+
 	_restore()
 	quit(1 if _fail > 0 else 0)

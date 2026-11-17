@@ -6,7 +6,6 @@ extends Node3D
 signal health_changed(current: float, maximum: float)
 signal died(killer_id: String)
 signal respawned()
-signal heat_changed(value: float, locked: bool)
 signal hurt(amount: float, attacker_id: String)
 signal pickup_collected(kind: String)
 signal hit_confirmed()
@@ -33,7 +32,6 @@ var _overdrive_until := 0.0
 var _shield_until := 0.0
 var _smoke_accum := 0.0
 var _base_power := 420.0
-var _was_overheated := false
 var _auto_fire_cd := 0.0
 var _los_query: PhysicsRayQueryParameters3D
 var _touch_ctrl: Node = null
@@ -58,8 +56,6 @@ func setup(p_bike: VehicleBody3D) -> void:
 	add_child(cannons)
 	cannons.setup(bike, Supabase.user_id,
 			Callable(self, "_on_projectile_hit"), player_color)
-	if cannons.has_signal("heat_changed"):
-		cannons.heat_changed.connect(_on_heat_changed)
 	# Adding meshes/audio during the parent's setup phase is illegal in Godot
 	# 4.3 - defer until the bike is fully in the tree.
 	call_deferred("_setup_decorations")
@@ -81,8 +77,12 @@ func _physics_process(delta: float) -> void:
 	var power := _base_power * (1.35 if now < _overdrive_until else 1.0)
 	bike.set("engine_power", power)
 
-	if Input.is_action_just_pressed("fire") and cannons != null:
-		cannons.fire()
+	if (Input.is_action_just_pressed("fire") or Input.is_action_pressed("fire")) and cannons != null:
+		# Do not fire desktop weapons when clicking a HUD button with the mouse.
+		var vp := get_viewport()
+		var hovered := vp.gui_get_hovered_control() if vp != null else null
+		if not (hovered is BaseButton and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)):
+			cannons.fire()
 	elif cannons != null and _is_auto_fire_enabled():
 		_try_auto_fire(delta)
 
@@ -207,6 +207,21 @@ func _respawn() -> void:
 	respawned.emit()
 
 
+func reset_state() -> void:
+	## Restores health/visibility when restarting TestRide manually (RestartBtn / R).
+	if bike == null:
+		return
+	if Match.self_respawn_at.is_connected(_on_server_respawn):
+		Match.self_respawn_at.disconnect(_on_server_respawn)
+	bike.set_physics_process(true)
+	bike.visible = true
+	health = MAX_HEALTH
+	alive = true
+	_invuln_until = Time.get_ticks_msec() / 1000.0 + 0.5
+	health_changed.emit(health, MAX_HEALTH)
+	respawned.emit()
+
+
 func _setup_decorations() -> void:
 	if not is_instance_valid(bike):
 		return
@@ -234,15 +249,12 @@ func _try_auto_fire(delta: float) -> void:
 		return
 	if not bool(cannons.call("can_fire")):
 		return
-	# Leave a small heat margin so sustained auto-fire doesn't pin cannons in OVERHEAT lock.
-	if float(cannons.get("heat")) >= 0.84:
-		return
 	var target := _acquire_forward_target()
 	if target == null:
 		return
 	cannons.fire()
 	var rapid := (Time.get_ticks_msec() / 1000.0) < _rapid_until
-	_auto_fire_cd = 0.12 if rapid else 0.28
+	_auto_fire_cd = 0.10 if rapid else 0.22
 
 
 func _acquire_forward_target() -> Node3D:
@@ -309,13 +321,6 @@ func _has_los(from: Vector3, target: Node3D) -> bool:
 		return true
 	var collider: Object = hit.get("collider", null)
 	return collider == target or (collider is Node and (collider as Node).is_in_group("bike"))
-
-
-func _on_heat_changed(value: float, locked: bool) -> void:
-	if locked and not _was_overheated:
-		_play_sfx("overheat")
-	_was_overheated = locked
-	heat_changed.emit(value, locked)
 
 
 func _shake(amount: float) -> void:

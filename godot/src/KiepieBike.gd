@@ -38,6 +38,7 @@ var _dodge_cd := 0.0
 var _ground_coyote := 0.0   ## brief grace so suspension bounce can't eat a dodge
 var _was_grounded := false   ## visual-only landing detector
 var _roost_accum := 0.0
+var _pending_reset := false
 
 @onready var _flames: GPUParticles3D = get_node_or_null("ExhaustFlames")
 var _jet_plume: Node3D = null
@@ -299,6 +300,7 @@ func set_spawn(t: Transform3D) -> void:
 
 
 func reset_bike() -> void:
+	_pending_reset = true
 	global_transform = _spawn
 	linear_velocity = Vector3.ZERO
 	angular_velocity = Vector3.ZERO
@@ -308,6 +310,17 @@ func reset_bike() -> void:
 	_dodge_time = 0.0
 	_dodge_cd = 0.0
 	_ground_coyote = 0.0
+	for key in _wheels.keys():
+		var w: VehicleWheel3D = _wheels[key]
+		if w != null and is_instance_valid(w):
+			w.engine_force = 0.0
+			w.brake = 0.0
+			w.steering = 0.0
+	if get_rid().is_valid():
+		PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, _spawn)
+		PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO)
+		PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
+		PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_SLEEPING, false)
 	if _flames:
 		_flames.emitting = false
 
@@ -357,6 +370,11 @@ func _on_settings_changed(section: String, key: String, _value: Variant) -> void
 
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
+	if _pending_reset:
+		state.transform = _spawn
+		state.linear_velocity = Vector3.ZERO
+		state.angular_velocity = Vector3.ZERO
+		_pending_reset = false
 	# Damp roll/pitch only, leaving yaw (steering) untouched. Must run here,
 	# not in _physics_process: writing angular_velocity there clobbers the
 	# wheel-generated yaw before the next solver step.

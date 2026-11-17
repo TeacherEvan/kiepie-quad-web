@@ -11,13 +11,8 @@ var _combat: Node
 var _speed_label: Label
 var _smash_label: Label
 var _turbo_label: Label
-var _heat_label: Label
-var _heat_bar: ProgressBar
 var _hitmarker: Label
 var _hit_tween: Tween
-var _heat_fill_normal: StyleBoxFlat
-var _heat_fill_warn: StyleBoxFlat
-var _heat_fill_locked: StyleBoxFlat
 var _help_label: Label
 var _restart_btn: Button
 var _view_btn: Button
@@ -39,8 +34,6 @@ func _ready() -> void:
 	_speed_label = get_node_or_null("Speed") as Label
 	_smash_label = get_node_or_null("Smashed") as Label
 	_turbo_label = get_node_or_null("Turbo") as Label
-	_heat_label = get_node_or_null("HeatLabel") as Label
-	_heat_bar = get_node_or_null("HeatBar") as ProgressBar
 	_hitmarker = get_node_or_null("HitMarker") as Label
 	_restart_btn = get_node_or_null("RestartBtn") as Button
 	_view_btn = get_node_or_null("ViewBtn") as Button
@@ -52,14 +45,7 @@ func _ready() -> void:
 	if _menu_btn:
 		_menu_btn.pressed.connect(_on_menu)
 	Settings.call_deferred("sync_back_handler")
-	if _heat_bar:
-		_heat_fill_normal = UI.bar_fill(UI.ACCENT)
-		_heat_fill_warn = UI.bar_fill(UI.WARN)
-		_heat_fill_locked = UI.bar_fill(UI.DANGER)
-		_heat_bar.add_theme_stylebox_override("fill", _heat_fill_normal)
 	if _combat != null:
-		if _combat.has_signal("heat_changed"):
-			_combat.heat_changed.connect(_on_heat_changed)
 		if _combat.has_signal("hit_confirmed"):
 			_combat.hit_confirmed.connect(_on_hit_confirmed)
 	_total = maxi(1, smash_total)
@@ -92,6 +78,8 @@ func _update_smash_label() -> void:
 func _on_restart() -> void:
 	if _bike and _bike.has_method("reset_bike"):
 		_bike.call("reset_bike")
+	if _combat and _combat.has_method("reset_state"):
+		_combat.call("reset_state")
 
 func _on_view() -> void:
 	if _cam_rig and _cam_rig.has_method("toggle_view"):
@@ -108,20 +96,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		var k := event as InputEventKey
 		if k.pressed and not k.echo and k.keycode == KEY_ESCAPE:
 			_on_menu()
-
-
-func _on_heat_changed(value: float, locked: bool) -> void:
-	if _heat_bar != null:
-		_heat_bar.value = clampf(value * 100.0, 0.0, 100.0)
-		if locked:
-			_heat_bar.add_theme_stylebox_override("fill", _heat_fill_locked)
-		elif value >= 0.72:
-			_heat_bar.add_theme_stylebox_override("fill", _heat_fill_warn)
-		else:
-			_heat_bar.add_theme_stylebox_override("fill", _heat_fill_normal)
-	if _heat_label != null:
-		_heat_label.text = "OVERHEAT" if locked else "CANNONS"
-		_heat_label.add_theme_color_override("font_color", UI.DANGER if locked else UI.TEXT)
+		elif event.is_action_pressed("reset_bike"):
+			_on_restart()
 
 
 func _on_hit_confirmed() -> void:
@@ -157,13 +133,6 @@ func _relayout() -> void:
 		_smash_label.size.x = smash_w
 		_smash_label.add_theme_font_size_override("font_size", 13 if narrow else 16)
 		_update_smash_label()
-	if _heat_label != null:
-		_heat_label.position = Vector2(14.0, top_y + 108.0)
-	if _heat_bar != null:
-		var bar_w := 160.0 if narrow else 200.0
-		_heat_bar.position = Vector2(14.0, top_y + 130.0)
-		_heat_bar.offset_right = 14.0 + bar_w
-		_heat_bar.offset_bottom = top_y + 146.0
 	if _turbo_label != null:
 		if narrow:
 			_turbo_label.offset_top = 166.0

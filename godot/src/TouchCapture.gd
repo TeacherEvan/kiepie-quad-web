@@ -5,8 +5,9 @@ extends Control
 ## can own its own action. Buttons rode Godot's emulated single mouse pointer,
 ## which made two-finger steering+gas impossible.
 ##
-## MOUSE_FILTER_PASS: we observe, we never consume, so taps still reach the rest
-## of the UI (HUD restart, TOUCH toggle, pause).
+## MOUSE_FILTER_IGNORE + _input(): we observe via make_input_local(), never
+## consuming or blocking events, so clicks/taps still reach the rest of the UI
+## (HUD RestartBtn/ViewBtn/MenuBtn, TOUCH toggle, ResultPanel).
 ##
 ## Mouse handling: when project emulation is on (default), every touch emits a
 ## deterministic PAIRED mouse event. Mouse events are tracked under a
@@ -24,13 +25,17 @@ var _left_down := false
 
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_PASS
+	# MOUSE_FILTER_IGNORE so lower CanvasLayers (HUD RestartBtn, ViewBtn, MenuBtn,
+	# ResultPanel) and earlier siblings (BtnTouchToggle) never get swallowed.
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	focus_mode = Control.FOCUS_NONE
+	set_process_input(true)
 
 
-func _gui_input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch:
-		var touch := event as InputEventScreenTouch
+func _input(event: InputEvent) -> void:
+	var local_ev := make_input_local(event)
+	if local_ev is InputEventScreenTouch:
+		var touch := local_ev as InputEventScreenTouch
 		# An edge gesture (back-swipe, system interrupt) can cancel a finger
 		# mid-hold; the OS may never send a matching pressed=false. Never leave
 		# an action latched because of it.
@@ -40,11 +45,11 @@ func _gui_input(event: InputEvent) -> void:
 			pointer_down.emit(touch.index, touch.position)
 		else:
 			pointer_up.emit(touch.index, touch.position)
-	elif event is InputEventScreenDrag:
-		var drag := event as InputEventScreenDrag
+	elif local_ev is InputEventScreenDrag:
+		var drag := local_ev as InputEventScreenDrag
 		pointer_move.emit(drag.index, drag.position)
-	elif event is InputEventMouseButton:
-		var mb := event as InputEventMouseButton
+	elif local_ev is InputEventMouseButton:
+		var mb := local_ev as InputEventMouseButton
 		if mb.button_index != MOUSE_BUTTON_LEFT:
 			return
 		_left_down = mb.pressed
@@ -52,7 +57,7 @@ func _gui_input(event: InputEvent) -> void:
 			pointer_down.emit(MOUSE_POINTER, mb.position)
 		else:
 			pointer_up.emit(MOUSE_POINTER, mb.position)
-	elif event is InputEventMouseMotion:
-		var motion := event as InputEventMouseMotion
+	elif local_ev is InputEventMouseMotion:
+		var motion := local_ev as InputEventMouseMotion
 		if (motion.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0 or _left_down:
 			pointer_move.emit(MOUSE_POINTER, motion.position)

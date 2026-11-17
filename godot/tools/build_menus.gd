@@ -399,7 +399,7 @@ func _build_settings() -> void:
 	rows.add_child(_setting_row("ShadowsRow", "Shadows", _check("Shadows", "", true)))
 	rows.add_child(_slider_row("ParticlesRow", "Particles", _slider("Particles", 0.0, 1.0, 0.05, 1.0), _value_label("ParticlesValue", "1.00")))
 	rows.add_child(_setting_row("GlowRow", "Glow", _check("Glow", "", true)))
-	rows.add_child(_setting_row("FullscreenRow", "Fullscreen", _check("Fullscreen", "", false)))
+	rows.add_child(_setting_row("FullscreenRow", "Fullscreen", _check("Fullscreen", "", true)))
 	rows.add_child(_slider_row("FovRow", "Field of view", _slider("Fov", 50.0, 100.0, 1.0, 62.0), _value_label("FovValue", "62°")))
 	rows.add_child(_setting_row("ShowFpsRow", "Show FPS", _check("ShowFps", "", false)))
 

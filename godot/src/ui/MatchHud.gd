@@ -17,11 +17,8 @@ var _fps_accum := 0.0
 var _fps_frames := 0
 var _vignette: ColorRect
 var _announce_label: Label
-# Cached bar fills: mutate one StyleBox instead of allocating one per heat tick.
+# Cached bar fill: mutate one StyleBox instead of allocating per damage tick.
 var _hp_fill: StyleBoxFlat
-var _heat_fill_normal: StyleBoxFlat
-var _heat_fill_locked: StyleBoxFlat
-var _heat_locked := false
 var _hitmarker: Label = null
 var _hit_tween: Tween = null
 
@@ -46,8 +43,6 @@ func _ready() -> void:
 			_combat.died.connect(_on_died)
 		if _combat.has_signal("respawned"):
 			_combat.respawned.connect(_on_respawned)
-		if _combat.has_signal("heat_changed"):
-			_combat.heat_changed.connect(_on_heat_changed)
 		if _combat.has_signal("hurt"):
 			_combat.hurt.connect(_on_hurt)
 		if _combat.has_signal("pickup_collected"):
@@ -94,16 +89,11 @@ func _ready() -> void:
 	if result != null:
 		result.visible = false
 
-	# --- cached bar fills (no per-frame StyleBox allocation on mobile Web)
+	# --- cached bar fill (no per-frame StyleBox allocation on mobile Web)
 	var health_bar := get_node_or_null("HealthBar") as ProgressBar
 	if health_bar != null:
 		_hp_fill = UI.bar_fill(UI.OK)
 		health_bar.add_theme_stylebox_override("fill", _hp_fill)
-	var heat_bar := get_node_or_null("HeatBar") as ProgressBar
-	if heat_bar != null:
-		_heat_fill_normal = UI.bar_fill(UI.ACCENT)
-		_heat_fill_locked = UI.bar_fill(UI.HEAT_LOCKED)
-		heat_bar.add_theme_stylebox_override("fill", _heat_fill_normal)
 
 	# --- hit feedback overlay + streak announcement (runtime-created)
 	_vignette = ColorRect.new()
@@ -231,9 +221,8 @@ func _relayout() -> void:
 
 	var hl := get_node_or_null("HealthLabel") as Control
 	var hb := get_node_or_null("HealthBar") as Control
-	var heat := get_node_or_null("HeatBar") as Control
-	if hl != null and hb != null and heat != null:
-		for c in [hl, hb, heat]:
+	if hl != null and hb != null:
+		for c in [hl, hb]:
 			if narrow:
 				c.anchor_left = 0.0
 				c.anchor_right = 0.0
@@ -260,22 +249,16 @@ func _relayout() -> void:
 			hl.offset_bottom = -364.0
 			hb.offset_top = -360.0
 			hb.offset_bottom = -336.0
-			heat.offset_top = -330.0
-			heat.offset_bottom = -308.0
 		elif short:
 			hl.offset_top = 62.0
 			hl.offset_bottom = 86.0
 			hb.offset_top = 88.0
 			hb.offset_bottom = 110.0
-			heat.offset_top = 114.0
-			heat.offset_bottom = 132.0
 		else:
-			hl.offset_top = -126.0
-			hl.offset_bottom = -98.0
-			hb.offset_top = -94.0
-			hb.offset_bottom = -66.0
-			heat.offset_top = -58.0
-			heat.offset_bottom = -32.0
+			hl.offset_top = -96.0
+			hl.offset_bottom = -68.0
+			hb.offset_top = -64.0
+			hb.offset_bottom = -36.0
 
 	var respawn := get_node_or_null("RespawnOverlay") as Control
 	if respawn != null:
@@ -390,21 +373,6 @@ func _on_respawned() -> void:
 	var overlay := get_node_or_null("RespawnOverlay")
 	if overlay != null:
 		overlay.visible = false
-
-
-func _on_heat_changed(value: float, locked: bool) -> void:
-	var bar := get_node_or_null("HeatBar") as ProgressBar
-	if bar != null:
-		bar.max_value = 1.0
-		bar.value = clampf(value, 0.0, 1.0)
-		if _heat_locked != locked:
-			_heat_locked = locked
-			if _heat_fill_locked != null and _heat_fill_normal != null:
-				bar.add_theme_stylebox_override("fill", _heat_fill_locked if locked else _heat_fill_normal)
-	var turbo := get_node_or_null("Turbo") as Label
-	if turbo != null:
-		turbo.visible = locked
-		turbo.text = "OVERHEAT" if locked else "TURBO"
 
 
 func _on_score_updated(_user_id: String, _score: int) -> void:

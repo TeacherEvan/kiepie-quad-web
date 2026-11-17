@@ -92,7 +92,8 @@ func _run() -> void:
 	if layer == null:
 		quit(1)
 		return
-	_check(layer.get_node_or_null("TouchCapture") != null, "raw pointer capture layer built")
+	_check((layer.get_node("TouchCapture") as Control).mouse_filter == Control.MOUSE_FILTER_IGNORE,
+			"raw pointer capture layer built with MOUSE_FILTER_IGNORE")
 	_check((layer.get_node("BtnGas") as Button).mouse_filter == Control.MOUSE_FILTER_IGNORE,
 			"drive buttons do not ride the single emulated mouse pointer")
 
@@ -272,6 +273,65 @@ func _run() -> void:
 	await process_frame
 	_check(not Input.is_action_pressed("move_forward"), "focus-out releases gas")
 	_check(not Input.is_action_pressed("steer_right"), "focus-out releases steer")
+
+	# ---- HUD & toggle buttons are never blocked by TouchCapture (mouse click + touch tap)
+	var hud := root_node.get_node_or_null("HUD") as CanvasLayer
+	var bike := root_node.get_node_or_null("KiepieBike") as VehicleBody3D
+	var rig := root_node.get_node_or_null("CameraRig")
+	if hud != null and bike != null:
+		var rbtn := hud.get_node_or_null("RestartBtn") as Button
+		var vbtn := hud.get_node_or_null("ViewBtn") as Button
+		var tbtn := layer.get_node_or_null("BtnTouchToggle") as Button
+		if rbtn != null:
+			var spawn_pos: Vector3 = (bike.get("_spawn") as Transform3D).origin
+			bike.global_position = spawn_pos + Vector3(12.0, 1.5, 16.0)
+			for _f in range(3):
+				await physics_frame
+				await process_frame
+			var rc := rbtn.get_global_rect().get_center()
+			_mouse(rc, true)
+			await process_frame
+			_mouse(rc, false)
+			for _f in range(4):
+				await physics_frame
+				await process_frame
+			_check(bike.global_position.distance_to(spawn_pos) < 1.5,
+					"RestartBtn mouse click resets bike back to spawn (dist=%.2f)" % bike.global_position.distance_to(spawn_pos))
+			# Also verify keyboard R (reset_bike) resets even if pushed through InputEventKey
+			bike.global_position = spawn_pos + Vector3(-10.0, 1.5, 14.0)
+			for _f in range(3):
+				await physics_frame
+				await process_frame
+			var rkey := InputEventKey.new()
+			rkey.keycode = KEY_R
+			rkey.physical_keycode = KEY_R
+			rkey.pressed = true
+			root.get_viewport().push_input(rkey)
+			await physics_frame
+			await process_frame
+			rkey.pressed = false
+			root.get_viewport().push_input(rkey)
+			for _f in range(4):
+				await physics_frame
+				await process_frame
+			_check(bike.global_position.distance_to(spawn_pos) < 1.5,
+					"R key reset returns bike back to spawn (dist=%.2f)" % bike.global_position.distance_to(spawn_pos))
+		if vbtn != null and rig != null:
+			var mode_before := str(rig.get("mode"))
+			var vc := vbtn.get_global_rect().get_center()
+			_mouse(vc, true)
+			await process_frame
+			_mouse(vc, false)
+			await process_frame
+			_check(str(rig.get("mode")) != mode_before, "ViewBtn mouse click toggles camera mode")
+		if tbtn != null:
+			var was_on := bool(layer.call("is_overlay_active"))
+			var tc := tbtn.get_global_rect().get_center()
+			_mouse(tc, true)
+			await process_frame
+			_mouse(tc, false)
+			await process_frame
+			_check(bool(layer.call("is_overlay_active")) != was_on, "BtnTouchToggle click toggles overlay")
 
 	# ---- cleanup: never leak state into other gates
 	for a in ["move_forward", "move_back", "steer_left", "steer_right", "turbo",

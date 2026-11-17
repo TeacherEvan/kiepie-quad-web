@@ -1,7 +1,7 @@
 extends SceneTree
 ## Offline gate for practice mode (TestRide): the local bike carries
-## CombatController in practice_mode, a FIRE touch button is wired, and shots
-## leave the barrel without any match lobby being on.
+## CombatController in practice_mode, mobile uses target-locked auto-fire,
+## shots fire continuously on cooldown without overheat, and Restart works.
 ## Exits 1 on any failure.
 
 var _fail := 0
@@ -74,16 +74,22 @@ func _run() -> void:
 		_check(bool(combat.get("practice_mode")), "combat runs in practice mode")
 		_check(combat.get("cannons") != null, "SideCannons created for practice cannons")
 
-	# ---- firing through the desktop input path spawns a projectile
+	# ---- firing through the desktop input path spawns projectiles continuously (hold-to-fire)
 	var before := _count_projectiles(ride)
+	var cannons_ref := combat.get("cannons") as Node if combat != null else null
+	var shot_cycles := [0]
+	if cannons_ref != null and cannons_ref.has_signal("fired"):
+		cannons_ref.connect("fired", func(_tok: String) -> void: shot_cycles[0] += 1)
 	Input.action_press("fire")
-	for i in range(4):
+	for i in range(22):
+		await physics_frame
 		await process_frame
 	Input.action_release("fire")
 	for i in range(2):
 		await process_frame
 	var after := _count_projectiles(ride)
 	_check(after > before, "practice fire spawns a projectile (%d -> %d)" % [before, after])
+	_check(shot_cycles[0] >= 2, "holding desktop fire continuously fires across cooldown (%d cycles)" % shot_cycles[0])
 
 	# ---- mobile touch overlay auto-fires at a forward drum target without manual fire input
 	if layer != null and combat != null and bike != null:
@@ -102,16 +108,44 @@ func _run() -> void:
 				await process_frame
 			var auto_after := _count_projectiles(ride)
 			_check(auto_after > auto_before, "mobile overlay auto-fires at forward target (%d -> %d)" % [auto_before, auto_after])
+			# Repeated shots never overheat or lock out automatic firing, and heat signals/props are absent.
+			var cannons_node := combat.get("cannons") as Node
+			if cannons_node != null:
+				for _s in range(8):
+					cannons_node.set("_cooldown", 0.0)
+					cannons_node.call("fire")
+				cannons_node.set("_cooldown", 0.0)
+				_check(not ("overheated" in cannons_node) and not ("heat" in cannons_node)
+						and not cannons_node.has_signal("heat_changed")
+						and not combat.has_signal("heat_changed")
+						and bool(cannons_node.call("can_fire")),
+						"cannons have no overheat state and keep can_fire after repeated shots")
 		if toggle != null and bool(layer.call("is_overlay_active")):
 			toggle.pressed.emit()  # leave touch overlay off
+	_check(ride.get_node_or_null("HUD/HeatBar") == null and ride.get_node_or_null("HUD/HeatLabel") == null,
+			"HeatBar and HeatLabel removed from HUD")
 
-	# ---- practice damage actually lands (drums can kill the rider)
-	if combat != null:
+	# ---- practice damage actually lands (drums can kill the rider) & Restart recovers cleanly
+	if combat != null and bike != null:
 		var hp_before := float(combat.get("health"))
 		combat.call("take_damage", 30.0, "audit-practice", Vector3.ZERO)
 		var hp_after := float(combat.get("health"))
 		_check(hp_after == hp_before - 30.0,
 				"practice take_damage applies (%.0f -> %.0f)" % [hp_before, hp_after])
+		var spawn_origin: Vector3 = (bike.get("_spawn") as Transform3D).origin
+		bike.global_position = spawn_origin + Vector3(8.0, 0.0, 10.0)
+		combat.call("take_damage", 150.0, "audit-practice", Vector3.ZERO)
+		_check(not bool(combat.get("alive")) and not bike.visible,
+				"lethal damage kills and hides practice bike")
+		var rbtn := ride.get_node_or_null("HUD/RestartBtn") as Button
+		if rbtn != null:
+			rbtn.pressed.emit()
+		for _f in range(4):
+			await physics_frame
+			await process_frame
+		_check(bool(combat.get("alive")) and float(combat.get("health")) == 100.0 and bike.visible
+				and bike.global_position.distance_to(spawn_origin) < 1.5,
+				"RestartBtn revives dead practice rider and resets bike to spawn")
 
 	# ---- cleanup (restore the developer's actual touch_force prior)
 	if settings_node != null:

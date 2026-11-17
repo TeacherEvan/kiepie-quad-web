@@ -6,7 +6,7 @@ extends Node
 signal changed(section: String, key: String, value: Variant)
 
 const PATH := "user://settings.cfg"
-const VERSION := 1
+const VERSION := 2
 
 const DEFAULTS := {
 	"meta": {"version": VERSION},
@@ -16,7 +16,7 @@ const DEFAULTS := {
 		"shadows": true,
 		"particles": 1.0,           # multiplier consumed by VfxFactory
 		"glow": true,
-		"fullscreen": false,
+		"fullscreen": true,
 		"fov": 62.0,
 		"show_fps": false,
 	},
@@ -274,7 +274,9 @@ func _load() -> void:
 				data[section] = {}
 			for key in _cfg.get_section_keys(section):
 				data[section][key] = _cfg.get_value(section, key)
-	# schema migration hook: future versions can transform values here
+		# Migrate v1 configs to enable fullscreen-on-launch by default.
+		if int((data.get("meta", {}) as Dictionary).get("version", 1)) < 2:
+			(data["video"] as Dictionary)["fullscreen"] = true
 	data["meta"]["version"] = VERSION
 	_save()
 
@@ -349,8 +351,13 @@ func _apply(section: String, key: String, value: Variant) -> void:
 				AudioServer.set_bus_mute(0, bool(value))
 		"video":
 			if key == "fullscreen":
-				var mode := DisplayServer.WINDOW_MODE_FULLSCREEN if bool(value) else DisplayServer.WINDOW_MODE_WINDOWED
-				if DisplayServer.get_name() != "web":
+				if DisplayServer.get_name() == "headless" or OS.get_environment("KIEPIE_MOCK_BACKEND") == "1":
+					return
+				var want_fs := bool(value)
+				if OS.has_feature("web") and Engine.has_singleton("JavaScriptBridge"):
+					JavaScriptBridge.eval("window.__kiepieSetFullscreen && window.__kiepieSetFullscreen(%s);" % ("true" if want_fs else "false"), true)
+				elif DisplayServer.get_name() != "web":
+					var mode := DisplayServer.WINDOW_MODE_FULLSCREEN if want_fs else DisplayServer.WINDOW_MODE_WINDOWED
 					DisplayServer.window_set_mode(mode)
 			elif key == "quality":
 				_apply_video_to_tree()
