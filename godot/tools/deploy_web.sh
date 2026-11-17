@@ -19,6 +19,7 @@ echo "== talo key"
 python3 godot/tools/inject_talo_key.py || { echo "DEPLOY ABORTED: no Talo game key"; exit 1; }
 
 echo "== web export (staging: web/ — git-ignored)"
+mkdir -p "$ROOT/web"
 "$GODOT" --headless --path godot --export-release "Web" "$ROOT/web/index.html" || {
 	echo "DEPLOY ABORTED: export failed"; exit 1;
 }
