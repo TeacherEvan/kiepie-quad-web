@@ -4,10 +4,13 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1794937658|7062830';
+const CACHE_VERSION = '1794942507|6547675|20cccaea248e';
 /** @type {string} */
 const CACHE_PREFIX = 'KiepieBike-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
+const ENGINE_PREFIX = 'KiepieBike-engine-';
+const ENGINE_CACHE = ENGINE_PREFIX + 'fe5cebc59075';
+const ENGINE_FILES = ['index.wasm'];
 /** @type {string} */
 const OFFLINE_URL = 'index.offline.html';
 /** @type {boolean} */
@@ -21,16 +24,18 @@ const CACHABLE_FILES = ["index.wasm","index.pck"];
 const FULL_CACHE = CACHED_FILES.concat(CACHABLE_FILES);
 
 self.addEventListener('install', (event) => {
-	event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(CACHED_FILES)));
+	event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(CACHED_FILES)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
 	event.waitUntil(caches.keys().then(
 		function (keys) {
 			// Remove old caches.
-			return Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map((key) => caches.delete(key)));
+			return Promise.all(keys.filter((key) => (key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME) || (key.startsWith(ENGINE_PREFIX) && key !== ENGINE_CACHE)).map((key) => caches.delete(key)));
 		}
 	).then(function () {
+		return self.clients.claim();
+	}).then(function () {
 		// Enable navigation preload if available.
 		return ('navigationPreload' in self.registration) ? self.registration.navigationPreload.enable() : Promise.resolve();
 	}));
@@ -79,9 +84,9 @@ async function fetchAndCache(event, cache, isCacheable) {
 		response = ensureCrossOriginIsolationHeaders(response);
 	}
 
-	if (isCacheable) {
-		// And update the cache
-		cache.put(event.request, response.clone());
+	if (isCacheable && response.ok) {
+		// And update the cache (ignore storage quota rejections cleanly)
+		cache.put(event.request, response.clone()).catch(() => {});
 	}
 
 	return response;
@@ -96,31 +101,38 @@ self.addEventListener(
 	(event) => {
 		const isNavigate = event.request.mode === 'navigate';
 		const url = event.request.url || '';
-		const referrer = event.request.referrer || '';
-		const base = referrer.slice(0, referrer.lastIndexOf('/') + 1);
-		const local = url.startsWith(base) ? url.replace(base, '') : '';
-		const isCachable = FULL_CACHE.some((v) => v === local) || (base === referrer && base.endsWith(CACHED_FILES[0]));
-		if (isNavigate || isCachable) {
+		let local = '';
+		try {
+			const u = new URL(url, self.location.href);
+			if (u.origin === self.location.origin) {
+				local = u.pathname.slice(u.pathname.lastIndexOf('/') + 1);
+			}
+		} catch (_) {}
+		const isEngine = ENGINE_FILES.includes(local);
+		const isCachable = FULL_CACHE.some((v) => v === local) || (isNavigate && local === '');
+		const networkFirst = isNavigate || local === '' || local === 'index.html' || local === 'index.js' || local === 'index.manifest.json';
+		if (isNavigate || isCachable || isEngine) {
 			event.respondWith((async () => {
-				// Try to use cache first
-				const cache = await caches.open(CACHE_NAME);
-				if (isNavigate) {
-					// Check if we have full cache during HTML page request.
-					/** @type {Response[]} */
-					const fullCache = await Promise.all(FULL_CACHE.map((name) => cache.match(name)));
-					const missing = fullCache.some((v) => v === undefined);
-					if (missing) {
-						try {
-							// Try network if some cached file is missing (so we can display offline page in case).
-							const response = await fetchAndCache(event, cache, isCachable);
-							return response;
-						} catch (e) {
-							// And return the hopefully always cached offline page in case of network failure.
-							console.error('Network error: ', e); // eslint-disable-line no-console
+				const targetCacheName = isEngine ? ENGINE_CACHE : CACHE_NAME;
+				const cache = await caches.open(targetCacheName);
+				if (networkFirst) {
+					try {
+						return await Promise.race([
+							fetchAndCache(event, cache, isCachable),
+							new Promise((_, rej) => setTimeout(() => rej(new Error('sw-timeout')), 2500)),
+						]);
+					} catch (e) {
+						let cached = await cache.match(event.request);
+						if (cached != null) {
+							return ENSURE_CROSSORIGIN_ISOLATION_HEADERS ? ensureCrossOriginIsolationHeaders(cached) : cached;
+						}
+						if (isNavigate) {
 							return caches.match(OFFLINE_URL);
 						}
+						return await fetchAndCache(event, cache, isCachable);
 					}
 				}
+				// Cache-First for immutable ENGINE_CACHE (index.wasm) and content-hashed CACHE_NAME (index.pck)
 				let cached = await cache.match(event.request);
 				if (cached != null) {
 					if (ENSURE_CROSSORIGIN_ISOLATION_HEADERS) {
@@ -128,9 +140,7 @@ self.addEventListener(
 					}
 					return cached;
 				}
-				// Try network if don't have it in cache.
-				const response = await fetchAndCache(event, cache, isCachable);
-				return response;
+				return await fetchAndCache(event, cache, isCachable || isEngine);
 			})());
 		} else if (ENSURE_CROSSORIGIN_ISOLATION_HEADERS) {
 			event.respondWith((async () => {
