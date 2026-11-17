@@ -72,10 +72,11 @@ Controls:
 | `R` | Reset to spawn (also the on-screen **Restart** button) |
 | Touch | On-screen overlay (◀ ▶ steer · **DODGE L/R** · BRAKE · GAS · TURBO · FIRE) auto-appears on touch devices; the **TOUCH** button (top-right) force-shows/hides it anywhere. Dodge/FIRE button sizes and steering sensitivity are adjustable in Settings → Controls |
 
-`TestRide.tscn` is the playable demo pad: asphalt, cone ring, start line, six **ramps**
+`TestRide.tscn` is the playable practice pad: asphalt, cone ring, start line, six **ramps**
 (including a cone-clearing jump line with a landing slope), four **smashable buildings**
 (drive into them at speed — they burst into debris and an on-screen counter tracks it),
-a follow camera and a HUD with speed readout, smash counter,
+a follow camera, working **practice cannons** (F / Fire button — no lobby required, no
+network kill broadcasts) and a HUD with speed readout, smash counter,
 turbo indicator and Restart / View buttons. Rollover-immune physics (lowered center of
 mass + angular damping) — the quad cannot flip. It is a placeholder — build your real
 track in it or as a sibling scene.
@@ -275,7 +276,7 @@ deploy helper does this automatically. The Web build ships that key inside the p
 design — use a disposable, scoped dev key, never `TALO_API_ADMIN`. Lobbies are Talo channels,
 state lives in host-owned channel props, and shots/kills flow over channel socket messages.
 Scoring is host-authoritative client logic (no server-side validation). Without a key the client
-uses a full offline `MockBackend`, so all 20 gates run without credentials. The old `supabase/`
+uses a full offline `MockBackend`, so all 21 gates run without credentials. The old `supabase/`
 migrations are retained for history only and are not deployed.
 
 **VFX pass:** effects are built by `godot/src/game/VfxFactory.gd` from five tiny sprites
@@ -307,8 +308,10 @@ proportional steer strength, large touch controls and quality presets
 **New gates:** `verify_cannons.gd`, `verify_settings.gd`, `verify_match_rules.gd`,
 `verify_combat.gd`, `verify_kill_flow.gd`, `verify_appeal.gd`, `verify_talo_backend.gd` and
 `verify_audit_regressions.gd`, `verify_controls.gd` and `verify_dodge.gd` join the existing
-suite — `godot/tools/run_gates.sh` now runs 20 gates offline (18 headless gates plus GdUnit4
+suite — `godot/tools/run_gates.sh` now runs 21 gates offline (19 headless gates plus GdUnit4
 and one xvfb-windowed multi-touch gate, `verify_touch_multitouch.gd`).
+The new `verify_practice.gd` locks practice-mode cannons (no lobby required, FIRE
+wired for touch, real input-driven projectile spawn).
 The new `verify_vfx.gd` locks effect contracts (reduced motion, quality scaling, decal caps,
 flat-normal safety) and the new arena/test-track ramp and building counts with spawn clearance.
 The new gates exercise `TaloBackend` directly with no live account, lock the surgical-audit

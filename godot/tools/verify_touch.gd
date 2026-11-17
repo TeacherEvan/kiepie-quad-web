@@ -63,7 +63,7 @@ func _initialize() -> void:
 
 	# ---- buttons: presence, focus mode, touch-target size
 	var names := ["BtnGas", "BtnBrake", "BtnTurbo",
-			"BtnDodgeLeft", "BtnDodgeRight", "BtnTouchToggle"]
+			"BtnFire", "BtnDodgeLeft", "BtnDodgeRight", "BtnTouchToggle"]
 	var btns := {}
 	for n in names:
 		var b := layer.get_node_or_null(n) as Button
@@ -106,7 +106,7 @@ func _initialize() -> void:
 
 	# ---- action wiring: button_down/up -> InputMap actions
 	var pairs := {"BtnGas": "move_forward", "BtnBrake": "move_back",
-			"BtnTurbo": "turbo",
+			"BtnTurbo": "turbo", "BtnFire": "fire",
 			"BtnDodgeLeft": "dodge_left", "BtnDodgeRight": "dodge_right"}
 	for n in pairs:
 		var action: String = pairs[n]

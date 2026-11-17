@@ -98,7 +98,19 @@ func fire() -> void:
 	var cam := get_tree().get_first_node_in_group("camera_rig") if get_tree() != null else null
 	if cam != null and cam.has_method("add_shake"):
 		cam.call("add_shake", 0.10)
-	var fx_parent := get_tree().current_scene if get_tree() != null and get_tree().current_scene != null else get_tree().root
+	var fx_parent: Node3D = null
+	if get_tree() != null:
+		var cs := get_tree().current_scene
+		if cs is Node3D:
+			fx_parent = cs as Node3D
+		elif owner_node.get_parent() is Node3D:
+			fx_parent = owner_node.get_parent() as Node3D
+		else:
+			# headless/tool contexts have no current scene and a Window root:
+			# mount effects on a dedicated holder instead of a non-Node3D parent
+			fx_parent = Node3D.new()
+			fx_parent.name = "CannonFX"
+			get_tree().root.add_child(fx_parent)
 	var right_vec := owner_node.global_transform.basis.x.normalized()
 	for i in range(_muzzles.size()):
 		var muzzle: Node3D = _muzzles[i]

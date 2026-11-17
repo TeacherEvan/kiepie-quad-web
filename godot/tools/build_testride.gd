@@ -3,6 +3,7 @@ extends SceneTree
 # sun, environment, follow/orbit camera, HUD, ramps and 3 smashable buildings.
 
 const OUT := "res://scenes/TestRide.tscn"
+const COMBAT := "res://src/game/CombatController.gd"
 const DECOR := preload("res://src/game/BuildingDecor.gd")
 
 
@@ -154,7 +155,15 @@ func _initialize() -> void:
 	bike.position = Vector3(0.0, 0.45, 8.0)
 	bike.rotation = Vector3(0.0, 0.0, 0.0)
 	bike.add_to_group("bike")
+	# practice-mode cannons: fire works without a match lobby; no network kill
+	# broadcast, no match gate. CombatController lives on the bike like Arena.
+	var combat := Node3D.new()
+	combat.name = "CombatController"
+	combat.set_script(load(COMBAT))
+	combat.set("practice_mode", true)
+	bike.add_child(combat)
 	root.add_child(bike)
+	combat.owner = root  # outer scene owns baked-in children of instanced scenes
 
 	# ---------------- camera rig + camera
 	var rig := Node3D.new()
@@ -390,6 +399,23 @@ func _add_touch_controls(root: Node) -> void:
 	_style_button(gas, Color(1.0, 0.46, 0.10, 0.9))
 	gas.add_theme_font_size_override("font_size", 36)
 	touch.add_child(gas)
+
+	# --- FIRE above the driving cluster (practice-mode cannons)
+	var fire_btn := Button.new()
+	fire_btn.name = "BtnFire"
+	fire_btn.text = "FIRE"
+	fire_btn.anchor_left = 1.0
+	fire_btn.anchor_right = 1.0
+	fire_btn.anchor_top = 1.0
+	fire_btn.anchor_bottom = 1.0
+	fire_btn.offset_left = -168.0
+	fire_btn.offset_right = -8.0
+	fire_btn.offset_top = -326.0
+	fire_btn.offset_bottom = -206.0
+	fire_btn.focus_mode = Control.FOCUS_NONE
+	_style_button(fire_btn, Color(1.0, 0.30, 0.22, 0.95))
+	fire_btn.add_theme_font_size_override("font_size", 30)
+	touch.add_child(fire_btn)
 
 	# --- top-right column, below Restart/View: manual overlay toggle (auto-detect fallback)
 	var toggle := Button.new()

@@ -1,6 +1,7 @@
 extends Node3D
 ## Player-side combat: health, death, respawn and cannon input. Attached as a
-## child of the local KiepieBike instance in the multiplayer arena.
+## child of the local KiepieBike instance. In the multiplayer arena it is
+## match-gated; in practice mode (TestRide) it works standalone.
 
 signal health_changed(current: float, maximum: float)
 signal died(killer_id: String)
@@ -13,6 +14,8 @@ signal hit_confirmed()
 const MAX_HEALTH := 100.0
 const CANNON := preload("res://src/game/SideCannons.gd")
 const VFX := preload("res://src/game/VfxFactory.gd")
+
+@export var practice_mode := false
 
 var bike: VehicleBody3D
 var cannons: Node3D
@@ -67,7 +70,7 @@ func _physics_process(delta: float) -> void:
 		if now >= _respawn_at:
 			_respawn()
 		return
-	if not Match.is_playing():
+	if not practice_mode and not Match.is_playing():
 		return
 
 	if cannons != null:
@@ -145,12 +148,13 @@ func _die(by: String) -> void:
 	VFX.explosion(_fx_parent(), bike.global_position, player_color, 1.3)
 	_play_sfx("explosion")
 	_shake(0.55)
-	Supabase.broadcast("kill", {
-		"killer": by,
-		"victim": Supabase.user_id,
-		"token": _last_hit_token,
-		"at": Time.get_ticks_msec(),
-	})
+	if not practice_mode:
+		Supabase.broadcast("kill", {
+			"killer": by,
+			"victim": Supabase.user_id,
+			"token": _last_hit_token,
+			"at": Time.get_ticks_msec(),
+		})
 	bike.visible = false
 	bike.set_physics_process(false)
 	_respawn_at = Time.get_ticks_msec() / 1000.0 + Match.respawn_delay()
