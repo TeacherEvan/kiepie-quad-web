@@ -31,7 +31,7 @@ var _rapid_until := 0.0
 var _overdrive_until := 0.0
 var _shield_until := 0.0
 var _smoke_accum := 0.0
-var _base_power := 420.0
+var _base_power := 210.0
 var _auto_fire_cd := 0.0
 var _los_query: PhysicsRayQueryParameters3D
 var _touch_ctrl: Node = null

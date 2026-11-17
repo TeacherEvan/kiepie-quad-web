@@ -10,7 +10,7 @@ extends VehicleBody3D
 ##   Q / E     dodge left / right: leap into a cartwheel to evade attacks
 ##   R         reset to spawn
 
-@export var engine_power := 420.0
+@export var engine_power := 210.0
 @export var turbo_boost := 1.30
 @export var max_steer := 0.62
 @export var steer_speed := 5.0
