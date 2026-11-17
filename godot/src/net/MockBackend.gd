@@ -79,7 +79,7 @@ func call_rpc(name: String, args: Dictionary = {}) -> Dictionary:
 			var me := "mock-host"
 			if players.has(me):
 				(players[me] as Dictionary)["is_ready"] = bool(args.get("p_ready", false))
-			return {"ok": true, "pending": false}
+			return {"ok": true, "pending": false, "players": players.duplicate(true)}
 		"leave_lobby", "heartbeat":
 			return {}
 		"start_match":

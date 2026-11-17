@@ -63,9 +63,10 @@ func _initialize() -> void:
 	_check(toggle_btn != null and toggle_btn.visible,
 			"TOUCH toggle stays visible when drive buttons are hidden")
 
-	# ---- buttons: presence, focus mode, touch-target size
-	var names := ["BtnGas", "BtnBrake", "BtnTurbo",
-			"BtnFire", "BtnDodgeLeft", "BtnDodgeRight", "BtnTouchToggle"]
+	# ---- buttons: streamlined mobile overlay (Gas + AnalogSteer/Turbo + Dodge L/R + Toggle)
+	for removed in ["BtnFire", "BtnTurbo", "BtnBrake"]:
+		_check(layer.get_node_or_null(removed) == null, "%s removed from streamlined touch overlay" % removed)
+	var names := ["BtnGas", "BtnDodgeLeft", "BtnDodgeRight", "BtnTouchToggle"]
 	var btns := {}
 	for n in names:
 		var b := layer.get_node_or_null(n) as Button
@@ -107,8 +108,7 @@ func _initialize() -> void:
 					"%s and %s touch targets do not overlap" % [a, c])
 
 	# ---- action wiring: button_down/up -> InputMap actions
-	var pairs := {"BtnGas": "move_forward", "BtnBrake": "move_back",
-			"BtnTurbo": "turbo", "BtnFire": "fire",
+	var pairs := {"BtnGas": "move_forward",
 			"BtnDodgeLeft": "dodge_left", "BtnDodgeRight": "dodge_right"}
 	for n in pairs:
 		var action: String = pairs[n]

@@ -40,6 +40,8 @@ var _was_grounded := false   ## visual-only landing detector
 var _roost_accum := 0.0
 
 @onready var _flames: GPUParticles3D = get_node_or_null("ExhaustFlames")
+var _jet_plume: Node3D = null
+var _jet_t := 0.0
 @onready var _wheel_nodes := {
 	"WheelFL": get_node_or_null("Model/Wheel_FL"),
 	"WheelFR": get_node_or_null("Model/Wheel_FR"),
@@ -71,55 +73,120 @@ func _build_flames() -> void:
 		_flames.queue_free()
 	var p := GPUParticles3D.new()
 	p.name = "ExhaustFlames"
-	p.amount = 110
-	p.lifetime = 0.34
+	p.amount = 72
+	p.lifetime = 0.10
 	p.one_shot = false
 	p.emitting = false
-	p.local_coords = false
-	p.visibility_aabb = AABB(Vector3(-1.5, -1.0, -1.5), Vector3(3.0, 3.0, 4.0))
+	p.local_coords = true
+	p.visibility_aabb = AABB(Vector3(-0.8, -0.8, -2.5), Vector3(1.6, 1.6, 3.0))
 
 	var pm := ParticleProcessMaterial.new()
-	# The GLB's forward axis is local +Z; the silencer tip is at the REAR (-Z).
-	# Emit backwards, slightly up, out of the can — not forward at the front wheels.
-	pm.direction = Vector3(0.0, 0.16, -1.0)
-	pm.spread = 13.0
+	# Jet afterburner core: focused supersonic exhaust aft (-Z) with razor spread
+	# and zero gravity drop so it reads as a jet thrust plume, not a flamethrower.
+	pm.direction = Vector3(0.0, 0.03, -1.0)
+	pm.spread = 2.6
 	pm.flatness = 0.0
-	pm.gravity = Vector3(0.0, -0.7, 0.0)
-	pm.initial_velocity_min = 4.2
-	pm.initial_velocity_max = 7.4
-	pm.angular_velocity_min = -40.0
-	pm.angular_velocity_max = 40.0
-	pm.scale_min = 0.45
-	pm.scale_max = 1.65
-	var grad := Gradient.new()
-	grad.set_color(0, Color(1.0, 0.96, 0.62, 1.0))
-	grad.set_offset(0, 0.0)
-	grad.set_color(1, Color(1.0, 0.55, 0.08, 0.95))
-	grad.set_offset(1, 0.28)
-	grad.add_point(0.62, Color(0.88, 0.22, 0.04, 0.85))
-	grad.add_point(1.0, Color(0.18, 0.03, 0.01, 0.0))
-	var ramp := GradientTexture1D.new()
-	ramp.gradient = grad
-	pm.color_ramp = ramp
+	pm.gravity = Vector3.ZERO
+	pm.initial_velocity_min = 16.0
+	pm.initial_velocity_max = 26.0
+	pm.scale_min = 0.55
+	pm.scale_max = 1.15
+	pm.particle_flag_align_y = true
+	pm.color_ramp = VfxFactory._ramp([
+		Color(1.0, 0.99, 0.94, 1.0),
+		Color(0.36, 0.84, 1.0, 0.96),
+		Color(0.22, 0.48, 1.0, 0.72),
+		Color(1.0, 0.52, 0.14, 0.0),
+	])
+	pm.scale_curve = VfxFactory._curve([[0.0, 1.0], [0.35, 0.72], [1.0, 0.06]])
 	p.process_material = pm
 
-	var sm := SphereMesh.new()
-	sm.radius = 0.075
-	sm.height = 0.15
-	sm.radial_segments = 8
-	sm.rings = 4
+	var flame_mesh := SphereMesh.new()
+	flame_mesh.radius = 0.030
+	flame_mesh.height = 0.24
+	flame_mesh.radial_segments = 6
+	flame_mesh.rings = 3
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(1.0, 0.62, 0.12, 1.0)
-	mat.emission_enabled = true
-	mat.emission = Color(1.0, 0.45, 0.06, 1.0)
-	mat.emission_energy_multiplier = 3.2
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	sm.material = mat
-	p.draw_pass_1 = sm
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	mat.vertex_color_use_as_albedo = true
+	flame_mesh.material = mat
+	p.draw_pass_1 = flame_mesh
 
 	# Match the imported Silencer_Tip node: (-0.278, 0.487, -0.715) in the
 	# bike's local frame (+Z is forward, so the exhaust sits at negative Z).
 	p.position = Vector3(-0.278, 0.487, -0.715)
+
+	# Inner afterburner jet cone + Mach shock diamonds for unmistakable turbine thrust.
+	var plume := Node3D.new()
+	plume.name = "JetPlume"
+	plume.visible = false
+
+	var outer_mesh := CylinderMesh.new()
+	outer_mesh.top_radius = 0.002
+	outer_mesh.bottom_radius = 0.062
+	outer_mesh.height = 0.88
+	outer_mesh.radial_segments = 12
+	var outer_mat := StandardMaterial3D.new()
+	outer_mat.albedo_color = Color(0.28, 0.76, 1.0, 0.48)
+	outer_mat.emission_enabled = true
+	outer_mat.emission = Color(0.25, 0.72, 1.0)
+	outer_mat.emission_energy_multiplier = 3.6
+	outer_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	outer_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	outer_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	outer_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	outer_mesh.material = outer_mat
+	var outer := MeshInstance3D.new()
+	outer.name = "OuterCone"
+	outer.mesh = outer_mesh
+	outer.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	outer.rotation_degrees.x = -90.0
+	outer.position = Vector3(0.0, 0.0, -0.44)
+	plume.add_child(outer)
+
+	var inner_mesh := CylinderMesh.new()
+	inner_mesh.top_radius = 0.001
+	inner_mesh.bottom_radius = 0.032
+	inner_mesh.height = 0.48
+	inner_mesh.radial_segments = 10
+	var inner_mat := StandardMaterial3D.new()
+	inner_mat.albedo_color = Color(0.92, 0.98, 1.0, 0.88)
+	inner_mat.emission_enabled = true
+	inner_mat.emission = Color(0.75, 0.95, 1.0)
+	inner_mat.emission_energy_multiplier = 5.2
+	inner_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	inner_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	inner_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	inner_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	inner_mesh.material = inner_mat
+	var inner := MeshInstance3D.new()
+	inner.name = "InnerCore"
+	inner.mesh = inner_mesh
+	inner.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	inner.rotation_degrees.x = -90.0
+	inner.position = Vector3(0.0, 0.0, -0.24)
+	plume.add_child(inner)
+
+	var shock_mesh := SphereMesh.new()
+	shock_mesh.radius = 0.036
+	shock_mesh.height = 0.09
+	shock_mesh.radial_segments = 8
+	shock_mesh.rings = 4
+	shock_mesh.material = inner_mat
+	for idx in range(2):
+		var ring := MeshInstance3D.new()
+		ring.name = "MachDiamond%d" % idx
+		ring.mesh = shock_mesh
+		ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		ring.rotation_degrees.x = 90.0
+		ring.position = Vector3(0.0, 0.0, -0.22 - float(idx) * 0.24)
+		ring.scale = Vector3.ONE * (1.0 - float(idx) * 0.26)
+		plume.add_child(ring)
+
+	p.add_child(plume)
+	_jet_plume = plume
 	add_child(p)
 	_flames = p
 
@@ -169,6 +236,14 @@ func _physics_process(delta: float) -> void:
 	turbo_active = _turbo_blend > 0.35
 	if _flames:
 		_flames.emitting = turbo_active
+	if _jet_plume != null:
+		var jet_strength := _turbo_blend if turbo_active else (0.55 if (_flames and _flames.emitting) else 0.0)
+		_jet_plume.visible = jet_strength > 0.04
+		if _jet_plume.visible:
+			_jet_t += delta
+			var pulse := 0.92 + 0.12 * sin(_jet_t * 68.0)
+			var w := lerpf(0.75, 1.15, jet_strength) * pulse
+			_jet_plume.scale = Vector3(w, w, lerpf(0.45, 1.25, jet_strength) * pulse)
 
 	var steer_cap := max_steer * _steer_sensitivity
 	_steer = move_toward(_steer, steer_input * steer_cap, steer_speed * _steer_sensitivity * delta)

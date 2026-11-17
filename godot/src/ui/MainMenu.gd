@@ -26,6 +26,7 @@ var _busy := false
 
 
 func _ready() -> void:
+	Settings.call_deferred("sync_back_handler")
 	_apply_safe_area(_safe)
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	_btn_practice.pressed.connect(_on_practice)

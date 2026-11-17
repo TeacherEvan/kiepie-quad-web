@@ -313,8 +313,8 @@ func _initialize() -> void:
 	restart.anchor_left = 1.0
 	restart.offset_right = -14.0
 	restart.offset_left = -150.0
-	restart.offset_top = 12.0
-	restart.offset_bottom = 64.0
+	restart.offset_top = 10.0
+	restart.offset_bottom = 56.0
 	restart.focus_mode = Control.FOCUS_NONE
 	UI.style_button(restart, UI.ACCENT)
 	layer.add_child(restart)
@@ -326,11 +326,24 @@ func _initialize() -> void:
 	view.anchor_left = 1.0
 	view.offset_right = -14.0
 	view.offset_left = -150.0
-	view.offset_top = 70.0
-	view.offset_bottom = 122.0
+	view.offset_top = 62.0
+	view.offset_bottom = 108.0
 	view.focus_mode = Control.FOCUS_NONE
 	UI.style_button(view, UI.ACCENT)
 	layer.add_child(view)
+
+	var menu_btn := Button.new()
+	menu_btn.name = "MenuBtn"
+	menu_btn.text = "Main Menu"
+	menu_btn.anchor_right = 1.0
+	menu_btn.anchor_left = 1.0
+	menu_btn.offset_right = -14.0
+	menu_btn.offset_left = -150.0
+	menu_btn.offset_top = 114.0
+	menu_btn.offset_bottom = 160.0
+	menu_btn.focus_mode = Control.FOCUS_NONE
+	UI.style_button(menu_btn, UI.MUTED)
+	layer.add_child(menu_btn)
 
 	root.add_child(layer)
 
@@ -437,39 +450,7 @@ func _add_touch_controls(root: Node) -> void:
 	dodge_right.pivot_offset = Vector2(45.0, 40.0)
 	touch.add_child(dodge_right)
 
-	# --- right thumb: TURBO above BRAKE, big GAS on the far right (bottom-right corner)
-	var turbo_btn := Button.new()
-	turbo_btn.name = "BtnTurbo"
-	turbo_btn.text = "TURBO"
-	turbo_btn.anchor_left = 1.0
-	turbo_btn.anchor_right = 1.0
-	turbo_btn.anchor_top = 1.0
-	turbo_btn.anchor_bottom = 1.0
-	turbo_btn.offset_left = -258.0
-	turbo_btn.offset_right = -148.0
-	turbo_btn.offset_top = -202.0
-	turbo_btn.offset_bottom = -122.0
-	turbo_btn.focus_mode = Control.FOCUS_NONE
-	UI.style_button(turbo_btn, UI.GOLD)
-	turbo_btn.add_theme_font_size_override("font_size", 18)
-	touch.add_child(turbo_btn)
-
-	var brake := Button.new()
-	brake.name = "BtnBrake"
-	brake.text = "BRAKE"
-	brake.anchor_left = 1.0
-	brake.anchor_right = 1.0
-	brake.anchor_top = 1.0
-	brake.anchor_bottom = 1.0
-	brake.offset_left = -258.0
-	brake.offset_right = -148.0
-	brake.offset_top = -112.0
-	brake.offset_bottom = -16.0
-	brake.focus_mode = Control.FOCUS_NONE
-	UI.style_button(brake, UI.MUTED)
-	brake.add_theme_font_size_override("font_size", 20)
-	touch.add_child(brake)
-
+	# --- right thumb: streamlined big GAS pedal (auto-fire handles cannons; analog push handles turbo)
 	var gas := Button.new()
 	gas.name = "BtnGas"
 	gas.text = "GAS"
@@ -477,33 +458,16 @@ func _add_touch_controls(root: Node) -> void:
 	gas.anchor_right = 1.0
 	gas.anchor_top = 1.0
 	gas.anchor_bottom = 1.0
-	gas.offset_left = -138.0
-	gas.offset_right = -12.0
-	gas.offset_top = -176.0
-	gas.offset_bottom = -16.0
+	gas.offset_left = -156.0
+	gas.offset_right = -14.0
+	gas.offset_top = -174.0
+	gas.offset_bottom = -18.0
 	gas.focus_mode = Control.FOCUS_NONE
 	UI.style_button(gas, UI.ACCENT)
 	gas.add_theme_font_size_override("font_size", 36)
 	touch.add_child(gas)
 
-	# --- FIRE above the driving cluster (practice-mode cannons)
-	var fire_btn := Button.new()
-	fire_btn.name = "BtnFire"
-	fire_btn.text = "FIRE"
-	fire_btn.anchor_left = 1.0
-	fire_btn.anchor_right = 1.0
-	fire_btn.anchor_top = 1.0
-	fire_btn.anchor_bottom = 1.0
-	fire_btn.offset_left = -164.0
-	fire_btn.offset_right = -38.0
-	fire_btn.offset_top = -352.0
-	fire_btn.offset_bottom = -232.0
-	fire_btn.focus_mode = Control.FOCUS_NONE
-	UI.style_button(fire_btn, UI.DANGER)
-	fire_btn.add_theme_font_size_override("font_size", 30)
-	touch.add_child(fire_btn)
-
-	# --- top-right column, below Restart/View: manual overlay toggle (auto-detect fallback)
+	# --- top-right column, below Restart/View/Menu: manual overlay toggle (auto-detect fallback)
 	var toggle := Button.new()
 	toggle.name = "BtnTouchToggle"
 	toggle.text = "TOUCH: AUTO"
@@ -513,8 +477,8 @@ func _add_touch_controls(root: Node) -> void:
 	toggle.anchor_bottom = 0.0
 	toggle.offset_left = -146.0
 	toggle.offset_right = -14.0
-	toggle.offset_top = 128.0
-	toggle.offset_bottom = 172.0
+	toggle.offset_top = 166.0
+	toggle.offset_bottom = 210.0
 	toggle.focus_mode = Control.FOCUS_NONE
 	UI.style_button(toggle, UI.TEXT)
 	toggle.add_theme_font_size_override("font_size", 13)

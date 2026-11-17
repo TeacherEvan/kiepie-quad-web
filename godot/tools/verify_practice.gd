@@ -56,20 +56,14 @@ func _run() -> void:
 	for i in range(6):
 		await process_frame
 
-	# ---- touch overlay exposes FIRE
+	# ---- streamlined touch overlay removes manual FIRE / TURBO / BRAKE buttons
 	var layer := ride.get_node_or_null("TouchHUD") as CanvasLayer
 	_check(layer != null, "TouchHUD exists")
-	var fire := layer.get_node_or_null("BtnFire") as Button if layer != null else null
-	_check(fire != null, "BtnFire exists for touch players")
-	if fire != null:
-		_check(fire.focus_mode == Control.FOCUS_NONE, "BtnFire focus_mode == FOCUS_NONE")
-		var s := Vector2(absf(fire.offset_right - fire.offset_left), absf(fire.offset_bottom - fire.offset_top))
-		_check(s.x >= 44.0 and s.y >= 44.0, "BtnFire target >= 44x44 (got %.0fx%.0f)" % [s.x, s.y])
-		# wired to the fire action by the overlay
-		fire.button_down.emit()
-		_check(Input.is_action_pressed("fire"), "BtnFire button_down holds 'fire'")
-		fire.button_up.emit()
-		_check(not Input.is_action_pressed("fire"), "BtnFire button_up releases 'fire'")
+	if layer != null:
+		for removed in ["BtnFire", "BtnTurbo", "BtnBrake"]:
+			_check(layer.get_node_or_null(removed) == null, "%s omitted from streamlined touch overlay" % removed)
+	var menu_btn := ride.get_node_or_null("HUD/MenuBtn") as Button
+	_check(menu_btn != null and menu_btn.focus_mode == Control.FOCUS_NONE, "TestRide MenuBtn exists with FOCUS_NONE")
 
 	# ---- bike carries practice-mode combat with cannons wired
 	var bike := ride.get_node_or_null("KiepieBike") as Node3D
@@ -80,7 +74,7 @@ func _run() -> void:
 		_check(bool(combat.get("practice_mode")), "combat runs in practice mode")
 		_check(combat.get("cannons") != null, "SideCannons created for practice cannons")
 
-	# ---- firing through the real input path spawns a projectile
+	# ---- firing through the desktop input path spawns a projectile
 	var before := _count_projectiles(ride)
 	Input.action_press("fire")
 	for i in range(4):
@@ -90,6 +84,26 @@ func _run() -> void:
 		await process_frame
 	var after := _count_projectiles(ride)
 	_check(after > before, "practice fire spawns a projectile (%d -> %d)" % [before, after])
+
+	# ---- mobile touch overlay auto-fires at a forward drum target without manual fire input
+	if layer != null and combat != null and bike != null:
+		var toggle := layer.get_node_or_null("BtnTouchToggle") as Button
+		if toggle != null and not bool(layer.call("is_overlay_active")):
+			toggle.pressed.emit()
+		var drum := ride.get_node_or_null("FuelDrum0") as Node3D
+		if drum != null:
+			# Aim the bike toward FuelDrum0 inside forward auto-fire cone
+			var look := Vector3(drum.global_position.x, bike.global_position.y, drum.global_position.z)
+			bike.look_at(look, Vector3.UP, true)
+			combat.set("_auto_fire_cd", 0.0)
+			combat.get("cannons").set("_cooldown", 0.0)
+			var auto_before := _count_projectiles(ride)
+			for i in range(6):
+				await process_frame
+			var auto_after := _count_projectiles(ride)
+			_check(auto_after > auto_before, "mobile overlay auto-fires at forward target (%d -> %d)" % [auto_before, auto_after])
+		if toggle != null and bool(layer.call("is_overlay_active")):
+			toggle.pressed.emit()  # leave touch overlay off
 
 	# ---- practice damage actually lands (drums can kill the rider)
 	if combat != null:

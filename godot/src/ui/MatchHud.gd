@@ -28,6 +28,7 @@ var _hit_tween: Tween = null
 
 func _init() -> void:
 	add_to_group("match_hud")
+	add_to_group("back_handler")
 
 
 func _ready() -> void:
@@ -62,7 +63,11 @@ func _ready() -> void:
 		Match.lobby_changed.connect(_on_lobby_changed)
 		Match.self_respawn_at.connect(_on_self_respawn_at)
 
-	# --- result buttons
+	# --- result & top-right navigation buttons
+	var menu_btn := get_node_or_null("MenuBtn") as Button
+	if menu_btn != null:
+		menu_btn.pressed.connect(_on_leave_match)
+	Settings.call_deferred("sync_back_handler")
 	var again := get_node_or_null("ResultPanel/PlayAgainBtn") as Button
 	if again != null:
 		again.pressed.connect(_on_leave_match)
@@ -162,14 +167,31 @@ func _relayout() -> void:
 		else:
 			banner.anchor_left = 0.5
 			banner.anchor_right = 0.5
-			var bw := minf(420.0, vp.x - 320.0)
-			bw = maxf(180.0, bw)
+			var bw := minf(420.0, vp.x - 580.0)
+			bw = maxf(160.0, bw)
 			banner.offset_left = -bw * 0.5
 			banner.offset_right = bw * 0.5
 			banner.offset_top = 8.0 if short else 12.0
 			banner.offset_bottom = banner.offset_top + (42.0 if short else 52.0)
 			if banner.label_settings != null:
 				banner.label_settings.font_size = 28
+
+	var menu_btn := get_node_or_null("MenuBtn") as Button
+	if menu_btn != null:
+		menu_btn.anchor_left = 1.0
+		menu_btn.anchor_right = 1.0
+		menu_btn.anchor_top = 0.0
+		menu_btn.anchor_bottom = 0.0
+		if narrow:
+			menu_btn.offset_left = -146.0
+			menu_btn.offset_right = -14.0
+			menu_btn.offset_top = 182.0
+			menu_btn.offset_bottom = 224.0
+		else:
+			menu_btn.offset_left = -278.0
+			menu_btn.offset_right = -154.0
+			menu_btn.offset_top = 14.0
+			menu_btn.offset_bottom = 58.0
 
 	var score := get_node_or_null("Scoreboard") as Control
 	if score != null:
@@ -527,6 +549,17 @@ func _on_leave_match() -> void:
 	if Lobby != null:
 		Lobby.leave()
 	get_tree().change_scene_to_file(MAIN_MENU)
+
+
+func _on_back_requested() -> void:
+	_on_leave_match()
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		var k := event as InputEventKey
+		if k.pressed and not k.echo and k.keycode == KEY_ESCAPE:
+			_on_leave_match()
 
 
 func _process(delta: float) -> void:

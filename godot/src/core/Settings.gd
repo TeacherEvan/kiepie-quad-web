@@ -46,6 +46,7 @@ const DEFAULTS := {
 }
 
 const QUALITY_PRESETS := {
+	"auto": {"resolution_scale": 1.0, "shadows": true, "particles": 1.0, "glow": true},
 	"low": {"resolution_scale": 0.72, "shadows": false, "particles": 0.45, "glow": false},
 	"medium": {"resolution_scale": 0.85, "shadows": true, "particles": 0.75, "glow": true},
 	"high": {"resolution_scale": 1.0, "shadows": true, "particles": 1.0, "glow": true},
@@ -53,18 +54,119 @@ const QUALITY_PRESETS := {
 
 var data: Dictionary = {}
 var _cfg := ConfigFile.new()
+var _web_back_installed := false
 
 
 func _ready() -> void:
 	_ensure_audio_buses()
 	_load()
 	apply_all()
-	# The Glow video toggle used to be dead UI; wire it to every
-	# WorldEnvironment that enters the tree (menu, TestRide, arena).
-	get_tree().node_added.connect(_on_world_environment_added)
-	get_tree().root.size_changed.connect(_sync_mobile_scale)
-	call_deferred("_apply_glow_to_tree")
+	var tree := get_tree()
+	if tree != null:
+		# Let sub-screens handle mobile hardware/browser Back without closing the app.
+		tree.set_quit_on_go_back(false)
+		# The Glow & Shadows toggles wire dynamically to every scene that enters the tree.
+		tree.node_added.connect(_on_node_added)
+		tree.root.size_changed.connect(_sync_mobile_scale)
+	_install_web_back_bridge()
+	call_deferred("_apply_video_to_tree")
 	call_deferred("_sync_mobile_scale")
+
+
+func _is_mobile_auto() -> bool:
+	if DisplayServer.get_name() == "headless":
+		return false
+	if str(get_value("video", "quality", "auto")) != "auto":
+		return false
+	return OS.has_feature("web") and (DisplayServer.is_touchscreen_available() or OS.has_feature("mobile"))
+
+
+func effective_resolution_scale() -> float:
+	var scale := float(get_value("video", "resolution_scale", 1.0))
+	return minf(scale, 0.72) if _is_mobile_auto() else scale
+
+
+func effective_shadows() -> bool:
+	var on := bool(get_value("video", "shadows", true))
+	return false if _is_mobile_auto() else on
+
+
+func _install_web_back_bridge() -> void:
+	if _web_back_installed or DisplayServer.get_name() == "headless":
+		return
+	if not OS.has_feature("web") or not Engine.has_singleton("JavaScriptBridge"):
+		return
+	_web_back_installed = true
+	JavaScriptBridge.eval("""
+(() => {
+  if (window.__kiepieBackInstalled) return;
+  window.__kiepieBackInstalled = true;
+  window.__kiepieBackArmed = false;
+  window.__kiepieBackPending = false;
+  window.__kiepieArmBack = () => {
+    if (!window.__kiepieBackArmed && window.history && window.history.pushState) {
+      try {
+        window.history.pushState({ kiepieSubscreen: true }, '');
+        window.__kiepieBackArmed = true;
+      } catch (_) {}
+    }
+  };
+  window.__kiepieDisarmBack = () => {
+    window.__kiepieBackArmed = false;
+  };
+  window.addEventListener('popstate', () => {
+    if (window.__kiepieVk && typeof window.__kiepieVk.isOpen === 'function' && window.__kiepieVk.isOpen()) {
+      if (typeof window.__kiepieVk.close === 'function') window.__kiepieVk.close();
+      window.__kiepieBackArmed = false;
+      window.__kiepieArmBack();
+      return;
+    }
+    if (window.__kiepieBackArmed) {
+      window.__kiepieBackArmed = false;
+      window.__kiepieBackPending = true;
+    }
+  });
+})();
+""", true)
+
+
+func sync_back_handler() -> void:
+	## Arms the browser history guard whenever a sub-screen (Lobby/Settings/TestRide/Arena)
+	## is active so mobile edge-swipe / hardware Back returns to MainMenu instead of leaving the page.
+	if not _web_back_installed or not Engine.has_singleton("JavaScriptBridge"):
+		return
+	var tree := get_tree()
+	var has_handler := tree != null and not tree.get_nodes_in_group("back_handler").is_empty()
+	if has_handler:
+		JavaScriptBridge.eval("window.__kiepieArmBack && window.__kiepieArmBack();", true)
+	else:
+		JavaScriptBridge.eval("window.__kiepieDisarmBack && window.__kiepieDisarmBack();", true)
+
+
+func _process(_delta: float) -> void:
+	if not _web_back_installed or not Engine.has_singleton("JavaScriptBridge"):
+		return
+	var pending := bool(JavaScriptBridge.eval("!!window.__kiepieBackPending", true))
+	if pending:
+		JavaScriptBridge.eval("window.__kiepieBackPending = false;", true)
+		_trigger_back_handler()
+
+
+func _notification(what: int) -> void:
+	if what == Node.NOTIFICATION_WM_GO_BACK_REQUEST:
+		_trigger_back_handler()
+
+
+func _trigger_back_handler() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	var handlers := tree.get_nodes_in_group("back_handler")
+	for i in range(handlers.size() - 1, -1, -1):
+		var h := handlers[i]
+		if is_instance_valid(h) and h.has_method("_on_back_requested"):
+			h.call("_on_back_requested")
+			return
 
 
 func _sync_mobile_scale() -> void:
@@ -92,9 +194,34 @@ func _sync_mobile_scale() -> void:
 		win.content_scale_factor = clampf(dpr / stretch, 1.0, 4.5)
 
 
-func _on_world_environment_added(node: Node) -> void:
+func _on_node_added(node: Node) -> void:
 	if node is WorldEnvironment:
 		_apply_glow(node as WorldEnvironment)
+	elif node is DirectionalLight3D:
+		(node as DirectionalLight3D).shadow_enabled = effective_shadows()
+	elif node.is_in_group("back_handler"):
+		call_deferred("sync_back_handler")
+
+
+func _apply_video_to_tree() -> void:
+	_apply_glow_to_tree()
+	_apply_shadows_to_tree()
+	_apply_resolution_scale()
+
+
+func _apply_shadows_to_tree() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	var on := effective_shadows()
+	for node in tree.root.find_children("*", "DirectionalLight3D", true, false):
+		(node as DirectionalLight3D).shadow_enabled = on
+
+
+func _apply_resolution_scale() -> void:
+	var vp := get_viewport()
+	if vp != null:
+		vp.scaling_3d_scale = effective_resolution_scale()
 
 
 func _apply_glow_to_tree() -> void:
@@ -203,6 +330,9 @@ func apply_all() -> void:
 	_apply("audio", "ui", get_value("audio", "ui"))
 	_apply("audio", "muted", get_value("audio", "muted"))
 	_apply("video", "fullscreen", get_value("video", "fullscreen"))
+	_apply("video", "resolution_scale", get_value("video", "resolution_scale"))
+	_apply("video", "shadows", get_value("video", "shadows"))
+	_apply("video", "glow", get_value("video", "glow"))
 	_apply("video", "show_fps", get_value("video", "show_fps"))
 
 
@@ -222,10 +352,12 @@ func _apply(section: String, key: String, value: Variant) -> void:
 				var mode := DisplayServer.WINDOW_MODE_FULLSCREEN if bool(value) else DisplayServer.WINDOW_MODE_WINDOWED
 				if DisplayServer.get_name() != "web":
 					DisplayServer.window_set_mode(mode)
+			elif key == "quality":
+				_apply_video_to_tree()
 			elif key == "resolution_scale":
-				var vp := get_viewport()
-				if vp != null:
-					vp.scaling_3d_scale = float(value)
+				_apply_resolution_scale()
+			elif key == "shadows":
+				_apply_shadows_to_tree()
 			elif key == "glow":
 				_apply_glow_to_tree()
 			# show_fps is consumed by MatchHud's optional FPS overlay
@@ -243,7 +375,8 @@ func player_color() -> String:
 
 
 func quality_multiplier() -> float:
-	return float(get_value("video", "particles", 1.0))
+	var mult := float(get_value("video", "particles", 1.0))
+	return minf(mult, 0.55) if _is_mobile_auto() else mult
 
 
 func reduced_motion() -> bool:

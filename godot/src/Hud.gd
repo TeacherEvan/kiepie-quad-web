@@ -2,6 +2,7 @@ extends CanvasLayer
 ## HUD for the Kiepie Bike test track: speed, smash counter, turbo flash,
 ## and the on-screen Restart / View buttons (keyboard R / C works too).
 
+const SCENE_MAIN := "res://scenes/MainMenu.tscn"
 const UI := preload("res://src/ui/UiTheme.gd")
 
 var _bike: Node
@@ -20,6 +21,7 @@ var _heat_fill_locked: StyleBoxFlat
 var _help_label: Label
 var _restart_btn: Button
 var _view_btn: Button
+var _menu_btn: Button
 var _smashed := 0
 var _total := 3
 @export var smash_total := 3   ## set by tools/build_testride.gd (serialized into the scene)
@@ -27,6 +29,7 @@ var _total := 3
 
 func _init() -> void:
 	add_to_group("hud")
+	add_to_group("back_handler")
 
 func _ready() -> void:
 	_bike = get_node_or_null("../KiepieBike")
@@ -41,10 +44,14 @@ func _ready() -> void:
 	_hitmarker = get_node_or_null("HitMarker") as Label
 	_restart_btn = get_node_or_null("RestartBtn") as Button
 	_view_btn = get_node_or_null("ViewBtn") as Button
+	_menu_btn = get_node_or_null("MenuBtn") as Button
 	if _restart_btn:
 		_restart_btn.pressed.connect(_on_restart)
 	if _view_btn:
 		_view_btn.pressed.connect(_on_view)
+	if _menu_btn:
+		_menu_btn.pressed.connect(_on_menu)
+	Settings.call_deferred("sync_back_handler")
 	if _heat_bar:
 		_heat_fill_normal = UI.bar_fill(UI.ACCENT)
 		_heat_fill_warn = UI.bar_fill(UI.WARN)
@@ -89,6 +96,18 @@ func _on_restart() -> void:
 func _on_view() -> void:
 	if _cam_rig and _cam_rig.has_method("toggle_view"):
 		_cam_rig.toggle_view()
+
+func _on_menu() -> void:
+	get_tree().change_scene_to_file(SCENE_MAIN)
+
+func _on_back_requested() -> void:
+	_on_menu()
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		var k := event as InputEventKey
+		if k.pressed and not k.echo and k.keycode == KEY_ESCAPE:
+			_on_menu()
 
 
 func _on_heat_changed(value: float, locked: bool) -> void:
@@ -158,3 +177,6 @@ func _relayout() -> void:
 	if _view_btn != null:
 		_view_btn.offset_left = -132.0 if narrow else -150.0
 		_view_btn.offset_right = -14.0
+	if _menu_btn != null:
+		_menu_btn.offset_left = -132.0 if narrow else -150.0
+		_menu_btn.offset_right = -14.0

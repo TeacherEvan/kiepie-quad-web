@@ -34,6 +34,9 @@ var _shield_until := 0.0
 var _smoke_accum := 0.0
 var _base_power := 420.0
 var _was_overheated := false
+var _auto_fire_cd := 0.0
+var _los_query: PhysicsRayQueryParameters3D
+var _touch_ctrl: Node = null
 
 
 func _ready() -> void:
@@ -80,6 +83,8 @@ func _physics_process(delta: float) -> void:
 
 	if Input.is_action_just_pressed("fire") and cannons != null:
 		cannons.fire()
+	elif cannons != null and _is_auto_fire_enabled():
+		_try_auto_fire(delta)
 
 	# tyre smoke while braking/handbraking at speed
 	if Input.is_action_pressed("brake") and bike.linear_velocity.length() > 3.0:
@@ -205,10 +210,105 @@ func _respawn() -> void:
 func _setup_decorations() -> void:
 	if not is_instance_valid(bike):
 		return
+	VFX.prewarm(_fx_parent())
 	VFX.underglow(bike, player_color)
 	var sfx := get_node_or_null("/root/Sfx")
 	if sfx != null and sfx.has_method("start_engine"):
 		sfx.call("start_engine", bike)
+
+
+func _is_auto_fire_enabled() -> bool:
+	var tree := get_tree()
+	if tree == null:
+		return false
+	if _touch_ctrl == null or not is_instance_valid(_touch_ctrl):
+		_touch_ctrl = tree.get_first_node_in_group("touch_controls")
+	if _touch_ctrl != null and _touch_ctrl.has_method("is_overlay_active"):
+		return bool(_touch_ctrl.call("is_overlay_active"))
+	return false
+
+
+func _try_auto_fire(delta: float) -> void:
+	_auto_fire_cd = maxf(0.0, _auto_fire_cd - delta)
+	if _auto_fire_cd > 0.0:
+		return
+	if not bool(cannons.call("can_fire")):
+		return
+	# Leave a small heat margin so sustained auto-fire doesn't pin cannons in OVERHEAT lock.
+	if float(cannons.get("heat")) >= 0.84:
+		return
+	var target := _acquire_forward_target()
+	if target == null:
+		return
+	cannons.fire()
+	var rapid := (Time.get_ticks_msec() / 1000.0) < _rapid_until
+	_auto_fire_cd = 0.12 if rapid else 0.28
+
+
+func _acquire_forward_target() -> Node3D:
+	var tree := get_tree()
+	if tree == null or bike == null:
+		return null
+	var origin := bike.global_position + Vector3(0.0, 0.72, 0.0)
+	var fwd := bike.global_transform.basis.z
+	fwd.y = 0.0
+	if fwd.length_squared() < 0.0001:
+		return null
+	fwd = fwd.normalized()
+
+	var best: Node3D = null
+	var best_score := -1.0
+	for spec in [
+		["bike", 78.0, 0.85, 3.0],
+		["hazard", 55.0, 0.90, 2.0],
+		["destructible", 36.0, 0.93, 1.0],
+	]:
+		var group_name: String = spec[0]
+		var max_dist: float = spec[1]
+		var min_dot: float = spec[2]
+		var weight: float = spec[3]
+		var max_d2 := max_dist * max_dist
+		for n in tree.get_nodes_in_group(group_name):
+			if n == bike or not is_instance_valid(n) or not (n is Node3D):
+				continue
+			var node := n as Node3D
+			if not node.visible:
+				continue
+			if group_name == "hazard" and bool(node.get("_ignited")):
+				continue
+			if group_name == "destructible" and not bool(node.get("_intact")):
+				continue
+			var to_t := node.global_position - bike.global_position
+			var horiz := Vector3(to_t.x, 0.0, to_t.z)
+			var d2 := horiz.length_squared()
+			if d2 < 1.0 or d2 > max_d2:
+				continue
+			var dot := fwd.dot(horiz.normalized())
+			if dot < min_dot:
+				continue
+			var score := weight * dot * (1.0 - sqrt(d2) / (max_dist * 1.4))
+			if score > best_score and _has_los(origin, node):
+				best_score = score
+				best = node
+	return best
+
+
+func _has_los(from: Vector3, target: Node3D) -> bool:
+	var world := get_world_3d()
+	if world == null:
+		return true
+	if _los_query == null:
+		_los_query = PhysicsRayQueryParameters3D.new()
+		_los_query.collide_with_areas = false
+		_los_query.collide_with_bodies = true
+		_los_query.exclude = [bike.get_rid()]
+	_los_query.from = from
+	_los_query.to = target.global_position + Vector3(0.0, 0.55, 0.0)
+	var hit := world.direct_space_state.intersect_ray(_los_query)
+	if hit.is_empty():
+		return true
+	var collider: Object = hit.get("collider", null)
+	return collider == target or (collider is Node and (collider as Node).is_in_group("bike"))
 
 
 func _on_heat_changed(value: float, locked: bool) -> void:

@@ -446,6 +446,22 @@ func _add_match_hud(root: Node) -> void:
 	_outlined(cross, Color(1.0, 1.0, 1.0, 0.92), 26, 6)
 	hud.add_child(cross)
 
+	var menu_btn := Button.new()
+	menu_btn.name = "MenuBtn"
+	menu_btn.text = "MAIN MENU"
+	menu_btn.anchor_left = 1.0
+	menu_btn.anchor_right = 1.0
+	menu_btn.anchor_top = 0.0
+	menu_btn.anchor_bottom = 0.0
+	menu_btn.offset_left = -278.0
+	menu_btn.offset_right = -154.0
+	menu_btn.offset_top = 14.0
+	menu_btn.offset_bottom = 58.0
+	menu_btn.focus_mode = Control.FOCUS_NONE
+	_style_button(menu_btn, Color(0.42, 0.50, 0.62, 0.72))
+	menu_btn.add_theme_font_size_override("font_size", 13)
+	hud.add_child(menu_btn)
+
 	root.add_child(hud)
 
 
@@ -495,39 +511,7 @@ func _add_touch_controls(root: Node) -> void:
 	dodge_right.pivot_offset = Vector2(45.0, 45.0)
 	touch.add_child(dodge_right)
 
-	# --- right thumb: TURBO above BRAKE, big GAS on the far right
-	var turbo_btn := Button.new()
-	turbo_btn.name = "BtnTurbo"
-	turbo_btn.text = "TURBO"
-	turbo_btn.anchor_left = 1.0
-	turbo_btn.anchor_right = 1.0
-	turbo_btn.anchor_top = 1.0
-	turbo_btn.anchor_bottom = 1.0
-	turbo_btn.offset_left = -258.0
-	turbo_btn.offset_right = -148.0
-	turbo_btn.offset_top = -202.0
-	turbo_btn.offset_bottom = -122.0
-	turbo_btn.focus_mode = Control.FOCUS_NONE
-	_style_button(turbo_btn, Color(1.0, 0.68, 0.16, 0.9))
-	turbo_btn.add_theme_font_size_override("font_size", 18)
-	touch.add_child(turbo_btn)
-
-	var brake := Button.new()
-	brake.name = "BtnBrake"
-	brake.text = "BRAKE"
-	brake.anchor_left = 1.0
-	brake.anchor_right = 1.0
-	brake.anchor_top = 1.0
-	brake.anchor_bottom = 1.0
-	brake.offset_left = -258.0
-	brake.offset_right = -148.0
-	brake.offset_top = -112.0
-	brake.offset_bottom = -16.0
-	brake.focus_mode = Control.FOCUS_NONE
-	_style_button(brake, Color(0.55, 0.60, 0.70, 0.65))
-	brake.add_theme_font_size_override("font_size", 20)
-	touch.add_child(brake)
-
+	# --- right thumb: streamlined big GAS pedal (auto-fire handles cannons; analog push handles turbo)
 	var gas := Button.new()
 	gas.name = "BtnGas"
 	gas.text = "GAS"
@@ -535,31 +519,14 @@ func _add_touch_controls(root: Node) -> void:
 	gas.anchor_right = 1.0
 	gas.anchor_top = 1.0
 	gas.anchor_bottom = 1.0
-	gas.offset_left = -138.0
-	gas.offset_right = -12.0
-	gas.offset_top = -176.0
-	gas.offset_bottom = -16.0
+	gas.offset_left = -156.0
+	gas.offset_right = -14.0
+	gas.offset_top = -174.0
+	gas.offset_bottom = -18.0
 	gas.focus_mode = Control.FOCUS_NONE
 	_style_button(gas, Color(1.0, 0.46, 0.10, 0.9))
 	gas.add_theme_font_size_override("font_size", 36)
 	touch.add_child(gas)
-
-	# --- large FIRE button on the right side, above the driving cluster
-	var fire_btn := Button.new()
-	fire_btn.name = "BtnFire"
-	fire_btn.text = "FIRE"
-	fire_btn.anchor_left = 1.0
-	fire_btn.anchor_right = 1.0
-	fire_btn.anchor_top = 1.0
-	fire_btn.anchor_bottom = 1.0
-	fire_btn.offset_left = -164.0
-	fire_btn.offset_right = -38.0
-	fire_btn.offset_top = -352.0
-	fire_btn.offset_bottom = -232.0
-	fire_btn.focus_mode = Control.FOCUS_NONE
-	_style_button(fire_btn, Color(1.0, 0.30, 0.22, 0.95))
-	fire_btn.add_theme_font_size_override("font_size", 30)
-	touch.add_child(fire_btn)
 
 	# --- top-right column: manual overlay toggle (auto-detect fallback)
 	var toggle := Button.new()

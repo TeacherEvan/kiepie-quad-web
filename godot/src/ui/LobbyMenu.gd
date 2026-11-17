@@ -48,9 +48,12 @@ const COL_INFO := UI.INFO
 
 var _ready_state := false
 var _transitioning := false
+var _auto_start_gen := 0
 
 
 func _ready() -> void:
+	add_to_group("back_handler")
+	Settings.call_deferred("sync_back_handler")
 	_apply_safe_area(_safe)
 	get_viewport().size_changed.connect(func(): _apply_safe_area(_safe))
 	UI.style_scroll($SafeMargin/Scroll)
@@ -138,10 +141,27 @@ func _set_status(text: String, color: Color) -> void:
 func _refresh_all() -> void:
 	var code := str(Match.lobby.get("code", Lobby.current_lobby_id))
 	_code_field.text = code
-	_set_status("Room %s · %s" % [code if code != "" else "—", "HOST" if _is_host() else "RIDER"], COL_OK)
 	_host_panel.visible = _is_host()
 	_refresh_settings()
 	_refresh_players()
+
+
+func _refresh_status(board: Array) -> void:
+	var code := str(Match.lobby.get("code", Lobby.current_lobby_id))
+	var code_lbl := code if code != "" else "—"
+	var ready_cnt := 0
+	for entry in board:
+		if bool((entry as Dictionary).get("is_ready", false)):
+			ready_cnt += 1
+	if Match.all_ready():
+		_set_status("All %d riders ready — %s" % [
+				board.size(),
+				"starting match…" if _is_host() else "host starting…"], COL_OK)
+	elif _is_host():
+		_set_status("Room %s · HOST · %d/%d ready" % [code_lbl, ready_cnt, board.size()], COL_OK)
+	else:
+		_set_status("Room %s · RIDER · Waiting for host (%d/%d ready)" % [
+				code_lbl, ready_cnt, board.size()], COL_INFO)
 
 
 func _on_lobby_changed() -> void:
@@ -175,19 +195,45 @@ func _refresh_players() -> void:
 
 		var nm := Label.new()
 		nm.name = "Name"
-		nm.text = str(data.get("name", "RIDER")) + ("  (YOU)" if bool(data.get("is_me", false)) else "")
+		var suffix := ""
+		if bool(data.get("is_host", false)):
+			suffix += "  [HOST]"
+		if bool(data.get("is_me", false)):
+			suffix += "  (YOU)"
+		nm.text = str(data.get("name", "RIDER")) + suffix
 		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nm.clip_text = true
 		nm.add_theme_font_size_override("font_size", 15)
 		row.add_child(nm)
 
+		var is_r := bool(data.get("is_ready", false))
 		var sc := Label.new()
 		sc.name = "Score"
-		sc.text = str(data.get("score", 0))
-		sc.add_theme_font_size_override("font_size", 15)
+		sc.text = "READY ✓" if is_r else "WAITING"
+		sc.add_theme_font_size_override("font_size", 13)
+		sc.add_theme_color_override("font_color", COL_OK if is_r else UI.MUTED)
 		row.add_child(sc)
 
 		_player_list.add_child(row)
+	if not Match.lobby.is_empty():
+		_refresh_status(board)
+	_check_auto_start()
+
+
+func _check_auto_start() -> void:
+	_auto_start_gen += 1
+	if not _is_host() or _transitioning or _btn_start.disabled or Match.is_playing() or not Match.all_ready():
+		return
+	var gen := _auto_start_gen
+	_schedule_auto_start(gen)
+
+
+func _schedule_auto_start(gen: int) -> void:
+	await get_tree().create_timer(1.0).timeout
+	if not is_instance_valid(self) or gen != _auto_start_gen:
+		return
+	if _is_host() and not _transitioning and not _btn_start.disabled and not Match.is_playing() and Match.all_ready():
+		_on_start()
 
 
 # ---------------------------------------------------------------- settings ---
@@ -278,6 +324,17 @@ func _on_leave() -> void:
 	_transitioning = true
 	Lobby.leave()
 	get_tree().change_scene_to_file(SCENE_MAIN)
+
+
+func _on_back_requested() -> void:
+	_on_leave()
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		var k := event as InputEventKey
+		if k.pressed and not k.echo and k.keycode == KEY_ESCAPE:
+			_on_leave()
 
 
 func _on_left_elsewhere() -> void:

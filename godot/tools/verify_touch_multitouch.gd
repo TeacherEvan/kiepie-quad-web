@@ -154,18 +154,8 @@ func _run() -> void:
 	_check(not Input.is_action_pressed("turbo"), "returning analog to vertical centre drops turbo")
 	_check(Input.is_action_pressed("steer_right"), "returning to centre keeps horizontal steer_right")
 	_check(pad != null and not bool(pad.get("turbo_active")), "AnalogSteer view reflects turbo_active=false")
-	# co-hold refcounting between analog push-forward and BtnTurbo
+	# co-hold focus-out during forward push releases turbo and clears view state
 	_drag(2, _pad_at_xy(layer, 0.0, 0.90))
-	_touch(1, _centre(layer, "BtnTurbo"), true)
-	await process_frame
-	_touch(1, _centre(layer, "BtnTurbo"), false)
-	await process_frame
-	_check(Input.is_action_pressed("turbo"), "analog forward keeps turbo held after BtnTurbo lift")
-	_touch(2, _pad_at_xy(layer, 0.0, 0.90), false)
-	await process_frame
-	_check(not Input.is_action_pressed("turbo"), "lifting analog finger drops turbo cleanly")
-	# focus-out during forward push releases turbo and clears view state
-	_touch(2, _pad_at_xy(layer, 0.0, 0.90), true)
 	await process_frame
 	_check(Input.is_action_pressed("turbo"), "analog push-forward holds turbo before focus-out")
 	layer._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
@@ -174,15 +164,15 @@ func _run() -> void:
 	_check(pad != null and not bool(pad.get("turbo_active")), "focus-out resets AnalogSteer turbo_active")
 
 	# ---- two fingers on the same button: refcounted, one lift keeps the hold
-	_touch(0, _centre(layer, "BtnTurbo"), true)
-	_touch(1, _centre(layer, "BtnTurbo"), true)
+	_touch(0, _centre(layer, "BtnGas"), true)
+	_touch(1, _centre(layer, "BtnGas"), true)
 	await process_frame
-	_touch(0, _centre(layer, "BtnTurbo"), false)
+	_touch(0, _centre(layer, "BtnGas"), false)
 	await process_frame
-	_check(Input.is_action_pressed("turbo"), "second finger keeps turbo held")
-	_touch(1, _centre(layer, "BtnTurbo"), false)
+	_check(Input.is_action_pressed("move_forward"), "second finger keeps GAS held")
+	_touch(1, _centre(layer, "BtnGas"), false)
 	await process_frame
-	_check(not Input.is_action_pressed("turbo"), "both fingers lifted drops turbo")
+	_check(not Input.is_action_pressed("move_forward"), "both fingers lifted drops GAS")
 
 	# ---- dodge slide pair works the same way
 	_touch(3, _centre(layer, "BtnDodgeLeft"), true)
@@ -194,14 +184,14 @@ func _run() -> void:
 	_touch(3, _centre(layer, "BtnDodgeRight"), false)
 	await process_frame
 
-	# ---- gas does NOT swap to brake/turbo on a stray vertical slide
+	# ---- gas stays latched even if finger slides onto another zone
 	_touch(4, _centre(layer, "BtnGas"), true)
 	await process_frame
-	_drag(4, _centre(layer, "BtnBrake"))
+	_drag(4, _centre(layer, "BtnDodgeRight"))
 	await process_frame
 	_check(Input.is_action_pressed("move_forward"), "gas is slide-latched, not swap-prone")
-	_check(not Input.is_action_pressed("move_back"), "gas slide does not engage brake")
-	_touch(4, _centre(layer, "BtnBrake"), false)
+	_check(not Input.is_action_pressed("dodge_right"), "gas slide does not engage dodge_right")
+	_touch(4, _centre(layer, "BtnDodgeRight"), false)
 	await process_frame
 	_check(not Input.is_action_pressed("move_forward"), "gas finger released")
 
@@ -210,13 +200,13 @@ func _run() -> void:
 	_mouse(_centre(layer, "BtnGas"), true)   # emulated pair
 	_touch(0, _centre(layer, "BtnGas"), false)
 	_mouse(_centre(layer, "BtnGas"), false)
-	_touch(1, _centre(layer, "BtnTurbo"), true)  # left holding turbo while pair completes
+	_touch(1, _centre(layer, "BtnDodgeRight"), true)  # left holding dodge while pair completes
 	await process_frame
 	_check(not Input.is_action_pressed("move_forward"), "gas released after touch+emulated pair")
-	_check(Input.is_action_pressed("turbo"), "other finger unaffected by pair completion")
-	_touch(1, _centre(layer, "BtnTurbo"), false)
+	_check(Input.is_action_pressed("dodge_right"), "other finger unaffected by pair completion")
+	_touch(1, _centre(layer, "BtnDodgeRight"), false)
 	await process_frame
-	_check(not Input.is_action_pressed("turbo"), "turbo released cleanly")
+	_check(not Input.is_action_pressed("dodge_right"), "dodge released cleanly")
 
 	# ---- desktop mouse click drives the button with no touch at all
 	_mouse(_centre(layer, "BtnGas"), true)
@@ -257,25 +247,23 @@ func _run() -> void:
 	_check(not Input.is_action_pressed("steer_left"), "focus-out releases steer_left")
 	_check(not Input.is_action_pressed("steer_right"), "focus-out releases steer_right")
 
-	# ---- four fingers at once: gas + analog steer + turbo + brake
+	# ---- multi-finger simultaneous: gas + analog steer + analog forward turbo + dodge
 	_touch(8, _centre(layer, "BtnGas"), true)
-	_touch(9, _pad_at(layer, 1.0), true)
-	_touch(10, _centre(layer, "BtnTurbo"), true)
-	_touch(11, _centre(layer, "BtnBrake"), true)
+	_touch(9, _pad_at_xy(layer, 1.0, 0.90), true)
+	_touch(10, _centre(layer, "BtnDodgeRight"), true)
 	await process_frame
 	_check(Input.is_action_pressed("move_forward") and Input.is_action_pressed("steer_right")
-			and Input.is_action_pressed("turbo") and Input.is_action_pressed("move_back"),
-			"four simultaneous fingers all held")
-	for i in [8, 9, 10, 11]:
+			and Input.is_action_pressed("turbo") and Input.is_action_pressed("dodge_right"),
+			"simultaneous gas + analog steer/turbo + dodge all held")
+	for i in [8, 9, 10]:
 		var spots := {8: func() -> Vector2: return _centre(layer, "BtnGas"),
-					9: func() -> Vector2: return _pad_at(layer, 1.0),
-					10: func() -> Vector2: return _centre(layer, "BtnTurbo"),
-					11: func() -> Vector2: return _centre(layer, "BtnBrake")}
+					9: func() -> Vector2: return _pad_at_xy(layer, 1.0, 0.90),
+					10: func() -> Vector2: return _centre(layer, "BtnDodgeRight")}
 		_touch(i, spots[i].call(), false)
 	await process_frame
 	_check(not Input.is_action_pressed("move_forward") and not Input.is_action_pressed("steer_right")
-			and not Input.is_action_pressed("turbo") and not Input.is_action_pressed("move_back"),
-			"all four released")
+			and not Input.is_action_pressed("turbo") and not Input.is_action_pressed("dodge_right"),
+			"all simultaneous fingers released")
 
 	# ---- OS interruption drops everything this layer holds
 	_touch(0, _centre(layer, "BtnGas"), true)

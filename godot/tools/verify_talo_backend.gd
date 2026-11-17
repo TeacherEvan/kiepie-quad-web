@@ -5,6 +5,26 @@ extends SceneTree
 
 var _failures := 0
 
+class FakeOwner extends RefCounted:
+	var id: int
+	func _init(owner_id: int) -> void:
+		id = owner_id
+
+
+class FakeChannel extends RefCounted:
+	var member_count: int
+	var owner_alias: FakeOwner
+	var updated_at: String
+	var _props: Dictionary
+	func _init(members: int, owner_id: int, updated: String, props: Dictionary) -> void:
+		member_count = members
+		owner_alias = FakeOwner.new(owner_id)
+		updated_at = updated
+		_props = props
+	func get_prop(key: String, fallback: String = "") -> String:
+		return str(_props.get(key, fallback))
+
+
 func _check(cond: bool, msg: String) -> void:
 	if not cond:
 		push_error("FAIL: " + msg)
@@ -100,5 +120,30 @@ func _initialize() -> void:
 	_check(int((backend._roster["1"] as Dictionary).get("score", 0)) == guest_score_before,
 			"guest backend does not mutate its own score")
 
-	print("talo backend contract: %d checks, %d failure(s)" % [8, _failures])
+	# Auto-join channel filter: reject 0-member, stale, owner-mismatch, and full channels.
+	var talo_script = load("res://src/net/TaloBackend.gd")
+	var now := Time.get_unix_time_from_system()
+	var make_ch := func(members: int, owner_id: int, host_id: String, hb: float, roster_obj: Dictionary, status: String = "waiting") -> RefCounted:
+		return FakeChannel.new(members, owner_id, "2026-11-17T00:00:00Z", {
+			"status": status,
+			"host_id": host_id,
+			"heartbeat": str(int(hb)),
+			"roster": JSON.stringify(roster_obj),
+			"settings": JSON.stringify({"max_players": 4}),
+		})
+	var live_roster := {"10": {"user_id": "10", "display_name": "H"}}
+	_check(bool(talo_script.call("is_channel_joinable", make_ch.call(1, 10, "10", now - 5.0, live_roster), now)),
+			"live active channel is joinable")
+	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(0, 10, "10", now - 5.0, live_roster), now)),
+			"zero-member channel is rejected by join_auto")
+	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(1, 10, "10", now - 300.0, live_roster), now)),
+			"stale heartbeat channel is rejected by join_auto")
+	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(1, 99, "10", now - 5.0, live_roster), now)),
+			"owner/host mismatch channel is rejected by join_auto")
+	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(1, 10, "10", now - 5.0, {}), now)),
+			"channel missing host in roster is rejected by join_auto")
+	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(4, 10, "10", now - 5.0, live_roster), now)),
+			"full channel is rejected by join_auto")
+
+	print("talo backend contract: %d checks, %d failure(s)" % [14, _failures])
 	quit(1 if _failures > 0 else 0)

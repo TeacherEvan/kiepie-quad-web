@@ -16,6 +16,8 @@ var _rows: Node
 
 
 func _ready() -> void:
+	add_to_group("back_handler")
+	Settings.call_deferred("sync_back_handler")
 	_apply_safe_area(_safe)
 	get_viewport().size_changed.connect(func(): _apply_safe_area(_safe))
 	UI.style_scroll($SafeMargin/VBox/Scroll)
@@ -56,7 +58,6 @@ func _connect_controls() -> void:
 	_bind_slider("UiRow/Ui", "UiRow/UiValue", "audio", "ui", "%.0f%%")
 	_bind_check("MutedRow/Muted", "audio", "muted")
 
-	_bind_slider("FireSizeRow/FireSize", "FireSizeRow/FireSizeValue", "controls", "fire_size", "%.2f")
 	_bind_slider("SteerSensitivityRow/SteerSensitivity", "SteerSensitivityRow/SteerSensitivityValue", "controls", "steer_sensitivity", "%.2f")
 	_bind_slider("DodgeSizeRow/DodgeSize", "DodgeSizeRow/DodgeSizeValue", "controls", "dodge_size", "%.2f")
 	_bind_check("TouchForceRow/TouchForce", "controls", "touch_force")
@@ -172,7 +173,6 @@ func _refresh_all() -> void:
 	_set_slider("UiRow/Ui", "UiRow/UiValue", "audio", "ui", "%.0f%%")
 	_set_check("MutedRow/Muted", "audio", "muted")
 
-	_set_slider("FireSizeRow/FireSize", "FireSizeRow/FireSizeValue", "controls", "fire_size", "%.2f")
 	_set_slider("SteerSensitivityRow/SteerSensitivity", "SteerSensitivityRow/SteerSensitivityValue", "controls", "steer_sensitivity", "%.2f")
 	_set_slider("DodgeSizeRow/DodgeSize", "DodgeSizeRow/DodgeSizeValue", "controls", "dodge_size", "%.2f")
 	_set_check("TouchForceRow/TouchForce", "controls", "touch_force")
@@ -205,6 +205,17 @@ func _on_back() -> void:
 	if target == "" or not ResourceLoader.exists(target):
 		target = SCENE_MAIN
 	get_tree().change_scene_to_file(target)
+
+
+func _on_back_requested() -> void:
+	_on_back()
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		var k := event as InputEventKey
+		if k.pressed and not k.echo and k.keycode == KEY_ESCAPE:
+			_on_back()
 
 
 func _apply_safe_area(margin: MarginContainer) -> void:

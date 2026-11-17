@@ -82,7 +82,7 @@ func _initialize() -> void:
 			var b := by_name.get(str(n)) as Button
 			_check(b != null and b.focus_mode == Control.FOCUS_ALL,
 					"Arena.%s focus_mode == FOCUS_ALL" % n)
-		for n in ["BtnGas", "BtnBrake", "BtnTurbo", "BtnFire", "BtnTouchToggle"]:
+		for n in ["BtnGas", "BtnDodgeLeft", "BtnDodgeRight", "BtnTouchToggle", "MenuBtn"]:
 			var b := by_name.get(str(n)) as Button
 			_check(b != null and b.focus_mode == Control.FOCUS_NONE,
 					"Arena.%s focus_mode == FOCUS_NONE" % n)

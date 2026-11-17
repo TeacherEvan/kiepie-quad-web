@@ -32,9 +32,11 @@ fi
 for f in index.html index.js index.wasm index.manifest.json index.service.worker.js; do
 	[ -s "$ROOT/web/$f" ] || { echo "DEPLOY ABORTED: missing $f"; exit 1; }
 done
-# Godot 4.3's generated PWA service worker precaches index.worker.js even for
-# single-threaded exports, where that file does not exist -> SW install fails.
-sed -i 's/"index\.worker\.js",//' "$ROOT/web/index.service.worker.js"
+# Godot 4.3's generated PWA service worker precaches index.worker.js (missing on
+# single-threaded exports) and serves stale index.html/index.pck Cache-First.
+python3 "$HERE/patch_web_sw.py" "$ROOT/web/index.service.worker.js" || {
+	echo "DEPLOY ABORTED: failed to patch service worker"; exit 1;
+}
 echo "   web bundle complete"
 
 if [ "$APPLY" -ne 1 ]; then

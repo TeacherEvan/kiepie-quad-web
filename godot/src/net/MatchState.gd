@@ -133,6 +133,7 @@ func leader_id() -> String:
 
 
 func scoreboard() -> Array:
+	var host := str(lobby.get("host_id", ""))
 	var out: Array = []
 	for uid in players.keys():
 		var p := players[uid] as Dictionary
@@ -141,10 +142,22 @@ func scoreboard() -> Array:
 			"name": str(p.get("display_name", "RIDER")),
 			"color": str(p.get("color", "#ffffff")),
 			"score": int(p.get("score", 0)),
+			"is_ready": bool(p.get("is_ready", false)),
+			"is_host": str(uid) == host,
 			"is_me": str(uid) == my_user_id,
 		})
 	out.sort_custom(func(a, b): return int(a["score"]) > int(b["score"]))
 	return out
+
+
+func all_ready() -> bool:
+	if players.size() < 2:
+		return false
+	for uid in players.keys():
+		var p := players[uid] as Dictionary
+		if not bool(p.get("is_ready", false)):
+			return false
+	return true
 
 
 func is_respawning(user_id: String) -> bool:
@@ -220,6 +233,9 @@ func set_lobby_settings(new_settings: Dictionary) -> void:
 
 
 func set_ready(ready: bool) -> void:
+	if players.has(my_user_id) and players[my_user_id] is Dictionary:
+		players[my_user_id]["is_ready"] = ready
+		roster_changed.emit()
 	var res: Dictionary = await Supabase.call_rpc("set_ready", {"p_ready": ready})
 	if not res.is_empty() and not bool(res.get("pending", false)) and res.has("players"):
 		players = (res["players"] as Dictionary).duplicate(true)

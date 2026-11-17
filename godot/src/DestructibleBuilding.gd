@@ -15,6 +15,34 @@ var _intact := true
 var _body_size := Vector3.ONE
 var _beacon: MeshInstance3D = null
 var _beacon_t := 0.0
+var _beacon_tick := 0.0
+
+static var _debris_meshes: Array[BoxMesh] = []
+static var _debris_shapes: Array[BoxShape3D] = []
+static var _debris_mats: Array[StandardMaterial3D] = []
+
+
+static func _ensure_debris_pool() -> void:
+	if not _debris_meshes.is_empty():
+		return
+	var sizes := [
+		Vector3(0.35, 0.28, 0.35),
+		Vector3(0.55, 0.42, 0.48),
+		Vector3(0.75, 0.56, 0.68),
+		Vector3(0.92, 0.72, 0.85),
+	]
+	for sz in sizes:
+		var bm := BoxMesh.new()
+		bm.size = sz
+		_debris_meshes.append(bm)
+		var bs := BoxShape3D.new()
+		bs.size = sz
+		_debris_shapes.append(bs)
+	for shade in [0.58, 0.72, 0.86, 1.0]:
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.46 * shade, 0.36 * shade, 0.30 * shade, 1.0)
+		mat.roughness = 0.9
+		_debris_mats.append(mat)
 
 func _ready() -> void:
 	add_to_group("destructible")
@@ -84,34 +112,28 @@ func smash() -> void:
 			# (smash() can run inside a physics in/out signal; defer the change)
 			(child as Area3D).set_deferred("monitoring", false)
 
-	# spawn debris boxes
+	# spawn pooled debris boxes (zero new BoxMesh/StandardMaterial3D/BoxShape3D per crash)
+	_ensure_debris_pool()
 	var parent := get_parent()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(building_name) + int(abs(origin.x * 1000.0)) + int(abs(origin.z * 977.0))
+	var chunks: Array[RigidBody3D] = []
 	for i in range(debris_pieces):
-		var size := Vector3(rng.randf_range(0.28, 0.95), rng.randf_range(0.22, 0.80),
-				rng.randf_range(0.28, 0.95))
+		var variant := rng.randi_range(0, _debris_meshes.size() - 1)
 		var chunk := RigidBody3D.new()
 		chunk.mass = rng.randf_range(18.0, 55.0)
 		chunk.collision_layer = 1
 		chunk.collision_mask = 1
 		chunk.continuous_cd = true
 		var col := CollisionShape3D.new()
-		var box := BoxShape3D.new()
-		box.size = size
-		col.shape = box
+		col.shape = _debris_shapes[variant]
 		chunk.add_child(col)
 		var mesh := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = size
-		var mat := StandardMaterial3D.new()
-		var shade := rng.randf_range(0.55, 1.0)
-		mat.albedo_color = Color(0.46 * shade, 0.36 * shade, 0.30 * shade, 1.0)
-		mat.roughness = 0.9
-		bm.material = mat
-		mesh.mesh = bm
+		mesh.mesh = _debris_meshes[variant]
+		mesh.material_override = _debris_mats[rng.randi_range(0, _debris_mats.size() - 1)]
 		chunk.add_child(mesh)
 		parent.add_child(chunk)
+		chunks.append(chunk)
 		# scatter within the building volume (chunk must be in the tree first)
 		chunk.global_position = origin + Vector3(
 			rng.randf_range(-1.6, 1.6), rng.randf_range(0.3, 2.6), rng.randf_range(-1.6, 1.6))
@@ -125,13 +147,13 @@ func smash() -> void:
 				+ Vector3(0.0, rng.randf_range(2.2, 5.2), 0.0))
 		chunk.angular_velocity = Vector3(rng.randf_range(-6.0, 6.0),
 				rng.randf_range(-6.0, 6.0), rng.randf_range(-6.0, 6.0))
-		# fade debris away after a while to keep the pad tidy
-		var fade_tree := Engine.get_main_loop() as SceneTree
-		if fade_tree != null:
-			var chunk_capture: RigidBody3D = chunk
-			fade_tree.create_timer(9.0).timeout.connect(func() -> void:
-				if is_instance_valid(chunk_capture) and chunk_capture.is_inside_tree():
-					chunk_capture.queue_free())
+	# fade all chunks in a single timer callback to avoid 14 per-piece closures
+	var fade_tree := Engine.get_main_loop() as SceneTree
+	if fade_tree != null and not chunks.is_empty():
+		fade_tree.create_timer(9.0).timeout.connect(func() -> void:
+			for c in chunks:
+				if is_instance_valid(c) and c.is_inside_tree():
+					c.queue_free())
 
 	# collapse sequence — glass flash, ground dust wave, staggered puffs
 	VFX.smash_burst(parent, origin, _body_size)
@@ -144,6 +166,10 @@ func _process(delta: float) -> void:
 	if not _intact or _beacon == null or not is_instance_valid(_beacon):
 		return
 	_beacon_t += delta
+	_beacon_tick += delta
+	if _beacon_tick < 0.08:
+		return
+	_beacon_tick = 0.0
 	if _beacon.mesh == null:
 		return
 	var mat := _beacon.mesh.get_material() as StandardMaterial3D

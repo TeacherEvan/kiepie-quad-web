@@ -330,6 +330,7 @@ func _build_lobby() -> void:
 	vbox.add_child(code_row)
 
 	var status := _label("Status", "Connecting…", 15, INFO)
+	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	status.custom_minimum_size = Vector2(0.0, 30.0)
 	vbox.add_child(status)
 
@@ -337,7 +338,10 @@ func _build_lobby() -> void:
 	vbox.add_child(players_label)
 	vbox.add_child(_vbox("PlayerList"))
 
+	vbox.add_child(_button("BtnReady", "NOT READY", Color(0.42, 0.62, 1.0)))
+
 	var host_panel := _vbox("HostPanel")
+	host_panel.add_child(_button("BtnStart", "START MATCH", Color(0.35, 0.90, 0.55)))
 	host_panel.add_child(_section_header("HostTitle", "HOST SETTINGS"))
 	host_panel.add_child(_setting_row("KillTargetRow", "Eliminations", _option("KillTarget", ["3", "5", "10", "15", "20"])))
 	host_panel.add_child(_setting_row("MaxPlayersRow", "Max riders", _option("MaxPlayers", ["2", "3", "4", "5", "6", "7", "8"])))
@@ -345,10 +349,7 @@ func _build_lobby() -> void:
 	host_panel.add_child(_setting_row("MatchSecondsRow", "Time limit", _option("MatchSeconds", ["Unlimited", "3 min", "5 min", "10 min"])))
 	host_panel.add_child(_setting_row("DamageRow", "Damage", _option("Damage", ["20", "30", "40", "50"])))
 	host_panel.add_child(_setting_row("PickupsRow", "Pickups", _check("Pickups", "", true)))
-	host_panel.add_child(_button("BtnStart", "START MATCH", Color(0.35, 0.90, 0.55)))
 	vbox.add_child(host_panel)
-
-	vbox.add_child(_button("BtnReady", "NOT READY", Color(0.42, 0.62, 1.0)))
 	# Web shell paints a fixed hint strip along the bottom; keep buttons clear of it.
 	var lobby_pad := Control.new()
 	lobby_pad.name = "BottomPad"
@@ -412,7 +413,6 @@ func _build_settings() -> void:
 
 	# ----- controls
 	rows.add_child(_section_header("ControlsHeader", "CONTROLS"))
-	rows.add_child(_slider_row("FireSizeRow", "Fire button", _slider("FireSize", 0.5, 2.0, 0.05, 1.0), _value_label("FireSizeValue", "1.00")))
 	rows.add_child(_slider_row("SteerSensitivityRow", "Steering", _slider("SteerSensitivity", 0.3, 2.0, 0.05, 1.0), _value_label("SteerSensitivityValue", "1.00")))
 	rows.add_child(_slider_row("DodgeSizeRow", "Dodge buttons", _slider("DodgeSize", 0.7, 1.6, 0.05, 1.0), _value_label("DodgeSizeValue", "1.00")))
 	rows.add_child(_setting_row("TouchForceRow", "Always show touch pad", _check("TouchForce", "", false)))
@@ -493,8 +493,6 @@ func _verify() -> void:
 					"SafeMargin/VBox/Scroll/Rows/UiRow/Ui",
 					"SafeMargin/VBox/Scroll/Rows/UiRow/UiValue",
 					"SafeMargin/VBox/Scroll/Rows/MutedRow/Muted",
-					"SafeMargin/VBox/Scroll/Rows/FireSizeRow/FireSize",
-					"SafeMargin/VBox/Scroll/Rows/FireSizeRow/FireSizeValue",
 					"SafeMargin/VBox/Scroll/Rows/SteerSensitivityRow/SteerSensitivity",
 					"SafeMargin/VBox/Scroll/Rows/SteerSensitivityRow/SteerSensitivityValue",
 					"SafeMargin/VBox/Scroll/Rows/DodgeSizeRow/DodgeSize",

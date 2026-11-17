@@ -72,7 +72,7 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   and ramp clearances. `touch_multitouch` locks two-thumb driving: raw screen-touch indices
   own independent actions, refcounted holds, sliding steer/dodge swap, paired emulated-mouse
   double-handling, desktop mouse clicks. `practice` locks practice-mode cannons: TestRide's
-  bike fires without an arena lobby, FIRE exists on the touch overlay, and no network kill
+  bike fires via desktop input AND mobile target-locked auto-fire, MenuBtn exists, and no network kill
   broadcast happens in practice. Keep all green.
   Exit 101 from GdUnit4 = pass with benign dummy-renderer orphan warnings; 100 = failure.
 - `run_gates.sh` exports `KIEPIE_MOCK_BACKEND=1` — gates must never touch the live Talo account.
@@ -111,8 +111,10 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 
 - `web/` pushes do **not** auto-deploy (no Vercel hook). `deploy_web.sh --apply` does the
   commit + push + `vercel deploy --prod --yes --scope teacher-evans-projects` + live `curl`.
-- The generated `index.service.worker.js` precaches a non-existent `index.worker.js` on
-  single-threaded exports; `deploy_web.sh` patches it with `sed` after every export. Keep that.
+- `patch_web_sw.py` patches `index.service.worker.js` after every export: strips the
+  non-existent `index.worker.js`, stores `index.wasm` in a content-hashed `ENGINE_CACHE`
+  that survives `.pck` updates, uses Cache-First within each content-hashed `CACHE_NAME` for
+  `index.pck`, and Network-First with a 2.5 s timeout fallback for `index.html`/`index.js`.
 - `export_presets.cfg` excludes `addons/gdUnit4/*, addons/GDQuest_GDScript_formatter/*, tests/*,
   extension_api.json` and **includes `addons/talo/settings.cfg`** — the export filter is
   `all_resources`, so a plain `.cfg` is otherwise dropped and the plugin silently falls back to
@@ -195,33 +197,24 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   needed: `ArenaNet._send_state()` already broadcasts position + quaternion at 15 Hz, so remote
   proxies reproduce the cartwheel. `verify_dodge.gd` locks direction, lift, cooldown, recovery.
 - Practice mode (TestRide) carries the full combat kit: the bike gets a `CombatController`
-  child with `practice_mode = true` (works without an arena lobby; firing is enabled but
-  network kill broadcasts and the match gate are skipped — the local death/respawn flow still
-  works). TestRide's touch overlay has a `BtnFire`; `verify_practice.gd` locks presence,
-  focus, target size, wiring and an actual input-driven shot. Fire keys/buttons behave the
-  same in practice as in the arena. As of the 2026-11-17 hardening, `take_damage()` also bypasses
-  the match gate in practice mode (drums damage/kill the rider offline); `verify_practice.gd`
-  locks that too.
+  child with `practice_mode = true` (works without an arena lobby; desktop firing and mobile
+  target-locked auto-fire work standalone, while network kill broadcasts and the match gate
+  are skipped — the local death/respawn flow still works). `verify_practice.gd` locks
+  streamlined touch controls (no `BtnFire`/`BtnTurbo`/`BtnBrake`), `MenuBtn`, desktop fire,
+  mobile auto-fire, and offline drum/rider damage.
 - Touch/mobile: `TouchControls.gd` + `TouchCapture.gd` (full-rect, MOUSE_FILTER_PASS) implement
   real two-thumb multi-touch: every overlay drive button is a MOUSE_FILTER_IGNORE shell,
-  hit-tested by the capture
-  per `InputEventScreenTouch.index` — mouse emulation is a shared pointer and cannot drive
-  two actions at once, which is why this layer exists. Holds are refcounted (touch + the
-  deterministically paired emulated-mouse stream share symmetrical +1/-1), dodge neighbours
-  swap on thumb slides, gas/brake/turbo/fire stay latched. Steering is a runtime-built
-  analog pad (`AnalogSteer.gd` + `AnalogSteer` node, fills the old BtnLeft/BtnRight space;
-  Arena/TestRide steer buttons were removed) that feeds `steer_left`/`steer_right` with
-  proportional strength after a 0.15 deadzone + smoothstep curve — `Input.get_axis` in
-  KiepieBike.gd sees real analog input, keyboard A/D unchanged. Both builders add the
-  dodge pair above the steering cluster; `verify_touch.gd` enforces >=44px targets and
-  pairwise non-overlap, and `verify_touch_multitouch.gd` (runs under xvfb — headless pins a
-  64x64 viewport, so synthesized touches never hit a 1280px layout) injects raw screen-touch
-  events and locks the multi-touch contract: simultaneous gas+steer, refcount pairing,
-  analog sweep/deadzone/partial strength, slide swaps, canceled-touch and mid-sweep
-  focus-out release, four-finger holds, desktop mouse clicks. `controls/dodge_size` scales the
-  dodge buttons (centred pivot) and `controls/touch_force` persists the manual TOUCH override;
-  both are live in Settings → Controls. FIRE also scales from its centre so enlarging it
-  cannot grow over the driving cluster.
+  hit-tested by the capture per `InputEventScreenTouch.index` — mouse emulation is a shared
+  pointer and cannot drive two actions at once, which is why this layer exists. Holds are
+  refcounted (touch + the deterministically paired emulated-mouse stream share symmetrical +1/-1);
+  dodge neighbours swap on thumb slides, `BtnGas` stays latched. Manual `BtnFire`/`BtnTurbo`/`BtnBrake`
+  are omitted on mobile: pushing forward on `AnalogSteer` triggers `turbo`, and `CombatController`
+  auto-fires when aiming at targets with clear LOS while `TouchHUD` is active. Both builders add
+  the dodge pair above the steering cluster and `MenuBtn` (`Main Menu`) on `HUD` (`FOCUS_NONE`),
+  paired with Android/Web Back (`NOTIFICATION_WM_GO_BACK_REQUEST` + `popstate`) + Esc handling.
+  `verify_touch.gd` enforces >=44px targets and pairwise non-overlap, and
+  `verify_touch_multitouch.gd` (runs under xvfb) locks the multi-touch contract.
+  `controls/dodge_size` and `controls/touch_force` are live in Settings → Controls.
 - Headless physics proof: `godot-4.3 --headless --path godot --script tools/truth_test.gd`
   (0 → 9+ m/s, wheel contact). Feature checks: `verify_features.gd`, `diag2.gd`,
   `verify_controls.gd`, `verify_dodge.gd`.

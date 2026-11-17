@@ -23,8 +23,14 @@ var _starting := false
 var _used_tokens: Dictionary = {}     # shot token -> true, stops echoed kills scoring twice
 var _kill_cooldowns: Dictionary = {}  # killer -> msec timestamp of last scored kill (host only)
 var _kill_window: Dictionary = {}     # killer -> Array of msec timestamps (60 s, max 20)
+const HEARTBEAT_INTERVAL_S := 20.0
+const STALE_LOBBY_S := 90.0
+const HOST_ACK_TIMEOUT_MS := 2000
+
 var _prop_gen := 0                    # guards interleaved channel-prop writes
 var _reconnecting := false
+var _host_ack := false
+var _heartbeat_accum := 0.0
 
 
 # ------------------------------------------------------------------ lifecycle ---
@@ -42,14 +48,30 @@ func start() -> void:
 		auth_status.emit(false, "Talo identify failed — check key scopes")
 		return
 	user_id = str(Talo.current_alias.id)
-	is_ready = true
 	if not Talo.socket.message_received.is_connected(_on_socket_message):
 		Talo.socket.message_received.connect(_on_socket_message)
 	if not Talo.socket.connection_closed.is_connected(_on_socket_closed):
 		Talo.socket.connection_closed.connect(_on_socket_closed)
-	Talo.socket.open_connection()
+	await Talo.socket.open_connection()
+	var sock_deadline := Time.get_ticks_msec() + 2500
+	while not bool(Talo.socket.get("_identified")) and Time.get_ticks_msec() < sock_deadline:
+		await get_tree().process_frame
+	is_ready = true
 	connection_state.emit("connected")
 	auth_status.emit(true, "talo online · " + str(Talo.current_alias.identifier))
+
+
+func _process(delta: float) -> void:
+	if not is_ready or _channel_id <= 0 or not _is_host():
+		_heartbeat_accum = 0.0
+		return
+	if str(_lobby.get("status", "")) != "waiting":
+		_heartbeat_accum = 0.0
+		return
+	_heartbeat_accum += delta
+	if _heartbeat_accum >= HEARTBEAT_INTERVAL_S:
+		_heartbeat_accum = 0.0
+		_apply_props()
 
 
 func _on_socket_closed(_code: int, _reason: String) -> void:
@@ -78,7 +100,7 @@ func call_rpc(name: String, args: Dictionary = {}) -> Dictionary:
 		"join_by_code":
 			return await _join_by_code(args)
 		"leave_lobby":
-			_leave_lobby()
+			await _leave_lobby()
 			return {"ok": true}
 		"start_match":
 			return await _start_match()
@@ -169,6 +191,7 @@ func _create_lobby(args: Dictionary) -> Dictionary:
 		"status": "waiting",
 		"started_at": "",
 		"winner_id": "",
+		"heartbeat": str(int(Time.get_unix_time_from_system())),
 		"roster": JSON.stringify({user_id: _player_row(args)}),
 	}
 	var channel = await Talo.channels.create(code, true, props)
@@ -177,20 +200,67 @@ func _create_lobby(args: Dictionary) -> Dictionary:
 		return {}
 	_channel = channel
 	_channel_id = int(channel.id)
+	_heartbeat_accum = 0.0
 	_roster = {user_id: _player_row(args)}
 	_make_lobby(code, str(props["name"]), settings)
 	_emit_state()
 	return {"lobby": _lobby, "player": _roster[user_id]}
 
 
+static func is_channel_joinable(channel, now_unix: float, max_stale_sec: float = STALE_LOBBY_S) -> bool:
+	if channel == null:
+		return false
+	if str(channel.get_prop("status", "waiting")) != "waiting":
+		return false
+	if int(channel.member_count) <= 0:
+		return false
+	var host_id := str(channel.get_prop("host_id", ""))
+	if host_id == "":
+		return false
+	if channel.owner_alias == null or str(channel.owner_alias.id) != host_id:
+		return false
+	var roster := _parse_dict_static(str(channel.get_prop("roster", "{}")))
+	if not roster.has(host_id):
+		return false
+	var settings := _parse_dict_static(str(channel.get_prop("settings", "{}")))
+	var max_players := clampi(int(settings.get("max_players", 8)), 2, 8)
+	if int(channel.member_count) >= max_players:
+		return false
+	var hb := float(str(channel.get_prop("heartbeat", "0")))
+	if hb <= 0.0:
+		hb = _parse_iso_static(str(channel.updated_at))
+	if hb > 0.0 and (now_unix - hb) > max_stale_sec:
+		return false
+	return true
+
+
 func _join_auto(args: Dictionary) -> Dictionary:
 	var res = await Talo.channels.get_channels(0)
-	var channels: Array = res[0] if res is Array and res.size() > 0 else []
-	# Prefer the emptiest lobby; stale abandoned channels tend to have more members.
-	channels.sort_custom(func(a, b): return int(a.member_count) < int(b.member_count))
-	for channel in channels:
+	var raw_channels: Array = res[0] if res is Array and res.size() > 0 else []
+	var now_unix := Time.get_unix_time_from_system()
+	var candidates: Array = []
+	for ch in raw_channels:
+		if is_channel_joinable(ch, now_unix):
+			candidates.append(ch)
+	# Prefer active lobbies with fewer players, breaking ties by newest heartbeat.
+	candidates.sort_custom(func(a, b):
+		var ma := int(a.member_count)
+		var mb := int(b.member_count)
+		if ma != mb:
+			return ma < mb
+		return float(str(a.get_prop("heartbeat", "0"))) > float(str(b.get_prop("heartbeat", "0"))))
+	for channel in candidates:
+		_host_ack = false
 		if await _try_join(channel, args):
-			return {"lobby": _lobby, "player": _roster.get(user_id, {})}
+			if _is_host():
+				return {"lobby": _lobby, "player": _roster.get(user_id, {})}
+			var deadline := Time.get_ticks_msec() + HOST_ACK_TIMEOUT_MS
+			while not _host_ack and Time.get_ticks_msec() < deadline:
+				await get_tree().process_frame
+			if _host_ack:
+				return {"lobby": _lobby, "player": _roster.get(user_id, {})}
+			# Host vanished before heartbeat expired — leave zombie room and try next.
+			leave_lobby_channel()
 	return await _create_lobby(args)
 
 
@@ -226,8 +296,40 @@ func _try_join(channel, args: Dictionary) -> bool:
 
 func _leave_lobby() -> void:
 	if _channel_id > 0:
+		if _is_host() and _roster.size() > 1 and str(_lobby.get("status", "")) == "waiting":
+			await _handoff_host_before_leave()
 		_send("leave", {"user_id": user_id})
 	leave_lobby_channel()
+
+
+func _handoff_host_before_leave() -> void:
+	var keys: Array = _roster.keys()
+	keys.sort()
+	var next_host := ""
+	for k in keys:
+		if str(k) != user_id:
+			next_host = str(k)
+			break
+	if next_host == "":
+		return
+	var new_roster := _roster.duplicate(true)
+	new_roster.erase(user_id)
+	var new_lobby := _lobby.duplicate(true)
+	new_lobby["host_id"] = next_host
+	var prop_array: Array = [
+		{"key": "code", "value": str(new_lobby.get("code", ""))},
+		{"key": "name", "value": str(new_lobby.get("name", ""))},
+		{"key": "settings", "value": JSON.stringify(new_lobby.get("settings", {}))},
+		{"key": "host_id", "value": next_host},
+		{"key": "status", "value": str(new_lobby.get("status", ""))},
+		{"key": "started_at", "value": str(new_lobby.get("started_at", ""))},
+		{"key": "winner_id", "value": str(new_lobby.get("winner_id", ""))},
+		{"key": "heartbeat", "value": str(int(Time.get_unix_time_from_system()))},
+		{"key": "roster", "value": JSON.stringify(new_roster)},
+	]
+	_send("state", {"lobby": new_lobby, "roster": new_roster})
+	await Talo.channels.client.make_request(
+			HTTPClient.METHOD_PUT, "/%s" % _channel_id, {"ownerAliasId": int(next_host), "props": prop_array})
 
 
 func _load_state() -> void:
@@ -259,6 +361,7 @@ func _apply_props(extra: Dictionary = {}) -> void:
 		"status": str(_lobby.get("status", "")),
 		"started_at": str(_lobby.get("started_at", "")),
 		"winner_id": str(_lobby.get("winner_id", "")),
+		"heartbeat": str(int(Time.get_unix_time_from_system())),
 		"roster": JSON.stringify(_roster),
 	}
 	for k in extra.keys():
@@ -458,6 +561,7 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 			# kill_request and ready_request branches already validate sender).
 			if sender_id == "" or sender_id != str(_lobby.get("host_id", "")):
 				return
+			_host_ack = true
 			if payload is Dictionary:
 				var p := payload as Dictionary
 				if p.has("lobby") and p["lobby"] is Dictionary:
@@ -486,9 +590,15 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 					if not _is_hex_color(col):
 						col = "#40c8ff"
 					row["color"] = col
-					row["score"] = 0
-					row["is_ready"] = false
-					row["respawn_at"] = ""
+					if _roster.has(uid) and _roster[uid] is Dictionary:
+						var prev := _roster[uid] as Dictionary
+						row["score"] = int(prev.get("score", 0))
+						row["is_ready"] = bool(prev.get("is_ready", false))
+						row["respawn_at"] = str(prev.get("respawn_at", ""))
+					else:
+						row["score"] = 0
+						row["is_ready"] = false
+						row["respawn_at"] = ""
 					_roster[uid] = row
 				else:
 					_roster.erase(uid)
@@ -539,6 +649,10 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 # ------------------------------------------------------------------ helpers ---
 
 func _parse_dict(text: String) -> Dictionary:
+	return _parse_dict_static(text)
+
+
+static func _parse_dict_static(text: String) -> Dictionary:
 	if text.is_empty():
 		return {}
 	var json := JSON.new()
@@ -563,6 +677,10 @@ func _iso_from_unix(unix: float) -> String:
 
 
 func _parse_iso(value: String) -> float:
+	return _parse_iso_static(value)
+
+
+static func _parse_iso_static(value: String) -> float:
 	var s := value.replace("Z", "").replace("T", " ")
 	var dict := Time.get_datetime_dict_from_datetime_string(s, true)
 	if dict.is_empty():

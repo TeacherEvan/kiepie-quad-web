@@ -82,3 +82,27 @@ func test_mobile_text_input_applies_dom_state() -> void:
 	mobile_input.apply_dom_state(le, {"text": "Lea", "closed": true}, false, true)
 	assert_str(le.text).is_equal("Lea")
 	assert_array(submitted).is_equal(["Lea"])
+
+
+func test_match_state_all_ready_and_scoreboard_badges() -> void:
+	var m: Node = get_tree().root.get_node("Match")
+	var prev_lobby: Dictionary = (m.get("lobby") as Dictionary).duplicate(true)
+	var prev_players: Dictionary = (m.get("players") as Dictionary).duplicate(true)
+	m.set("lobby", {"id": "1", "host_id": "1", "status": "waiting", "settings": {}})
+	m.set("players", {"1": {"user_id": "1", "display_name": "Host", "is_ready": true, "score": 0}})
+	assert_bool(bool(m.call("all_ready"))).is_false()
+	m.set("players", {
+		"1": {"user_id": "1", "display_name": "Host", "is_ready": true, "score": 0},
+		"2": {"user_id": "2", "display_name": "Guest", "is_ready": false, "score": 0},
+	})
+	assert_bool(bool(m.call("all_ready"))).is_false()
+	m.set("players", {
+		"1": {"user_id": "1", "display_name": "Host", "is_ready": true, "score": 0},
+		"2": {"user_id": "2", "display_name": "Guest", "is_ready": true, "score": 0},
+	})
+	assert_bool(bool(m.call("all_ready"))).is_true()
+	var board: Array = m.call("scoreboard")
+	assert_int(board.size()).is_equal(2)
+	assert_bool(bool((board[0] as Dictionary).get("is_ready", false))).is_true()
+	m.set("lobby", prev_lobby)
+	m.set("players", prev_players)

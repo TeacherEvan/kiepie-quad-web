@@ -35,20 +35,63 @@ static var _flare_tex: ImageTexture = null
 static var _ring_tex: ImageTexture = null
 static var _smoke_tex: ImageTexture = null
 static var _noise: FastNoiseLite = null
+static var _sprite_mats: Dictionary = {}
+static var _sprite_quads: Dictionary = {}
+static var _rubble_meshes: Array[BoxMesh] = []
+static var _rubble_shapes: Array[BoxShape3D] = []
+static var _shaders_warmed := false
 
 
 static func _q() -> float:
 	return maxf(0.0, Settings.quality_multiplier())
 
 
-static func prewarm() -> void:
+static func _ensure_rubble_pool() -> void:
+	if not _rubble_meshes.is_empty():
+		return
+	for s in [0.16, 0.24, 0.34]:
+		var bm := BoxMesh.new()
+		bm.size = Vector3.ONE * float(s)
+		_rubble_meshes.append(bm)
+		var bs := BoxShape3D.new()
+		bs.size = Vector3.ONE * float(s)
+		_rubble_shapes.append(bs)
+
+
+static func prewarm(host: Node3D = null) -> void:
 	## Called once when the first bike enters a scene: builds the tiny sprite
-	## set up front so a firefight's first shot does not pay texture-gen cost.
+	## set, pooled particle materials/meshes, and (on GPU runs) warms WebGL
+	## shaders offscreen so a firefight's first shot never stalls compilation.
 	_soft_sprite()
 	_streak_sprite()
 	_flare_sprite()
 	_ring_sprite()
 	_smoke_sprite()
+	_ensure_rubble_pool()
+	for additive in [false, true]:
+		for key in ["soft", "streak", "flare", "ring", "smoke"]:
+			_sprite_material(additive, key)
+	if host != null and not _shaders_warmed and DisplayServer.get_name() != "headless":
+		_shaders_warmed = true
+		var rack := Node3D.new()
+		rack.name = "VfxShaderPrewarm"
+		rack.position = Vector3(0.0, -150.0, 0.0)
+		rack.scale = Vector3(0.001, 0.001, 0.001)
+		host.add_child(rack)
+		for key in ["soft", "streak"]:
+			var q := _sprite_quad(key == "streak", key, 0.42)
+			var m := MeshInstance3D.new()
+			m.mesh = q
+			rack.add_child(m)
+		var r := MeshInstance3D.new()
+		r.mesh = _rubble_meshes[0]
+		r.material_override = _emissive(COL_CHAR, 1.0)
+		rack.add_child(r)
+		var tree := host.get_tree()
+		if tree != null:
+			tree.create_timer(0.25).timeout.connect(func() -> void:
+				if is_instance_valid(rack):
+					rack.queue_free())
 
 
 # ------------------------------------------------------------------ palette --
@@ -188,7 +231,7 @@ static func _smoke_sprite() -> ImageTexture:
 			_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 			_noise.fractal_octaves = 2
 			_noise.frequency = 0.04
-		var s := 96
+		var s := 64
 		var img := Image.create(s, s, false, Image.FORMAT_RGBA8)
 		for y in range(s):
 			var v := float(y) / float(s - 1) * 2.0 - 1.0
@@ -203,6 +246,9 @@ static func _smoke_sprite() -> ImageTexture:
 
 
 static func _sprite_material(additive: bool, key: String = "soft") -> StandardMaterial3D:
+	var cache_key := "%s|%s" % [key, str(additive)]
+	if _sprite_mats.has(cache_key):
+		return _sprite_mats[cache_key] as StandardMaterial3D
 	var m := StandardMaterial3D.new()
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -220,7 +266,19 @@ static func _sprite_material(additive: bool, key: String = "soft") -> StandardMa
 			m.albedo_texture = _smoke_sprite()
 	if additive:
 		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_sprite_mats[cache_key] = m
 	return m
+
+
+static func _sprite_quad(additive: bool, key: String, quad_size: float) -> QuadMesh:
+	var qkey := "%s|%s|%.3f" % [key, str(additive), quad_size]
+	if _sprite_quads.has(qkey):
+		return _sprite_quads[qkey] as QuadMesh
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE * quad_size
+	quad.material = _sprite_material(additive, key)
+	_sprite_quads[qkey] = quad
+	return quad
 
 
 # --------------------------------------------------------------- particles ---
@@ -264,10 +322,7 @@ static func _particle(parent: Node3D, pos: Vector3, amount: int, lifetime: float
 		pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
 		pm.emission_box_extents = opts["box"]
 	p.process_material = pm
-	var quad := QuadMesh.new()
-	quad.size = Vector2.ONE * float(opts.get("quad", 0.42))
-	quad.material = _sprite_material(additive, str(opts.get("tex", "soft")))
-	p.draw_pass_1 = quad
+	p.draw_pass_1 = _sprite_quad(additive, str(opts.get("tex", "soft")), float(opts.get("quad", 0.42)))
 	p.position = pos
 	parent.add_child(p)
 	p.emitting = true
@@ -624,41 +679,39 @@ static func explosion(parent: Node3D, pos: Vector3, color: Color, scale: float =
 		_ring_quad(holder, Vector3(0, 0.24, 0), 0.62, Color(1, 0.74, 0.32, 0.9), 6.0, 0.42, false)
 		_ring_quad(holder, Vector3(0, 0.18, 0), 1.10, Color(0.60, 0.53, 0.44, 0.7), 8.0, 0.72, true)
 
-	# debris: hot at first, cooling to char as it tumbles
+	# debris: hot at first, cooling to char via 1 shared material + pooled shapes/meshes
+	_ensure_rubble_pool()
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	var pieces := 0 if Settings.reduced_motion() else int(12 * _q())
-	for i in range(pieces):
-		var size := rng.randf_range(0.12, 0.38)
-		var chunk := RigidBody3D.new()
-		chunk.mass = rng.randf_range(2.0, 8.0)
-		chunk.collision_layer = 0
-		chunk.collision_mask = 0
-		var col := CollisionShape3D.new()
-		var box := BoxShape3D.new()
-		box.size = Vector3.ONE * size
-		col.shape = box
-		chunk.add_child(col)
-		var mesh := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3.ONE * size
+	if pieces > 0:
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = COL_CHAR
 		mat.emission_enabled = true
 		mat.emission = COL_EMBER
-		mat.emission_energy_multiplier = rng.randf_range(0.9, 1.8)
+		mat.emission_energy_multiplier = 1.4
 		mat.roughness = 0.86
-		bm.material = mat
-		mesh.mesh = bm
-		chunk.add_child(mesh)
-		holder.add_child(chunk)
-		chunk.global_position = pos + Vector3(rng.randf_range(-0.5, 0.5),
-				rng.randf_range(0.2, 1.0), rng.randf_range(-0.5, 0.5))
-		chunk.linear_velocity = Vector3(rng.randf_range(-6, 6), rng.randf_range(3, 9),
-				rng.randf_range(-6, 6))
-		chunk.angular_velocity = Vector3(rng.randf_range(-8, 8), rng.randf_range(-8, 8),
-				rng.randf_range(-8, 8))
-		var cool := chunk.create_tween()
+		for i in range(pieces):
+			var variant := i % _rubble_meshes.size()
+			var chunk := RigidBody3D.new()
+			chunk.mass = rng.randf_range(2.0, 8.0)
+			chunk.collision_layer = 0
+			chunk.collision_mask = 0
+			var col := CollisionShape3D.new()
+			col.shape = _rubble_shapes[variant]
+			chunk.add_child(col)
+			var mesh := MeshInstance3D.new()
+			mesh.mesh = _rubble_meshes[variant]
+			mesh.material_override = mat
+			chunk.add_child(mesh)
+			holder.add_child(chunk)
+			chunk.global_position = pos + Vector3(rng.randf_range(-0.5, 0.5),
+					rng.randf_range(0.2, 1.0), rng.randf_range(-0.5, 0.5))
+			chunk.linear_velocity = Vector3(rng.randf_range(-6, 6), rng.randf_range(3, 9),
+					rng.randf_range(-6, 6))
+			chunk.angular_velocity = Vector3(rng.randf_range(-8, 8), rng.randf_range(-8, 8),
+					rng.randf_range(-8, 8))
+		var cool := holder.create_tween()
 		cool.tween_property(mat, "emission_energy_multiplier", 0.0, 0.7)
 
 	# second beat: a small delayed detonation makes the blast feel physical

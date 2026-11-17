@@ -30,36 +30,34 @@ var _analog_turbo := false  # true while analog forward deflection holds "turbo"
 var _analog_pad: Control = null
 var _touch_toggle: Button
 var _force := false
+var _overlay_active := false
 var _drive_buttons: Array = []
 
-# Thumb clusters where sliding between neighbours is the natural gesture; gas /
-# brake / turbo / fire stay latched until their own finger lifts.
+# Thumb clusters where sliding between neighbours is the natural gesture; gas
+# stays latched until its own finger lifts (fire is automatic, turbo pushes forward on analog).
 const SLIDE_PAIRS := [
 	["dodge_left", "dodge_right"],
 ]
+
+
+func _init() -> void:
+	add_to_group("touch_controls")
+
+
+func is_overlay_active() -> bool:
+	return _overlay_active
+
 
 func _ready() -> void:
 	# Persist the manual TOUCH override across scenes/restarts (the Settings
 	# key existed but was never read).
 	_force = bool(Settings.get_value("controls", "touch_force", false))
 	_wire("BtnGas", "move_forward")
-	_wire("BtnBrake", "move_back")  # same action as keyboard S/Down (brake, then reverse)
-	_wire("BtnTurbo", "turbo")
-	_wire("BtnFire", "fire")
 	_wire("BtnDodgeLeft", "dodge_left")
 	_wire("BtnDodgeRight", "dodge_right")
 	for action in _held:
 		var btn: Button = _held[action]
 		btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var fire_btn := get_node_or_null("BtnFire") as Button
-	if fire_btn != null:
-		var size := float(Settings.get_value("controls", "fire_size", 1.0))
-		# Centre the scale so enlarging FIRE cannot grow it down over the
-		# driving cluster below (its default pivot is the top-left corner).
-		fire_btn.pivot_offset = Vector2(
-				absf(fire_btn.offset_right - fire_btn.offset_left) * 0.5,
-				absf(fire_btn.offset_bottom - fire_btn.offset_top) * 0.5)
-		fire_btn.scale = Vector2(size, size)
 	# Dodge buttons scale about their centre so growing them never eats the
 	# steering cluster directly below.
 	var dodge_size := clampf(float(Settings.get_value("controls", "dodge_size", 1.0)), 0.7, 1.6)
@@ -301,6 +299,7 @@ func _apply_visibility() -> void:
 	# toggle); only the driving controls come and go with touch auto-detect
 	# or the manual override.
 	var show_drive := _force or DisplayServer.is_touchscreen_available()
+	_overlay_active = show_drive
 	for btn in _drive_buttons:
 		(btn as Button).visible = show_drive
 	if _analog_pad != null:
@@ -324,8 +323,10 @@ func _sync_toggle_text() -> void:
 
 func _release_all() -> void:
 	# Only actions THIS layer holds are released - keyboard/test presses
-	# are never wiped. _drop() is idempotent, so repeat calls are free.
-	for action in _held:
+	# are never wiped. Iterate _counts (not just _held) so analog-held
+	# "turbo" releases even with BtnTurbo removed.
+	_analog_turbo = false
+	for action in _counts.keys().duplicate():
 		var count := int(_counts.get(action, 0))
 		for i in range(count):
 			_drop(action)
@@ -381,71 +382,41 @@ func _relayout() -> void:
 	var dodge_l := get_node_or_null("BtnDodgeLeft") as Button
 	var dodge_r := get_node_or_null("BtnDodgeRight") as Button
 	var gas := get_node_or_null("BtnGas") as Button
-	var brake := get_node_or_null("BtnBrake") as Button
-	var turbo := get_node_or_null("BtnTurbo") as Button
-	var fire := get_node_or_null("BtnFire") as Button
 
-	var fire_size := float(Settings.get_value("controls", "fire_size", 1.0))
 	var dodge_size := clampf(float(Settings.get_value("controls", "dodge_size", 1.0)), 0.7, 1.6)
-	var eff_fire := fire_size
 	var eff_dodge := dodge_size
 
 	if vp.x < 700.0:
-		# Narrow / Portrait (e.g. 390x844): compact both clusters <= 44% width each
+		# Narrow / Portrait (e.g. 390x844): compact left cluster, single clean GAS pad on right
 		var pad_w := clampf(vp.x * 0.44, 168.0, 250.0)
 		_set_rect(_analog_pad, 10.0, -140.0, 10.0 + pad_w, -20.0, 0.0)
 		_set_rect(dodge_l, 14.0, -238.0, 86.0, -184.0, 0.0)
 		_set_rect(dodge_r, 114.0, -238.0, 186.0, -184.0, 0.0)
-		_set_rect(gas, -84.0, -156.0, -10.0, -20.0, 1.0)
-		_set_rect(brake, -170.0, -86.0, -96.0, -20.0, 1.0)
-		_set_rect(turbo, -170.0, -156.0, -96.0, -96.0, 1.0)
-		_set_rect(fire, -126.0, -288.0, -22.0, -196.0, 1.0)
-		_set_btn_compact(gas, 20, 6.0)
-		_set_btn_compact(fire, 20, 6.0)
-		_set_btn_compact(turbo, 12, 6.0)
-		_set_btn_compact(brake, 12, 6.0)
+		_set_rect(gas, -144.0, -156.0, -12.0, -20.0, 1.0)
+		_set_btn_compact(gas, 28, 8.0)
 		_set_btn_compact(dodge_l, 12, 6.0)
 		_set_btn_compact(dodge_r, 12, 6.0)
 		eff_dodge = minf(dodge_size, 1.25)
-		eff_fire = minf(fire_size, 1.25)
 	elif vp.y < 520.0:
-		# Mobile Landscape (e.g. 844x390): compact vertically, Fire beside Brake/Turbo
+		# Mobile Landscape (e.g. 844x390): streamlined analog + dodge on left, GAS on right
 		_set_rect(_analog_pad, 12.0, -118.0, 252.0, -14.0, 0.0)
 		_set_rect(dodge_l, 28.0, -194.0, 112.0, -134.0, 0.0)
 		_set_rect(dodge_r, 150.0, -194.0, 234.0, -134.0, 0.0)
-		_set_rect(gas, -116.0, -144.0, -12.0, -14.0, 1.0)
-		_set_rect(brake, -222.0, -88.0, -128.0, -14.0, 1.0)
-		_set_rect(turbo, -222.0, -158.0, -128.0, -98.0, 1.0)
-		_set_rect(fire, -362.0, -140.0, -258.0, -36.0, 1.0)
-		_set_btn_compact(gas, 36, 14.0)
-		_set_btn_compact(fire, 30, 14.0)
-		_set_btn_compact(turbo, 18, 14.0)
-		_set_btn_compact(brake, 20, 14.0)
+		_set_rect(gas, -152.0, -152.0, -14.0, -16.0, 1.0)
+		_set_btn_compact(gas, 34, 14.0)
 		_set_btn_compact(dodge_l, 13, 6.0)
 		_set_btn_compact(dodge_r, 13, 6.0)
 		eff_dodge = minf(dodge_size, 1.28)
-		eff_fire = minf(fire_size, 1.3)
 	else:
 		# Standard (e.g. 1280x720)
 		_set_rect(_analog_pad, 12.0, -156.0, 312.0, -16.0, 0.0)
 		_set_rect(dodge_l, 36.0, -280.0, 126.0, -200.0, 0.0)
 		_set_rect(dodge_r, 196.0, -280.0, 286.0, -200.0, 0.0)
-		_set_rect(brake, -258.0, -112.0, -148.0, -16.0, 1.0)
-		_set_rect(turbo, -258.0, -202.0, -148.0, -122.0, 1.0)
-		_set_rect(gas, -138.0, -176.0, -12.0, -16.0, 1.0)
-		_set_rect(fire, -164.0, -352.0, -38.0, -232.0, 1.0)
+		_set_rect(gas, -156.0, -174.0, -14.0, -18.0, 1.0)
 		_set_btn_compact(gas, 36, 14.0)
-		_set_btn_compact(fire, 30, 14.0)
-		_set_btn_compact(turbo, 18, 14.0)
-		_set_btn_compact(brake, 20, 14.0)
 		_set_btn_compact(dodge_l, 15, 14.0)
 		_set_btn_compact(dodge_r, 15, 14.0)
 
-	if fire != null:
-		fire.pivot_offset = Vector2(
-				absf(fire.offset_right - fire.offset_left) * 0.5,
-				absf(fire.offset_bottom - fire.offset_top) * 0.5)
-		fire.scale = Vector2(eff_fire, eff_fire)
 	for btn in [dodge_l, dodge_r]:
 		if btn != null:
 			btn.pivot_offset = Vector2(

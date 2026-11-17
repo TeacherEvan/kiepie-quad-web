@@ -19,9 +19,9 @@ const TRACK_SPECULAR := Color(1.0, 1.0, 1.0, 0.12)
 const CENTER := Color(0.92, 0.94, 0.98, 0.42)
 const DEADZONE_MARK := Color(0.75, 0.82, 0.92, 0.35)
 const GLOW_ACTIVE := Color(1.0, 0.62, 0.16, 0.32)
-const TURBO_GLOW := Color(1.0, 0.74, 0.14, 0.38)
-const TURBO_GUIDE := Color(0.84, 0.88, 0.96, 0.46)
-const TURBO_LIT := Color(1.0, 0.86, 0.28, 0.98)
+const TURBO_GLOW := Color(1.0, 0.74, 0.14, 0.42)
+const TURBO_GUIDE := Color(1.0, 0.84, 0.42, 0.82)
+const TURBO_LIT := Color(1.0, 0.92, 0.35, 1.0)
 const KNOB := Color(1.0, 0.62, 0.16, 0.96)
 const KNOB_TURBO := Color(1.0, 0.80, 0.22, 0.98)
 const KNOB_RIM := Color(1.0, 0.86, 0.52, 0.75)
@@ -107,19 +107,19 @@ func _draw() -> void:
 
 	# Push-up turbo cue (double upward chevron + label near top edge)
 	var cue_col := TURBO_LIT if turbo_active else TURBO_GUIDE
-	var cw := 6.5
-	var cy1 := h * 0.07
-	var cy2 := cy1 + 5.0
-	draw_line(Vector2(cx - cw, cy1 + 4.5), Vector2(cx, cy1), cue_col, 2.0, true)
-	draw_line(Vector2(cx + cw, cy1 + 4.5), Vector2(cx, cy1), cue_col, 2.0, true)
-	draw_line(Vector2(cx - cw, cy2 + 4.5), Vector2(cx, cy2), cue_col, 2.0, true)
-	draw_line(Vector2(cx + cw, cy2 + 4.5), Vector2(cx, cy2), cue_col, 2.0, true)
-	if ThemeDB.fallback_font != null and h >= 76.0:
+	var cw := 7.5
+	var cy1 := h * 0.06
+	var cy2 := cy1 + 5.5
+	draw_line(Vector2(cx - cw, cy1 + 5.0), Vector2(cx, cy1), cue_col, 2.2, true)
+	draw_line(Vector2(cx + cw, cy1 + 5.0), Vector2(cx, cy1), cue_col, 2.2, true)
+	draw_line(Vector2(cx - cw, cy2 + 5.0), Vector2(cx, cy2), cue_col, 2.2, true)
+	draw_line(Vector2(cx + cw, cy2 + 5.0), Vector2(cx, cy2), cue_col, 2.2, true)
+	if ThemeDB.fallback_font != null and h >= 72.0:
 		var font := ThemeDB.fallback_font
-		var fsize := 9
+		var fsize := 12
 		var label := "TURBO"
 		var tw := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize).x
-		draw_string(font, Vector2(cx - tw * 0.5, h * 0.26), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, cue_col)
+		draw_string(font, Vector2(cx - tw * 0.5, h * 0.27), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, cue_col)
 
 	# Knob + active halo (moves horizontally to steer, upward when pushed forward)
 	var kx := cx + _display_value * travel
