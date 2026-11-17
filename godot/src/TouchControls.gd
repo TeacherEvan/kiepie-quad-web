@@ -1,20 +1,30 @@
 extends CanvasLayer
-## Touch overlay for the Kiepie Bike pad: big hold-to-drive buttons.
+## Touch overlay for the Kiepie Bike pad: hold-to-drive buttons + analog steering.
 ## Shows itself on touchscreen devices; the "TOUCH" toggle forces it visible/hidden
 ## (needed on desktop and headless, harmless on phones). Reset lives on the HUD
 ## Restart button, which already works by tap.
 ##
 ## Multi-touch: the drive buttons are visual shells (MOUSE_FILTER_IGNORE); a
 ## full-rect TouchCapture child tracks every finger by InputEventScreenTouch.index,
-## so steering, gas, boost and fire all work at the same time. Buttons'
-## button_down/up signals are still wired for tests/synthetic emitters.
+## so steering, gas, boost and fire all work at the same time.
+##
+## Steering is analog: a wide thumb pad (see AnalogSteer.gd) feeds steer_left /
+## steer_right with a strength proportional to the thumb offset, deadzoned and
+## smooth-stepped for centre control. Buttons' button_down/up signals are still
+## wired for tests/synthetic emitters.
 
 const CAPTURE := "res://src/TouchCapture.gd"
+const ANALOG := "res://src/AnalogSteer.gd"
+
+const DEADZONE := 0.15
 
 var _held: Dictionary = {}  # Input action -> Button (only actions this layer drives)
 var _counts: Dictionary = {}  # Input action -> hold references (fingers + signal holds)
 var _fingers: Dictionary = {}  # pointer index -> Input action
 var _signal_hold: Dictionary = {}  # Input action -> bool (held via button_down signal)
+var _analog: Dictionary = {}  # pointer index -> signed -1..1 thumb offset
+var _analog_side := 0  # -1 = steer_left held by pad, +1 = steer_right, 0 = none
+var _analog_pad: Control = null
 var _touch_toggle: Button
 var _force := false
 var _drive_buttons: Array = []
@@ -22,7 +32,6 @@ var _drive_buttons: Array = []
 # Thumb clusters where sliding between neighbours is the natural gesture; gas /
 # brake / turbo / fire stay latched until their own finger lifts.
 const SLIDE_PAIRS := [
-	["steer_left", "steer_right"],
 	["dodge_left", "dodge_right"],
 ]
 
@@ -30,8 +39,6 @@ func _ready() -> void:
 	# Persist the manual TOUCH override across scenes/restarts (the Settings
 	# key existed but was never read).
 	_force = bool(Settings.get_value("controls", "touch_force", false))
-	_wire("BtnLeft", "steer_left")
-	_wire("BtnRight", "steer_right")
 	_wire("BtnGas", "move_forward")
 	_wire("BtnBrake", "move_back")  # same action as keyboard S/Down (brake, then reverse)
 	_wire("BtnTurbo", "turbo")
@@ -63,6 +70,19 @@ func _ready() -> void:
 		_touch_toggle.pressed.connect(_on_toggle)
 	for action in _held:
 		_drive_buttons.append(_held[action])
+	# Analog steering pad — fills the space the old BtnLeft/BtnRight lived in.
+	_analog_pad = Control.new()
+	_analog_pad.name = "AnalogSteer"
+	_analog_pad.set_script(load(ANALOG))
+	_analog_pad.anchor_left = 0.0
+	_analog_pad.anchor_right = 0.0
+	_analog_pad.anchor_top = 1.0
+	_analog_pad.anchor_bottom = 1.0
+	_analog_pad.offset_left = 10.0
+	_analog_pad.offset_right = 310.0
+	_analog_pad.offset_top = -174.0
+	_analog_pad.offset_bottom = -64.0  # above the Web shell hint strip
+	add_child(_analog_pad)
 	# Raw pointer capture: one handler for all fingers, independent of the
 	# engine's single emulated mouse pointer.
 	var capture := Control.new()
@@ -93,7 +113,22 @@ func _release(action: String) -> void:
 	_signal_hold[action] = false
 	_drop(action)
 
+func _analog_rect() -> Rect2:
+	# Hidden pad (touch auto-detect OFF) must not capture fingers either.
+	if _analog_pad == null or not _analog_pad.visible:
+		return Rect2()
+	return _analog_pad.get_global_rect()
+
+func _analog_value(at: Vector2) -> float:
+	var r := _analog_rect()
+	if r.size.x <= 1.0:
+		return 0.0
+	return clampf((at.x - r.get_center().x) / (r.size.x * 0.5 - 30.0), -1.0, 1.0)
+
 func _on_pointer_down(pointer: int, at: Vector2) -> void:
+	if _analog_rect().has_point(at):
+		_analog[pointer] = _analog_value(at)
+		return
 	var action := _hit_action(at)
 	if action == "" or _fingers.has(pointer):
 		return
@@ -101,6 +136,11 @@ func _on_pointer_down(pointer: int, at: Vector2) -> void:
 	_hold(action)
 
 func _on_pointer_move(pointer: int, at: Vector2) -> void:
+	if _analog.has(pointer):
+		# Deadzone-resistant tracking: the knob stays live under the thumb even
+		# if the finger wanders outside the pad vertically.
+		_analog[pointer] = _analog_value(at)
+		return
 	if not _fingers.has(pointer):
 		return
 	var current: String = _fingers[pointer]
@@ -112,6 +152,9 @@ func _on_pointer_move(pointer: int, at: Vector2) -> void:
 	_hold(hovered)
 
 func _on_pointer_up(pointer: int, _at: Vector2) -> void:
+	if _analog.has(pointer):
+		_analog.erase(pointer)
+		return
 	if not _fingers.has(pointer):
 		return
 	var action: String = _fingers[pointer]
@@ -150,6 +193,11 @@ func _drop(action: String) -> void:
 		if _held.has(action):
 			(_held[action] as Button).set_pressed_no_signal(false)
 
+static func _curve(t: float) -> float:
+	# deadzone, then smoothstep so the centre of the pad is a fine-control band
+	var a := maxf(0.0, (absf(t) - DEADZONE) / (1.0 - DEADZONE))
+	return signf(t) * a * a * (3.0 - 2.0 * a)
+
 func _process(_delta: float) -> void:
 	# Reconcile (defense-in-depth, not the primary guard): only covers holds
 	# that came in via the button_down signal; genuine touch holds are owned by
@@ -161,17 +209,57 @@ func _process(_delta: float) -> void:
 			if not btn.is_pressed():
 				_signal_hold[action] = false
 				_drop(action)
+	# Analog steering: strongest offset wins (two thumbs on the pad can't orchestrate
+	# a fight the vehicle feel can't read anyway).
+	var target := 0.0
+	var best := 0.0
+	for pointer in _analog:
+		var t: float = _analog[pointer]
+		if absf(t) > best:
+			best = absf(t)
+			target = t
+	var steer := _curve(target)
+	if steer < -0.001:
+		Input.action_press("steer_left", -steer)
+		if _analog_side == 1:
+			Input.action_release("steer_right")
+		_analog_side = -1
+	elif steer > 0.001:
+		Input.action_press("steer_right", steer)
+		if _analog_side == -1:
+			Input.action_release("steer_left")
+		_analog_side = 1
+	else:
+		_release_analog_side()
+	_update_pad_knob(steer)
+
+func _release_analog_side() -> void:
+	if _analog_side == -1:
+		Input.action_release("steer_left")
+	elif _analog_side == 1:
+		Input.action_release("steer_right")
+	_analog_side = 0
+
+func _update_pad_knob(steer: float) -> void:
+	if _analog_pad == null:
+		return
+	if not is_equal_approx(_analog_pad.get("value"), steer):
+		_analog_pad.set("value", steer)
+		_analog_pad.queue_redraw()
 
 func _apply_visibility() -> void:
 	# The layer itself always stays visible (it hosts the always-on TOUCH
-	# toggle); only the driving buttons come and go with touch auto-detect
+	# toggle); only the driving controls come and go with touch auto-detect
 	# or the manual override.
 	var show_drive := _force or DisplayServer.is_touchscreen_available()
 	for btn in _drive_buttons:
 		(btn as Button).visible = show_drive
+	if _analog_pad != null:
+		_analog_pad.visible = show_drive
 	# Hiding the driving controls must not leave a stuck throttle behind.
 	if not show_drive:
 		_release_all()
+		_release_analog_side()
 
 func _on_toggle() -> void:
 	_force = not _force
@@ -193,6 +281,7 @@ func _release_all() -> void:
 			_drop(action)
 		_signal_hold[action] = false
 	_fingers.clear()
+	_analog.clear()
 
 func _notification(what: int) -> void:
 	# OS-level interruption (phone call, notification shade, app backgrounded)
@@ -200,6 +289,9 @@ func _notification(what: int) -> void:
 	# throttle pinned.
 	if what == Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT:
 		_release_all()
+		_release_analog_side()
+		_update_pad_knob(0.0)
 
 func _exit_tree() -> void:
 	_release_all()
+	_release_analog_side()

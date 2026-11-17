@@ -83,4 +83,31 @@ func _run() -> void:
 			"concrete", Vector3.FORWARD)
 	await create_timer(0.08).timeout
 	await _shot("vfx_muzzle_new.png")
+	# 5 — touch overlay with the analog pad deflected (render proof)
+	var settings_node := root.get_node_or_null("Settings")
+	if settings_node != null:
+		settings_node.call("set_value", "controls", "touch_force", true)
+	var ride2 := (load("res://scenes/TestRide.tscn") as PackedScene).instantiate() as Node3D
+	root.add_child(ride2)
+	for i in range(6):
+		await process_frame
+	var touch_hud := ride2.get_node_or_null("TouchHUD") as CanvasLayer
+	if touch_hud != null:
+		var pad := touch_hud.get_node_or_null("AnalogSteer") as Control
+		print("analog pad rect: ", pad.get_global_rect() if pad != null else "MISSING")
+		var r := pad.get_global_rect()
+		var at := Vector2(r.get_center().x + r.size.x * 0.5 - 42.0, r.get_center().y)
+		touch_hud.call("_on_pointer_down", 0, at)
+		touch_hud.call("_on_pointer_move", 0, at)
+		for i in range(4):
+			await process_frame
+		print("steer_right strength: ", Input.get_action_strength("steer_right"))
+		await _shot("vfx_touch_analog.png")
+		touch_hud.call("_on_pointer_up", 0, at)
+		for i in range(3):
+			await process_frame
+	if settings_node != null:
+		settings_node.call("set_value", "controls", "touch_force", false)
+	ride2.free()
+
 	quit()

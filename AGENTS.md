@@ -183,17 +183,22 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   needed: `ArenaNet._send_state()` already broadcasts position + quaternion at 15 Hz, so remote
   proxies reproduce the cartwheel. `verify_dodge.gd` locks direction, lift, cooldown, recovery.
 - Touch/mobile: `TouchControls.gd` + `TouchCapture.gd` (full-rect, MOUSE_FILTER_PASS) implement
-  real two-thumb multi-touch: every overlay button (including `BtnDodgeLeft`/`BtnDodgeRight`
-  → `dodge_left`/`dodge_right`) is a MOUSE_FILTER_IGNORE shell, hit-tested by the capture
+  real two-thumb multi-touch: every overlay drive button is a MOUSE_FILTER_IGNORE shell,
+  hit-tested by the capture
   per `InputEventScreenTouch.index` — mouse emulation is a shared pointer and cannot drive
   two actions at once, which is why this layer exists. Holds are refcounted (touch + the
-  deterministically paired emulated-mouse stream share symmetrical +1/-1), steering/dodge
-  neighbours swap on thumb slides, gas/brake/turbo/fire stay latched. Both builders add the
+  deterministically paired emulated-mouse stream share symmetrical +1/-1), dodge neighbours
+  swap on thumb slides, gas/brake/turbo/fire stay latched. Steering is a runtime-built
+  analog pad (`AnalogSteer.gd` + `AnalogSteer` node, fills the old BtnLeft/BtnRight space;
+  Arena/TestRide steer buttons were removed) that feeds `steer_left`/`steer_right` with
+  proportional strength after a 0.15 deadzone + smoothstep curve — `Input.get_axis` in
+  KiepieBike.gd sees real analog input, keyboard A/D unchanged. Both builders add the
   dodge pair above the steering cluster; `verify_touch.gd` enforces >=44px targets and
   pairwise non-overlap, and `verify_touch_multitouch.gd` (runs under xvfb — headless pins a
   64x64 viewport, so synthesized touches never hit a 1280px layout) injects raw screen-touch
   events and locks the multi-touch contract: simultaneous gas+steer, refcount pairing,
-  slide swaps, focus-out release, desktop mouse clicks. `controls/dodge_size` scales the
+  analog sweep/deadzone/partial strength, slide swaps, canceled-touch and mid-sweep
+  focus-out release, four-finger holds, desktop mouse clicks. `controls/dodge_size` scales the
   dodge buttons (centred pivot) and `controls/touch_force` persists the manual TOUCH override;
   both are live in Settings → Controls. FIRE also scales from its centre so enlarging it
   cannot grow over the driving cluster.

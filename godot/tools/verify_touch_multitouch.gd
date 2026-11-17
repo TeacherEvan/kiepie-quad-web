@@ -51,6 +51,17 @@ func _centre(layer: CanvasLayer, btn_name: String) -> Vector2:
 	return btn.get_global_rect().get_center() if btn != null else Vector2.ZERO
 
 
+func _pad_rect(layer: CanvasLayer) -> Rect2:
+	var pad := layer.get_node_or_null("AnalogSteer") as Control
+	return pad.get_global_rect() if pad != null else Rect2()
+
+
+func _pad_at(layer: CanvasLayer, frac: float) -> Vector2:
+	# frac: -1.0 (full left) .. +1.0 (full right)
+	var r := _pad_rect(layer)
+	return Vector2(r.get_center().x + frac * (r.size.x * 0.5 - 30.0), r.get_center().y)
+
+
 func _initialize() -> void:
 	_run()
 
@@ -76,20 +87,48 @@ func _run() -> void:
 	_check((layer.get_node("BtnGas") as Button).mouse_filter == Control.MOUSE_FILTER_IGNORE,
 			"drive buttons do not ride the single emulated mouse pointer")
 
-	# ---- one finger on GAS + another on STEER-RIGHT at the same time
+	# ---- one finger on GAS + another analog-steering right at the same time
 	_touch(0, _centre(layer, "BtnGas"), true)
-	_touch(1, _centre(layer, "BtnRight"), true)
+	_touch(1, _pad_at(layer, 1.0), true)
 	await process_frame
 	_check(Input.is_action_pressed("move_forward"), "finger 0 holds move_forward")
-	_check(Input.is_action_pressed("steer_right"), "finger 1 holds steer_right")
+	_check(Input.is_action_pressed("steer_right"), "finger 1 steers right")
+	_check(Input.get_action_strength("steer_right") > 0.5, "analog strength flows to get_axis")
 	# ---- lifting one finger leaves the other untouched
 	_touch(0, _centre(layer, "BtnGas"), false)
 	await process_frame
 	_check(not Input.is_action_pressed("move_forward"), "finger 0 release only drops move_forward")
-	_check(Input.is_action_pressed("steer_right"), "finger 1 still holds steer_right")
-	_touch(1, _centre(layer, "BtnRight"), false)
+	_check(Input.is_action_pressed("steer_right"), "finger 1 still steering right")
+	_touch(1, _pad_at(layer, 1.0), false)
 	await process_frame
 	_check(not Input.is_action_pressed("steer_right"), "finger 1 release drops steer_right")
+
+	# ---- analog pad: half-left, centre deadzone, sweep left->right
+	_touch(2, _pad_at(layer, -0.5), true)
+	await process_frame
+	_check(Input.is_action_pressed("steer_left"), "pad half-left steers left")
+	var half_left := Input.get_action_strength("steer_left")
+	_check(half_left > 0.10 and half_left < 0.60, "analog midpoint gives partial strength (%.2f)" % half_left)
+	_drag(2, _pad_at(layer, 0.0))
+	await process_frame
+	_check(not Input.is_action_pressed("steer_left") and not Input.is_action_pressed("steer_right"),
+			"pad centre sits inside the deadzone")
+	_drag(2, _pad_at(layer, 1.0))
+	await process_frame
+	_check(Input.is_action_pressed("steer_right"), "sweep to full right engages steer_right")
+	_check(not Input.is_action_pressed("steer_left"), "sweep off steer_left releases it")
+	_check(Input.get_action_strength("steer_right") > 0.5, "full-right gives near-full strength")
+	_touch(2, _pad_at(layer, 1.0), false)
+	await process_frame
+	_check(not Input.is_action_pressed("steer_right"), "pad release centres the steering")
+
+	# ---- deadzone: resting near the centre never steers
+	_touch(2, _pad_at(layer, 0.05), true)
+	await process_frame
+	_check(not Input.is_action_pressed("steer_left") and not Input.is_action_pressed("steer_right"),
+			"touch inside deadzone produces no steer")
+	_touch(2, _pad_at(layer, 0.05), false)
+	await process_frame
 
 	# ---- two fingers on the same button: refcounted, one lift keeps the hold
 	_touch(0, _centre(layer, "BtnTurbo"), true)
@@ -101,17 +140,6 @@ func _run() -> void:
 	_touch(1, _centre(layer, "BtnTurbo"), false)
 	await process_frame
 	_check(not Input.is_action_pressed("turbo"), "both fingers lifted drops turbo")
-
-	# ---- steering slide: finger on LEFT slides onto RIGHT, swaps actions
-	_touch(2, _centre(layer, "BtnLeft"), true)
-	await process_frame
-	_check(Input.is_action_pressed("steer_left"), "slide starts on steer_left")
-	_drag(2, _centre(layer, "BtnRight"))
-	await process_frame
-	_check(not Input.is_action_pressed("steer_left"), "slide off steer_left releases it")
-	_check(Input.is_action_pressed("steer_right"), "slide onto steer_right engages it")
-	_touch(2, _centre(layer, "BtnRight"), false)
-	await process_frame
 
 	# ---- dodge slide pair works the same way
 	_touch(3, _centre(layer, "BtnDodgeLeft"), true)
@@ -157,29 +185,38 @@ func _run() -> void:
 
 	# ---- canceled touch (OS edge gesture) releases a held finger
 	_touch(5, _centre(layer, "BtnGas"), true)
-	_touch(6, _centre(layer, "BtnRight"), true)
+	_touch(6, _pad_at(layer, 1.0), true)
 	await process_frame
 	_check(Input.is_action_pressed("move_forward"), "cancel test: gas held before cancel")
 	_cancel(5, _centre(layer, "BtnGas"))
 	await process_frame
 	_check(not Input.is_action_pressed("move_forward"), "canceled gas finger releases move_forward")
 	_check(Input.is_action_pressed("steer_right"), "canceled other finger unaffected")
-	_touch(6, _centre(layer, "BtnRight"), false)
+	_touch(6, _pad_at(layer, 1.0), false)
+	await process_frame
+	# cancel on the pad itself
+	_touch(7, _pad_at(layer, -1.0), true)
+	await process_frame
+	_check(Input.is_action_pressed("steer_left"), "analog held before cancel")
+	_cancel(7, _pad_at(layer, -1.0))
+	await process_frame
+	_check(not Input.is_action_pressed("steer_left"), "canceled pad finger releases steer_left")
+	_touch(6, _pad_at(layer, 1.0), false)
 	await process_frame
 
-	# ---- focus-out in the middle of a steering slide
-	_touch(7, _centre(layer, "BtnLeft"), true)
-	_drag(7, _centre(layer, "BtnRight"))
+	# ---- focus-out in the middle of an analog sweep
+	_touch(7, _pad_at(layer, -1.0), true)
+	_drag(7, _pad_at(layer, 1.0))
 	await process_frame
-	_check(Input.is_action_pressed("steer_right"), "slide in place before interruption")
+	_check(Input.is_action_pressed("steer_right"), "analog sweep in place before interruption")
 	layer._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
 	await process_frame
-	_check(not Input.is_action_pressed("steer_left"), "focus-out mid-slide releases steer_left")
-	_check(not Input.is_action_pressed("steer_right"), "focus-out mid-slide releases steer_right")
+	_check(not Input.is_action_pressed("steer_left"), "focus-out releases steer_left")
+	_check(not Input.is_action_pressed("steer_right"), "focus-out releases steer_right")
 
-	# ---- four fingers at once: gas + steer + turbo + brake
+	# ---- four fingers at once: gas + analog steer + turbo + brake
 	_touch(8, _centre(layer, "BtnGas"), true)
-	_touch(9, _centre(layer, "BtnRight"), true)
+	_touch(9, _pad_at(layer, 1.0), true)
 	_touch(10, _centre(layer, "BtnTurbo"), true)
 	_touch(11, _centre(layer, "BtnBrake"), true)
 	await process_frame
@@ -187,8 +224,11 @@ func _run() -> void:
 			and Input.is_action_pressed("turbo") and Input.is_action_pressed("move_back"),
 			"four simultaneous fingers all held")
 	for i in [8, 9, 10, 11]:
-		var names := {8: "BtnGas", 9: "BtnRight", 10: "BtnTurbo", 11: "BtnBrake"}
-		_touch(i, _centre(layer, names[i]), false)
+		var spots := {8: func() -> Vector2: return _centre(layer, "BtnGas"),
+					9: func() -> Vector2: return _pad_at(layer, 1.0),
+					10: func() -> Vector2: return _centre(layer, "BtnTurbo"),
+					11: func() -> Vector2: return _centre(layer, "BtnBrake")}
+		_touch(i, spots[i].call(), false)
 	await process_frame
 	_check(not Input.is_action_pressed("move_forward") and not Input.is_action_pressed("steer_right")
 			and not Input.is_action_pressed("turbo") and not Input.is_action_pressed("move_back"),
@@ -196,7 +236,7 @@ func _run() -> void:
 
 	# ---- OS interruption drops everything this layer holds
 	_touch(0, _centre(layer, "BtnGas"), true)
-	_touch(1, _centre(layer, "BtnRight"), true)
+	_touch(1, _pad_at(layer, 1.0), true)
 	layer._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
 	await process_frame
 	_check(not Input.is_action_pressed("move_forward"), "focus-out releases gas")

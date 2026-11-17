@@ -457,38 +457,8 @@ func _add_touch_controls(root: Node) -> void:
 	touch.layer = 2  # above the HUD; clusters don't overlap it visually
 	touch.set_script(load(TOUCH))
 
-	# --- left thumb: steering (bottom-left corner)
-	var left := Button.new()
-	left.name = "BtnLeft"
-	left.text = "<"
-	left.anchor_left = 0.0
-	left.anchor_right = 0.0
-	left.anchor_top = 1.0
-	left.anchor_bottom = 1.0
-	left.offset_left = 10.0
-	left.offset_right = 98.0
-	left.offset_top = -174.0
-	left.offset_bottom = -64.0  # above the Web shell hint strip
-	left.focus_mode = Control.FOCUS_NONE
-	_style_button(left, Color(0.42, 0.50, 0.62, 0.55))
-	left.add_theme_font_size_override("font_size", 44)
-	touch.add_child(left)
-
-	var right := Button.new()
-	right.name = "BtnRight"
-	right.text = ">"
-	right.anchor_left = 0.0
-	right.anchor_right = 0.0
-	right.anchor_top = 1.0
-	right.anchor_bottom = 1.0
-	right.offset_left = 106.0
-	right.offset_right = 194.0
-	right.offset_top = -174.0
-	right.offset_bottom = -64.0  # above the Web shell hint strip
-	right.focus_mode = Control.FOCUS_NONE
-	_style_button(right, Color(0.42, 0.50, 0.62, 0.55))
-	right.add_theme_font_size_override("font_size", 44)
-	touch.add_child(right)
+	# --- steering is an analog pad built at runtime by TouchControls.gd
+	# (fills the space the old BtnLeft/BtnRight lived in)
 
 	# --- dodge leaps: above the steering cluster, same left thumb reach
 	var dodge_left := Button.new()

@@ -298,8 +298,9 @@ damage numbers, hurt vignette, tyre smoke, scorch decals, coloured underglow on
 every bike, streak callouts ("RAMPAGE x3") and host-authoritative match time limits.
 
 **Mobile Web:** responsive landscape layout, safe-area-aware HTML shell, installable PWA,
-real two-thumb multi-touch (steering and gas/boost work simultaneously via per-finger input
-tracking — not the single emulated mouse pointer), large touch controls and quality presets
+real two-thumb multi-touch (gas/boost/steer work simultaneously via per-finger input
+tracking — not the single emulated mouse pointer) and an analog steering pad feeding
+proportional steer strength, large touch controls and quality presets
 (low/medium/high) that scale particles, shadows and resolution. Settings persist in
 `user://settings.cfg` and can be restored to defaults.
 

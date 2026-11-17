@@ -62,7 +62,7 @@ func _initialize() -> void:
 			"TOUCH toggle stays visible when drive buttons are hidden")
 
 	# ---- buttons: presence, focus mode, touch-target size
-	var names := ["BtnLeft", "BtnRight", "BtnGas", "BtnBrake", "BtnTurbo",
+	var names := ["BtnGas", "BtnBrake", "BtnTurbo",
 			"BtnDodgeLeft", "BtnDodgeRight", "BtnTouchToggle"]
 	var btns := {}
 	for n in names:
@@ -73,6 +73,21 @@ func _initialize() -> void:
 			_check(b.focus_mode == Control.FOCUS_NONE, "%s focus_mode == FOCUS_NONE" % n)
 			var s := _btn_size(b)
 			_check(s.x >= 44.0 and s.y >= 44.0, "%s target >= 44x44 (got %.0fx%.0f)" % [n, s.x, s.y])
+
+	# ---- analog steering pad: present, >=44x44, does not overlap dodge pair
+	var pad := layer.get_node_or_null("AnalogSteer") as Control
+	_check(pad != null and pad is Control, "AnalogSteer pad exists")
+	if pad != null:
+		_check(pad.focus_mode == Control.FOCUS_NONE, "AnalogSteer focus_mode == FOCUS_NONE")
+	if pad != null:
+		var pr := pad.get_global_rect()
+		_check(pr.size.x >= 44.0 and pr.size.y >= 44.0,
+				"AnalogSteer target >= 44x44 (got %.0fx%.0f)" % [pr.size.x, pr.size.y])
+		for dn in ["BtnDodgeLeft", "BtnDodgeRight"]:
+			var d := btns.get(dn) as Button
+			if d != null:
+				var drect := Rect2(d.get_global_rect())
+				_check(not pr.intersects(drect), "AnalogSteer does not overlap %s" % dn)
 
 	# ---- no two drive buttons may overlap (the Arena TURBO/BRAKE pair once did)
 	var rects := {}
@@ -91,7 +106,7 @@ func _initialize() -> void:
 
 	# ---- action wiring: button_down/up -> InputMap actions
 	var pairs := {"BtnGas": "move_forward", "BtnBrake": "move_back",
-			"BtnLeft": "steer_left", "BtnRight": "steer_right", "BtnTurbo": "turbo",
+			"BtnTurbo": "turbo",
 			"BtnDodgeLeft": "dodge_left", "BtnDodgeRight": "dodge_right"}
 	for n in pairs:
 		var action: String = pairs[n]

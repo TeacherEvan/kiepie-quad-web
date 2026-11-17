@@ -82,10 +82,14 @@ func _initialize() -> void:
 			var b := by_name.get(str(n)) as Button
 			_check(b != null and b.focus_mode == Control.FOCUS_ALL,
 					"Arena.%s focus_mode == FOCUS_ALL" % n)
-		for n in ["BtnLeft", "BtnRight", "BtnGas", "BtnBrake", "BtnTurbo", "BtnFire", "BtnTouchToggle"]:
+		for n in ["BtnGas", "BtnBrake", "BtnTurbo", "BtnFire", "BtnTouchToggle"]:
 			var b := by_name.get(str(n)) as Button
 			_check(b != null and b.focus_mode == Control.FOCUS_NONE,
 					"Arena.%s focus_mode == FOCUS_NONE" % n)
+		var pad := inst.get_node_or_null("TouchHUD/AnalogSteer") as Control  # runtime-created; absent without _ready()
+		if pad != null:
+			_check(pad.focus_mode == Control.FOCUS_NONE,
+					"Arena.AnalogSteer focus_mode == FOCUS_NONE")
 		if inst != null:
 			inst.free()
 
