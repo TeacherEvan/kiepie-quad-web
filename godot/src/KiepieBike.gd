@@ -15,6 +15,7 @@ extends VehicleBody3D
 @export var max_steer := 0.62
 @export var steer_speed := 5.0
 @export var brake_force := 2600.0
+@export var coast_brake := 0.01      ## rolling drag fraction of brake_force when coasting (no throttle/brake) — keeps the bike gliding instead of scrubbing speed
 @export var reverse_force := 180.0
 @export var visual_steer_scale := 0.75
 @export var wheel_radius := 0.280
@@ -269,7 +270,9 @@ func _physics_process(delta: float) -> void:
 		if braking:
 			w.brake = brake_force
 		elif throttle == 0.0:
-			w.brake = brake_force * 0.08
+			# Light rolling drag only — the old 8% brake scrubbed ~4.5 m/s^2 and
+			# killed all momentum. ~0.5 m/s^2 total lets the quad coast.
+			w.brake = brake_force * coast_brake
 
 		if key == "FL" or key == "FR":
 			w.steering = _steer
