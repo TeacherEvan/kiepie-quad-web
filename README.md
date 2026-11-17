@@ -54,3 +54,6 @@ Defaults** to reset.
 - Vehicle is raycast-suspension (4 × VehicleWheel3D) — for games, not for racing lines.
 - A scoped Talo **game** key is embedded in the public Web build by design; it is not a
   secret. Never reuse an admin key or any credential with write access to other services.
+
+## Repository
+This is the single repository for the Kiepie Quad project: the Blender/Godot **source** at the repo root, and the **Web build** (`index.html` / `index.wasm` / `index.pck` …) served from the repository root by Vercel. `SOURCE.md` carries the original source/QA documentation. `web/` (the export staging folder) is git-ignored so export artifacts never enter the repo unverified.
