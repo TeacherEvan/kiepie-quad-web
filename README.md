@@ -275,7 +275,7 @@ deploy helper does this automatically. The Web build ships that key inside the p
 design — use a disposable, scoped dev key, never `TALO_API_ADMIN`. Lobbies are Talo channels,
 state lives in host-owned channel props, and shots/kills flow over channel socket messages.
 Scoring is host-authoritative client logic (no server-side validation). Without a key the client
-uses a full offline `MockBackend`, so all 19 gates run without credentials. The old `supabase/`
+uses a full offline `MockBackend`, so all 20 gates run without credentials. The old `supabase/`
 migrations are retained for history only and are not deployed.
 
 **VFX pass:** effects are built by `godot/src/game/VfxFactory.gd` from five tiny sprites
@@ -298,13 +298,16 @@ damage numbers, hurt vignette, tyre smoke, scorch decals, coloured underglow on
 every bike, streak callouts ("RAMPAGE x3") and host-authoritative match time limits.
 
 **Mobile Web:** responsive landscape layout, safe-area-aware HTML shell, installable PWA,
-large touch controls and quality presets (low/medium/high) that scale particles, shadows and
-resolution. Settings persist in `user://settings.cfg` and can be restored to defaults.
+real two-thumb multi-touch (steering and gas/boost work simultaneously via per-finger input
+tracking — not the single emulated mouse pointer), large touch controls and quality presets
+(low/medium/high) that scale particles, shadows and resolution. Settings persist in
+`user://settings.cfg` and can be restored to defaults.
 
 **New gates:** `verify_cannons.gd`, `verify_settings.gd`, `verify_match_rules.gd`,
 `verify_combat.gd`, `verify_kill_flow.gd`, `verify_appeal.gd`, `verify_talo_backend.gd` and
 `verify_audit_regressions.gd`, `verify_controls.gd` and `verify_dodge.gd` join the existing
-suite — `godot/tools/run_gates.sh` now runs 19 gates offline (18 headless gates plus GdUnit4).
+suite — `godot/tools/run_gates.sh` now runs 20 gates offline (18 headless gates plus GdUnit4
+and one xvfb-windowed multi-touch gate, `verify_touch_multitouch.gd`).
 The new `verify_vfx.gd` locks effect contracts (reduced motion, quality scaling, decal caps,
 flat-normal safety) and the new arena/test-track ramp and building counts with spawn clearance.
 The new gates exercise `TaloBackend` directly with no live account, lock the surgical-audit

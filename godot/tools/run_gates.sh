@@ -25,12 +25,8 @@ PASS=0; FAILED=()
 
 note() { printf '%s\n' "$*"; }
 
-run_gate() {
-	local name="$1" tool="$2"
-	local log="$LOGDIR/$name.log"
-	note "== $name"
-	"$GODOT" --headless --path godot --script "tools/$tool" >"$log" 2>&1
-	local rc=$?
+verdict() {
+	local name="$1" log="$2" rc="$3"
 	# failure = non-zero exit, explicit FAIL/FAILED marker line, or script error
 	if [ "$rc" -ne 0 ] || grep -qE '(^|[[:space:]])(FAIL|FAILED)([[:space:]]|:|$)' "$log" || grep -q "SCRIPT ERROR" "$log"; then
 		note "   FAIL  (rc=$rc; log: $log)"
@@ -38,9 +34,29 @@ run_gate() {
 		return
 	fi
 	note "   ok"
-	pass_lines="$(grep -E 'MIN_UP_Y|t=300|TOUCH VERIFY|STABILITY:|SMASH_IMPACT|UP_Y_AFTER_SMASH|TURBO:|DEBRIS|hud ready|smashed' "$log" | tail -6 || true)"
+	pass_lines="$(grep -E 'MIN_UP_Y|t=300|TOUCH VERIFY|TOUCH MULTITOUCH|STABILITY:|SMASH_IMPACT|UP_Y_AFTER_SMASH|TURBO:|DEBRIS|hud ready|smashed' "$log" | tail -6 || true)"
 	[ -n "$pass_lines" ] && printf '%s\n' "$pass_lines" | sed 's/^/     /'
 	PASS=$((PASS + 1))
+}
+
+run_gate() {
+	local name="$1" tool="$2"
+	local log="$LOGDIR/$name.log"
+	note "== $name"
+	"$GODOT" --headless --path godot --script "tools/$tool" >"$log" 2>&1
+	verdict "$name" "$log" $?
+}
+
+# GUI hit-testing needs a real window: headless' dummy driver pins the viewport
+# to 64x64, so synthesized touches land outside every button. Used only for the
+# multi-touch gate (same mechanism as tools/vfx_showcase.gd).
+run_gate_windowed() {
+	local name="$1" tool="$2"
+	local log="$LOGDIR/$name.log"
+	note "== $name (xvfb)"
+	xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --resolution 1280x720 \
+		--path godot --script "tools/$tool" >"$log" 2>&1
+	verdict "$name" "$log" $?
 }
 
 note "Kiepie Bike gate suite — root: $ROOT"
@@ -134,6 +150,7 @@ run_gate audit_regressions verify_audit_regressions.gd
 run_gate controls        verify_controls.gd
 run_gate dodge           verify_dodge.gd
 run_gate vfx             verify_vfx.gd
+run_gate_windowed touch_multitouch verify_touch_multitouch.gd
 run_gate_gdunit
 
 note ""

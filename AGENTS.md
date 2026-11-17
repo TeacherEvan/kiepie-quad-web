@@ -60,15 +60,18 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 - `gdlint` / `gdtoolkit` are **not installed** in this environment — do not rely on them.
   `godot-4.3 --check-only --script <file>` reports false "Identifier not found" for autoloads;
   use `tools/_check_scripts.gd` instead.
-- `run_gates.sh` runs **19 gates**: truth, stability, touch, features, smash_impact, diag2,
+- `run_gates.sh` runs **20 gates**: truth, stability, touch, features, smash_impact, diag2,
   cannons, settings, match_rules, combat, kill_flow, appeal, accessibility, talo_backend,
-  audit_regressions, controls, dodge, vfx + GdUnit4. `audit_regressions` locks the surgical-audit
+  audit_regressions, controls, dodge, vfx + `touch_multitouch` (runs under xvfb, not headless —
+  synthesized touch needs a real window) + GdUnit4. `audit_regressions` locks the surgical-audit
   defects: forged `state` events, 3-stop VFX gradients, exhaust axis, malformed shot arrays and
   `respawn_at` as a future deadline. `controls` locks the steering defect (see below) and the
   `steer_sensitivity` setting; `dodge` locks the Q/E leap/cartwheel contract. `vfx` locks the
   effect contracts (reduced motion, quality scaling, scorch/scar caps, flat hit normals) and
   level counts: Arena = 10 ramps / 7 buildings, TestRide = 6 ramps / 4 buildings, with spawn
-  and ramp clearances. Keep all green.
+  and ramp clearances. `touch_multitouch` locks two-thumb driving: raw screen-touch indices
+  own independent actions, refcounted holds, sliding steer/dodge swap, paired emulated-mouse
+  double-handling, desktop mouse clicks. Keep all green.
   Exit 101 from GdUnit4 = pass with benign dummy-renderer orphan warnings; 100 = failure.
 - `run_gates.sh` exports `KIEPIE_MOCK_BACKEND=1` — gates must never touch the live Talo account.
 - Headless dummy-renderer RID/leak `ERROR:` lines at exit are benign; gates judge PASS/FAIL lines
@@ -179,13 +182,21 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   a 0.12 s coyote timer stops suspension bounce from eating the input. No new net message is
   needed: `ArenaNet._send_state()` already broadcasts position + quaternion at 15 Hz, so remote
   proxies reproduce the cartwheel. `verify_dodge.gd` locks direction, lift, cooldown, recovery.
-- Touch/mobile: `TouchControls.gd` wires every overlay button to its InputMap action, including
-  `BtnDodgeLeft`/`BtnDodgeRight` → `dodge_left`/`dodge_right` (same leap as Q/E). Both builders
-  add the dodge pair above the steering cluster; `verify_touch.gd` enforces >=44px targets and
-  pairwise non-overlap (it caught an old 30px TURBO/BRAKE overlap in `build_arena.gd`).
-  `controls/dodge_size` scales the dodge buttons (centred pivot) and `controls/touch_force`
-  persists the manual TOUCH override; both are live in Settings → Controls. FIRE also scales
-  from its centre so enlarging it cannot grow over the driving cluster.
+- Touch/mobile: `TouchControls.gd` + `TouchCapture.gd` (full-rect, MOUSE_FILTER_PASS) implement
+  real two-thumb multi-touch: every overlay button (including `BtnDodgeLeft`/`BtnDodgeRight`
+  → `dodge_left`/`dodge_right`) is a MOUSE_FILTER_IGNORE shell, hit-tested by the capture
+  per `InputEventScreenTouch.index` — mouse emulation is a shared pointer and cannot drive
+  two actions at once, which is why this layer exists. Holds are refcounted (touch + the
+  deterministically paired emulated-mouse stream share symmetrical +1/-1), steering/dodge
+  neighbours swap on thumb slides, gas/brake/turbo/fire stay latched. Both builders add the
+  dodge pair above the steering cluster; `verify_touch.gd` enforces >=44px targets and
+  pairwise non-overlap, and `verify_touch_multitouch.gd` (runs under xvfb — headless pins a
+  64x64 viewport, so synthesized touches never hit a 1280px layout) injects raw screen-touch
+  events and locks the multi-touch contract: simultaneous gas+steer, refcount pairing,
+  slide swaps, focus-out release, desktop mouse clicks. `controls/dodge_size` scales the
+  dodge buttons (centred pivot) and `controls/touch_force` persists the manual TOUCH override;
+  both are live in Settings → Controls. FIRE also scales from its centre so enlarging it
+  cannot grow over the driving cluster.
 - Headless physics proof: `godot-4.3 --headless --path godot --script tools/truth_test.gd`
   (0 → 9+ m/s, wheel contact). Feature checks: `verify_features.gd`, `diag2.gd`,
   `verify_controls.gd`, `verify_dodge.gd`.
