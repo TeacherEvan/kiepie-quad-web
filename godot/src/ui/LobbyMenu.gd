@@ -26,9 +26,9 @@ const DEFAULT_SETTINGS := {
 	"friendly_fire": false,
 }
 
-const COL_OK := Color(0.55, 0.95, 0.70)
-const COL_WARN := Color(1.0, 0.72, 0.34)
-const COL_INFO := Color(0.72, 0.82, 0.96)
+const COL_OK := UI.OK
+const COL_WARN := UI.WARN
+const COL_INFO := UI.INFO
 
 @onready var _safe: MarginContainer = $SafeMargin
 @onready var _status: Label = $SafeMargin/Scroll/VBox/Status
@@ -52,6 +52,7 @@ var _transitioning := false
 
 func _ready() -> void:
 	_apply_safe_area(_safe)
+	get_viewport().size_changed.connect(func(): _apply_safe_area(_safe))
 	UI.style_scroll($SafeMargin/Scroll)
 	_connect_signals()
 	var mode := pending_mode

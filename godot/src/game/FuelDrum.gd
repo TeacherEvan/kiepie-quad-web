@@ -9,6 +9,7 @@ const VFX := preload("res://src/game/VfxFactory.gd")
 
 @export var blast_radius := 4.6
 @export var blast_damage := 55.0
+@export var respawn_delay := 0.0
 
 var _ignited := false
 
@@ -101,13 +102,41 @@ func ignite(attacker_id: String, token: String = "") -> void:
 				continue
 			if not o.has_method("ignite"):
 				continue
+			var wo: WeakRef = weakref(o)
 			var timer := tree.create_timer(0.18)
 			timer.timeout.connect(func() -> void:
-				if is_instance_valid(o) and o.has_method("ignite"):
-					o.call("ignite", attacker_id, token)
+				var target := wo.get_ref() as Node
+				if target != null and target.has_method("ignite"):
+					target.call("ignite", attacker_id, token)
 			)
 
-	queue_free()
+	if respawn_delay <= 0.0 or tree == null:
+		queue_free()
+		return
+
+	visible = false
+	var col := get_node_or_null("Collider") as CollisionShape3D
+	if col != null:
+		col.set_deferred("disabled", true)
+	var t := Timer.new()
+	t.one_shot = true
+	t.wait_time = respawn_delay
+	t.timeout.connect(_on_respawn_timer.bind(t))
+	add_child(t)
+	t.start()
+
+
+func _on_respawn_timer(t: Timer) -> void:
+	if is_instance_valid(t):
+		t.queue_free()
+	if not is_inside_tree():
+		return
+	_ignited = false
+	visible = true
+	var c := get_node_or_null("Collider") as CollisionShape3D
+	if c != null:
+		c.set_deferred("disabled", false)
+	VFX.shield_pulse(_fx_parent(), global_position, Color(1.0, 0.45, 0.12, 1.0))
 
 
 func _fx_parent() -> Node3D:

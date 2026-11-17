@@ -93,6 +93,10 @@ func _ready() -> void:
 	capture.connect("pointer_down", _on_pointer_down)
 	capture.connect("pointer_move", _on_pointer_move)
 	capture.connect("pointer_up", _on_pointer_up)
+	if _touch_toggle != null:
+		_style_toggle(_touch_toggle)
+	get_viewport().size_changed.connect(_relayout)
+	_relayout()
 	_sync_toggle_text()
 	_apply_visibility()
 
@@ -180,7 +184,9 @@ func _hold(action: String) -> void:
 	if count == 1:
 		Input.action_press(action)
 		if _held.has(action):
-			(_held[action] as Button).set_pressed_no_signal(true)
+			var btn := _held[action] as Button
+			btn.set_pressed_no_signal(true)
+			btn.self_modulate = Color(1.18, 1.12, 1.0, 1.0)
 
 func _drop(action: String) -> void:
 	var count := int(_counts.get(action, 0))
@@ -191,7 +197,9 @@ func _drop(action: String) -> void:
 	if count == 0:
 		Input.action_release(action)
 		if _held.has(action):
-			(_held[action] as Button).set_pressed_no_signal(false)
+			var btn := _held[action] as Button
+			btn.set_pressed_no_signal(false)
+			btn.self_modulate = Color.WHITE
 
 static func _curve(t: float) -> float:
 	# deadzone, then smoothstep so the centre of the pad is a fine-control band
@@ -295,3 +303,119 @@ func _notification(what: int) -> void:
 func _exit_tree() -> void:
 	_release_all()
 	_release_analog_side()
+
+
+func _set_rect(ctrl: Control, left: float, top: float, right: float, bottom: float, anchor_x: float) -> void:
+	if ctrl == null:
+		return
+	ctrl.anchor_left = anchor_x
+	ctrl.anchor_right = anchor_x
+	ctrl.anchor_top = 1.0
+	ctrl.anchor_bottom = 1.0
+	ctrl.offset_left = left
+	ctrl.offset_top = top
+	ctrl.offset_right = right
+	ctrl.offset_bottom = bottom
+
+
+func _set_btn_compact(btn: Button, font_sz: int, h_margin: float) -> void:
+	if btn == null:
+		return
+	btn.add_theme_font_size_override("font_size", font_sz)
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var sb := btn.get_theme_stylebox(state)
+		if sb is StyleBoxFlat:
+			var dup := sb.duplicate() as StyleBoxFlat
+			dup.content_margin_left = h_margin
+			dup.content_margin_right = h_margin
+			btn.add_theme_stylebox_override(state, dup)
+
+
+func _relayout() -> void:
+	var vp := get_viewport().get_visible_rect().size
+	if vp.x <= 0.0 or vp.y <= 0.0:
+		return
+	var dodge_l := get_node_or_null("BtnDodgeLeft") as Button
+	var dodge_r := get_node_or_null("BtnDodgeRight") as Button
+	var gas := get_node_or_null("BtnGas") as Button
+	var brake := get_node_or_null("BtnBrake") as Button
+	var turbo := get_node_or_null("BtnTurbo") as Button
+	var fire := get_node_or_null("BtnFire") as Button
+
+	var fire_size := float(Settings.get_value("controls", "fire_size", 1.0))
+	var dodge_size := clampf(float(Settings.get_value("controls", "dodge_size", 1.0)), 0.7, 1.6)
+	var eff_fire := fire_size
+	var eff_dodge := dodge_size
+
+	if vp.x < 700.0:
+		# Narrow / Portrait (e.g. 390x844): compact both clusters <= 44% width each
+		var pad_w := clampf(vp.x * 0.44, 168.0, 250.0)
+		_set_rect(_analog_pad, 10.0, -140.0, 10.0 + pad_w, -20.0, 0.0)
+		_set_rect(dodge_l, 14.0, -238.0, 86.0, -184.0, 0.0)
+		_set_rect(dodge_r, 114.0, -238.0, 186.0, -184.0, 0.0)
+		_set_rect(gas, -84.0, -156.0, -10.0, -20.0, 1.0)
+		_set_rect(brake, -170.0, -86.0, -96.0, -20.0, 1.0)
+		_set_rect(turbo, -170.0, -156.0, -96.0, -96.0, 1.0)
+		_set_rect(fire, -126.0, -288.0, -22.0, -196.0, 1.0)
+		_set_btn_compact(gas, 20, 6.0)
+		_set_btn_compact(fire, 20, 6.0)
+		_set_btn_compact(turbo, 12, 6.0)
+		_set_btn_compact(brake, 12, 6.0)
+		_set_btn_compact(dodge_l, 12, 6.0)
+		_set_btn_compact(dodge_r, 12, 6.0)
+		eff_dodge = minf(dodge_size, 1.25)
+		eff_fire = minf(fire_size, 1.25)
+	elif vp.y < 520.0:
+		# Mobile Landscape (e.g. 844x390): compact vertically, Fire beside Brake/Turbo
+		_set_rect(_analog_pad, 12.0, -118.0, 252.0, -14.0, 0.0)
+		_set_rect(dodge_l, 28.0, -194.0, 112.0, -134.0, 0.0)
+		_set_rect(dodge_r, 150.0, -194.0, 234.0, -134.0, 0.0)
+		_set_rect(gas, -116.0, -144.0, -12.0, -14.0, 1.0)
+		_set_rect(brake, -222.0, -88.0, -128.0, -14.0, 1.0)
+		_set_rect(turbo, -222.0, -158.0, -128.0, -98.0, 1.0)
+		_set_rect(fire, -362.0, -140.0, -258.0, -36.0, 1.0)
+		_set_btn_compact(gas, 36, 14.0)
+		_set_btn_compact(fire, 30, 14.0)
+		_set_btn_compact(turbo, 18, 14.0)
+		_set_btn_compact(brake, 20, 14.0)
+		_set_btn_compact(dodge_l, 13, 6.0)
+		_set_btn_compact(dodge_r, 13, 6.0)
+		eff_dodge = minf(dodge_size, 1.28)
+		eff_fire = minf(fire_size, 1.3)
+	else:
+		# Standard (e.g. 1280x720)
+		_set_rect(_analog_pad, 12.0, -156.0, 312.0, -16.0, 0.0)
+		_set_rect(dodge_l, 36.0, -280.0, 126.0, -200.0, 0.0)
+		_set_rect(dodge_r, 196.0, -280.0, 286.0, -200.0, 0.0)
+		_set_rect(brake, -258.0, -112.0, -148.0, -16.0, 1.0)
+		_set_rect(turbo, -258.0, -202.0, -148.0, -122.0, 1.0)
+		_set_rect(gas, -138.0, -176.0, -12.0, -16.0, 1.0)
+		_set_rect(fire, -164.0, -352.0, -38.0, -232.0, 1.0)
+		_set_btn_compact(gas, 36, 14.0)
+		_set_btn_compact(fire, 30, 14.0)
+		_set_btn_compact(turbo, 18, 14.0)
+		_set_btn_compact(brake, 20, 14.0)
+		_set_btn_compact(dodge_l, 15, 14.0)
+		_set_btn_compact(dodge_r, 15, 14.0)
+
+	if fire != null:
+		fire.pivot_offset = Vector2(
+				absf(fire.offset_right - fire.offset_left) * 0.5,
+				absf(fire.offset_bottom - fire.offset_top) * 0.5)
+		fire.scale = Vector2(eff_fire, eff_fire)
+	for btn in [dodge_l, dodge_r]:
+		if btn != null:
+			btn.pivot_offset = Vector2(
+					absf(btn.offset_right - btn.offset_left) * 0.5,
+					absf(btn.offset_bottom - btn.offset_top) * 0.5)
+			btn.scale = Vector2(eff_dodge, eff_dodge)
+
+
+func _style_toggle(btn: Button) -> void:
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.08, 0.10, 0.14, 0.90)
+	normal.border_color = Color(0.55, 0.65, 0.78, 0.85)
+	normal.set_border_width_all(2)
+	normal.set_corner_radius_all(8)
+	btn.add_theme_stylebox_override("normal", normal)
+	btn.add_theme_color_override("font_color", Color(0.95, 0.97, 1.0, 1.0))

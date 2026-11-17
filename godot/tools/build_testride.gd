@@ -4,7 +4,9 @@ extends SceneTree
 
 const OUT := "res://scenes/TestRide.tscn"
 const COMBAT := "res://src/game/CombatController.gd"
+const FUEL_DRUM := "res://src/game/FuelDrum.gd"
 const DECOR := preload("res://src/game/BuildingDecor.gd")
+const UI := preload("res://src/ui/UiTheme.gd")
 
 
 func _chip(bg := Color(0.075, 0.085, 0.105, 0.80),
@@ -189,36 +191,101 @@ func _initialize() -> void:
 			+ "Q/E dodge left/right   SHIFT = turbo\n"
 			+ "Space handbrake   C = camera   R = restart")
 	help.position = Vector2(16, 14)
-	help.offset_right = 244.0
-	help.offset_bottom = 110.0
+	help.offset_right = 340.0
+	help.offset_bottom = 114.0
 	help.autowrap_mode = 2
 	help.add_theme_font_size_override("font_size", 12)
-	help.add_theme_color_override("font_color", Color(0.78, 0.83, 0.89, 0.96))
-	help.add_theme_stylebox_override("normal", _chip())
+	help.add_theme_color_override("font_color", UI.TEXT)
+	help.add_theme_stylebox_override("normal", UI.chip())
 	layer.add_child(help)
 
 	var speed := Label.new()
 	speed.name = "Speed"
 	speed.text = "0 km/h"
 	speed.position = Vector2(16, 128)
-	speed.offset_right = 150.0
+	speed.offset_right = 166.0
 	speed.offset_bottom = 176.0
+	speed.custom_minimum_size = Vector2(150.0, 0.0)
 	speed.add_theme_font_size_override("font_size", 30)
-	speed.add_theme_color_override("font_color", Color(0.96, 0.98, 1.0, 1.0))
-	speed.add_theme_stylebox_override("normal", _chip(Color(0.06, 0.075, 0.10, 0.82)))
+	speed.add_theme_color_override("font_color", UI.TEXT)
+	speed.add_theme_stylebox_override("normal", UI.chip(UI.SURFACE))
 	layer.add_child(speed)
 
 	var smashed := Label.new()
 	smashed.name = "Smashed"
 	smashed.text = "Buildings smashed: 0 / 4"
 	smashed.position = Vector2(16, 186)
-	smashed.offset_right = 260.0
+	smashed.offset_right = 266.0
 	smashed.offset_bottom = 220.0
+	smashed.custom_minimum_size = Vector2(250.0, 0.0)
 	smashed.add_theme_font_size_override("font_size", 16)
-	smashed.add_theme_color_override("font_color", Color(1.0, 0.83, 0.38, 1.0))
+	smashed.add_theme_color_override("font_color", UI.GOLD)
 	smashed.add_theme_stylebox_override("normal",
-			_chip(Color(0.085, 0.075, 0.035, 0.82), Color(1.0, 0.83, 0.38, 0.28)))
+			UI.chip(Color(0.085, 0.075, 0.035, 0.82), Color(UI.GOLD.r, UI.GOLD.g, UI.GOLD.b, 0.28)))
 	layer.add_child(smashed)
+
+	var heat_label := Label.new()
+	heat_label.name = "HeatLabel"
+	heat_label.text = "CANNONS"
+	heat_label.position = Vector2(16, 228)
+	heat_label.offset_right = 216.0
+	heat_label.offset_bottom = 248.0
+	heat_label.add_theme_font_size_override("font_size", 12)
+	heat_label.add_theme_color_override("font_color", UI.TEXT)
+	layer.add_child(heat_label)
+
+	var heat_bar := ProgressBar.new()
+	heat_bar.name = "HeatBar"
+	heat_bar.position = Vector2(16, 250)
+	heat_bar.offset_right = 216.0
+	heat_bar.offset_bottom = 266.0
+	heat_bar.max_value = 100.0
+	heat_bar.value = 0.0
+	heat_bar.show_percentage = false
+	heat_bar.add_theme_stylebox_override("background", UI.bar_track())
+	heat_bar.add_theme_stylebox_override("fill", UI.bar_fill(UI.ACCENT))
+	layer.add_child(heat_bar)
+
+	var crosshair := Label.new()
+	crosshair.name = "Crosshair"
+	crosshair.text = "+"
+	crosshair.anchor_left = 0.5
+	crosshair.anchor_right = 0.5
+	crosshair.anchor_top = 0.5
+	crosshair.anchor_bottom = 0.5
+	crosshair.offset_left = -12.0
+	crosshair.offset_right = 12.0
+	crosshair.offset_top = -16.0
+	crosshair.offset_bottom = 16.0
+	crosshair.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	crosshair.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	crosshair.add_theme_font_size_override("font_size", 22)
+	crosshair.add_theme_color_override("font_color", Color(UI.TEXT.r, UI.TEXT.g, UI.TEXT.b, 0.55))
+	crosshair.add_theme_constant_override("outline_size", 4)
+	crosshair.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.65))
+	crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(crosshair)
+
+	var hitmarker := Label.new()
+	hitmarker.name = "HitMarker"
+	hitmarker.text = "×"
+	hitmarker.anchor_left = 0.5
+	hitmarker.anchor_right = 0.5
+	hitmarker.anchor_top = 0.5
+	hitmarker.anchor_bottom = 0.5
+	hitmarker.offset_left = -15.0
+	hitmarker.offset_right = 15.0
+	hitmarker.offset_top = -18.0
+	hitmarker.offset_bottom = 12.0
+	hitmarker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hitmarker.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hitmarker.add_theme_font_size_override("font_size", 36)
+	hitmarker.add_theme_color_override("font_color", Color(1.0, 0.95, 0.72, 1.0))
+	hitmarker.add_theme_constant_override("outline_size", 8)
+	hitmarker.add_theme_color_override("font_outline_color", Color(0.2, 0.04, 0.0, 0.9))
+	hitmarker.modulate.a = 0.0
+	hitmarker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(hitmarker)
 
 	var turbo := Label.new()
 	turbo.name = "Turbo"
@@ -232,11 +299,11 @@ func _initialize() -> void:
 	turbo.offset_bottom = 84.0
 	turbo.horizontal_alignment = 1
 	turbo.add_theme_font_size_override("font_size", 42)
-	turbo.add_theme_color_override("font_color", Color(1.0, 0.68, 0.16, 1.0))
+	turbo.add_theme_color_override("font_color", UI.GOLD)
 	turbo.add_theme_constant_override("outline_size", 10)
 	turbo.add_theme_color_override("font_outline_color", Color(0.10, 0.02, 0.0, 0.9))
 	turbo.add_theme_stylebox_override("normal",
-			_chip(Color(0.13, 0.05, 0.01, 0.85), Color(1.0, 0.55, 0.12, 0.65)))
+			UI.chip(Color(0.13, 0.05, 0.01, 0.85), Color(UI.ACCENT.r, UI.ACCENT.g, UI.ACCENT.b, 0.65)))
 	layer.add_child(turbo)
 
 	var restart := Button.new()
@@ -247,9 +314,9 @@ func _initialize() -> void:
 	restart.offset_right = -14.0
 	restart.offset_left = -150.0
 	restart.offset_top = 12.0
-	restart.offset_bottom = 56.0
+	restart.offset_bottom = 64.0
 	restart.focus_mode = Control.FOCUS_NONE
-	_style_button(restart, Color(1.0, 0.46, 0.10, 0.9))
+	UI.style_button(restart, UI.ACCENT)
 	layer.add_child(restart)
 
 	var view := Button.new()
@@ -259,10 +326,10 @@ func _initialize() -> void:
 	view.anchor_left = 1.0
 	view.offset_right = -14.0
 	view.offset_left = -150.0
-	view.offset_top = 64.0
-	view.offset_bottom = 108.0
+	view.offset_top = 70.0
+	view.offset_bottom = 122.0
 	view.focus_mode = Control.FOCUS_NONE
-	_style_button(view, Color(1.0, 0.46, 0.10, 0.9))
+	UI.style_button(view, UI.ACCENT)
 	layer.add_child(view)
 
 	root.add_child(layer)
@@ -279,6 +346,25 @@ func _initialize() -> void:
 			Vector3(-12.5, 0.0, 18.0), Vector3(4.8, 4.6, 4.2), Color(0.30, 0.37, 0.47))
 	_add_building(root, "Garage", "Garage",
 			Vector3(-14.0, 0.0, -18.0), Vector3(5.0, 3.0, 4.4), Color(0.48, 0.44, 0.38))
+
+	# ---------------- explosive fuel drums (respawning cannon targets)
+	var drum_script: Script = load(FUEL_DRUM)
+	var drum_spots := [
+		["FuelDrum0", Vector3(18.0, 0.45, 2.0)],
+		["FuelDrum1", Vector3(19.2, 0.45, 3.0)],
+		["FuelDrum2", Vector3(18.0, 0.45, 34.0)],
+		["FuelDrum3", Vector3(19.2, 0.45, 34.8)],
+		["FuelDrum4", Vector3(-22.0, 0.45, -10.0)],
+		["FuelDrum5", Vector3(10.0, 0.45, -26.0)],
+	]
+	for entry in drum_spots:
+		var drum := StaticBody3D.new()
+		drum.name = str(entry[0])
+		drum.position = entry[1]
+		drum.set_script(drum_script)
+		drum.set("respawn_delay", 6.0)
+		drum.add_to_group("hazard", true)
+		root.add_child(drum)
 	# HUD total is an exported property so it is serialized into the .tscn
 	var hud_node := root.get_node_or_null("HUD")
 	if hud_node != null:
@@ -324,14 +410,14 @@ func _add_touch_controls(root: Node) -> void:
 	dodge_left.anchor_right = 0.0
 	dodge_left.anchor_top = 1.0
 	dodge_left.anchor_bottom = 1.0
-	dodge_left.offset_left = 10.0
-	dodge_left.offset_right = 98.0
-	dodge_left.offset_top = -284.0
-	dodge_left.offset_bottom = -194.0
+	dodge_left.offset_left = 36.0
+	dodge_left.offset_right = 126.0
+	dodge_left.offset_top = -280.0
+	dodge_left.offset_bottom = -200.0
 	dodge_left.focus_mode = Control.FOCUS_NONE
-	_style_button(dodge_left, Color(0.55, 0.42, 0.78, 0.85))
+	UI.style_button(dodge_left, UI.INFO)
 	dodge_left.add_theme_font_size_override("font_size", 15)
-	dodge_left.pivot_offset = Vector2(45.0, 45.0)
+	dodge_left.pivot_offset = Vector2(45.0, 40.0)
 	touch.add_child(dodge_left)
 
 	var dodge_right := Button.new()
@@ -341,14 +427,14 @@ func _add_touch_controls(root: Node) -> void:
 	dodge_right.anchor_right = 0.0
 	dodge_right.anchor_top = 1.0
 	dodge_right.anchor_bottom = 1.0
-	dodge_right.offset_left = 106.0
-	dodge_right.offset_right = 194.0
-	dodge_right.offset_top = -284.0
-	dodge_right.offset_bottom = -194.0
+	dodge_right.offset_left = 196.0
+	dodge_right.offset_right = 286.0
+	dodge_right.offset_top = -280.0
+	dodge_right.offset_bottom = -200.0
 	dodge_right.focus_mode = Control.FOCUS_NONE
-	_style_button(dodge_right, Color(0.55, 0.42, 0.78, 0.85))
+	UI.style_button(dodge_right, UI.INFO)
 	dodge_right.add_theme_font_size_override("font_size", 15)
-	dodge_right.pivot_offset = Vector2(45.0, 45.0)
+	dodge_right.pivot_offset = Vector2(45.0, 40.0)
 	touch.add_child(dodge_right)
 
 	# --- right thumb: TURBO above BRAKE, big GAS on the far right (bottom-right corner)
@@ -359,12 +445,12 @@ func _add_touch_controls(root: Node) -> void:
 	turbo_btn.anchor_right = 1.0
 	turbo_btn.anchor_top = 1.0
 	turbo_btn.anchor_bottom = 1.0
-	turbo_btn.offset_left = -182.0
-	turbo_btn.offset_right = -98.0
-	turbo_btn.offset_top = -194.0
-	turbo_btn.offset_bottom = -128.0
+	turbo_btn.offset_left = -258.0
+	turbo_btn.offset_right = -148.0
+	turbo_btn.offset_top = -202.0
+	turbo_btn.offset_bottom = -122.0
 	turbo_btn.focus_mode = Control.FOCUS_NONE
-	_style_button(turbo_btn, Color(1.0, 0.68, 0.16, 0.9))
+	UI.style_button(turbo_btn, UI.GOLD)
 	turbo_btn.add_theme_font_size_override("font_size", 18)
 	touch.add_child(turbo_btn)
 
@@ -375,12 +461,12 @@ func _add_touch_controls(root: Node) -> void:
 	brake.anchor_right = 1.0
 	brake.anchor_top = 1.0
 	brake.anchor_bottom = 1.0
-	brake.offset_left = -182.0
-	brake.offset_right = -98.0
+	brake.offset_left = -258.0
+	brake.offset_right = -148.0
 	brake.offset_top = -112.0
-	brake.offset_bottom = -12.0
+	brake.offset_bottom = -16.0
 	brake.focus_mode = Control.FOCUS_NONE
-	_style_button(brake, Color(0.55, 0.60, 0.70, 0.65))
+	UI.style_button(brake, UI.MUTED)
 	brake.add_theme_font_size_override("font_size", 20)
 	touch.add_child(brake)
 
@@ -391,12 +477,12 @@ func _add_touch_controls(root: Node) -> void:
 	gas.anchor_right = 1.0
 	gas.anchor_top = 1.0
 	gas.anchor_bottom = 1.0
-	gas.offset_left = -90.0
-	gas.offset_right = -8.0
+	gas.offset_left = -138.0
+	gas.offset_right = -12.0
 	gas.offset_top = -176.0
-	gas.offset_bottom = -18.0
+	gas.offset_bottom = -16.0
 	gas.focus_mode = Control.FOCUS_NONE
-	_style_button(gas, Color(1.0, 0.46, 0.10, 0.9))
+	UI.style_button(gas, UI.ACCENT)
 	gas.add_theme_font_size_override("font_size", 36)
 	touch.add_child(gas)
 
@@ -408,12 +494,12 @@ func _add_touch_controls(root: Node) -> void:
 	fire_btn.anchor_right = 1.0
 	fire_btn.anchor_top = 1.0
 	fire_btn.anchor_bottom = 1.0
-	fire_btn.offset_left = -168.0
-	fire_btn.offset_right = -8.0
-	fire_btn.offset_top = -326.0
-	fire_btn.offset_bottom = -206.0
+	fire_btn.offset_left = -164.0
+	fire_btn.offset_right = -38.0
+	fire_btn.offset_top = -352.0
+	fire_btn.offset_bottom = -232.0
 	fire_btn.focus_mode = Control.FOCUS_NONE
-	_style_button(fire_btn, Color(1.0, 0.30, 0.22, 0.95))
+	UI.style_button(fire_btn, UI.DANGER)
 	fire_btn.add_theme_font_size_override("font_size", 30)
 	touch.add_child(fire_btn)
 
@@ -425,12 +511,12 @@ func _add_touch_controls(root: Node) -> void:
 	toggle.anchor_right = 1.0
 	toggle.anchor_top = 0.0
 	toggle.anchor_bottom = 0.0
-	toggle.offset_left = -164.0
+	toggle.offset_left = -146.0
 	toggle.offset_right = -14.0
-	toggle.offset_top = 116.0
-	toggle.offset_bottom = 160.0
+	toggle.offset_top = 128.0
+	toggle.offset_bottom = 172.0
 	toggle.focus_mode = Control.FOCUS_NONE
-	_style_button(toggle, Color(0.42, 0.50, 0.62, 0.55))
+	UI.style_button(toggle, UI.TEXT)
 	toggle.add_theme_font_size_override("font_size", 13)
 	touch.add_child(toggle)
 

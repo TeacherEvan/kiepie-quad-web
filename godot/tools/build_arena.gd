@@ -270,8 +270,8 @@ func _add_match_hud(root: Node) -> void:
 	score.anchor_right = 1.0
 	score.offset_left = -300.0
 	score.offset_right = -14.0
-	score.offset_top = 12.0
-	score.offset_bottom = 190.0
+	score.offset_top = 66.0
+	score.offset_bottom = 240.0
 	score.scroll_active = false
 	score.add_theme_font_size_override("normal_font_size", 16)
 	score.add_theme_stylebox_override("normal", _chip(Color(0.05, 0.06, 0.09, 0.80)))
@@ -468,10 +468,10 @@ func _add_touch_controls(root: Node) -> void:
 	dodge_left.anchor_right = 0.0
 	dodge_left.anchor_top = 1.0
 	dodge_left.anchor_bottom = 1.0
-	dodge_left.offset_left = 10.0
-	dodge_left.offset_right = 98.0
-	dodge_left.offset_top = -284.0
-	dodge_left.offset_bottom = -194.0
+	dodge_left.offset_left = 36.0
+	dodge_left.offset_right = 126.0
+	dodge_left.offset_top = -280.0
+	dodge_left.offset_bottom = -200.0
 	dodge_left.focus_mode = Control.FOCUS_NONE
 	_style_button(dodge_left, Color(0.55, 0.42, 0.78, 0.85))
 	dodge_left.add_theme_font_size_override("font_size", 15)
@@ -485,10 +485,10 @@ func _add_touch_controls(root: Node) -> void:
 	dodge_right.anchor_right = 0.0
 	dodge_right.anchor_top = 1.0
 	dodge_right.anchor_bottom = 1.0
-	dodge_right.offset_left = 106.0
-	dodge_right.offset_right = 194.0
-	dodge_right.offset_top = -284.0
-	dodge_right.offset_bottom = -194.0
+	dodge_right.offset_left = 196.0
+	dodge_right.offset_right = 286.0
+	dodge_right.offset_top = -280.0
+	dodge_right.offset_bottom = -200.0
 	dodge_right.focus_mode = Control.FOCUS_NONE
 	_style_button(dodge_right, Color(0.55, 0.42, 0.78, 0.85))
 	dodge_right.add_theme_font_size_override("font_size", 15)
@@ -503,10 +503,10 @@ func _add_touch_controls(root: Node) -> void:
 	turbo_btn.anchor_right = 1.0
 	turbo_btn.anchor_top = 1.0
 	turbo_btn.anchor_bottom = 1.0
-	turbo_btn.offset_left = -182.0
-	turbo_btn.offset_right = -98.0
-	turbo_btn.offset_top = -194.0
-	turbo_btn.offset_bottom = -140.0  # clear of BRAKE below (was overlapping by 30px)
+	turbo_btn.offset_left = -258.0
+	turbo_btn.offset_right = -148.0
+	turbo_btn.offset_top = -202.0
+	turbo_btn.offset_bottom = -122.0
 	turbo_btn.focus_mode = Control.FOCUS_NONE
 	_style_button(turbo_btn, Color(1.0, 0.68, 0.16, 0.9))
 	turbo_btn.add_theme_font_size_override("font_size", 18)
@@ -519,10 +519,10 @@ func _add_touch_controls(root: Node) -> void:
 	brake.anchor_right = 1.0
 	brake.anchor_top = 1.0
 	brake.anchor_bottom = 1.0
-	brake.offset_left = -182.0
-	brake.offset_right = -98.0
-	brake.offset_top = -132.0
-	brake.offset_bottom = -58.0  # above the Web shell hint strip
+	brake.offset_left = -258.0
+	brake.offset_right = -148.0
+	brake.offset_top = -112.0
+	brake.offset_bottom = -16.0
 	brake.focus_mode = Control.FOCUS_NONE
 	_style_button(brake, Color(0.55, 0.60, 0.70, 0.65))
 	brake.add_theme_font_size_override("font_size", 20)
@@ -535,10 +535,10 @@ func _add_touch_controls(root: Node) -> void:
 	gas.anchor_right = 1.0
 	gas.anchor_top = 1.0
 	gas.anchor_bottom = 1.0
-	gas.offset_left = -90.0
-	gas.offset_right = -8.0
-	gas.offset_top = -222.0
-	gas.offset_bottom = -64.0  # above the Web shell hint strip
+	gas.offset_left = -138.0
+	gas.offset_right = -12.0
+	gas.offset_top = -176.0
+	gas.offset_bottom = -16.0
 	gas.focus_mode = Control.FOCUS_NONE
 	_style_button(gas, Color(1.0, 0.46, 0.10, 0.9))
 	gas.add_theme_font_size_override("font_size", 36)
@@ -552,10 +552,10 @@ func _add_touch_controls(root: Node) -> void:
 	fire_btn.anchor_right = 1.0
 	fire_btn.anchor_top = 1.0
 	fire_btn.anchor_bottom = 1.0
-	fire_btn.offset_left = -168.0
-	fire_btn.offset_right = -8.0
-	fire_btn.offset_top = -326.0
-	fire_btn.offset_bottom = -206.0
+	fire_btn.offset_left = -164.0
+	fire_btn.offset_right = -38.0
+	fire_btn.offset_top = -352.0
+	fire_btn.offset_bottom = -232.0
 	fire_btn.focus_mode = Control.FOCUS_NONE
 	_style_button(fire_btn, Color(1.0, 0.30, 0.22, 0.95))
 	fire_btn.add_theme_font_size_override("font_size", 30)
@@ -569,11 +569,11 @@ func _add_touch_controls(root: Node) -> void:
 	toggle.anchor_right = 1.0
 	toggle.anchor_top = 0.0
 	toggle.anchor_bottom = 0.0
-	toggle.offset_left = -164.0
+	toggle.offset_left = -146.0
 	toggle.offset_right = -14.0
-	# Below the scoreboard (12..190) so the two never overlap on HUD layer 1.
-	toggle.offset_top = 200.0
-	toggle.offset_bottom = 244.0
+	# Top-right above Scoreboard (offset_top = 66) so they never overlap.
+	toggle.offset_top = 14.0
+	toggle.offset_bottom = 58.0
 	toggle.focus_mode = Control.FOCUS_NONE
 	_style_button(toggle, Color(0.42, 0.50, 0.62, 0.55))
 	toggle.add_theme_font_size_override("font_size", 13)

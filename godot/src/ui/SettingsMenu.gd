@@ -16,6 +16,7 @@ var _rows: Node
 
 func _ready() -> void:
 	_apply_safe_area(_safe)
+	get_viewport().size_changed.connect(func(): _apply_safe_area(_safe))
 	UI.style_scroll($SafeMargin/VBox/Scroll)
 	_rows = $SafeMargin/VBox/Scroll/Rows
 	_connect_controls()

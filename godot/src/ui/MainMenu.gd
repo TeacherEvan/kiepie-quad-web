@@ -7,9 +7,10 @@ const SCENE_LOBBY := "res://scenes/LobbyMenu.tscn"
 const SCENE_SETTINGS := "res://scenes/SettingsMenu.tscn"
 const SCENE_ARENA := "res://scenes/Arena.tscn"
 
-const COL_OK := Color(0.55, 0.95, 0.70)
-const COL_WARN := Color(1.0, 0.72, 0.34)
-const COL_INFO := Color(0.72, 0.82, 0.96)
+const UI := preload("res://src/ui/UiTheme.gd")
+const COL_OK := UI.OK
+const COL_WARN := UI.WARN
+const COL_INFO := UI.INFO
 
 @onready var _safe: MarginContainer = $SafeMargin
 @onready var _status: Label = $SafeMargin/Card/VBox/Status
@@ -25,6 +26,7 @@ var _busy := false
 
 func _ready() -> void:
 	_apply_safe_area(_safe)
+	get_viewport().size_changed.connect(_on_viewport_resized)
 	_btn_practice.pressed.connect(_on_practice)
 	_btn_create.pressed.connect(_on_create)
 	_btn_join_auto.pressed.connect(_on_join_auto)
@@ -60,6 +62,10 @@ func _set_busy(busy: bool, message: String) -> void:
 		_set_status(message, COL_INFO)
 
 
+func _on_viewport_resized() -> void:
+	_apply_safe_area(_safe)
+
+
 func _apply_safe_area(margin: MarginContainer) -> void:
 	if not DisplayServer.has_method("get_display_safe_area"):
 		return
@@ -70,15 +76,46 @@ func _apply_safe_area(margin: MarginContainer) -> void:
 	var sa := DisplayServer.get_display_safe_area()
 	var sx := vp.x / float(win.x)
 	var sy := vp.y / float(win.y)
-	var l := int(maxf(24.0, float(sa.position.x) * sx))
-	var t := int(maxf(20.0, float(sa.position.y) * sy))
-	var r := int(maxf(24.0, float(win.x - sa.end.x) * sx))
-	# The Web shell paints a fixed hint strip along the bottom; keep clear of it.
-	var b := int(maxf(56.0, float(win.y - sa.end.y) * sy))
+	var short := vp.y <= 480.0
+	var min_lr := 12.0 if vp.x <= 480.0 else 24.0
+	var min_t := 6.0 if short else 14.0
+	var min_b := 6.0 if short else (16.0 if vp.x < 720.0 else 56.0)
+	var l := int(maxf(min_lr, float(sa.position.x) * sx))
+	var t := int(maxf(min_t, float(sa.position.y) * sy))
+	var r := int(maxf(min_lr, float(win.x - sa.end.x) * sx))
+	# The Web shell paints a fixed hint strip along the bottom on wide desktop; keep clear of it.
+	var b := int(maxf(min_b, float(win.y - sa.end.y) * sy))
 	margin.set("theme_override_constants/margin_left", l)
 	margin.set("theme_override_constants/margin_top", t)
 	margin.set("theme_override_constants/margin_right", r)
 	margin.set("theme_override_constants/margin_bottom", b)
+
+	var card := get_node_or_null("SafeMargin/Card") as PanelContainer
+	if card != null:
+		var ps := card.get_theme_stylebox("panel")
+		if ps != null:
+			ps.content_margin_top = 10.0 if short else 22.0
+			ps.content_margin_bottom = 10.0 if short else 22.0
+	var vbox := get_node_or_null("SafeMargin/Card/VBox") as VBoxContainer
+	if vbox != null:
+		vbox.add_theme_constant_override("separation", 5 if short else 12)
+	var subtitle := get_node_or_null("SafeMargin/Card/VBox/Subtitle") as Control
+	if subtitle != null:
+		subtitle.visible = not short
+	var footer := get_node_or_null("SafeMargin/Card/VBox/Footer") as Control
+	if footer != null:
+		footer.visible = not short
+	var title := get_node_or_null("SafeMargin/Card/VBox/Title") as Label
+	if title != null and title.label_settings != null:
+		title.label_settings.font_size = 26 if short else 38
+	if _status != null:
+		_status.custom_minimum_size.y = 24.0 if short else 44.0
+	var btn_h := 44.0 if short else 52.0
+	for btn in [_btn_practice, _btn_create, _btn_join_auto, _btn_join_code, _btn_settings]:
+		if btn != null:
+			btn.custom_minimum_size.y = btn_h
+	if _code != null:
+		_code.custom_minimum_size.y = 44.0 if short else 48.0
 
 
 # --------------------------------------------------------------- actions ---

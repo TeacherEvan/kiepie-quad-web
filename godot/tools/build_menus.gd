@@ -7,12 +7,12 @@ const OUT_MAIN := "res://scenes/MainMenu.tscn"
 const OUT_LOBBY := "res://scenes/LobbyMenu.tscn"
 const OUT_SETTINGS := "res://scenes/SettingsMenu.tscn"
 
-const ACCENT := Color(1.0, 0.55, 0.16)
-const TEXT := Color(0.91, 0.93, 0.97)
-const MUTED := Color(0.62, 0.68, 0.78)
-const GOLD := Color(1.0, 0.82, 0.42)
-const INFO := Color(0.72, 0.82, 0.96)
 const UI := preload("res://src/ui/UiTheme.gd")
+const ACCENT := UI.ACCENT
+const TEXT := UI.TEXT
+const MUTED := UI.MUTED
+const GOLD := UI.GOLD
+const INFO := UI.INFO
 
 var _failed := false
 
@@ -115,7 +115,7 @@ func _slider(name: String, min_v: float, max_v: float, step: float, value: float
 	s.step = step
 	s.value = value
 	UI.style_slider(s, 48.0)
-	s.custom_minimum_size = Vector2(140.0, 48.0)
+	s.custom_minimum_size = Vector2(96.0, 48.0)
 	return s
 
 
@@ -141,8 +141,8 @@ func _line(name: String, text: String, placeholder: String) -> LineEdit:
 
 func _value_label(name: String, text: String) -> Label:
 	var l := _label(name, text, 15, GOLD)
-	l.custom_minimum_size = Vector2(58.0, 32.0)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	l.custom_minimum_size = Vector2(54.0, 32.0)
+	UI.apply_tabular_numeric(l, 54.0)
 	return l
 
 
@@ -158,7 +158,7 @@ func _color_picker(name: String, hex: String) -> ColorPickerButton:
 func _setting_row(name: String, label_text: String, control: Control) -> HBoxContainer:
 	var row := _hbox(name)
 	var lbl := _label("RowLabel", label_text, 14, TEXT)
-	lbl.custom_minimum_size = Vector2(132.0, 32.0)
+	lbl.custom_minimum_size = Vector2(96.0, 32.0)
 	row.add_child(lbl)
 	control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(control)
@@ -168,7 +168,7 @@ func _setting_row(name: String, label_text: String, control: Control) -> HBoxCon
 func _slider_row(name: String, label_text: String, slider: HSlider, value_label: Label) -> HBoxContainer:
 	var row := _hbox(name)
 	var lbl := _label("RowLabel", label_text, 14, TEXT)
-	lbl.custom_minimum_size = Vector2(132.0, 32.0)
+	lbl.custom_minimum_size = Vector2(96.0, 32.0)
 	row.add_child(lbl)
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(slider)
@@ -242,7 +242,7 @@ func _build_main() -> void:
 	card_style.content_margin_top = 22.0
 	card_style.content_margin_bottom = 22.0
 	card.add_theme_stylebox_override("panel", card_style)
-	card.custom_minimum_size = Vector2(360.0, 0.0)
+	card.custom_minimum_size = Vector2(0.0, 0.0)
 	margin.add_child(card)
 
 	var vbox := _vbox("VBox")
@@ -284,6 +284,7 @@ func _build_main() -> void:
 
 	var footer := _label("Footer", "W/A/S/D drive  ·  Q/E dodge  ·  SPACE handbrake  ·  F fire", 12, MUTED)
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	footer.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(footer)
 
 	_save(root, OUT_MAIN)

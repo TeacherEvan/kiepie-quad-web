@@ -23,6 +23,19 @@ const ACCENT := Color(1.0, 0.550, 0.160, 1.0)
 const STROKE := Color(1.0, 1.0, 1.0, 0.09)
 const STROKE_STRONG := Color(0.42, 0.50, 0.62, 0.55)
 const SHADOW := Color(0.0, 0.0, 0.0, 0.55)
+const HEAT_LOCKED := Color(0.98, 0.16, 0.12, 0.98)
+const CROSSHAIR := Color(1.0, 0.95, 0.80, 0.85)
+
+
+## Width-lock numeric labels to prevent horizontal jitter on live readouts.
+static func apply_tabular_numeric(lbl: Label, min_w: float) -> void:
+	if lbl == null:
+		return
+	var ms := lbl.custom_minimum_size
+	ms.x = maxf(ms.x, min_w)
+	lbl.custom_minimum_size = ms
+	if lbl.horizontal_alignment == HORIZONTAL_ALIGNMENT_LEFT:
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
 
 ## Tactile surface: hairline top edge, heavier bottom edge, rounded + AA, drop shadow.

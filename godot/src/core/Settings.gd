@@ -62,7 +62,34 @@ func _ready() -> void:
 	# The Glow video toggle used to be dead UI; wire it to every
 	# WorldEnvironment that enters the tree (menu, TestRide, arena).
 	get_tree().node_added.connect(_on_world_environment_added)
+	get_tree().root.size_changed.connect(_sync_mobile_scale)
 	call_deferred("_apply_glow_to_tree")
+	call_deferred("_sync_mobile_scale")
+
+
+func _sync_mobile_scale() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var win := get_tree().root
+	if win == null:
+		return
+	var px := Vector2(DisplayServer.window_get_size())
+	if px.x <= 0.0 or px.y <= 0.0:
+		return
+	var dpr := 1.0
+	if OS.has_feature("web") and Engine.has_singleton("JavaScriptBridge"):
+		var raw := float(JavaScriptBridge.eval("window.devicePixelRatio || 1", true))
+		if raw > 0.0:
+			dpr = raw
+	elif OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios"):
+		dpr = maxf(1.0, DisplayServer.screen_get_scale())
+	var css := px / dpr
+	if css.x >= 1000.0 and css.y >= 540.0:
+		win.content_scale_factor = 1.0
+		return
+	var stretch := minf(px.x / 1280.0, px.y / 720.0)
+	if stretch > 0.0:
+		win.content_scale_factor = clampf(dpr / stretch, 1.0, 4.5)
 
 
 func _on_world_environment_added(node: Node) -> void:

@@ -80,6 +80,8 @@ func _ready() -> void:
 	# --- initial state
 	_refresh_banner()
 	_refresh_scoreboard()
+	_relayout()
+	get_viewport().size_changed.connect(_relayout)
 	var overlay := get_node_or_null("RespawnOverlay")
 	if overlay != null:
 		overlay.visible = false
@@ -94,8 +96,8 @@ func _ready() -> void:
 		health_bar.add_theme_stylebox_override("fill", _hp_fill)
 	var heat_bar := get_node_or_null("HeatBar") as ProgressBar
 	if heat_bar != null:
-		_heat_fill_normal = UI.bar_fill(Color(0.95, 0.55, 0.12, 0.96))
-		_heat_fill_locked = UI.bar_fill(Color(0.98, 0.16, 0.12, 0.98))
+		_heat_fill_normal = UI.bar_fill(UI.ACCENT)
+		_heat_fill_locked = UI.bar_fill(UI.HEAT_LOCKED)
 		heat_bar.add_theme_stylebox_override("fill", _heat_fill_normal)
 
 	# --- hit feedback overlay + streak announcement (runtime-created)
@@ -138,6 +140,136 @@ func _ready() -> void:
 
 
 # ------------------------------------------------------------------ signals ---
+
+func _relayout() -> void:
+	var vp := get_viewport().get_visible_rect().size
+	if vp.x <= 0.0 or vp.y <= 0.0:
+		return
+	var narrow := vp.x <= 560.0
+	var short := vp.y <= 480.0
+
+	var banner := get_node_or_null("Banner") as Label
+	if banner != null:
+		if narrow:
+			banner.anchor_left = 0.0
+			banner.anchor_right = 0.0
+			banner.offset_left = 12.0
+			banner.offset_right = maxf(140.0, vp.x - 156.0)
+			banner.offset_top = 12.0
+			banner.offset_bottom = 56.0
+			if banner.label_settings != null:
+				banner.label_settings.font_size = 18
+		else:
+			banner.anchor_left = 0.5
+			banner.anchor_right = 0.5
+			var bw := minf(420.0, vp.x - 320.0)
+			bw = maxf(180.0, bw)
+			banner.offset_left = -bw * 0.5
+			banner.offset_right = bw * 0.5
+			banner.offset_top = 8.0 if short else 12.0
+			banner.offset_bottom = banner.offset_top + (42.0 if short else 52.0)
+			if banner.label_settings != null:
+				banner.label_settings.font_size = 28
+
+	var score := get_node_or_null("Scoreboard") as Control
+	if score != null:
+		var sw := minf(220.0, vp.x * 0.48) if narrow else (minf(220.0, vp.x * 0.26) if short else 286.0)
+		score.offset_left = -sw - 14.0
+		score.offset_right = -14.0
+		score.offset_top = 66.0
+		score.offset_bottom = 176.0 if (narrow or short) else 240.0
+
+	var feed := get_node_or_null("KillFeed") as Control
+	if feed != null:
+		if short and not narrow:
+			feed.offset_left = 112.0
+			feed.offset_right = minf(270.0, vp.x * 0.32)
+			feed.offset_top = 10.0
+			feed.offset_bottom = 100.0
+		else:
+			feed.offset_left = 12.0
+			feed.offset_right = minf(340.0, vp.x * 0.48) if narrow else 340.0
+			feed.offset_top = 62.0 if narrow else 72.0
+			feed.offset_bottom = feed.offset_top + (90.0 if narrow else 138.0)
+
+	var radar := get_node_or_null("Radar") as Control
+	if radar != null:
+		radar.visible = not (narrow and short)
+		if short and not narrow:
+			radar.offset_left = 12.0
+			radar.offset_top = 10.0
+			radar.offset_right = 102.0
+			radar.offset_bottom = 100.0
+		else:
+			var rsize := 120.0 if narrow else 180.0
+			radar.offset_left = 12.0
+			radar.offset_top = 160.0 if narrow else 220.0
+			radar.offset_right = 12.0 + rsize
+			radar.offset_bottom = radar.offset_top + rsize
+
+	var hl := get_node_or_null("HealthLabel") as Control
+	var hb := get_node_or_null("HealthBar") as Control
+	var heat := get_node_or_null("HeatBar") as Control
+	if hl != null and hb != null and heat != null:
+		for c in [hl, hb, heat]:
+			if narrow:
+				c.anchor_left = 0.0
+				c.anchor_right = 0.0
+				c.anchor_top = 1.0
+				c.anchor_bottom = 1.0
+				c.offset_left = 12.0
+				c.offset_right = minf(196.0, vp.x * 0.52)
+			elif short:
+				c.anchor_left = 0.5
+				c.anchor_right = 0.5
+				c.anchor_top = 0.0
+				c.anchor_bottom = 0.0
+				c.offset_left = -120.0
+				c.offset_right = 120.0
+			else:
+				c.anchor_left = 0.5
+				c.anchor_right = 0.5
+				c.anchor_top = 1.0
+				c.anchor_bottom = 1.0
+				c.offset_left = -150.0
+				c.offset_right = 150.0
+		if narrow:
+			hl.offset_top = -390.0
+			hl.offset_bottom = -364.0
+			hb.offset_top = -360.0
+			hb.offset_bottom = -336.0
+			heat.offset_top = -330.0
+			heat.offset_bottom = -308.0
+		elif short:
+			hl.offset_top = 62.0
+			hl.offset_bottom = 86.0
+			hb.offset_top = 88.0
+			hb.offset_bottom = 110.0
+			heat.offset_top = 114.0
+			heat.offset_bottom = 132.0
+		else:
+			hl.offset_top = -126.0
+			hl.offset_bottom = -98.0
+			hb.offset_top = -94.0
+			hb.offset_bottom = -66.0
+			heat.offset_top = -58.0
+			heat.offset_bottom = -32.0
+
+	var respawn := get_node_or_null("RespawnOverlay") as Control
+	if respawn != null:
+		var rw := minf(560.0, vp.x - 24.0)
+		respawn.offset_left = -rw * 0.5
+		respawn.offset_right = rw * 0.5
+
+	var result := get_node_or_null("ResultPanel") as Control
+	if result != null:
+		var pw := minf(600.0, vp.x - 24.0)
+		var ph := minf(340.0, vp.y - 24.0)
+		result.offset_left = -pw * 0.5
+		result.offset_right = pw * 0.5
+		result.offset_top = -ph * 0.5
+		result.offset_bottom = ph * 0.5
+
 
 func _reduced_motion() -> bool:
 	return Settings.reduced_motion()
