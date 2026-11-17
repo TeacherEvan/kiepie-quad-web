@@ -153,5 +153,20 @@ func _physics_process(delta: float) -> void:
 	hit.emit(collider as Node, point)
 	if on_hit.is_valid():
 		on_hit.call(collider, point, self)
+	# Bikes and hazards already spawn their own impact/death VFX via
+	# CombatController — only scenery hits need a local spark and scar.
+	if collider is Node:
+		var node := collider as Node
+		if not node.is_in_group("bike") and not node.is_in_group("hazard"):
+			var surface := "concrete"
+			if node.name == "Ground":
+				surface = "ground"
+			elif not node.is_in_group("destructible"):
+				surface = "metal"
+			var n: Vector3 = result.get("normal", Vector3.UP)
+			var fx := get_parent() as Node3D
+			if fx == null and get_tree() != null:
+				fx = get_tree().current_scene as Node3D
+			VfxFactory.impact(fx, point, hit_color, velocity.normalized(), surface, n)
 	_trail.emitting = false
 	queue_free()

@@ -60,18 +60,34 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 - `gdlint` / `gdtoolkit` are **not installed** in this environment — do not rely on them.
   `godot-4.3 --check-only --script <file>` reports false "Identifier not found" for autoloads;
   use `tools/_check_scripts.gd` instead.
-- `run_gates.sh` runs **18 gates**: truth, stability, touch, features, smash_impact, diag2,
+- `run_gates.sh` runs **19 gates**: truth, stability, touch, features, smash_impact, diag2,
   cannons, settings, match_rules, combat, kill_flow, appeal, accessibility, talo_backend,
-  audit_regressions, controls, dodge + GdUnit4. `audit_regressions` locks the surgical-audit
+  audit_regressions, controls, dodge, vfx + GdUnit4. `audit_regressions` locks the surgical-audit
   defects: forged `state` events, 3-stop VFX gradients, exhaust axis, malformed shot arrays and
   `respawn_at` as a future deadline. `controls` locks the steering defect (see below) and the
-  `steer_sensitivity` setting; `dodge` locks the Q/E leap/cartwheel contract. Keep all green.
+  `steer_sensitivity` setting; `dodge` locks the Q/E leap/cartwheel contract. `vfx` locks the
+  effect contracts (reduced motion, quality scaling, scorch/scar caps, flat hit normals) and
+  level counts: Arena = 10 ramps / 7 buildings, TestRide = 6 ramps / 4 buildings, with spawn
+  and ramp clearances. Keep all green.
   Exit 101 from GdUnit4 = pass with benign dummy-renderer orphan warnings; 100 = failure.
 - `run_gates.sh` exports `KIEPIE_MOCK_BACKEND=1` — gates must never touch the live Talo account.
 - Headless dummy-renderer RID/leak `ERROR:` lines at exit are benign; gates judge PASS/FAIL lines
   and script errors, not those.
 - `verify_appeal.gd` tests the drum chain with a **wall-clock timer**, not frame counts —
   frame-count loops are flaky in headless runs.
+- VFX live in `src/game/VfxFactory.gd`; the four VFX consumers are `CombatController`,
+  `Projectile` (scenery impacts only — bikes/hazards already emit their own), `Pickup` and
+  `DestructibleBuilding`. `KiepieBike.gd` adds landing/roost dust as visual-only hooks. The
+  five sprite textures are generated at runtime by `prewarm()` — do not add image assets for
+  effects; keep bursts inside `_q()` and reduced-motion guards. Scorch (`MAX_SCORCH = 12`) and
+  bullet scars (`MAX_SCAR = 24`) leave their groups before `queue_free()` or the next frame
+  still counts them against the cap. `-s` tool scripts must `load()` VfxFactory at runtime
+  (a top-level `preload` fails autoload resolution — see `tools/verify_vfx.gd`).
+- `godot/tools/gen_arena_textures.py` regenerates the three extra facades (garage, warehouse,
+  depot); after changing it run `godot-4.3 --headless --path godot --import`, **not**
+  `--editor --quit` (the latter crashes on the GdUnit4 plugin in this environment). Kerb
+  walls are one striped mesh each (4 draw calls total) — do not revert them to 20 boxes.
+  `tools/vfx_showcase.gd` renders five proof PNGs with `xvfb-run` under the real renderer.
 - Blender MCP was connected on 2026-11-17 (Blender 5.3, add-on 1.8) — check `get_addon_status`
   before using it, but generate geometry through `src/` scripts. A GUI
   `read_factory_settings(use_empty=True)` unloads the add-on.
@@ -85,7 +101,8 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 - `export_presets.cfg` excludes `addons/gdUnit4/*, addons/GDQuest_GDScript_formatter/*, tests/*,
   extension_api.json` and **includes `addons/talo/settings.cfg`** — the export filter is
   `all_resources`, so a plain `.cfg` is otherwise dropped and the plugin silently falls back to
-  MockBackend. Expect `web/index.pck` ≈ **3.6 MB**; deploy aborts above 4 MB.
+  MockBackend. Expect `web/index.pck` ≈ **3.8 MB** (~3.94 MB after the VFX pass); deploy
+  aborts above 4 MB, so leave ~150 KB of headroom for new assets.
 - The Talo **game** key (JWT, `eyJ…`) is injected from root `.env` `TALO_API_GAME` and ships in the
   public pck by design. `TALO_API_ADMIN` (`ta_…`) is rejected by the v1 API — never use it here.
 - Vercel project `kiepie-quad-web` (team `teacher-evans-projects`, Hobby). Auth/password

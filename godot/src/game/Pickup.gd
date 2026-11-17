@@ -121,7 +121,7 @@ func _collect() -> void:
 	if is_instance_valid(_glow):
 		_glow.visible = false
 
-	VFX.shield_pulse(_fx_parent(), global_position, _color())
+	VFX.pickup_burst(_fx_parent(), global_position, _color())
 
 	var tree := get_tree()
 	if tree != null:

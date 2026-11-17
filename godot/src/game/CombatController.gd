@@ -8,6 +8,7 @@ signal respawned()
 signal heat_changed(value: float, locked: bool)
 signal hurt(amount: float, attacker_id: String)
 signal pickup_collected(kind: String)
+signal hit_confirmed()
 
 const MAX_HEALTH := 100.0
 const CANNON := preload("res://src/game/SideCannons.gd")
@@ -122,11 +123,13 @@ func take_damage(amount: float, attacker_id: String, point: Vector3, token: Stri
 		return
 	var now := Time.get_ticks_msec() / 1000.0
 	if now < _invuln_until or now < _shield_until:
+		# Absorbed damage still needs a read — otherwise a shield looks broken.
+		VFX.shield_block(_fx_parent(), point, Color(0.30, 0.88, 1.0))
 		return
 	health = maxf(0.0, health - amount)
 	health_changed.emit(health, MAX_HEALTH)
 	hurt.emit(amount, attacker_id)
-	VFX.impact(_fx_parent(), point, player_color)
+	VFX.impact(_fx_parent(), point, player_color, Vector3.ZERO, "bike")
 	VFX.damage_number(_fx_parent(), point, amount, Color(1.0, 0.35, 0.3))
 	_play_sfx("impact")
 	_shake(0.18)
@@ -236,6 +239,9 @@ func _on_projectile_hit(collider: Object, point: Vector3, projectile: Node) -> v
 	if owner_id == Supabase.user_id:
 		# Our shot hit a remote bike: the victim applies damage locally and
 		# broadcasts its death; ArenaNet then awards the point via the RPC.
-		VFX.impact(_fx_parent(), point, player_color)
+		var incoming: Vector3 = Vector3(projectile.get("velocity")).normalized() \
+				if projectile.get("velocity") != null else Vector3.ZERO
+		VFX.impact(_fx_parent(), point, player_color, incoming, "metal")
+		hit_confirmed.emit()
 	elif target_id == Supabase.user_id:
 		take_damage(float(projectile.get("damage")), owner_id, point, token)

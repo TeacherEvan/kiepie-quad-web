@@ -36,6 +36,8 @@ var _steer_sensitivity := 1.0
 var _dodge_time := 0.0
 var _dodge_cd := 0.0
 var _ground_coyote := 0.0   ## brief grace so suspension bounce can't eat a dodge
+var _was_grounded := false   ## visual-only landing detector
+var _roost_accum := 0.0
 
 @onready var _flames: GPUParticles3D = get_node_or_null("ExhaustFlames")
 @onready var _wheel_nodes := {
@@ -61,6 +63,7 @@ func _ready() -> void:
 	_spawn_set = true
 	_steer_sensitivity = clampf(float(Settings.get_value("controls", "steer_sensitivity", 1.0)), 0.3, 2.0)
 	Settings.changed.connect(_on_settings_changed)
+	VfxFactory.prewarm()
 	_build_flames()
 
 func _build_flames() -> void:
@@ -136,6 +139,26 @@ func _physics_process(delta: float) -> void:
 		_try_dodge(1.0)
 
 	# Anti-rollover lives in _integrate_forces — see there.
+
+	# Visual feedback only: hard landing throws a ground dust ring, fast
+	# cornering kicks a rooster tail off the rear wheels. No physics is touched.
+	var grounded := _grounded()
+	var vy := linear_velocity.y
+	if grounded and not _was_grounded and vy < -3.5:
+		var rear: Vector3 = global_position - global_transform.basis.z * 0.66
+		VfxFactory.dust_ring(self, Vector3(rear.x, 0.0, rear.z), 1.1, 4.5)
+		_shake(0.08)
+	_was_grounded = grounded
+	if grounded and speed_kmh() > 42.0:
+		_roost_accum += delta
+		if _roost_accum >= 0.12:
+			_roost_accum = 0.0
+			for sx in [-0.55, 0.55]:
+				var at: Vector3 = global_position + global_transform.basis.x * sx \
+						- global_transform.basis.z * 0.66
+				VfxFactory.roost(self, at, global_transform.basis.z)
+	else:
+		_roost_accum = 0.0
 
 	var throttle := Input.get_axis("move_back", "move_forward")
 	var steer_input := Input.get_axis("steer_right", "steer_left")
@@ -215,6 +238,14 @@ func reset_bike() -> void:
 
 func speed_kmh() -> float:
 	return linear_velocity.length() * 3.6
+
+
+func _shake(amount: float) -> void:
+	if Settings.reduced_motion():
+		return
+	var cam := get_tree().get_first_node_in_group("camera_rig") if get_tree() != null else null
+	if cam != null and cam.has_method("add_shake"):
+		cam.call("add_shake", amount)
 
 
 func _grounded() -> bool:

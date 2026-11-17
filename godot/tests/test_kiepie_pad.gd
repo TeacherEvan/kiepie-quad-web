@@ -26,7 +26,7 @@ func test_pad_boots_with_hud_and_touch() -> void:
 	assert_object(root.get_node_or_null("TouchHUD")).is_not_null()
 	var smashed := root.get_node("HUD").get_node_or_null("Smashed") as Label
 	assert_object(smashed).is_not_null()
-	assert_str(smashed.text).is_equal("Buildings smashed: 0 / 3")
+	assert_str(smashed.text).is_equal("Buildings smashed: 0 / 4")
 
 func test_smash_increments_hud_counter() -> void:
 	var root := _boot_pad()
@@ -34,7 +34,7 @@ func test_smash_increments_hud_counter() -> void:
 	assert_object(workshop).is_not_null()
 	workshop.smash()
 	var smashed := root.get_node("HUD").get_node_or_null("Smashed") as Label
-	assert_str(smashed.text).is_equal("Buildings smashed: 1 / 3")
+	assert_str(smashed.text).is_equal("Buildings smashed: 1 / 4")
 
 func test_touch_gas_holds_and_releases_action() -> void:
 	var root := _boot_pad()

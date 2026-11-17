@@ -12,6 +12,9 @@ signal smashed(building_name: String)
 @export var building_name := "Building"
 
 var _intact := true
+var _body_size := Vector3.ONE
+var _beacon: MeshInstance3D = null
+var _beacon_t := 0.0
 
 func _ready() -> void:
 	add_to_group("destructible")
@@ -26,7 +29,9 @@ func _ready() -> void:
 			if shape is BoxShape3D:
 				box_size = (shape as BoxShape3D).size
 				box_pos = (child as CollisionShape3D).position
+				_body_size = box_size
 				break
+	_beacon = get_node_or_null("Beacon") as MeshInstance3D
 	var area := Area3D.new()
 	area.name = "SmashTrigger"
 	area.monitoring = true
@@ -68,8 +73,9 @@ func smash() -> void:
 
 	# hide the intact shell and disable its collider
 	for child in get_children():
-		if child is MeshInstance3D:
-			child.visible = false
+		if child is VisualInstance3D:
+			# covers MeshInstance3D and the fascia Label3D sign / roof beacon
+			(child as VisualInstance3D).visible = false
 		elif child is CollisionShape3D:
 			# smash() can run inside a physics flush; defer the shape change
 			(child as CollisionShape3D).set_deferred("disabled", true)
@@ -127,7 +133,31 @@ func smash() -> void:
 				if is_instance_valid(chunk_capture) and chunk_capture.is_inside_tree():
 					chunk_capture.queue_free())
 
-	# dust puff — soft sprite particles from the shared factory
-	VFX.dust_puff(self, Vector3(0.0, 1.2, 0.0))
+	# collapse sequence — glass flash, ground dust wave, staggered puffs
+	VFX.smash_burst(parent, origin, _body_size)
+	_shake(0.32)
 
 	emit_signal("smashed", building_name)
+
+
+func _process(delta: float) -> void:
+	if not _intact or _beacon == null or not is_instance_valid(_beacon):
+		return
+	_beacon_t += delta
+	if _beacon.mesh == null:
+		return
+	var mat := _beacon.mesh.get_material() as StandardMaterial3D
+	if mat == null:
+		return
+	if Settings.reduced_motion():
+		mat.emission_energy_multiplier = 2.0
+	else:
+		mat.emission_energy_multiplier = 1.4 + sin(_beacon_t * 4.0) * 1.2
+
+
+func _shake(amount: float) -> void:
+	if Settings.reduced_motion():
+		return
+	var cam := get_tree().get_first_node_in_group("camera_rig") if get_tree() != null else null
+	if cam != null and cam.has_method("add_shake"):
+		cam.call("add_shake", amount)

@@ -72,9 +72,10 @@ Controls:
 | `R` | Reset to spawn (also the on-screen **Restart** button) |
 | Touch | On-screen overlay (◀ ▶ steer · **DODGE L/R** · BRAKE · GAS · TURBO · FIRE) auto-appears on touch devices; the **TOUCH** button (top-right) force-shows/hides it anywhere. Dodge/FIRE button sizes and steering sensitivity are adjustable in Settings → Controls |
 
-`TestRide.tscn` is the playable demo pad: asphalt, cone ring, start line, three **ramps**,
-three **smashable buildings** (drive into them at speed — they burst into debris and an
-on-screen counter tracks it), a follow camera and a HUD with speed readout, smash counter,
+`TestRide.tscn` is the playable demo pad: asphalt, cone ring, start line, six **ramps**
+(including a cone-clearing jump line with a landing slope), four **smashable buildings**
+(drive into them at speed — they burst into debris and an on-screen counter tracks it),
+a follow camera and a HUD with speed readout, smash counter,
 turbo indicator and Restart / View buttons. Rollover-immune physics (lowered center of
 mass + angular damping) — the quad cannot flip. It is a placeholder — build your real
 track in it or as a sibling scene.
@@ -264,8 +265,9 @@ with a free slot and creates one if none exists.
 button**. Each bike has 100 armour; the host-configured damage default is 30 per hit, cannons
 overheat if held down, and a destroyed bike explodes and respawns at a random spawn point after
 the lobby's respawn delay. The shooter scores the kill; first to the lobby's kill target wins.
-The arena (~100 m) has cover, ramps, destructible buildings, a radar and an off-screen-free
-scoreboard/kill feed.
+The arena (~100 m) has cover, ten ramps (two designed gap-jump lines plus two cover hops),
+seven destructible buildings, an outside-the-walls venue silhouette with floodlights, a radar
+and an off-screen-free scoreboard/kill feed.
 
 **Backend:** **Talo** (Supabase/Convex were dropped). A free Talo game key is injected at build
 time from `TALO_API_GAME` in the repo-root `.env` via `godot/tools/inject_talo_key.py`; the
@@ -273,8 +275,20 @@ deploy helper does this automatically. The Web build ships that key inside the p
 design — use a disposable, scoped dev key, never `TALO_API_ADMIN`. Lobbies are Talo channels,
 state lives in host-owned channel props, and shots/kills flow over channel socket messages.
 Scoring is host-authoritative client logic (no server-side validation). Without a key the client
-uses a full offline `MockBackend`, so all 18 gates run without credentials. The old `supabase/`
+uses a full offline `MockBackend`, so all 19 gates run without credentials. The old `supabase/`
 migrations are retained for history only and are not deployed.
+
+**VFX pass:** effects are built by `godot/src/game/VfxFactory.gd` from five tiny sprites
+generated once at runtime (soft puff, spark streak, flare star, ground ring, noise smoke),
+so the Web pck does not grow. Explosions are staged (core flash → fireball → ember streaks →
+rising smoke, with cooling debris and a soft scorch), shots that hit scenery leave sparks and
+fading scars, and building smashes combine a glass flash, ground dust wave and staggered
+collapse puffs. Ramp landings and fast cornering kick up dust; shields, pickups and landed
+hits all have their own read. Everything scales with the particle-quality setting and
+collapses to static cues under reduced motion. Decal counts are capped so long fights cannot
+leak nodes. The three extra facades are deterministic: re-run
+`python3 godot/tools/gen_arena_textures.py` and `godot-4.3 --headless --path godot --import`
+after changing them.
 
 **Appeal pass:** 8 rotating pickups (shield / rapid-fire / repair / overdrive), 10
 chain-exploding fuel drums, a full procedurally synthesised sound pack (cannon,
@@ -290,12 +304,17 @@ resolution. Settings persist in `user://settings.cfg` and can be restored to def
 **New gates:** `verify_cannons.gd`, `verify_settings.gd`, `verify_match_rules.gd`,
 `verify_combat.gd`, `verify_kill_flow.gd`, `verify_appeal.gd`, `verify_talo_backend.gd` and
 `verify_audit_regressions.gd`, `verify_controls.gd` and `verify_dodge.gd` join the existing
-suite — `godot/tools/run_gates.sh` now runs 18 gates offline (17 headless gates plus GdUnit4).
+suite — `godot/tools/run_gates.sh` now runs 19 gates offline (18 headless gates plus GdUnit4).
+The new `verify_vfx.gd` locks effect contracts (reduced motion, quality scaling, decal caps,
+flat-normal safety) and the new arena/test-track ramp and building counts with spawn clearance.
 The new gates exercise `TaloBackend` directly with no live account, lock the surgical-audit
 regressions (forged state, VFX gradient stops, exhaust axis, malformed shot payloads, respawn
 deadline), prove that steering actually yaws the bike while keeping it upright, and lock the
 Q/E dodge (direction, lift, cooldown, recovery). `godot/tools/deploy_web.sh` runs the gates, exports, checks the bundle,
 then (with `--apply`) commits, pushes and deploys to Vercel.
-Web export produces `web/index.pck` (~3.6 MB; the bundle check aborts above 4 MB) plus PWA
+`xvfb-run -a godot-4.3 --path godot --script tools/vfx_showcase.gd` re-renders five VFX/layout
+proof images into `renders/` under the real Web renderer (not a gate).
+
+Web export produces `web/index.pck` (~3.8 MB; the bundle check aborts above 4 MB) plus PWA
 manifest/service worker; deploy with the documented `vercel deploy --prod` command (pushes to
 `web/` do **not** auto-deploy).

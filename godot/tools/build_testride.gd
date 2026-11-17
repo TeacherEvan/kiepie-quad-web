@@ -3,6 +3,7 @@ extends SceneTree
 # sun, environment, follow/orbit camera, HUD, ramps and 3 smashable buildings.
 
 const OUT := "res://scenes/TestRide.tscn"
+const DECOR := preload("res://src/game/BuildingDecor.gd")
 
 
 func _chip(bg := Color(0.075, 0.085, 0.105, 0.80),
@@ -138,6 +139,11 @@ func _initialize() -> void:
 	_add_ramp(root, "RampLeft", Vector3(-8.0, 0.0, 10.0), Vector3(13.0, 0.0, 0.0))
 	_add_ramp(root, "RampRight", Vector3(8.0, 0.0, 14.0), Vector3(13.0, 0.0, 0.0))
 	_add_ramp(root, "RampBig", Vector3(0.0, 0.0, 26.0), Vector3(16.0, 0.0, 0.0))
+	# jump line: RampBig clears the cone ring, a down-slope waits at z=40
+	_add_ramp(root, "RampBigLanding", Vector3(0.0, 0.0, 40.0), Vector3(10.0, 180.0, 0.0))
+	# south kicker and the return lane's side hop
+	_add_ramp(root, "RampSouth", Vector3(0.0, 0.0, -20.0), Vector3(14.0, 0.0, 0.0))
+	_add_ramp(root, "RampWest", Vector3(-22.0, 0.0, -2.0), Vector3(13.0, 90.0, 0.0))
 
 	# ---------------- buildings (drive through / smash)
 
@@ -195,7 +201,7 @@ func _initialize() -> void:
 
 	var smashed := Label.new()
 	smashed.name = "Smashed"
-	smashed.text = "Buildings smashed: 0 / 3"
+	smashed.text = "Buildings smashed: 0 / 4"
 	smashed.position = Vector2(16, 186)
 	smashed.offset_right = 260.0
 	smashed.offset_bottom = 220.0
@@ -262,6 +268,12 @@ func _initialize() -> void:
 			Vector3(12.0, 0.0, -14.0), Vector3(4.2, 2.3, 3.6), Color(0.55, 0.55, 0.55))
 	var b3 := _add_building(root, "Store", "Store",
 			Vector3(-12.5, 0.0, 18.0), Vector3(4.8, 4.6, 4.2), Color(0.30, 0.37, 0.47))
+	_add_building(root, "Garage", "Garage",
+			Vector3(-14.0, 0.0, -18.0), Vector3(5.0, 3.0, 4.4), Color(0.48, 0.44, 0.38))
+	# HUD total is an exported property so it is serialized into the .tscn
+	var hud_node := root.get_node_or_null("HUD")
+	if hud_node != null:
+		hud_node.set("smash_total", 4)
 	# ---------------- save (own the instance, never its children)
 	for child in root.get_children():
 		child.owner = root
@@ -543,6 +555,8 @@ func _facade_texture_for(node_name: String) -> Texture2D:
 			return load("res://assets/tex_facade_shed.png") as Texture2D
 		"Store":
 			return load("res://assets/tex_facade_store.png") as Texture2D
+		"Garage":
+			return load("res://assets/tex_facade_garage.jpg") as Texture2D
 		_:
 			return null
 
@@ -616,6 +630,8 @@ func _add_building(root: Node, node_name: String, display_name: String,
 	awning.mesh = door_mesh
 	awning.position = Vector3(0.0, size.y * 0.62 + 0.28, size.z * 0.5 + 0.16)
 	building.add_child(awning)
+
+	DECOR.dress(building, size, display_name)
 
 	# face the pad centre
 	building.position = origin

@@ -10,6 +10,8 @@ var _turbo_label: Label
 var _view_btn: Button
 var _smashed := 0
 var _total := 3
+@export var smash_total := 3   ## set by tools/build_testride.gd (serialized into the scene)
+
 
 func _init() -> void:
 	add_to_group("hud")
@@ -26,7 +28,9 @@ func _ready() -> void:
 		restart_btn.pressed.connect(_on_restart)
 	if _view_btn:
 		_view_btn.pressed.connect(_on_view)
+	_total = maxi(1, smash_total)
 	_update_smash_label()
+
 
 func _process(_delta: float) -> void:
 	if _bike == null:

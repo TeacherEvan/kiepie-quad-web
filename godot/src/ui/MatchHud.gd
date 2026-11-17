@@ -22,6 +22,8 @@ var _hp_fill: StyleBoxFlat
 var _heat_fill_normal: StyleBoxFlat
 var _heat_fill_locked: StyleBoxFlat
 var _heat_locked := false
+var _hitmarker: Label = null
+var _hit_tween: Tween = null
 
 
 func _init() -> void:
@@ -49,6 +51,8 @@ func _ready() -> void:
 			_combat.hurt.connect(_on_hurt)
 		if _combat.has_signal("pickup_collected"):
 			_combat.pickup_collected.connect(_on_pickup)
+		if _combat.has_signal("hit_confirmed"):
+			_combat.hit_confirmed.connect(_on_hit_confirmed)
 
 	# --- authoritative match state (autoload). Guarded for headless gates.
 	if Match != null:
@@ -113,6 +117,24 @@ func _ready() -> void:
 	_announce_label.add_theme_color_override("font_outline_color", Color(0.1, 0.03, 0.0))
 	_announce_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_announce_label)
+	# Crosshair hit confirmation — a 4-tick flash on every landed shot.
+	_hitmarker = Label.new()
+	_hitmarker.name = "HitMarker"
+	_hitmarker.text = "×"
+	_hitmarker.set_anchors_preset(Control.PRESET_CENTER)
+	_hitmarker.offset_left = -15.0
+	_hitmarker.offset_right = 15.0
+	_hitmarker.offset_top = -18.0
+	_hitmarker.offset_bottom = 12.0
+	_hitmarker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hitmarker.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_hitmarker.add_theme_font_size_override("font_size", 36)
+	_hitmarker.add_theme_color_override("font_color", Color(1.0, 0.95, 0.72, 1.0))
+	_hitmarker.add_theme_constant_override("outline_size", 8)
+	_hitmarker.add_theme_color_override("font_outline_color", Color(0.2, 0.04, 0.0, 0.9))
+	_hitmarker.modulate.a = 0.0
+	_hitmarker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_hitmarker)
 
 
 # ------------------------------------------------------------------ signals ---
@@ -138,6 +160,28 @@ func _on_hurt(amount: float, _attacker_id: String) -> void:
 
 func _on_pickup(kind: String) -> void:
 	announce("PICKUP: " + kind.to_upper())
+
+
+func _on_hit_confirmed() -> void:
+	if _hitmarker == null:
+		return
+	# Rapid consecutive hits would otherwise race overlapping tweens and can
+	# strand the marker at 1.6x scale. Restart cleanly from a known state.
+	if _hit_tween != null and _hit_tween.is_valid():
+		_hit_tween.kill()
+	_hitmarker.scale = Vector2.ONE
+	_hitmarker.modulate.a = 1.0
+	if _reduced_motion():
+		await get_tree().create_timer(0.12).timeout
+		if is_instance_valid(_hitmarker):
+			_hitmarker.modulate.a = 0.0
+		return
+	_hit_tween = create_tween()
+	_hit_tween.tween_property(_hitmarker, "scale", Vector2(1.6, 1.6), 0.08)
+	_hit_tween.chain().tween_property(_hitmarker, "modulate:a", 0.0, 0.22)
+	_hit_tween.tween_callback(func() -> void:
+		if is_instance_valid(_hitmarker):
+			_hitmarker.scale = Vector2.ONE)
 
 
 func announce(text: String) -> void:

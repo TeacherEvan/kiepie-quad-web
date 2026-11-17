@@ -1,26 +1,57 @@
 extends RefCounted
 class_name VfxFactory
-## Pooled-by-convention particle helpers. Particle counts respect the player's
-## quality multiplier. Under reduced-motion, burst particles, debris, shockwave,
-## shield pulses and float/flashes are suppressed or replaced with static cues.
+## Pooled-by-convention particle helpers. All counts respect the player's
+## quality multiplier. Under reduced-motion, bursts, debris, shockwaves,
+## shield pulses and float/flashes collapse to a single static cue.
 ##
-## Visual style: teen/mature "hot metal" — near-white cores, amber-to-ember
-## ramps, additive sparks, dark billowing smoke. All materials are unshaded /
-## emissive so they read correctly on the gl_compatibility Web renderer.
+## Visual language: "refined hot metal" — a white-hot core, a shaped fireball
+## with a scale envelope, velocity-aligned spark streaks, charred cooling
+## debris, and heavy smoke that rises and billows instead of flat blobs.
+##
+## Compatibility renderer (gl_compatibility / Web): GPUParticles3D with one
+## draw pass each, unshaded materials, no trails, no sub-emitters, no decals.
+## Every sprite is generated once at runtime so the Web pck does not grow.
 
-# Hot-to-cold combat palette (sRGB). Kept in one place so every effect agrees.
-const COL_CORE := Color(1.0, 0.96, 0.78, 1.0)      # near-white flash
-const COL_AMBER := Color(1.0, 0.82, 0.25, 1.0)     # hot amber
-const COL_ORANGE := Color(1.0, 0.54, 0.12, 1.0)    # cannon orange
-const COL_EMBER := Color(0.89, 0.24, 0.04, 1.0)    # ember red-orange
-const COL_SMOKE := Color(0.16, 0.16, 0.18, 0.85)   # billow smoke
+# Hot-to-cold combat palette (sRGB). One place so every effect agrees.
+const COL_CORE := Color(1.0, 0.95, 0.78, 1.0)
+const COL_AMBER := Color(1.0, 0.82, 0.25, 1.0)
+const COL_ORANGE := Color(1.0, 0.54, 0.12, 1.0)
+const COL_EMBER := Color(0.89, 0.24, 0.04, 1.0)
+const COL_SMOKE := Color(0.16, 0.16, 0.18, 0.85)
 const COL_SMOKE_DARK := Color(0.09, 0.09, 0.11, 0.0)
-const COL_BRASS := Color(0.83, 0.58, 0.15, 1.0)    # ejected casings
-const COL_STEAM := Color(0.82, 0.84, 0.88, 0.55)   # overheat vent
+const COL_BRASS := Color(0.83, 0.58, 0.15, 1.0)
+const COL_STEAM := Color(0.82, 0.84, 0.88, 0.55)
+const COL_CHAR := Color(0.19, 0.15, 0.12, 1.0)
+const COL_GLASS := Color(0.72, 0.90, 1.0, 1.0)
+const COL_DUST := Color(0.68, 0.60, 0.50, 0.9)
+
+const MAX_SCORCH := 12
+const MAX_SCAR := 24
+const MAX_IMPACT_LIGHTS := 8
+
+static var _soft_tex: GradientTexture2D = null
+static var _streak_tex: ImageTexture = null
+static var _flare_tex: ImageTexture = null
+static var _ring_tex: ImageTexture = null
+static var _smoke_tex: ImageTexture = null
+static var _noise: FastNoiseLite = null
+
 
 static func _q() -> float:
 	return maxf(0.0, Settings.quality_multiplier())
 
+
+static func prewarm() -> void:
+	## Called once when the first bike enters a scene: builds the tiny sprite
+	## set up front so a firefight's first shot does not pay texture-gen cost.
+	_soft_sprite()
+	_streak_sprite()
+	_flare_sprite()
+	_ring_sprite()
+	_smoke_sprite()
+
+
+# ------------------------------------------------------------------ palette --
 
 static func _emissive(color: Color, energy: float = 2.5) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -30,47 +61,6 @@ static func _emissive(color: Color, energy: float = 2.5) -> StandardMaterial3D:
 	m.emission_energy_multiplier = energy
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	return m
-
-
-static var _soft_tex: GradientTexture2D = null
-
-static func _soft_sprite() -> GradientTexture2D:
-	## Shared radial-gradient sprite (white core -> transparent rim) so
-	## particles render as soft puffs/glows instead of hard-edged meshes.
-	if _soft_tex == null:
-		var g := Gradient.new()
-		# offset 0 at the center, offset 1 at the rim. RGB fades to black with
-		# the alpha (premultiplied style) so mipmapped minification has no
-		# bright fringe ring around the glow.
-		g.offsets = PackedFloat32Array([0.0, 0.4, 1.0])
-		g.colors = PackedColorArray([
-			Color(1.0, 1.0, 1.0, 1.0),
-			Color(0.55, 0.55, 0.55, 0.6),
-			Color(0.0, 0.0, 0.0, 0.0),
-		])
-		var t := GradientTexture2D.new()
-		t.fill = GradientTexture2D.FILL_RADIAL
-		t.fill_from = Vector2(0.5, 0.5)
-		t.fill_to = Vector2(1.0, 1.0)
-		t.width = 128
-		t.height = 128
-		t.gradient = g
-		_soft_tex = t
-	return _soft_tex
-
-
-static func _sprite_material(additive: bool) -> StandardMaterial3D:
-	## Billboarded soft particle material. The particle color ramp supplies
-	## hue and alpha; the material only carries the blend mode.
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	m.vertex_color_use_as_albedo = true
-	m.albedo_texture = _soft_sprite()
-	if additive:
-		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	return m
 
 
@@ -101,10 +91,144 @@ static func _ramp(colors: Array) -> GradientTexture1D:
 	return ramp
 
 
+static func _curve(keys: Array) -> CurveTexture:
+	## [offset, value] pairs describing a particle's size over its lifetime.
+	var c := Curve.new()
+	c.clear_points()
+	for k in keys:
+		c.add_point(Vector2(float(k[0]), float(k[1])))
+	var t := CurveTexture.new()
+	t.curve = c
+	return t
+
+
+# ---------------------------------------------------------------- sprites ----
+
+static func _soft_sprite() -> GradientTexture2D:
+	if _soft_tex == null:
+		var g := Gradient.new()
+		g.offsets = PackedFloat32Array([0.0, 0.35, 1.0])
+		g.colors = PackedColorArray([
+			Color(1, 1, 1, 1), Color(0.62, 0.62, 0.62, 0.55), Color(0, 0, 0, 0)])
+		var t := GradientTexture2D.new()
+		t.fill = GradientTexture2D.FILL_RADIAL
+		t.fill_from = Vector2(0.5, 0.5)
+		t.fill_to = Vector2(1.0, 1.0)
+		t.width = 96
+		t.height = 96
+		t.gradient = g
+		_soft_tex = t
+	return _soft_tex
+
+
+static func _image_tex(img: Image) -> ImageTexture:
+	return ImageTexture.create_from_image(img)
+
+
+static func _streak_sprite() -> ImageTexture:
+	## Soft vertical streak; used with particle_flag_align_y for sparks that
+	## read as motion instead of round dots.
+	if _streak_tex == null:
+		var w := 16
+		var h := 64
+		var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+		for y in range(h):
+			var v := float(y) / float(h - 1)
+			var vfall: float = pow(maxf(0.0, 1.0 - absf(v - 0.46) * 2.1), 1.4)
+			for x in range(w):
+				var u := float(x) / float(w - 1)
+				var hfall: float = pow(maxf(0.0, 1.0 - absf(u - 0.5) * 2.0), 1.8)
+				var a: float = clampf(vfall * hfall, 0.0, 1.0)
+				img.set_pixel(x, y, Color(1, 1, 1, a))
+		_streak_tex = _image_tex(img)
+	return _streak_tex
+
+
+static func _flare_sprite() -> ImageTexture:
+	## Four-point star: a bright core plus thin horizontal/vertical spikes.
+	if _flare_tex == null:
+		var s := 64
+		var img := Image.create(s, s, false, Image.FORMAT_RGBA8)
+		for y in range(s):
+			var v: float = absf(float(y) / float(s - 1) - 0.5) * 2.0
+			for x in range(s):
+				var u: float = absf(float(x) / float(s - 1) - 0.5) * 2.0
+				var core: float = pow(maxf(0.0, 1.0 - sqrt(u * u + v * v) * 2.5), 2.0)
+				var spike_h: float = pow(maxf(0.0, 1.0 - u * 9.0), 1.4) * pow(maxf(0.0, 1.0 - v), 2.2)
+				var spike_v: float = pow(maxf(0.0, 1.0 - v * 9.0), 1.4) * pow(maxf(0.0, 1.0 - u), 2.2)
+				var a: float = clampf(maxf(core, maxf(spike_h, spike_v) * 0.8), 0.0, 1.0)
+				img.set_pixel(x, y, Color(1, 1, 1, a))
+		_flare_tex = _image_tex(img)
+	return _flare_tex
+
+
+static func _ring_sprite() -> ImageTexture:
+	## Flat soft annulus, used for shockwaves and ground dust waves (2 tris).
+	if _ring_tex == null:
+		var s := 96
+		var img := Image.create(s, s, false, Image.FORMAT_RGBA8)
+		for y in range(s):
+			var v := float(y) / float(s - 1) * 2.0 - 1.0
+			for x in range(s):
+				var u := float(x) / float(s - 1) * 2.0 - 1.0
+				var r: float = sqrt(u * u + v * v)
+				var band: float = exp(-pow((r - 0.70) * 6.5, 2.0))
+				var edge: float = clampf((1.0 - r) * 6.0, 0.0, 1.0)
+				img.set_pixel(x, y, Color(1, 1, 1, clampf(band * edge, 0.0, 1.0)))
+		_ring_tex = _image_tex(img)
+	return _ring_tex
+
+
+static func _smoke_sprite() -> ImageTexture:
+	## Fractal-noise puff with a soft radial falloff: smoke no longer reads as
+	## a uniform circle.
+	if _smoke_tex == null:
+		if _noise == null:
+			_noise = FastNoiseLite.new()
+			_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+			_noise.fractal_octaves = 2
+			_noise.frequency = 0.04
+		var s := 96
+		var img := Image.create(s, s, false, Image.FORMAT_RGBA8)
+		for y in range(s):
+			var v := float(y) / float(s - 1) * 2.0 - 1.0
+			for x in range(s):
+				var u := float(x) / float(s - 1) * 2.0 - 1.0
+				var radial: float = clampf(1.0 - sqrt(u * u + v * v), 0.0, 1.0)
+				var n: float = _noise.get_noise_2d(float(x), float(y)) * 0.5 + 0.5
+				var a: float = clampf((0.55 + n * 0.65) * pow(radial, 1.1), 0.0, 1.0)
+				img.set_pixel(x, y, Color(1, 1, 1, a))
+		_smoke_tex = _image_tex(img)
+	return _smoke_tex
+
+
+static func _sprite_material(additive: bool, key: String = "soft") -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.vertex_color_use_as_albedo = true
+	m.albedo_texture = _soft_sprite()
+	match key:
+		"streak":
+			m.albedo_texture = _streak_sprite()
+		"flare":
+			m.albedo_texture = _flare_sprite()
+		"ring":
+			m.albedo_texture = _ring_sprite()
+		"smoke":
+			m.albedo_texture = _smoke_sprite()
+	if additive:
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	return m
+
+
+# --------------------------------------------------------------- particles ---
+
 static func _particle(parent: Node3D, pos: Vector3, amount: int, lifetime: float,
 		dir: Vector3, spread: float, speed_min: float, speed_max: float,
 		colors: Array, size: float, gravity: Vector3 = Vector3(0, -2.0, 0),
-		additive: bool = false) -> GPUParticles3D:
+		additive: bool = false, opts: Dictionary = {}) -> GPUParticles3D:
 	if Settings.reduced_motion():
 		return null
 	var p := GPUParticles3D.new()
@@ -112,10 +236,10 @@ static func _particle(parent: Node3D, pos: Vector3, amount: int, lifetime: float
 	p.lifetime = lifetime
 	p.one_shot = true
 	p.local_coords = false
-	p.explosiveness = 0.85
-	p.visibility_aabb = AABB(Vector3(-6, -4, -6), Vector3(12, 12, 12))
+	p.explosiveness = float(opts.get("explosiveness", 0.85))
+	p.visibility_aabb = AABB(Vector3(-8, -6, -8), Vector3(16, 16, 16))
 	var pm := ParticleProcessMaterial.new()
-	pm.direction = dir.normalized()
+	pm.direction = dir.normalized() if dir.length_squared() > 0.0001 else Vector3.UP
 	pm.spread = spread
 	pm.gravity = gravity
 	pm.initial_velocity_min = speed_min
@@ -123,10 +247,26 @@ static func _particle(parent: Node3D, pos: Vector3, amount: int, lifetime: float
 	pm.scale_min = size * 0.45
 	pm.scale_max = size * 1.4
 	pm.color_ramp = _ramp(colors)
+	if opts.has("curve"):
+		pm.scale_curve = _curve(opts["curve"])
+	if opts.has("damping"):
+		pm.damping_min = float(opts["damping"])
+		pm.damping_max = float(opts["damping"]) * 1.4
+	if opts.has("hue"):
+		pm.hue_variation_min = -float(opts["hue"])
+		pm.hue_variation_max = float(opts["hue"])
+	if opts.has("angular"):
+		pm.angular_velocity_min = -float(opts["angular"])
+		pm.angular_velocity_max = float(opts["angular"])
+	if bool(opts.get("align", false)):
+		pm.particle_flag_align_y = true
+	if opts.has("box"):
+		pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+		pm.emission_box_extents = opts["box"]
 	p.process_material = pm
 	var quad := QuadMesh.new()
-	quad.size = Vector2.ONE * 0.42
-	quad.material = _sprite_material(additive)
+	quad.size = Vector2.ONE * float(opts.get("quad", 0.42))
+	quad.material = _sprite_material(additive, str(opts.get("tex", "soft")))
 	p.draw_pass_1 = quad
 	p.position = pos
 	parent.add_child(p)
@@ -137,23 +277,104 @@ static func _particle(parent: Node3D, pos: Vector3, amount: int, lifetime: float
 
 static func _flash_billboard(parent: Node3D, pos: Vector3, size: float,
 		color: Color, duration: float) -> void:
-	## Short-lived additive camera-facing star flash (muzzle / impact pop).
-	if Settings.reduced_motion():
+	if parent == null or Settings.reduced_motion():
 		return
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE * size
 	var m := _additive(color, 4.0)
 	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.albedo_texture = _flare_sprite()
 	quad.material = m
 	var inst := MeshInstance3D.new()
 	inst.mesh = quad
 	inst.position = pos
 	parent.add_child(inst)
 	var t := inst.create_tween()
-	t.tween_property(inst, "scale", Vector3(1.9, 1.9, 1.9), duration)
+	t.tween_property(inst, "scale", Vector3(1.75, 1.75, 1.75), duration)
 	t.parallel().tween_property(m, "albedo_color:a", 0.0, duration)
 	t.tween_callback(inst.queue_free)
 
+
+static func _ring_quad(parent: Node3D, pos: Vector3, radius: float,
+		color: Color, grow: float, duration: float, matte: bool = false,
+		normal: Vector3 = Vector3.UP) -> MeshInstance3D:
+	## A flat expanding annulus. Two triangles instead of a torus's hundreds.
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE * radius * 2.0
+	var m: StandardMaterial3D
+	if matte:
+		m = StandardMaterial3D.new()
+		m.albedo_color = color
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	else:
+		m = _additive(color, 2.2)
+	m.albedo_texture = _ring_sprite()
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	quad.material = m
+	var inst := MeshInstance3D.new()
+	inst.mesh = quad
+	inst.position = pos
+	inst.basis = _plane_basis(normal)
+	parent.add_child(inst)
+	var t := inst.create_tween()
+	t.tween_property(inst, "scale", Vector3(grow, grow, grow), duration)
+	t.parallel().tween_property(m, "albedo_color:a", 0.0, duration)
+	t.tween_callback(inst.queue_free)
+	return inst
+
+
+static func _plane_basis(normal: Vector3) -> Basis:
+	## Orient a quad so its flat face lies on the given surface normal. Using
+	## World Up directly blows up when the normal *is* up (ground hits).
+	var n := normal.normalized()
+	var up := Vector3.UP
+	if absf(n.dot(up)) > 0.98:
+		up = Vector3.FORWARD
+	return Basis.looking_at(-n, up)
+
+
+static func _static_cue(parent: Node3D, pos: Vector3, color: Color,
+		size: float, duration: float) -> void:
+	## Reduced-motion feedback: one unshaded billboard, no tween, no particles.
+	if parent == null or not Settings.reduced_motion():
+		return
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE * size
+	var m := _additive(color, 1.8)
+	m.albedo_texture = _flare_sprite()
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	quad.material = m
+	var inst := MeshInstance3D.new()
+	inst.mesh = quad
+	inst.position = pos
+	parent.add_child(inst)
+	var tree := parent.get_tree()
+	if tree != null:
+		var timer := tree.create_timer(duration)
+		timer.timeout.connect(func() -> void:
+			if is_instance_valid(inst):
+				inst.queue_free())
+
+
+static func _cap_group(parent: Node, group: String, cap: int) -> void:
+	if parent == null or not parent.is_inside_tree():
+		return
+	var tree := parent.get_tree()
+	if tree == null:
+		return
+	var old := tree.get_nodes_in_group(group)
+	while old.size() > cap:
+		var victim = old.pop_front()
+		if is_instance_valid(victim):
+			# Leave the group now: queue_free() is deferred, so until the frame
+			# ends the decal would still count against the cap.
+			(victim as Node).remove_from_group(group)
+			(victim as Node).queue_free()
+
+
+# ------------------------------------------------------------------ shoot ----
 
 static func muzzle_flash(parent: Node3D, pos: Vector3, dir: Vector3, color: Color) -> void:
 	if parent == null:
@@ -161,16 +382,38 @@ static func muzzle_flash(parent: Node3D, pos: Vector3, dir: Vector3, color: Colo
 	var holder := Node3D.new()
 	holder.position = pos
 	parent.add_child(holder)
-	# hot core burst along the barrel
-	_particle(holder, Vector3.ZERO, 16, 0.16, dir, 20.0, 5.0, 10.0,
-			[Color(1.0, 0.85, 0.45, 0.9), Color(1.0, 0.58, 0.14, 0.7),
-			 Color(0.89, 0.24, 0.04, 0.0)], 0.5, Vector3.ZERO, true)
+	var fwd := dir.normalized() if dir.length_squared() > 0.0001 else Vector3.FORWARD
+
+	# white-hot core burst along the barrel
+	_particle(holder, fwd * 0.18, 14, 0.13, fwd, 16.0, 8.0, 17.0,
+			[Color(1, 0.92, 0.60, 0.95), COL_AMBER, Color(COL_EMBER.r, COL_EMBER.g, COL_EMBER.b, 0.0)],
+			0.30, Vector3(0, -5, 0), true,
+			{"tex": "streak", "align": true, "curve": [[0, 0.7], [0.4, 1.0], [1, 0.15]]})
 	# lingering smoke wisp after the shot
-	_particle(holder, Vector3.ZERO, 6, 0.7, dir * 0.5 + Vector3.UP * 0.5, 35.0, 1.2, 2.6,
-			[Color(0.36, 0.36, 0.38, 0.55), COL_SMOKE_DARK], 0.42,
-			Vector3(0, 0.6, 0), false)
-	# camera-facing pop at the barrel tip
+	_particle(holder, Vector3.ZERO, 6, 0.75, fwd * 0.4 + Vector3.UP * 0.6, 35.0, 1.1, 2.4,
+			[Color(0.38, 0.38, 0.40, 0.5), COL_SMOKE_DARK], 0.42,
+			Vector3(0, 0.7, 0), false, {"tex": "smoke", "quad": 0.8, "curve": [[0, 0.6], [0.4, 1.1], [1, 1.5]]})
 	_flash_billboard(holder, Vector3.ZERO, 0.85, COL_CORE, 0.12)
+
+	# blast disc perpendicular to the barrel — gives the flash a direction
+	if not Settings.reduced_motion():
+		var disc := QuadMesh.new()
+		disc.size = Vector2.ONE * 0.52
+		var dm := _additive(color, 2.6)
+		dm.albedo_texture = _ring_sprite()
+		dm.billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
+		dm.cull_mode = BaseMaterial3D.CULL_DISABLED
+		disc.material = dm
+		var disc_inst := MeshInstance3D.new()
+		disc_inst.mesh = disc
+		disc_inst.position = fwd * 0.16
+		disc_inst.basis = _plane_basis(fwd)
+		holder.add_child(disc_inst)
+		var dt := disc_inst.create_tween()
+		dt.tween_property(disc_inst, "scale", Vector3(2.1, 2.1, 2.1), 0.14)
+		dt.parallel().tween_property(dm, "albedo_color:a", 0.0, 0.14)
+		dt.tween_callback(disc_inst.queue_free)
+
 	var light := OmniLight3D.new()
 	light.light_color = color
 	light.light_energy = 7.5
@@ -178,7 +421,6 @@ static func muzzle_flash(parent: Node3D, pos: Vector3, dir: Vector3, color: Colo
 	holder.add_child(light)
 	var t := holder.create_tween()
 	if Settings.reduced_motion():
-		# Static dim flash, freed by a timer - no pulsing light.
 		light.light_energy = 2.5
 		t.tween_interval(0.14)
 	else:
@@ -187,8 +429,6 @@ static func muzzle_flash(parent: Node3D, pos: Vector3, dir: Vector3, color: Colo
 
 
 static func casing(parent: Node3D, pos: Vector3, eject_dir: Vector3) -> void:
-	## Eject a brass shell out of the breech of whichever barrel just fired.
-	## No collision (layer/mask 0) so casings never intersect physics queries.
 	if parent == null:
 		return
 	var body := RigidBody3D.new()
@@ -226,43 +466,112 @@ static func casing(parent: Node3D, pos: Vector3, eject_dir: Vector3) -> void:
 
 
 static func steam_vent(parent: Node3D, pos: Vector3) -> void:
-	## Overheat cue: a short white steam burst from a hot barrel.
 	if parent == null:
 		return
 	_particle(parent, pos, 12, 0.85, Vector3.UP, 28.0, 1.6, 3.4,
 			[COL_STEAM, Color(COL_STEAM.r, COL_STEAM.g, COL_STEAM.b, 0.0)], 0.34,
-			Vector3(0, -0.4, 0), false)
+			Vector3(0, -0.4, 0), false,
+			{"tex": "smoke", "quad": 0.9, "curve": [[0, 0.5], [0.5, 1.0], [1, 1.6]]})
 
 
-static func impact(parent: Node3D, pos: Vector3, color: Color) -> void:
+# ---------------------------------------------------------------- impact -----
+
+static func impact(parent: Node3D, pos: Vector3, color: Color,
+		dir: Vector3 = Vector3.ZERO, surface: String = "metal",
+		normal: Vector3 = Vector3.UP) -> void:
 	if parent == null:
 		return
 	var holder := Node3D.new()
 	holder.position = pos
 	parent.add_child(holder)
-	# additive spark spray, hot near-white
-	_particle(holder, Vector3.ZERO, 14, 0.28, Vector3.UP, 95.0, 4.5, 9.5,
-			[Color(1.0, 0.92, 0.62, 0.85), Color(1.0, 0.66, 0.20, 0.6),
-			 Color(0.89, 0.24, 0.04, 0.0)], 0.22, Vector3(0, -9.0, 0), true)
-	# heavier smoke/ember follow-through
-	_particle(holder, Vector3.ZERO, 22, 0.34, Vector3.UP, 70.0, 3.0, 8.0,
-			[Color(1, 0.95, 0.65, 1), color, COL_SMOKE_DARK], 0.36,
-			Vector3(0, -2.0, 0), false)
-	_flash_billboard(holder, Vector3.ZERO, 0.6, COL_CORE, 0.10)
-	var light := OmniLight3D.new()
-	light.light_color = color
-	light.light_energy = 4.5
-	light.omni_range = 2.6
-	holder.add_child(light)
-	if not Settings.reduced_motion():
-		var lt := holder.create_tween()
-		lt.tween_property(light, "light_energy", 0.0, 0.12)
-	else:
-		light.light_energy = 1.6
+	var shot := dir.normalized() if dir.length_squared() > 0.0001 else Vector3.UP
+	var spark_count := 16 if surface == "metal" else 9
+	var spark_col := COL_AMBER if surface == "metal" else Color(1, 0.94, 0.72, 1)
+	_particle(holder, Vector3.ZERO, spark_count, 0.26, shot, 85.0, 5.0, 11.0,
+			[Color(1, 1, 0.82, 0.9), spark_col, Color(COL_EMBER.r, COL_EMBER.g, COL_EMBER.b, 0.0)],
+			0.13, Vector3(0, -9.0, 0), true,
+			{"tex": "streak", "align": true, "curve": [[0, 0.9], [0.55, 1.0], [1, 0.05]]})
+	var puff_col := Color(0.70, 0.66, 0.60, 0.75) if surface != "metal" else Color(0.55, 0.55, 0.58, 0.7)
+	_particle(holder, Vector3.ZERO, 14, 0.5, normal, 60.0, 1.6, 4.2,
+			[puff_col, Color(0.30, 0.30, 0.32, 0.45), COL_SMOKE_DARK], 0.28,
+			Vector3(0, 0.2, 0), false, {"tex": "smoke", "quad": 0.9})
+	_flash_billboard(holder, Vector3.ZERO, 0.52, COL_CORE, 0.09)
+	# gl_compatibility has a low real-time light budget: cap concurrent sparks'
+	# point lights rather than letting a firefight allocate one per shot.
+	var tree := parent.get_tree()
+	var lights: Array = tree.get_nodes_in_group("vfx_light") if tree != null else []
+	if lights.size() < MAX_IMPACT_LIGHTS:
+		var light := OmniLight3D.new()
+		light.light_color = color
+		light.light_energy = 4.5
+		light.omni_range = 2.6
+		light.add_to_group("vfx_light")
+		holder.add_child(light)
+		if Settings.reduced_motion():
+			light.light_energy = 1.6
+		else:
+			var lt := holder.create_tween()
+			lt.tween_property(light, "light_energy", 0.0, 0.12)
 	var t := holder.create_tween()
-	t.tween_interval(0.8)
-	t.tween_callback(holder.queue_free)
+	t.tween_interval(0.7)
+	t.tween_callback(func() -> void:
+		for c in holder.get_children():
+			if c.is_in_group("vfx_light"):
+				c.remove_from_group("vfx_light")
+		holder.queue_free())
+	# A bike is a moving body: a world-space scar there would float in mid-air.
+	if surface != "bike" and normal.length_squared() > 0.1:
+		scar(parent, pos + normal * 0.012, normal, surface)
 
+
+static func scar(parent: Node3D, pos: Vector3, normal: Vector3,
+		surface: String = "metal") -> void:
+	## Small fading bullet mark flush to whatever the shot hit. No Decal node:
+	## the compatibility renderer does not support them.
+	if parent == null or surface == "ground":
+		return
+	var quad := QuadMesh.new()
+	var s := randf_range(0.16, 0.30)
+	quad.size = Vector2(s, s)
+	var m := StandardMaterial3D.new()
+	var tint := Color(0.10, 0.09, 0.09, 0.75) if surface == "concrete" else Color(0.06, 0.05, 0.04, 0.85)
+	m.albedo_color = tint
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_texture = _soft_sprite()
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	quad.material = m
+	var inst := MeshInstance3D.new()
+	inst.mesh = quad
+	inst.position = pos
+	inst.basis = _plane_basis(normal)
+	inst.add_to_group("vfx_scar")
+	parent.add_child(inst)
+	_cap_group(parent, "vfx_scar", MAX_SCAR)
+	var t := inst.create_tween()
+	t.tween_interval(4.0)
+	t.tween_property(m, "albedo_color:a", 0.0, 3.0)
+	t.tween_callback(inst.queue_free)
+
+
+static func shield_block(parent: Node3D, pos: Vector3, color: Color) -> void:
+	## Damage absorbed by the shield/invulnerability still needs to read.
+	if parent == null:
+		return
+	_flash_billboard(parent, pos, 0.55, color, 0.12)
+	if Settings.reduced_motion():
+		_static_cue(parent, pos, color, 0.55, 0.14)
+		return
+	_ring_quad(parent, pos, 0.32, color, 2.4, 0.38, false, Vector3.UP)
+	_ring_quad(parent, pos, 0.24, Color(1, 1, 1, 0.8), 1.7, 0.28, false, Vector3.UP)
+	_particle(parent, pos, 12, 0.32, Vector3.UP, 75.0, 2.5, 6.0,
+			[Color(color.r, color.g, color.b, 0.9), Color(1, 1, 1, 0.6), Color(color.r, color.g, color.b, 0.0)],
+			0.12, Vector3(0, -3, 0), true,
+			{"tex": "streak", "align": true, "curve": [[0, 0.8], [1, 0.05]]})
+
+
+# -------------------------------------------------------------- explosion ----
 
 static func explosion(parent: Node3D, pos: Vector3, color: Color, scale: float = 1.0) -> void:
 	if parent == null:
@@ -273,74 +582,49 @@ static func explosion(parent: Node3D, pos: Vector3, color: Color, scale: float =
 	holder.scale = Vector3.ONE * scale
 	parent.add_child(holder)
 
-	# core flash — hot, with a fast attack and slightly slower release
+	# light: fast attack, slow release
 	var light := OmniLight3D.new()
 	light.light_color = Color(1.0, 0.74, 0.34)
 	light.light_energy = 26.0
 	light.omni_range = 10.0
 	holder.add_child(light)
 	if Settings.reduced_motion():
-		light.light_energy = 7.0  # steady, no fade pulse
+		light.light_energy = 7.0
 	else:
 		var lt := holder.create_tween()
 		lt.tween_property(light, "light_energy", 26.0, 0.05).from(0.0)
 		lt.tween_property(light, "light_energy", 0.0, 0.5)
 
-	# fireball: white-hot core -> amber -> ember -> dark smoke
-	_particle(holder, Vector3.ZERO, 90, 0.68, Vector3.UP, 62.0, 3.0, 11.5,
-			[Color(1.0, 0.78, 0.30, 0.85), Color(1.0, 0.52, 0.10, 0.65),
-			 Color(0.82, 0.20, 0.02, 0.0)], 1.05, Vector3(0, -1.2, 0), true)
-	# long-lived dark billow rising off the fireball
-	_particle(holder, Vector3(0, 0.5, 0), 55, 2.0, Vector3.UP, 48.0, 1.0, 4.2,
-			[Color(0.30, 0.30, 0.33, 0.85), COL_SMOKE, COL_SMOKE_DARK], 1.75,
-			Vector3(0, 0.35, 0), false)
-	# ember spray — small, fast, gravity-bound, additive
-	_particle(holder, Vector3(0, 0.3, 0), 40, 1.15, Vector3.UP, 75.0, 6.0, 13.0,
-			[Color(1.0, 0.80, 0.35, 0.8), Color(1.0, 0.48, 0.08, 0.55),
-			 Color(0.89, 0.24, 0.04, 0.0)], 0.16, Vector3(0, -7.5, 0), true)
+	var hot := [[0, 0.55], [0.35, 1.2], [1, 0.1]]
+	var smoke_curve := [[0, 0.5], [0.45, 1.05], [1, 1.7]]
 
-	# camera-facing core pop at detonation
+	# fireball: compact white-hot core plus a wider amber/ember shell
+	_particle(holder, Vector3.ZERO, 40, 0.52, Vector3.UP, 50.0, 2.4, 6.2,
+			[Color(1, 0.98, 0.80, 1), Color(1, 0.80, 0.28, 0.85),
+			 Color(0.85, 0.22, 0.03, 0.0)], 0.86, Vector3(0, -1.0, 0), true,
+			{"curve": hot, "hue": 0.035, "damping": 1.6, "explosiveness": 1.0})
+	_particle(holder, Vector3.ZERO, 50, 0.68, Vector3.UP, 72.0, 3.4, 11.5,
+			[Color(1, 0.78, 0.30, 0.9), Color(1, 0.48, 0.08, 0.7),
+			 Color(0.72, 0.16, 0.02, 0.0)], 1.10, Vector3(0, -1.4, 0), true,
+			{"curve": [[0, 0.6], [0.4, 1.25], [1, 0.05]], "hue": 0.06, "damping": 1.2})
+	# heavy smoke column — rises and billows instead of hanging as a flat disc
+	_particle(holder, Vector3(0, 0.4, 0), 46, 2.4, Vector3.UP, 34.0, 0.5, 2.2,
+			[Color(0.30, 0.30, 0.33, 0.72), Color(0.20, 0.20, 0.22, 0.42), COL_SMOKE_DARK], 2.6,
+			Vector3(0, 0.45, 0), false,
+			{"tex": "smoke", "quad": 1.25, "curve": [[0, 0.75], [0.4, 1.2], [1, 2.1]], "angular": 1.6, "damping": 0.3})
+	# velocity-aligned embers
+	_particle(holder, Vector3(0, 0.3, 0), 40, 1.15, Vector3.UP, 85.0, 6.0, 14.0,
+			[Color(1, 0.84, 0.38, 0.85), Color(1, 0.46, 0.08, 0.6),
+			 Color(0.89, 0.24, 0.04, 0.0)], 0.12, Vector3(0, -7.5, 0), true,
+			{"tex": "streak", "align": true, "curve": [[0, 1], [0.65, 0.8], [1, 0.0]]})
+
 	_flash_billboard(holder, Vector3(0, 0.4, 0), 2.4, COL_CORE, 0.16)
 
-	# shockwave ring — hot expanding torus
 	if not Settings.reduced_motion():
-		var torus := TorusMesh.new()
-		torus.inner_radius = 0.45
-		torus.outer_radius = 0.62
-		torus.rings = 20
-		var m := _emissive(Color(1.0, 0.72, 0.30, 0.85), 3.0)
-		m.albedo_color.a = 0.85
-		torus.material = m
-		var ring := MeshInstance3D.new()
-		ring.mesh = torus
-		ring.rotation_degrees.x = 90.0
-		ring.position.y = 0.25
-		holder.add_child(ring)
-		var rt := ring.create_tween()
-		rt.tween_property(ring, "scale", Vector3(5.5, 5.5, 1.0), 0.45)
-		rt.parallel().tween_property(m, "albedo_color:a", 0.0, 0.45)
+		_ring_quad(holder, Vector3(0, 0.24, 0), 0.62, Color(1, 0.74, 0.32, 0.9), 6.0, 0.42, false)
+		_ring_quad(holder, Vector3(0, 0.18, 0), 1.10, Color(0.60, 0.53, 0.44, 0.7), 8.0, 0.72, true)
 
-	# ground dust ring — wider, slower, matte (not emissive)
-	if not Settings.reduced_motion():
-		var dust_torus := TorusMesh.new()
-		dust_torus.inner_radius = 0.8
-		dust_torus.outer_radius = 1.15
-		dust_torus.rings = 14
-		var dust_mat := StandardMaterial3D.new()
-		dust_mat.albedo_color = Color(0.42, 0.38, 0.33, 0.7)
-		dust_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		dust_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		dust_torus.material = dust_mat
-		var dust := MeshInstance3D.new()
-		dust.mesh = dust_torus
-		dust.rotation_degrees.x = 90.0
-		dust.position.y = 0.18
-		holder.add_child(dust)
-		var dt := dust.create_tween()
-		dt.tween_property(dust, "scale", Vector3(7.5, 7.5, 1.0), 0.7)
-		dt.parallel().tween_property(dust_mat, "albedo_color:a", 0.0, 0.7)
-
-	# debris — hot ember chunks that cool as they fly
+	# debris: hot at first, cooling to char as it tumbles
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	var pieces := 0 if Settings.reduced_motion() else int(12 * _q())
@@ -358,7 +642,13 @@ static func explosion(parent: Node3D, pos: Vector3, color: Color, scale: float =
 		var mesh := MeshInstance3D.new()
 		var bm := BoxMesh.new()
 		bm.size = Vector3.ONE * size
-		bm.material = _emissive(COL_EMBER * rng.randf_range(0.55, 1.0), 1.6)
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = COL_CHAR
+		mat.emission_enabled = true
+		mat.emission = COL_EMBER
+		mat.emission_energy_multiplier = rng.randf_range(0.9, 1.8)
+		mat.roughness = 0.86
+		bm.material = mat
 		mesh.mesh = bm
 		chunk.add_child(mesh)
 		holder.add_child(chunk)
@@ -366,24 +656,157 @@ static func explosion(parent: Node3D, pos: Vector3, color: Color, scale: float =
 				rng.randf_range(0.2, 1.0), rng.randf_range(-0.5, 0.5))
 		chunk.linear_velocity = Vector3(rng.randf_range(-6, 6), rng.randf_range(3, 9),
 				rng.randf_range(-6, 6))
-		chunk.angular_velocity = Vector3(rng.randf_range(-8, 8), rng.randf_range(-8, 8), rng.randf_range(-8, 8))
+		chunk.angular_velocity = Vector3(rng.randf_range(-8, 8), rng.randf_range(-8, 8),
+				rng.randf_range(-8, 8))
+		var cool := chunk.create_tween()
+		cool.tween_property(mat, "emission_energy_multiplier", 0.0, 0.7)
+
+	# second beat: a small delayed detonation makes the blast feel physical
+	if not Settings.reduced_motion():
+		var pop := holder.create_tween()
+		pop.tween_interval(0.16)
+		pop.tween_callback(func() -> void:
+			if is_instance_valid(holder):
+				_flash_billboard(holder, Vector3(rng.randf_range(-0.3, 0.3), 0.7,
+						rng.randf_range(-0.3, 0.3)), 0.9, COL_AMBER, 0.10))
 
 	scorch(parent, pos)
 
 	var cleanup := holder.create_tween()
-	cleanup.tween_interval(3.2)
+	cleanup.tween_interval(3.4)
 	cleanup.tween_callback(holder.queue_free)
 
 
+# ------------------------------------------------------------------ dust -----
+
 static func dust_puff(parent: Node3D, local_pos: Vector3, amount: int = 64) -> void:
-	## Wide, slow tan dust burst for building smashes. Soft sprite particles,
-	## quality-scaled and reduced-motion aware via _particle().
 	if parent == null:
 		return
-	_particle(parent, local_pos, amount, 1.15, Vector3.UP, 78.0, 2.2, 5.4,
-			[Color(0.74, 0.68, 0.60, 0.95), Color(0.58, 0.53, 0.46, 0.75),
-			 Color(0.55, 0.50, 0.44, 0.0)], 1.45, Vector3(0, -2.2, 0))
+	_particle(parent, local_pos, amount, 1.2, Vector3.UP, 78.0, 2.0, 5.2,
+			[Color(0.76, 0.70, 0.62, 0.95), Color(0.58, 0.52, 0.45, 0.7),
+			 Color(0.50, 0.45, 0.39, 0.0)], 1.5, Vector3(0, -2.0, 0), false,
+			{"tex": "smoke", "quad": 1.15, "curve": [[0, 0.7], [0.4, 1.15], [1, 1.6]], "angular": 1.2})
 
+
+static func dust_ring(parent: Node3D, pos: Vector3, radius: float = 1.2,
+		amount: float = 5.0) -> void:
+	## Ground-hugging dust wave for ramp landings and building collapse.
+	if parent == null or Settings.reduced_motion():
+		return
+	_ring_quad(parent, Vector3(pos.x, 0.10, pos.z), radius,
+			Color(0.72, 0.66, 0.57, 0.55), amount, 0.65, true)
+	_particle(parent, Vector3(pos.x, 0.16, pos.z), 16, 0.7, Vector3.UP, 60.0, 1.2, 3.2,
+			[Color(0.72, 0.66, 0.58, 0.6), Color(0.5, 0.46, 0.4, 0.0)], 0.7,
+			Vector3(0, -1.2, 0), false, {"tex": "smoke", "quad": 1.1})
+
+
+static func roost(parent: Node3D, pos: Vector3, forward: Vector3) -> void:
+	## Rear-wheel dirt/rooster-tail kicked up at speed or under hard steering.
+	if parent == null or _q() <= 0.0:
+		return
+	_particle(parent, pos, 6, 0.42, -forward.normalized() + Vector3.UP * 0.45, 42.0, 1.6, 4.0,
+			[Color(0.72, 0.68, 0.62, 0.55), Color(0.55, 0.52, 0.48, 0.0)], 0.34,
+			Vector3(0, -2.4, 0), false, {"tex": "smoke", "quad": 0.9})
+
+
+static func tire_smoke(parent: Node3D, pos: Vector3) -> void:
+	if parent == null or _q() <= 0.0:
+		return
+	_particle(parent, pos, 5, 0.55, Vector3.UP, 35.0, 0.5, 1.8,
+			[Color(0.62, 0.62, 0.64, 0.45), Color(0.40, 0.40, 0.42, 0.0)], 0.45,
+			Vector3(0, 0.25, 0), false, {"tex": "smoke", "quad": 0.9})
+
+
+static func scorch(parent: Node3D, pos: Vector3) -> void:
+	if parent == null:
+		return
+	var quad := QuadMesh.new()
+	quad.size = Vector2(2.0, 2.0)
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.05, 0.04, 0.04, 0.62)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_texture = _soft_sprite()
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	quad.material = m
+	var disc := MeshInstance3D.new()
+	disc.mesh = quad
+	disc.position = Vector3(pos.x, 0.022, pos.z)
+	disc.rotation_degrees.x = -90.0
+	disc.rotation_degrees.z = randf_range(0.0, 180.0)
+	disc.add_to_group("vfx_scorch")
+	parent.add_child(disc)
+	_cap_group(parent, "vfx_scorch", MAX_SCORCH)
+	var t := disc.create_tween()
+	t.tween_interval(7.0)
+	t.tween_property(m, "albedo_color:a", 0.0, 4.0)
+	t.tween_callback(disc.queue_free)
+
+
+# ---------------------------------------------------------------- smash ------
+
+static func smash_burst(parent: Node3D, pos: Vector3, size: Vector3) -> void:
+	## Structural collapse in three beats: glass flash, dust wave, settling puffs.
+	if parent == null:
+		return
+	_flash_billboard(parent, pos + Vector3(0, 1.0, 0), 1.4, Color(0.86, 0.94, 1.0), 0.12)
+	var tree := parent.get_tree()
+	if tree == null:
+		return
+	if Settings.reduced_motion():
+		_ring_quad(parent, Vector3(pos.x, 0.08, pos.z), 1.0,
+				Color(0.68, 0.62, 0.55, 0.5), 4.0, 0.7, true)
+		return
+	# glass glints
+	_particle(parent, pos + Vector3(0, 1.2, 0), 20, 0.75, Vector3.UP, 80.0, 3.0, 9.0,
+			[Color(0.85, 0.95, 1.0, 0.9), COL_GLASS, Color(0.5, 0.7, 0.9, 0.0)],
+			0.11, Vector3(0, -8, 0), true,
+			{"tex": "streak", "align": true, "curve": [[0, 1], [1, 0.05]]})
+	# timber/metal splinters
+	_particle(parent, pos + Vector3(0, 1.0, 0), 18, 1.1, Vector3.UP, 70.0, 2.5, 7.5,
+			[Color(0.55, 0.42, 0.30, 0.9), Color(0.30, 0.26, 0.23, 0.0)],
+			0.20, Vector3(0, -6, 0), false,
+			{"tex": "streak", "align": true, "curve": [[0, 1], [1, 0.1]]})
+	# ground shockwave scaled to the building footprint
+	var reach := maxf(size.x, size.z) * 0.85
+	_ring_quad(parent, Vector3(pos.x, 0.10, pos.z), 0.9,
+			Color(0.72, 0.66, 0.57, 0.6), reach, 0.8, true)
+	# staggered dust columns: the building settles instead of vanishing
+	var puffs := [
+		{"d": 0.0, "h": 0.7, "o": Vector3(0, 0, 0)},
+		{"d": 0.12, "h": 1.5, "o": Vector3(size.x * 0.2, 0, -size.z * 0.15)},
+		{"d": 0.28, "h": 2.3, "o": Vector3(-size.x * 0.18, 0, size.z * 0.18)},
+	]
+	for spec in puffs:
+		var delay: float = spec["d"]
+		var local: Vector3 = spec["o"]
+		var height: float = spec["h"]
+		var timer := tree.create_timer(delay)
+		timer.timeout.connect(func() -> void:
+			if is_instance_valid(parent):
+				dust_puff(parent, local + Vector3(0, height, 0), 22))
+
+
+# --------------------------------------------------------------- pickups -----
+
+static func pickup_burst(parent: Node3D, pos: Vector3, color: Color) -> void:
+	if parent == null:
+		return
+	shield_pulse(parent, pos, color)
+	_flash_billboard(parent, pos, 0.7, color, 0.14)
+	if Settings.reduced_motion():
+		_static_cue(parent, pos, color, 0.7, 0.16)
+		# Pulse rings are suppressed too, so replace them with one static ring.
+		_static_cue(parent, pos, Color(1, 1, 1, 0.8), 0.34, 0.16)
+		return
+	_particle(parent, pos, 18, 0.75, Vector3.UP, 18.0, 2.0, 5.5,
+			[Color(color.r, color.g, color.b, 0.9), Color(1, 1, 1, 0.7),
+			 Color(color.r, color.g, color.b, 0.0)], 0.14, Vector3(0, -1.5, 0), true,
+			{"tex": "streak", "align": true, "curve": [[0, 1], [1, 0.05]]})
+
+
+# ------------------------------------------------------------- UI / misc -----
 
 static func damage_number(parent: Node3D, pos: Vector3, amount: float, color: Color) -> void:
 	if parent == null:
@@ -399,7 +822,7 @@ static func damage_number(parent: Node3D, pos: Vector3, amount: float, color: Co
 	parent.add_child(label)
 	var t := label.create_tween()
 	if Settings.reduced_motion():
-		t.tween_interval(0.65)  # static number, no float-up
+		t.tween_interval(0.65)
 	else:
 		t.tween_property(label, "position", label.position + Vector3(0.0, 1.5, 0.0), 0.65)
 		t.parallel().tween_property(label, "modulate:a", 0.0, 0.65)
@@ -407,7 +830,6 @@ static func damage_number(parent: Node3D, pos: Vector3, amount: float, color: Co
 
 
 static func underglow(parent: Node3D, color: Color) -> Node3D:
-	## Emissive ring under the chassis so players are readable at a glance.
 	if parent == null:
 		return null
 	var holder := Node3D.new()
@@ -432,41 +854,9 @@ static func underglow(parent: Node3D, color: Color) -> Node3D:
 	return holder
 
 
-static func tire_smoke(parent: Node3D, pos: Vector3) -> void:
-	if parent == null or _q() <= 0.0:
-		return
-	_particle(parent, pos, 5, 0.55, Vector3.UP, 35.0, 0.5, 1.8,
-			[Color(0.62, 0.62, 0.64, 0.45), Color(0.40, 0.40, 0.42, 0.0)], 0.45,
-			Vector3(0, 0.25, 0))
-
-
-static func scorch(parent: Node3D, pos: Vector3) -> void:
-	if parent == null:
-		return
-	var disc := MeshInstance3D.new()
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.9
-	cyl.bottom_radius = 1.1
-	cyl.height = 0.012
-	cyl.radial_segments = 16
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.06, 0.05, 0.05, 0.75)
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	cyl.material = mat
-	disc.mesh = cyl
-	disc.position = Vector3(pos.x, 0.02, pos.z)
-	parent.add_child(disc)
-	var t := disc.create_tween()
-	t.tween_interval(16.0)
-	t.tween_property(mat, "albedo_color:a", 0.0, 4.0)
-	t.tween_callback(disc.queue_free)
-
-
 static func shield_pulse(parent: Node3D, pos: Vector3, color: Color) -> void:
 	if parent == null or Settings.reduced_motion():
 		return
-	# outer ring expands, inner ring lags — a two-beat pulse reads as "energy"
 	for spec in [{"inner": 0.70, "outer": 0.78, "delay": 0.0, "grow": 1.9},
 			{"inner": 0.48, "outer": 0.53, "delay": 0.09, "grow": 1.55}]:
 		var torus := TorusMesh.new()

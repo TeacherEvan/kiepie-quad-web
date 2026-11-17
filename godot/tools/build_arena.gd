@@ -14,6 +14,8 @@ const ARENA_NET := "res://src/game/ArenaNet.gd"
 const BUILDING := "res://src/DestructibleBuilding.gd"
 const PICKUP := "res://src/game/Pickup.gd"
 const FUEL_DRUM := "res://src/game/FuelDrum.gd"
+const AMBIENT := "res://src/game/AmbientVfx.gd"
+const DECOR := preload("res://src/game/BuildingDecor.gd")
 const UI := preload("res://src/ui/UiTheme.gd")
 
 
@@ -100,6 +102,9 @@ func _initialize() -> void:
 	ground.position = Vector3(0.0, -0.5, 0.0)
 	root.add_child(ground)
 
+	# ---------------- outside-the-walls venue silhouette (visual only)
+	_add_backdrop(root)
+
 	# ---------------- low kerb walls at the four edges
 	var walls := Node3D.new()
 	walls.name = "Walls"
@@ -109,11 +114,20 @@ func _initialize() -> void:
 	_add_wall(walls, "KerbE", Vector3(50.0, 0.75, 0.0), Vector3(1.0, 1.5, 101.0))
 	root.add_child(walls)
 
-	# ---------------- ramps
+	# ---------------- ramps — two gap-jump lines plus two cover hops
 	_add_ramp(root, "RampA", Vector3(-10.0, 0.0, 0.0), Vector3(14.0, 0.0, 0.0))
 	_add_ramp(root, "RampB", Vector3(10.0, 0.0, 3.0), Vector3(14.0, 180.0, 0.0))
 	_add_ramp(root, "RampC", Vector3(0.0, 0.0, -12.0), Vector3(14.0, 90.0, 0.0))
 	_add_ramp(root, "RampD", Vector3(0.0, 0.0, 12.0), Vector3(14.0, 270.0, 0.0))
+	# north line: launch -Z at z=34, land on the down-slope at z=20
+	_add_ramp(root, "RampGapN", Vector3(-15.0, 0.0, 34.0), Vector3(16.0, 180.0, 0.0))
+	_add_ramp(root, "RampLandN", Vector3(-15.0, 0.0, 23.0), Vector3(10.0, 0.0, 0.0))
+	# south line: mirror, launch +Z at z=-34, land at z=-20
+	_add_ramp(root, "RampGapS", Vector3(15.0, 0.0, -34.0), Vector3(16.0, 0.0, 0.0))
+	_add_ramp(root, "RampLandS", Vector3(15.0, 0.0, -23.0), Vector3(10.0, 180.0, 0.0))
+	# cover hops: kicker aimed over CoverA / CoverB
+	_add_ramp(root, "RampHopW", Vector3(-31.0, 0.0, 10.0), Vector3(13.0, 90.0, 0.0))
+	_add_ramp(root, "RampHopE", Vector3(31.0, 0.0, -10.0), Vector3(13.0, 270.0, 0.0))
 
 	# ---------------- cover blocks
 	_add_cover(root, "CoverA", Vector3(-22.0, 0.9, 8.0), Vector3(3.0, 1.8, 3.0))
@@ -132,6 +146,19 @@ func _initialize() -> void:
 			Vector3(-16.0, 0.0, -16.0), Vector3(4.8, 4.6, 4.2), Color(0.30, 0.37, 0.47))
 	_add_building(root, "Depot", "Depot",
 			Vector3(16.0, 0.0, 16.0), Vector3(5.5, 3.0, 5.0), Color(0.35, 0.40, 0.45))
+	# outer compounds — three corners, SW left open as a high-speed lane
+	_add_building(root, "Garage", "Garage",
+			Vector3(-34.0, 0.0, 34.0), Vector3(5.4, 3.4, 4.6), Color(0.48, 0.44, 0.38))
+	_add_building(root, "Warehouse", "Warehouse",
+			Vector3(34.0, 0.0, 34.0), Vector3(7.2, 4.8, 5.6), Color(0.40, 0.46, 0.50))
+	_add_building(root, "Freight", "Freight Depot",
+			Vector3(34.0, 0.0, -34.0), Vector3(6.0, 3.6, 5.0), Color(0.38, 0.40, 0.42))
+
+	# ---------------- ambient dust motes (one emitter, no per-frame work)
+	var ambient := Node3D.new()
+	ambient.name = "AmbientVfx"
+	ambient.set_script(load(AMBIENT))
+	root.add_child(ambient)
 
 	# ---------------- pickups + explosive fuel drums
 	_add_pickups(root)
@@ -638,6 +665,96 @@ func _add_fuel_drums(root: Node) -> void:
 
 # ------------------------------------------------------------------- walls ---
 
+func _glow_panel(color: Color, energy: float) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = color
+	m.emission_enabled = true
+	m.emission = color
+	m.emission_energy_multiplier = energy
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	return m
+
+
+func _add_backdrop(root: Node3D) -> void:
+	## Outside the playable walls: floodlight towers + hangar silhouettes.
+	## Visual only (no colliders), so shots and bikes never interact with them.
+	var backdrop := Node3D.new()
+	backdrop.name = "Backdrop"
+	var lamp := _glow_panel(Color(1.0, 0.93, 0.72, 1), 3.2)
+	var dark := StandardMaterial3D.new()
+	dark.albedo_color = Color(0.11, 0.13, 0.16, 1)
+	dark.roughness = 0.95
+	var win := _glow_panel(Color(0.32, 0.56, 0.72, 1), 1.2)
+	for sx in [-1.0, 1.0]:
+		for sz in [-1.0, 1.0]:
+			var tower := Node3D.new()
+			tower.name = "Floodlight_%d_%d" % [int(sx), int(sz)]
+			var mast := BoxMesh.new()
+			mast.size = Vector3(0.55, 17.0, 0.55)
+			mast.material = dark
+			var mast_inst := MeshInstance3D.new()
+			mast_inst.mesh = mast
+			mast_inst.position = Vector3(0, 8.5, 0)
+			tower.add_child(mast_inst)
+			var bar := BoxMesh.new()
+			bar.size = Vector3(4.4, 0.35, 0.6)
+			bar.material = dark
+			var bar_inst := MeshInstance3D.new()
+			bar_inst.mesh = bar
+			bar_inst.position = Vector3(0, 16.8, 0)
+			tower.add_child(bar_inst)
+			for i in range(4):
+				var panel := BoxMesh.new()
+				panel.size = Vector3(0.9, 0.5, 0.12)
+				panel.material = lamp
+				var p := MeshInstance3D.new()
+				p.mesh = panel
+				p.position = Vector3(-1.55 + float(i) * 1.03, 16.8, 0.34)
+				tower.add_child(p)
+			tower.position = Vector3(sx * 57.0, 0.0, sz * 57.0)
+			backdrop.add_child(tower)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 90210
+	for i in range(9):
+		var a := TAU * float(i) / 9.0 + 0.18
+		var r := rng.randf_range(68.0, 86.0)
+		var h := rng.randf_range(5.0, 11.0)
+		var w := rng.randf_range(9.0, 16.0)
+		var hangar := Node3D.new()
+		hangar.name = "Hangar%d" % i
+		var body := BoxMesh.new()
+		body.size = Vector3(w, h, w * 0.7)
+		body.material = dark
+		var bi := MeshInstance3D.new()
+		bi.mesh = body
+		bi.position.y = h * 0.5
+		hangar.add_child(bi)
+		var strip := BoxMesh.new()
+		strip.size = Vector3(w * 0.7, 0.22, 0.05)
+		strip.material = win
+		var si := MeshInstance3D.new()
+		si.mesh = strip
+		si.position = Vector3(0, h * 0.62, w * 0.35 + 0.03)
+		hangar.add_child(si)
+		hangar.position = Vector3(cos(a) * r, 0.0, sin(a) * r)
+		hangar.rotation.y = -a
+		backdrop.add_child(hangar)
+	root.add_child(backdrop)
+
+
+static var _kerb_tex: ImageTexture = null
+
+func _kerb_stripe() -> ImageTexture:
+	## Two-pixel texture replaces 20 alternating box meshes per wall —
+	## 4 draw calls for the whole perimeter instead of 80.
+	if _kerb_tex == null:
+		var img := Image.create(2, 1, false, Image.FORMAT_RGB8)
+		img.set_pixel(0, 0, Color(0.78, 0.14, 0.12, 1))
+		img.set_pixel(1, 0, Color(0.90, 0.90, 0.88, 1))
+		_kerb_tex = ImageTexture.create_from_image(img)
+	return _kerb_tex
+
+
 func _add_wall(parent: Node, wall_name: String, pos: Vector3, size: Vector3) -> void:
 	var body := StaticBody3D.new()
 	body.name = wall_name
@@ -646,29 +763,19 @@ func _add_wall(parent: Node, wall_name: String, pos: Vector3, size: Vector3) -> 
 	shape.size = size
 	col.shape = shape
 	body.add_child(col)
-	var red := StandardMaterial3D.new()
-	red.albedo_color = Color(0.78, 0.14, 0.12, 1)
-	red.roughness = 0.72
-	var white := StandardMaterial3D.new()
-	white.albedo_color = Color(0.90, 0.90, 0.88, 1)
-	white.roughness = 0.72
-	var long_axis_x := size.x >= size.z
-	var total := size.x if long_axis_x else size.z
-	var seg := 5.0
-	var count := maxi(1, int(total / seg))
-	var step := total / float(count)
-	for i in range(count):
-		var m := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		if long_axis_x:
-			bm.size = Vector3(step, size.y, size.z)
-			m.position = Vector3(-total * 0.5 + step * (i + 0.5), 0.0, 0.0)
-		else:
-			bm.size = Vector3(size.x, size.y, step)
-			m.position = Vector3(0.0, 0.0, -total * 0.5 + step * (i + 0.5))
-		bm.material = red if i % 2 == 0 else white
-		m.mesh = bm
-		body.add_child(m)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = _kerb_stripe()
+	mat.albedo_color = Color.WHITE
+	mat.roughness = 0.72
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	mat.texture_repeat = true
+	var bm := BoxMesh.new()
+	bm.size = size
+	bm.material = mat
+	mat.uv1_scale = Vector3(maxf(1.0, maxf(size.x, size.z) / 5.0), 1.0, 1.0)
+	var m := MeshInstance3D.new()
+	m.mesh = bm
+	body.add_child(m)
 	body.position = pos
 	parent.add_child(body)
 
@@ -775,6 +882,12 @@ func _facade_texture_for(node_name: String) -> Texture2D:
 			return load("res://assets/tex_facade_shed.png") as Texture2D
 		"Store":
 			return load("res://assets/tex_facade_store.png") as Texture2D
+		"Depot", "Freight":
+			return load("res://assets/tex_facade_depot.jpg") as Texture2D
+		"Garage":
+			return load("res://assets/tex_facade_garage.jpg") as Texture2D
+		"Warehouse":
+			return load("res://assets/tex_facade_warehouse.jpg") as Texture2D
 		_:
 			return null
 
@@ -845,6 +958,8 @@ func _add_building(root: Node, node_name: String, display_name: String,
 	awning.mesh = awning_mesh
 	awning.position = Vector3(0.0, size.y * 0.62 + 0.28, size.z * 0.5 + 0.16)
 	building.add_child(awning)
+
+	DECOR.dress(building, size, display_name)
 
 	building.position = origin
 	building.rotation.y = atan2(origin.x, origin.z) + PI

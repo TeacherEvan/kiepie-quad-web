@@ -133,6 +133,7 @@ run_gate talo_backend   verify_talo_backend.gd
 run_gate audit_regressions verify_audit_regressions.gd
 run_gate controls        verify_controls.gd
 run_gate dodge           verify_dodge.gd
+run_gate vfx             verify_vfx.gd
 run_gate_gdunit
 
 note ""
