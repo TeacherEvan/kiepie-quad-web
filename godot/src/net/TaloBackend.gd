@@ -348,6 +348,12 @@ func _register_kill(args: Dictionary) -> Dictionary:
 				"winner_id": str(_lobby.get("winner_id", ""))}
 	if _used_tokens.has(token):
 		return {"ok": false, "reason": "token_consumed"}
+	if killer == target:
+		return {"ok": false, "reason": "self_kill"}
+	if str(_lobby.get("status", "")) != "playing":
+		return {"ok": false, "reason": "lobby_not_playing"}
+	if not _roster.has(killer) or not _roster.has(target):
+		return {"ok": false, "reason": "not_in_lobby"}
 	# host rate limit: one scored kill per second per killer, max 20 a minute.
 	# kill claims carry a forgeable token (clients mint their own); rate is the
 	# server-side lever we actually have.
@@ -365,12 +371,6 @@ func _register_kill(args: Dictionary) -> Dictionary:
 	kept.append(now_s)
 	_kill_cooldowns[killer] = now_s
 	_kill_window[killer] = kept
-	if killer == target:
-		return {"ok": false, "reason": "self_kill"}
-	if str(_lobby.get("status", "")) != "playing":
-		return {"ok": false, "reason": "lobby_not_playing"}
-	if not _roster.has(killer) or not _roster.has(target):
-		return {"ok": false, "reason": "not_in_lobby"}
 	_used_tokens[token] = true
 	var row: Dictionary = _roster.get(killer, {})
 	var score := int(row.get("score", 0)) + 1
