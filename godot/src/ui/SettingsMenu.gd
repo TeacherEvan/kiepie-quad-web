@@ -55,6 +55,7 @@ func _connect_controls() -> void:
 	_bind_check("MutedRow/Muted", "audio", "muted")
 
 	_bind_slider("FireSizeRow/FireSize", "FireSizeRow/FireSizeValue", "controls", "fire_size", "%.2f")
+	_bind_slider("SteerSensitivityRow/SteerSensitivity", "SteerSensitivityRow/SteerSensitivityValue", "controls", "steer_sensitivity", "%.2f")
 
 	_bind_line("DisplayNameRow/DisplayName", "gameplay", "display_name")
 	var color := _c("ColorRow/Color") as ColorPickerButton
@@ -157,6 +158,7 @@ func _refresh_all() -> void:
 	_set_check("MutedRow/Muted", "audio", "muted")
 
 	_set_slider("FireSizeRow/FireSize", "FireSizeRow/FireSizeValue", "controls", "fire_size", "%.2f")
+	_set_slider("SteerSensitivityRow/SteerSensitivity", "SteerSensitivityRow/SteerSensitivityValue", "controls", "steer_sensitivity", "%.2f")
 
 	_set_line("DisplayNameRow/DisplayName", "gameplay", "display_name", "RIDER")
 	var color := _c("ColorRow/Color") as ColorPickerButton

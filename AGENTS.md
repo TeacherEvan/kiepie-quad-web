@@ -60,11 +60,12 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 - `gdlint` / `gdtoolkit` are **not installed** in this environment — do not rely on them.
   `godot-4.3 --check-only --script <file>` reports false "Identifier not found" for autoloads;
   use `tools/_check_scripts.gd` instead.
-- `run_gates.sh` runs **16 gates**: truth, stability, touch, features, smash_impact, diag2,
+- `run_gates.sh` runs **17 gates**: truth, stability, touch, features, smash_impact, diag2,
   cannons, settings, match_rules, combat, kill_flow, appeal, accessibility, talo_backend,
-  audit_regressions + GdUnit4. `audit_regressions` locks the surgical-audit defects: forged
-  `state` events, 3-stop VFX gradients, exhaust axis, malformed shot arrays and `respawn_at`
-  as a future deadline — keep it green. Exit 101 from GdUnit4
+  audit_regressions, controls + GdUnit4. `audit_regressions` locks the surgical-audit defects:
+  forged `state` events, 3-stop VFX gradients, exhaust axis, malformed shot arrays and
+  `respawn_at` as a future deadline. `controls` locks the steering defect (see below) and
+  the `steer_sensitivity` setting — keep both green. Exit 101 from GdUnit4
   = pass with benign dummy-renderer orphan warnings; 100 = failure.
 - `run_gates.sh` exports `KIEPIE_MOCK_BACKEND=1` — gates must never touch the live Talo account.
 - Headless dummy-renderer RID/leak `ERROR:` lines at exit are benign; gates judge PASS/FAIL lines
@@ -149,8 +150,16 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 - Forward axis is local **+Z** (positive `engine_force` drives +Z; GLB import already flips the
   Blender nose to +Z). FL/FR wheels at z = +0.68, rear at -0.66; chase camera is at
   `origin - basis.z * distance`. Don't re-flip without re-running `tools/truth_test.gd`.
+- Anti-rollover damping MUST live in `KiepieBike._integrate_forces()` and damp only the
+  roll/pitch part of `state.angular_velocity` (world-Y yaw about the bike's local up is left
+  intact). Writing `angular_velocity` in `_physics_process()` clobbers the wheel-generated yaw
+  before the solver step: the wheels reach full lock but the bike slides sideways without
+  turning. `verify_controls.gd` locks this — keep it green.
+- Steering respects `controls/steer_sensitivity` (0.3–2.0, slider in Settings → Controls);
+  it scales both the max steer angle and the rate. The settings key was dead before it was wired.
 - Headless physics proof: `godot-4.3 --headless --path godot --script tools/truth_test.gd`
-  (0 → 9+ m/s, wheel contact). Feature checks: `verify_features.gd`, `diag2.gd`.
+  (0 → 9+ m/s, wheel contact). Feature checks: `verify_features.gd`, `diag2.gd`,
+  `verify_controls.gd`.
 - Buildings self-register in group `destructible` and call `HUD.register_smash()` directly
   (group lookup, `../HUD` fallback). Runtime `signal.connect()` in a builder is **not** persisted
   into `.tscn`. Emit `smashed` and update the HUD **before** spawning debris.

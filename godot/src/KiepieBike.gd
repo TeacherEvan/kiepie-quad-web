@@ -25,6 +25,7 @@ var _steer := 0.0
 var _spawn := Transform3D.IDENTITY
 var _spawn_set := false
 var _turbo_blend := 0.0
+var _steer_sensitivity := 1.0
 
 @onready var _flames: GPUParticles3D = get_node_or_null("ExhaustFlames")
 @onready var _wheel_nodes := {
@@ -48,6 +49,8 @@ func _ready() -> void:
 	add_to_group("bike") # group is not persisted in the baked .tscn; register at runtime
 	_spawn = global_transform
 	_spawn_set = true
+	_steer_sensitivity = clampf(float(Settings.get_value("controls", "steer_sensitivity", 1.0)), 0.3, 2.0)
+	Settings.changed.connect(_on_settings_changed)
 	_build_flames()
 
 func _build_flames() -> void:
@@ -111,16 +114,7 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("reset_bike"):
 		reset_bike()
 
-	# --- anti-rollover: damp transverse (roll/pitch) angular velocity, keep yaw ---
-	var up_now := global_transform.basis.y.normalized()
-	var yaw_w := angular_velocity.dot(Vector3.UP)
-	var transverse := angular_velocity - Vector3.UP * yaw_w
-	var lean := clampf(1.0 - up_now.y, 0.0, 1.0)
-	var strength := lerpf(0.15, 0.92, lean)
-	var t_mag := transverse.length()
-	if t_mag > 1.5:
-		transverse = transverse / t_mag * 1.5
-	angular_velocity = Vector3.UP * yaw_w + transverse * (1.0 - strength)
+	# Anti-rollover lives in _integrate_forces — see there.
 
 	var throttle := Input.get_axis("move_back", "move_forward")
 	var steer_input := Input.get_axis("steer_right", "steer_left")
@@ -132,8 +126,9 @@ func _physics_process(delta: float) -> void:
 	if _flames:
 		_flames.emitting = turbo_active
 
-	_steer = move_toward(_steer, steer_input * max_steer, steer_speed * delta)
-	_steer = clamp(_steer, -max_steer, max_steer)
+	var steer_cap := max_steer * _steer_sensitivity
+	_steer = move_toward(_steer, steer_input * steer_cap, steer_speed * _steer_sensitivity * delta)
+	_steer = clamp(_steer, -steer_cap, steer_cap)
 
 	var braking := Input.is_action_pressed("brake")
 	var power := engine_power * lerpf(1.0, turbo_boost, _turbo_blend)
@@ -196,3 +191,21 @@ func reset_bike() -> void:
 
 func speed_kmh() -> float:
 	return linear_velocity.length() * 3.6
+
+
+func _on_settings_changed(section: String, key: String, _value: Variant) -> void:
+	if section == "controls" and key == "steer_sensitivity":
+		_steer_sensitivity = clampf(float(Settings.get_value("controls", "steer_sensitivity", 1.0)), 0.3, 2.0)
+
+
+func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
+	# Damp roll/pitch only, leaving yaw (steering) untouched. Must run here,
+	# not in _physics_process: writing angular_velocity there clobbers the
+	# wheel-generated yaw before the next solver step.
+	var up := global_transform.basis.y.normalized()
+	var av := state.angular_velocity
+	var yaw := av.dot(up) * up
+	var trans := av - yaw
+	var lean := clampf(1.0 - up.dot(Vector3.UP), 0.0, 1.0)
+	var damp := lerpf(0.80, 0.96, lean)
+	state.angular_velocity = yaw + trans * (1.0 - damp)
