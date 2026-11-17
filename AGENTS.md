@@ -126,9 +126,9 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 
 ## Deploy / Web gotchas
 
-- Pushes to `main` do **not** auto-deploy (no Vercel hook). `deploy_web.sh --apply` does the
-  gated export → commit → push → `vercel deploy --prod --yes --scope teacher-evans-projects` →
-  live `curl`. Deploys come from the repo root; Vercel serves the root as-is.
+- Pushes to `main` DO auto-deploy (verified 2026-11-18: each merge to `main` triggered a
+  Production deployment in ~5 s). `deploy_web.sh --apply` remains the full/gated path
+  (export → bundle check → push → deploy → live curl).
 - `patch_web_sw.py` patches `index.service.worker.js` after every export: strips the
   non-existent `index.worker.js`, stores `index.wasm` in a content-hashed `ENGINE_CACHE`
   that survives `.pck` updates, uses Cache-First within each content-hashed `CACHE_NAME` for
