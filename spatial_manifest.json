@@ -1,0 +1,39 @@
+{
+ "image_resolution": [
+  993,
+  1024
+ ],
+ "camera_telemetry": {
+  "focal_length_px": 844.05,
+  "horizontal_fov_deg": 60.93,
+  "vanishing_points": {
+   "vp_x": [
+    237.9,
+    323.9
+   ],
+   "vp_y": [
+    179.3,
+    452.5
+   ],
+   "vp_z": [
+    712.3,
+    -2970.9
+   ]
+  }
+ },
+ "metric_dimensions_m": {
+  "width_x": 1.48,
+  "depth_y": 2.14,
+  "height_z": 1.08,
+  "estimated_stories": 1,
+  "roof_pitch_deg": 0.0,
+  "wall_thickness_ext": 0.24,
+  "wall_thickness_int": 0.12
+ },
+ "pbr_palette_srgb": [
+  "#0327b0",
+  "#838a8f",
+  "#18181c"
+ ],
+ "notes": "Photo-anchored manifest. Tyre/rim class measured from photos: rim/tyre = 0.55 (12in rim / 22in tyre). Absolute scale anchored on 22-inch FAT sport-quad tyre (class knowledge, per Yamaha Blaster). Both photos are oblique 3/4 views, so vanishing points are noisy and only camera_telemetry is photo-derived. metric_dimensions_m are the target spec the model was built/recalibrated against. Recalibrated 2026-11-16 after photo-matched fender reshape: slimmer front/rear fender wings (wheel visible from behind) and 30x94mm number plates front+rear. Width narrowed 1.66 -> 1.48 m; depth/height unchanged."
+}

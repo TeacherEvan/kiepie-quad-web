@@ -1,0 +1,47 @@
+{
+  "job_id": "job_00000001",
+  "subagent_role": "QA-Reviewer",
+  "status": "REJECTED",
+  "artifacts_written": [
+    "QA_debrief.json"
+  ],
+  "telemetry": {
+    "vertex_count": 62868,
+    "face_count": 60944,
+    "non_manifold_edges": 49016,
+    "silhouette_iou": 1.0,
+    "measured_bounds_m": {
+      "width": 1.645,
+      "depth": 2.174,
+      "height": 1.077
+    }
+  },
+  "diagnostic_renders": {
+    "front_0": "QA_debrief_front_0.png",
+    "right_90": "QA_debrief_right_90.png",
+    "top_ortho": "QA_debrief_top_ortho.png",
+    "iso_45": "QA_debrief_iso_45.png"
+  },
+  "violations": [
+    "Floating/sunken geometry: minZ=-0.0068m exceeds +/-0.005m tolerance.",
+    "Watertight failure: 49016 non-manifold or boundary edges detected."
+  ],
+  "fix_directives": [
+    {
+      "target_id": "exterior_shell",
+      "issue": "Ground datum Z-offset violation",
+      "corrective_action": "Translate mesh along Z so AABB bottom sits at minZ = 0.000m.",
+      "delta_vector": [
+        0.0,
+        0.0,
+        0.007
+      ]
+    },
+    {
+      "target_id": "exterior_shell",
+      "issue": "Non-manifold topology",
+      "corrective_action": "Merge duplicate vertices and cap open boundaries for watertight 2-manifold."
+    }
+  ],
+  "payload_sha256": "e27810cccf3fd12f7a658207b053447bb734123a542aa2d0e2ac6c19d1b447ac"
+}

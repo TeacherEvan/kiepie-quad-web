@@ -1,0 +1,433 @@
+extends CanvasLayer
+## Match HUD for the multiplayer combat arena.
+## Created on the "HUD" CanvasLayer by tools/build_arena.gd. All child widgets are
+## looked up by node name in _ready so the builder owns layout and this script
+## owns behaviour. Never releases an Input action it did not press (see AGENTS.md).
+
+const MAIN_MENU := "res://scenes/MainMenu.tscn"
+const UI := preload("res://src/ui/UiTheme.gd")
+
+var _combat: Node = null
+var _dead := false
+var _died_at := 0.0
+var _kill_lines: Array = []
+var _frame := 0
+var _fps_label: Label
+var _fps_accum := 0.0
+var _fps_frames := 0
+var _vignette: ColorRect
+var _announce_label: Label
+# Cached bar fills: mutate one StyleBox instead of allocating one per heat tick.
+var _hp_fill: StyleBoxFlat
+var _heat_fill_normal: StyleBoxFlat
+var _heat_fill_locked: StyleBoxFlat
+var _heat_locked := false
+
+
+func _init() -> void:
+	add_to_group("match_hud")
+
+
+func _ready() -> void:
+	# --- local combat controller (group is registered in its own _ready).
+	# Fall back to the known scene path to survive _ready ordering differences.
+	var combat_nodes := get_tree().get_nodes_in_group("local_combat")
+	if not combat_nodes.is_empty():
+		_combat = combat_nodes[0]
+	if _combat == null:
+		_combat = get_node_or_null("../KiepieBike/CombatController")
+	if _combat != null:
+		if _combat.has_signal("health_changed"):
+			_combat.health_changed.connect(_on_health_changed)
+		if _combat.has_signal("died"):
+			_combat.died.connect(_on_died)
+		if _combat.has_signal("respawned"):
+			_combat.respawned.connect(_on_respawned)
+		if _combat.has_signal("heat_changed"):
+			_combat.heat_changed.connect(_on_heat_changed)
+		if _combat.has_signal("hurt"):
+			_combat.hurt.connect(_on_hurt)
+		if _combat.has_signal("pickup_collected"):
+			_combat.pickup_collected.connect(_on_pickup)
+
+	# --- authoritative match state (autoload). Guarded for headless gates.
+	if Match != null:
+		Match.score_updated.connect(_on_score_updated)
+		Match.match_started.connect(_on_match_started)
+		Match.match_finished.connect(_on_match_finished)
+		Match.lobby_changed.connect(_on_lobby_changed)
+		Match.self_respawn_at.connect(_on_self_respawn_at)
+
+	# --- result buttons
+	var again := get_node_or_null("ResultPanel/PlayAgainBtn") as Button
+	if again != null:
+		again.pressed.connect(_on_leave_match)
+	var leave := get_node_or_null("ResultPanel/LeaveBtn") as Button
+	if leave != null:
+		leave.pressed.connect(_on_leave_match)
+
+	# --- radar: builder creates a plain Control; this script gives it a custom
+	# _draw implementation (inner class) so no second .gd file is needed.
+	var radar := get_node_or_null("Radar") as Control
+	if radar != null:
+		radar.set_script(RadarControl)
+		radar.set("local_bike_path", NodePath("../../KiepieBike"))
+
+	# --- initial state
+	_refresh_banner()
+	_refresh_scoreboard()
+	var overlay := get_node_or_null("RespawnOverlay")
+	if overlay != null:
+		overlay.visible = false
+	var result := get_node_or_null("ResultPanel")
+	if result != null:
+		result.visible = false
+
+	# --- cached bar fills (no per-frame StyleBox allocation on mobile Web)
+	var health_bar := get_node_or_null("HealthBar") as ProgressBar
+	if health_bar != null:
+		_hp_fill = UI.bar_fill(UI.OK)
+		health_bar.add_theme_stylebox_override("fill", _hp_fill)
+	var heat_bar := get_node_or_null("HeatBar") as ProgressBar
+	if heat_bar != null:
+		_heat_fill_normal = UI.bar_fill(Color(0.95, 0.55, 0.12, 0.96))
+		_heat_fill_locked = UI.bar_fill(Color(0.98, 0.16, 0.12, 0.98))
+		heat_bar.add_theme_stylebox_override("fill", _heat_fill_normal)
+
+	# --- hit feedback overlay + streak announcement (runtime-created)
+	_vignette = ColorRect.new()
+	_vignette.name = "HurtVignette"
+	_vignette.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_vignette.color = Color(0.85, 0.05, 0.05, 0.0)
+	_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_vignette)
+	_announce_label = Label.new()
+	_announce_label.name = "Announce"
+	_announce_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_announce_label.offset_top = 96.0
+	_announce_label.offset_bottom = 150.0
+	_announce_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_announce_label.add_theme_font_size_override("font_size", 34)
+	_announce_label.add_theme_color_override("font_color", Color(1.0, 0.78, 0.25))
+	_announce_label.add_theme_constant_override("outline_size", 8)
+	_announce_label.add_theme_color_override("font_outline_color", Color(0.1, 0.03, 0.0))
+	_announce_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_announce_label)
+
+
+# ------------------------------------------------------------------ signals ---
+
+func _reduced_motion() -> bool:
+	return Settings.reduced_motion()
+
+
+func _on_hurt(amount: float, _attacker_id: String) -> void:
+	if _vignette == null:
+		return
+	var strength := clampf(amount / 100.0, 0.12, 0.5)
+	_vignette.color.a = strength
+	if _reduced_motion():
+		# Static flash - no animated opacity ramp.
+		await get_tree().create_timer(0.15).timeout
+		if is_instance_valid(_vignette):
+			_vignette.color.a = 0.0
+		return
+	var t := create_tween()
+	t.tween_property(_vignette, "color:a", 0.0, 0.45)
+
+
+func _on_pickup(kind: String) -> void:
+	announce("PICKUP: " + kind.to_upper())
+
+
+func announce(text: String) -> void:
+	if _announce_label == null:
+		return
+	_announce_label.text = text
+	if _reduced_motion():
+		_announce_label.modulate.a = 1.0
+		await get_tree().create_timer(1.4).timeout
+		if is_instance_valid(_announce_label):
+			_announce_label.modulate.a = 0.0
+			_announce_label.text = ""
+		return
+	_announce_label.scale = Vector2(0.6, 0.6)
+	var t := create_tween()
+	t.tween_property(_announce_label, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK)
+	t.tween_interval(1.2)
+	t.tween_property(_announce_label, "modulate:a", 0.0, 0.4)
+	t.tween_callback(func(): _announce_label.modulate.a = 1.0)
+
+
+func _on_health_changed(current: float, maximum: float) -> void:
+	var bar := get_node_or_null("HealthBar") as ProgressBar
+	if bar != null:
+		bar.max_value = maximum
+		bar.value = current
+	var label := get_node_or_null("HealthLabel") as Label
+	if label != null:
+		label.text = "ARMOR  %d / %d" % [roundi(current), roundi(maximum)]
+	if _hp_fill != null and maximum > 0.0:
+		# Green → gold → red as armour falls; mutate the cached resource.
+		_hp_fill.bg_color = _armor_color(clampf(current / maximum, 0.0, 1.0))
+
+
+func _armor_color(t: float) -> Color:
+	if t >= 0.5:
+		return UI.OK.lerp(UI.GOLD, (1.0 - t) * 2.0)
+	return UI.GOLD.lerp(UI.DANGER, (0.5 - t) * 2.0)
+
+
+func _on_died(killer_id: String) -> void:
+	_dead = true
+	_died_at = Time.get_ticks_msec() / 1000.0
+	var overlay := get_node_or_null("RespawnOverlay") as Label
+	if overlay != null:
+		overlay.visible = true
+		overlay.text = "DOWN — RESPAWNING…"
+
+
+func _on_respawned() -> void:
+	_dead = false
+	var overlay := get_node_or_null("RespawnOverlay")
+	if overlay != null:
+		overlay.visible = false
+
+
+func _on_heat_changed(value: float, locked: bool) -> void:
+	var bar := get_node_or_null("HeatBar") as ProgressBar
+	if bar != null:
+		bar.max_value = 1.0
+		bar.value = clampf(value, 0.0, 1.0)
+		if _heat_locked != locked:
+			_heat_locked = locked
+			if _heat_fill_locked != null and _heat_fill_normal != null:
+				bar.add_theme_stylebox_override("fill", _heat_fill_locked if locked else _heat_fill_normal)
+	var turbo := get_node_or_null("Turbo") as Label
+	if turbo != null:
+		turbo.visible = locked
+		turbo.text = "OVERHEAT" if locked else "TURBO"
+
+
+func _on_score_updated(_user_id: String, _score: int) -> void:
+	_refresh_scoreboard()
+
+
+func _on_match_started() -> void:
+	var result := get_node_or_null("ResultPanel")
+	if result != null:
+		result.visible = false
+	var overlay := get_node_or_null("RespawnOverlay")
+	if overlay != null:
+		overlay.visible = false
+	_dead = false
+	_refresh_banner()
+	_refresh_scoreboard()
+
+
+func _on_match_finished(winner_id: String) -> void:
+	var winner := "NO ONE"
+	if winner_id != "":
+		winner = _name_for(winner_id).to_upper()
+	var winner_label := get_node_or_null("ResultPanel/WinnerLabel") as Label
+	if winner_label != null:
+		winner_label.text = "%s WINS" % winner
+	var result := get_node_or_null("ResultPanel")
+	if result != null:
+		result.visible = true
+	_refresh_scoreboard()
+
+
+func _on_lobby_changed() -> void:
+	_refresh_banner()
+	_refresh_scoreboard()
+
+
+func _on_self_respawn_at(_seconds: float) -> void:
+	# CombatController owns the actual respawn timer; nothing to do here.
+	pass
+
+
+# ------------------------------------------------------------------- public ---
+
+func add_kill(killer_id: String, victim_id: String) -> void:
+	## Append one kill-feed line ("KILLER  ⚔  VICTIM"), fade after ~5 s, cap 5.
+	var feed := get_node_or_null("KillFeed") as VBoxContainer
+	if feed == null:
+		return
+	var line := Label.new()
+	line.text = "%s   ⚔   %s" % [_name_for(killer_id), _name_for(victim_id)]
+	line.add_theme_font_size_override("font_size", 16)
+	line.add_theme_color_override("font_color", Color(1.0, 0.90, 0.66, 1.0))
+	line.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.95))
+	line.add_theme_constant_override("outline_size", 7)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	feed.add_child(line)
+	_kill_lines.append(line)
+	while _kill_lines.size() > 5:
+		var old = _kill_lines.pop_front()
+		if is_instance_valid(old):
+			(old as Node).queue_free()
+	var line_ref = line
+	var timer := get_tree().create_timer(4.0)
+	timer.timeout.connect(func() -> void:
+		if not is_instance_valid(line_ref):
+			return
+		if _reduced_motion():
+			(line_ref as Node).queue_free()
+			_kill_lines.erase(line_ref)
+			return
+		var tw := create_tween()
+		tw.tween_property(line_ref, "modulate:a", 0.0, 1.0)
+		tw.tween_callback(func() -> void:
+			if is_instance_valid(line_ref):
+				(line_ref as Node).queue_free()
+			_kill_lines.erase(line_ref)))
+
+
+# ------------------------------------------------------------------ helpers ---
+
+func _name_for(uid: String) -> String:
+	if Match == null:
+		return uid.substr(0, 6) if uid.length() > 6 else uid
+	for row in Match.scoreboard():
+		var d := row as Dictionary
+		if d != null and str(d.get("user_id", "")) == uid:
+			return str(d.get("name", "RIDER"))
+	return uid.substr(0, 6) if uid.length() > 6 else (uid if uid != "" else "RIDER")
+
+
+func _refresh_banner() -> void:
+	var banner := get_node_or_null("Banner") as Label
+	if banner == null or Match == null:
+		return
+	banner.text = "FIRST TO %d" % Match.kill_target()
+
+
+func _refresh_scoreboard() -> void:
+	var node := get_node_or_null("Scoreboard")
+	if node == null or Match == null:
+		return
+	var rows: Array = Match.scoreboard()
+	if node is RichTextLabel:
+		var rtl := node as RichTextLabel
+		rtl.clear()
+		for row in rows:
+			var d := row as Dictionary
+			if d == null:
+				continue
+			var hex := str(d.get("color", "#ffffff"))
+			var col := Color.html(hex) if hex.is_valid_html_color() else Color.WHITE
+			var mine := bool(d.get("is_me", false))
+			var nm := str(d.get("name", "RIDER"))
+			var score := int(d.get("score", 0))
+			rtl.push_color(col)
+			rtl.add_text("■ ")
+			rtl.pop()
+			rtl.push_color(Color(1.0, 0.85, 0.42, 1.0) if mine else Color(0.94, 0.96, 1.0, 1.0))
+			rtl.add_text(("* " if mine else "  ") + nm)
+			rtl.pop()
+			rtl.push_color(Color(0.74, 0.82, 0.92, 1.0))
+			rtl.add_text("   %d\n" % score)
+			rtl.pop()
+	elif node is VBoxContainer:
+		var box := node as VBoxContainer
+		for c in box.get_children():
+			c.queue_free()
+		for row in rows:
+			var d := row as Dictionary
+			if d == null:
+				continue
+			var lbl := Label.new()
+			lbl.text = "%s  %s  %d" % ["■", str(d.get("name", "RIDER")), int(d.get("score", 0))]
+			var hex := str(d.get("color", "#ffffff"))
+			lbl.add_theme_color_override("font_color", Color.html(hex) if hex.is_valid_html_color() else Color.WHITE)
+			lbl.add_theme_constant_override("outline_size", 5)
+			lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+			box.add_child(lbl)
+
+
+func _on_leave_match() -> void:
+	if Lobby != null:
+		Lobby.leave()
+	get_tree().change_scene_to_file(MAIN_MENU)
+
+
+func _process(delta: float) -> void:
+	if Settings.get_value("video", "show_fps", false):
+		if _fps_label == null:
+			_fps_label = Label.new()
+			_fps_label.name = "FpsLabel"
+			_fps_label.position = Vector2(16, 250)
+			_fps_label.add_theme_font_size_override("font_size", 14)
+			_fps_label.add_theme_color_override("font_color", Color(0.6, 1.0, 0.7))
+			add_child(_fps_label)
+		_fps_label.visible = true
+		_fps_accum += delta
+		_fps_frames += 1
+		if _fps_accum >= 0.5:
+			_fps_label.text = "%d FPS" % int(_fps_frames / maxf(_fps_accum, 0.001))
+			_fps_accum = 0.0
+			_fps_frames = 0
+	elif _fps_label != null:
+		_fps_label.visible = false
+	# Respawn countdown (10 Hz is plenty for a second-resolution label).
+	if _dead:
+		var overlay := get_node_or_null("RespawnOverlay") as Label
+		var delay := Match.respawn_delay() if Match != null else 2.5
+		var remaining := delay - (Time.get_ticks_msec() / 1000.0 - _died_at)
+		if overlay != null:
+			overlay.text = "DOWN — RESPAWNING IN %d" % maxi(0, ceili(remaining))
+	_frame += 1
+
+
+# ------------------------------------------------------------------- radar ---
+
+## Mini-radar drawn as a Control subclass. World X/Z map to screen right/down;
+## the local bike sits at the centre. Redraws at ~10 Hz via queue_redraw().
+class RadarControl extends Control:
+	var local_bike_path: NodePath = ^""
+	var _local: Node3D = null
+	var _accum := 0.0
+	const RADIUS := 76.0
+	const WORLD_RANGE := 50.0
+
+	func _process(delta: float) -> void:
+		if _local == null:
+			_local = get_node_or_null(local_bike_path) as Node3D
+			if _local == null:
+				var c := get_tree().get_first_node_in_group("local_combat")
+				if c != null:
+					_local = c.get_parent() as Node3D
+		_accum += delta
+		if _accum >= 0.1:
+			_accum = 0.0
+			queue_redraw()
+
+	func _draw() -> void:
+		var c := size * 0.5
+		var r := minf(RADIUS, minf(size.x, size.y) * 0.5 - 4.0)
+		draw_circle(c, r, Color(0.03, 0.06, 0.10, 0.62))
+		draw_arc(c, r, 0.0, TAU, 48, Color(0.35, 0.85, 0.95, 0.60), 2.0)
+		draw_line(c - Vector2(r, 0.0), c + Vector2(r, 0.0), Color(1, 1, 1, 0.11), 1.0)
+		draw_line(c - Vector2(0.0, r), c + Vector2(0.0, r), Color(1, 1, 1, 0.11), 1.0)
+		# local player: bright green centre dot
+		draw_circle(c, 4.5, Color(0.40, 1.0, 0.55, 1.0))
+		if _local == null or get_tree() == null:
+			return
+		var origin := _local.global_position
+		for b in get_tree().get_nodes_in_group("bike"):
+			if b == _local or not (b is Node3D):
+				continue
+			var node := b as Node3D
+			if not node.visible:
+				continue  # respawning proxies are hidden
+			var d := node.global_position - origin
+			var offset := Vector2(d.x, d.z) / WORLD_RANGE * r
+			if offset.length() > r:
+				offset = offset.normalized() * r
+			var col := Color(1.0, 0.35, 0.25, 1.0)
+			var pc = node.get("player_color")
+			if pc is Color:
+				col = pc as Color
+			draw_circle(c + offset, 3.5, col)

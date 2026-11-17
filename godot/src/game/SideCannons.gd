@@ -1,0 +1,127 @@
+extends Node3D
+## Twin side cannons. One FIRE input fires both barrels forward with a slight
+## outward spread. Heat prevents infinite spam; the shot token is minted locally
+## by the Talo facade. Scoring is host-authoritative client logic — no server-side validation.
+
+signal fired(token: String)
+signal heat_changed(value: float, locked: bool)
+
+const PROJECTILE := preload("res://src/game/Projectile.gd")
+const VFX := preload("res://src/game/VfxFactory.gd")
+const SHOT_SPEED := 46.0
+const HEAT_PER_SHOT := 0.24
+const HEAT_DECAY := 0.42
+const OVERHEAT_RESUME := 0.35
+
+var owner_node: Node3D
+var owner_id := ""
+var hit_callback: Callable
+var heat := 0.0
+var overheated := false
+
+var _cooldown := 0.0
+var _rapid := false
+var _muzzles: Array[Node3D] = []
+var _color := Color(1.0, 0.55, 0.15)
+
+
+func setup(p_owner: Node3D, p_owner_id: String, p_hit_callback: Callable, p_color: Color) -> void:
+	owner_node = p_owner
+	owner_id = p_owner_id
+	hit_callback = p_hit_callback
+	_color = p_color
+	_muzzles.clear()
+	# Godot's glTF importer drops childless EMPTY nodes, so fall back to the
+	# bore meshes which sit exactly at each barrel tip.
+	for candidates in [["Muzzle_L", "Cannon_Bore_L"], ["Muzzle_R", "Cannon_Bore_R"]]:
+		var found: Node3D = null
+		for name in candidates:
+			found = _find_named(p_owner, name)
+			if found != null:
+				break
+		if found != null:
+			_muzzles.append(found)
+	if _muzzles.size() < 2:
+		# fallback: symmetric mounts near the front fenders (Godot local space)
+		for x in [-0.62, 0.62]:
+			var anchor := Node3D.new()
+			anchor.name = "MuzzleFallback"
+			anchor.position = Vector3(x, 0.62, 0.78)
+			p_owner.add_child(anchor)
+			_muzzles.append(anchor)
+
+
+func _find_named(root: Node, wanted: String) -> Node3D:
+	if root.name == wanted and root is Node3D:
+		return root as Node3D
+	for c in root.get_children():
+		var found := _find_named(c, wanted)
+		if found != null:
+			return found
+	return null
+
+
+func _process(delta: float) -> void:
+	_cooldown = maxf(0.0, _cooldown - delta)
+	var before := heat
+	heat = maxf(0.0, heat - HEAT_DECAY * delta)
+	if overheated and heat <= OVERHEAT_RESUME:
+		overheated = false
+		heat_changed.emit(heat, overheated)
+	elif absf(before - heat) > 0.01:
+		heat_changed.emit(heat, overheated)
+
+
+func set_rapid(value: bool) -> void:
+	_rapid = value
+
+
+func can_fire() -> bool:
+	return owner_node != null and not overheated and _cooldown <= 0.0
+
+
+func fire() -> void:
+	if not can_fire():
+		return
+	_cooldown = 0.09 if _rapid else 0.20
+	heat = minf(1.0, heat + (HEAT_PER_SHOT * 0.55 if _rapid else HEAT_PER_SHOT))
+	if heat >= 1.0:
+		overheated = true
+	heat_changed.emit(heat, overheated)
+
+	# muzzle flash is instant; the token arrives a fraction of a second later
+	var sfx := get_node_or_null("/root/Sfx")
+	if sfx != null and sfx.has_method("play"):
+		sfx.call("play", "fire")
+	var cam := get_tree().get_first_node_in_group("camera_rig") if get_tree() != null else null
+	if cam != null and cam.has_method("add_shake"):
+		cam.call("add_shake", 0.10)
+	var fx_parent := get_tree().current_scene if get_tree() != null and get_tree().current_scene != null else get_tree().root
+	for muzzle in _muzzles:
+		VFX.muzzle_flash(fx_parent, muzzle.global_position,
+				owner_node.global_transform.basis.z, _color)
+
+	var res: Dictionary = await Match.issue_shot()
+	var token := str(res.get("token", ""))
+	if token == "":
+		return
+	for i in range(_muzzles.size()):
+		var muzzle: Node3D = _muzzles[i]
+		var forward := owner_node.global_transform.basis.z.normalized()
+		var right := owner_node.global_transform.basis.x.normalized()
+		var side := -1.0 if i == 0 else 1.0
+		var dir := (forward + right * side * 0.07).normalized()
+		var proj := Node3D.new()
+		proj.set_script(PROJECTILE)
+		fx_parent.add_child(proj)
+		proj.setup(owner_id, owner_node, muzzle.global_position, dir,
+				SHOT_SPEED, Match.damage(), token, _color)
+		if hit_callback.is_valid():
+			proj.on_hit = hit_callback
+		Supabase.broadcast("shot", {
+			"id": owner_id,
+			"o": [muzzle.global_position.x, muzzle.global_position.y, muzzle.global_position.z],
+			"d": [dir.x, dir.y, dir.z],
+			"token": token,
+		})
+	fired.emit(token)
