@@ -381,14 +381,30 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	# Damp roll/pitch only, leaving yaw (steering) untouched. Must run here,
 	# not in _physics_process: writing angular_velocity there clobbers the
 	# wheel-generated yaw before the next solver step.
-	var up := global_transform.basis.y.normalized()
+	# Rollover immunity — the quad cannot tip over. Two mechanisms, both
+	# suspended mid-dodge (the cartwheel IS roll):
+	# (1) near-total angular-velocity lockout on roll/pitch (yaw untouched)
+	# (2) an active righting spring rotating the chassis back toward level
+	var basis := state.transform.basis.orthonormalized()
+	var up := basis.y.normalized()
 	var av := state.angular_velocity
 	var yaw := av.dot(up) * up
 	var trans := av - yaw
 	var lean := clampf(1.0 - up.dot(Vector3.UP), 0.0, 1.0)
-	var damp := lerpf(0.80, 0.96, lean)
 	if _dodge_time > 0.0:
 		# Mid-cartwheel: the spin IS roll, so leave transverse angular
 		# velocity undamped until the dodge window closes.
-		damp = 0.0
+		state.angular_velocity = yaw + trans
+		return
+	var damp := lerpf(0.90, 0.997, lean)
 	state.angular_velocity = yaw + trans * (1.0 - damp)
+	# (2) righting spring: rotate about the tilt axis (y × world-UP) —
+	# frame-free, so it works at any yaw. Deadzone keeps small lean free;
+	# effort scales with lean and is capped per physics step.
+	var axis := basis.y.cross(Vector3.UP)
+	var tilt := basis.y.angle_to(Vector3.UP)
+	if tilt > 0.055 and axis.length() > 0.0001:
+		var effort := minf(tilt * (0.10 + lean * 1.5), 0.14)
+		basis = Basis(Quaternion(axis.normalized(), effort)) * basis
+		basis = basis.orthonormalized()
+		state.transform = Transform3D(basis, state.transform.origin)
