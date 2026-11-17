@@ -265,13 +265,14 @@ func _try_dodge(dir: float) -> void:
 	_dodge_time = dodge_duration
 
 	var basis := global_transform.basis.orthonormalized()
-	# Lift + sideways hop. Applying velocity (not impulse) keeps the leap
-	# independent of mass and exactly reproducible for the regression gate.
+	# The GLB's forward is local +Z; with Y up that makes local +X the bike's
+	# LEFT. So dodge_left (Q, dir=-1) must hop toward +X. Applying velocity
+	# (not impulse) keeps the leap independent of mass and reproducible.
 	linear_velocity += Vector3.UP * dodge_lift
-	linear_velocity += basis.x * (dir * dodge_side)
-	# Cartwheel about the bike's forward axis. Rotating +Z takes local +Y
-	# toward -X (left), so a left dodge (dir=-1) rolls positively.
-	angular_velocity += basis.z * (-dir * dodge_spin)
+	linear_velocity += basis.x * (-dir * dodge_side)
+	# Cartwheel about the forward axis, top rolling INTO the leap. Positive
+	# rotation about +Z sends +Y toward -X; negate for a left (+X) roll.
+	angular_velocity += basis.z * (dir * dodge_spin)
 	VfxFactory.dust_puff(self, Vector3.ZERO, 28)
 
 

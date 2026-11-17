@@ -52,7 +52,7 @@ func _trial(action: String, expected_side_sign: float, label: String) -> void:
 	_check(v.y > 3.0, "%s leaps upward (vy=%.2f)" % [label, v.y])
 	_check(side * expected_side_sign > 2.0,
 			"%s hops %s (side=%.2f)" % [label,
-					"left" if expected_side_sign < 0.0 else "right", side])
+					"left" if expected_side_sign > 0.0 else "right", side])
 
 	# Cooldown: an immediate re-press must not fire a second dodge.
 	_release_all()
@@ -79,8 +79,8 @@ func _run() -> void:
 	get_root().add_child(root)
 	await process_frame
 	bike = root.get_node("KiepieBike") as VehicleBody3D
-	await _trial("dodge_left", -1.0, "Q")
-	await _trial("dodge_right", 1.0, "E")
+	await _trial("dodge_left", 1.0, "Q")   # local +X is the bike's LEFT (+Z forward)
+	await _trial("dodge_right", -1.0, "E") # local -X is the bike's RIGHT
 	_release_all()
 	print("DODGE: %d failure(s)" % _fail)
 	quit(1 if _fail > 0 else 0)
