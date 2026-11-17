@@ -128,9 +128,15 @@ func _mock_register_kill(args: Dictionary) -> Dictionary:
 	scores[shooter] = int(scores.get(shooter, 0)) + 1
 	kill_count += 1
 	var target := str(args.get("p_target", "mock-target"))
+	# MatchState.is_respawning() reads respawn_at as a future ISO deadline.
+	var deadline := Time.get_datetime_dict_from_unix_time(
+			int(Time.get_unix_time_from_system()) + 3)
 	players[target] = {
 		"user_id": target, "display_name": "TARGET", "color": "#40c8ff",
-		"score": 0, "is_ready": true, "respawn_at": "future",
+		"score": 0, "is_ready": true,
+		"respawn_at": "%04d-%02d-%02d %02d:%02d:%02dZ" % [deadline["year"],
+				deadline["month"], deadline["day"], deadline["hour"],
+				deadline["minute"], deadline["second"]],
 	}
 	var shooter_row: Dictionary = players.get(shooter, {}).duplicate(true)
 	shooter_row["user_id"] = shooter

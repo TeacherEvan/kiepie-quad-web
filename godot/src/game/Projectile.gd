@@ -1,6 +1,7 @@
 extends Node3D
 ## Compact cannon projectile. Uses a swept ray each physics step so fast shots
-## cannot tunnel through bikes or scenery. Visuals are a glowing core + trail.
+## cannot tunnel through bikes or scenery. Visuals: stretched glowing tracer
+## (capsule aligned to velocity), additive trail, and a flickering point light.
 
 signal hit(target: Node, point: Vector3)
 
@@ -15,6 +16,8 @@ var on_hit: Callable
 var _age := 0.0
 var _life := 2.2
 var _trail: GPUParticles3D
+var _tracer: Node3D
+var _light: OmniLight3D
 
 
 func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
@@ -30,43 +33,72 @@ func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
 
 
 func _ready() -> void:
-	var core := MeshInstance3D.new()
-	var sm := SphereMesh.new()
-	sm.radius = 0.095
-	sm.height = 0.19
-	sm.radial_segments = 8
-	sm.rings = 4
+	# Tracer: elongated capsule stretched along the line of flight. The capsule
+	# is rotationally symmetric about its long axis, so basis orientation
+	# sign conventions can't flip the visual.
+	_tracer = Node3D.new()
+	_tracer.name = "Tracer"
+	add_child(_tracer)
+	var axis := CapsuleMesh.new()
+	axis.radius = 0.062
+	axis.height = 0.46
+	axis.radial_segments = 8
+	axis.rings = 4
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(1, 0.95, 0.7)
+	mat.albedo_color = Color(1, 0.96, 0.75)
 	mat.emission_enabled = true
 	mat.emission = hit_color
-	mat.emission_energy_multiplier = 6.0
+	mat.emission_energy_multiplier = 6.5
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	sm.material = mat
-	core.mesh = sm
-	add_child(core)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	axis.material = mat
+	var shaft := MeshInstance3D.new()
+	shaft.mesh = axis
+	# CapsuleMesh long axis is Y; rotate to lie along Z (the tracer basis).
+	shaft.rotation_degrees.x = 90.0
+	_tracer.add_child(shaft)
+	# hot white-hot nose pellet for the leading edge
+	var nose := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.085
+	sm.height = 0.17
+	sm.radial_segments = 8
+	sm.rings = 4
+	var nose_mat := StandardMaterial3D.new()
+	nose_mat.albedo_color = Color(1, 1, 0.92)
+	nose_mat.emission_enabled = true
+	nose_mat.emission = Color(1.0, 0.98, 0.88)
+	nose_mat.emission_energy_multiplier = 9.0
+	nose_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	sm.material = nose_mat
+	nose.mesh = sm
+	nose.position.z = 0.22
+	_tracer.add_child(nose)
+	_tracer.basis = Basis.looking_at(velocity.normalized(), Vector3.UP)
 
-	var light := OmniLight3D.new()
-	light.light_color = hit_color
-	light.light_energy = 3.0
-	light.omni_range = 3.0
-	add_child(light)
+	_light = OmniLight3D.new()
+	_light.light_color = hit_color
+	_light.light_energy = 3.2
+	_light.omni_range = 3.2
+	add_child(_light)
 
 	_trail = GPUParticles3D.new()
-	_trail.amount = maxi(4, int(24 * Settings.quality_multiplier()))
-	_trail.lifetime = 0.28
+	_trail.amount = maxi(4, int(30 * Settings.quality_multiplier()))
+	_trail.lifetime = 0.32
 	_trail.local_coords = false
 	_trail.visibility_aabb = AABB(Vector3(-2, -2, -2), Vector3(4, 4, 4))
 	var pm := ParticleProcessMaterial.new()
 	pm.direction = -velocity.normalized()
-	pm.spread = 7.0
+	pm.spread = 9.0
 	pm.initial_velocity_min = 0.3
-	pm.initial_velocity_max = 1.1
-	pm.scale_min = 0.18
+	pm.initial_velocity_max = 1.3
+	pm.scale_min = 0.16
 	pm.scale_max = 0.5
 	var g := Gradient.new()
-	g.set_color(0, Color(hit_color.r, hit_color.g, hit_color.b, 0.9))
+	g.set_color(0, Color(hit_color.r, hit_color.g, hit_color.b, 0.95))
 	g.set_color(1, Color(hit_color.r * 0.5, hit_color.g * 0.3, 0.02, 0.0))
+	g.add_point(0.35, Color(1.0, 0.82, 0.35, 0.6))
 	var ramp := GradientTexture1D.new()
 	ramp.gradient = g
 	pm.color_ramp = ramp
@@ -76,7 +108,15 @@ func _ready() -> void:
 	tm.height = 0.22
 	tm.radial_segments = 5
 	tm.rings = 3
-	tm.material = mat
+	var trail_mat := StandardMaterial3D.new()
+	trail_mat.albedo_color = hit_color
+	trail_mat.emission_enabled = true
+	trail_mat.emission = hit_color
+	trail_mat.emission_energy_multiplier = 2.6
+	trail_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	trail_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	trail_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	tm.material = trail_mat
 	_trail.draw_pass_1 = tm
 	add_child(_trail)
 	_trail.emitting = true
@@ -87,6 +127,9 @@ func _physics_process(delta: float) -> void:
 	if _age >= _life:
 		queue_free()
 		return
+	# flicker the tracer light — cheap sin, no allocations
+	if _light != null:
+		_light.light_energy = 2.6 + sin(_age * 34.0) * 0.9
 	var world := get_world_3d()
 	if world == null:
 		return

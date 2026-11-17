@@ -359,7 +359,9 @@ func _register_kill(args: Dictionary) -> Dictionary:
 	_roster[killer] = row
 	if target != "":
 		var victim: Dictionary = _roster.get(target, {})
-		victim["respawn_at"] = _now_iso()
+		# respawn_at is a FUTURE deadline: MatchState.is_respawning() treats it
+		# as one. Storing the kill time made those readers always report false.
+		victim["respawn_at"] = _now_iso_from_now(Match.respawn_delay())
 		_roster[target] = victim
 	var status := str(_lobby.get("status", "waiting"))
 	var winner := ""
@@ -432,6 +434,11 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 	var payload: Variant = msg.get("p", {})
 	match kind:
 		"state":
+			# Authoritative state is host-owned. Without this alias check any
+			# guest could forge the scoreboard / winner on every peer (the
+			# kill_request and ready_request branches already validate sender).
+			if sender_id == "" or sender_id != str(_lobby.get("host_id", "")):
+				return
 			if payload is Dictionary:
 				var p := payload as Dictionary
 				if p.has("lobby") and p["lobby"] is Dictionary:
@@ -509,6 +516,17 @@ func _parse_dict(text: String) -> Dictionary:
 
 func _now_iso() -> String:
 	return Time.get_datetime_string_from_system(true, true).replace("T", " ") + "Z"
+
+
+func _now_iso_from_now(seconds: float) -> String:
+	## ISO deadline `seconds` in the future, formatted to match _now_iso().
+	return _iso_from_unix(Time.get_unix_time_from_system() + maxf(0.0, seconds))
+
+
+func _iso_from_unix(unix: float) -> String:
+	var dict := Time.get_datetime_dict_from_unix_time(int(unix))
+	return "%04d-%02d-%02d %02d:%02d:%02dZ" % [dict["year"], dict["month"],
+			dict["day"], dict["hour"], dict["minute"], dict["second"]]
 
 
 func _parse_iso(value: String) -> float:

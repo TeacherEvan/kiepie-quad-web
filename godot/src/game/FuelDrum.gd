@@ -7,8 +7,8 @@ extends StaticBody3D
 
 const VFX := preload("res://src/game/VfxFactory.gd")
 
-@export var blast_radius := 4.0
-@export var blast_damage := 45.0
+@export var blast_radius := 4.6
+@export var blast_damage := 55.0
 
 var _ignited := false
 

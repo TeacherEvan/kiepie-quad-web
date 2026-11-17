@@ -60,8 +60,11 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 - `gdlint` / `gdtoolkit` are **not installed** in this environment — do not rely on them.
   `godot-4.3 --check-only --script <file>` reports false "Identifier not found" for autoloads;
   use `tools/_check_scripts.gd` instead.
-- `run_gates.sh` runs **15 gates**: truth, stability, touch, features, smash_impact, diag2,
-  cannons, settings, match_rules, combat, kill_flow, appeal, accessibility, talo_backend + GdUnit4. Exit 101 from GdUnit4
+- `run_gates.sh` runs **16 gates**: truth, stability, touch, features, smash_impact, diag2,
+  cannons, settings, match_rules, combat, kill_flow, appeal, accessibility, talo_backend,
+  audit_regressions + GdUnit4. `audit_regressions` locks the surgical-audit defects: forged
+  `state` events, 3-stop VFX gradients, exhaust axis, malformed shot arrays and `respawn_at`
+  as a future deadline — keep it green. Exit 101 from GdUnit4
   = pass with benign dummy-renderer orphan warnings; 100 = failure.
 - `run_gates.sh` exports `KIEPIE_MOCK_BACKEND=1` — gates must never touch the live Talo account.
 - Headless dummy-renderer RID/leak `ERROR:` lines at exit are benign; gates judge PASS/FAIL lines

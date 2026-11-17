@@ -63,7 +63,9 @@ func _build_flames() -> void:
 	p.visibility_aabb = AABB(Vector3(-1.5, -1.0, -1.5), Vector3(3.0, 3.0, 4.0))
 
 	var pm := ParticleProcessMaterial.new()
-	pm.direction = Vector3(0.0, 0.16, 1.0)      # out of the silencer, slightly up
+	# The GLB's forward axis is local +Z; the silencer tip is at the REAR (-Z).
+	# Emit backwards, slightly up, out of the can — not forward at the front wheels.
+	pm.direction = Vector3(0.0, 0.16, -1.0)
 	pm.spread = 13.0
 	pm.flatness = 0.0
 	pm.gravity = Vector3(0.0, -0.7, 0.0)
@@ -99,8 +101,9 @@ func _build_flames() -> void:
 	sm.material = mat
 	p.draw_pass_1 = sm
 
-	# silencer tip: blender (-0.278, 0.655, 0.505) -> godot, model already flipped
-	p.position = Vector3(-0.278, 0.505, 0.66)
+	# Match the imported Silencer_Tip node: (-0.278, 0.487, -0.715) in the
+	# bike's local frame (+Z is forward, so the exhaust sits at negative Z).
+	p.position = Vector3(-0.278, 0.487, -0.715)
 	add_child(p)
 	_flames = p
 

@@ -145,14 +145,21 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 		return
 	var origin_a: Variant = p.get("o", null)
 	var dir_a: Variant = p.get("d", null)
+	# Socket payloads are untrusted: a short array would index out of bounds
+	# and throw a script error on every malformed "shot" broadcast.
 	if not (origin_a is Array) or not (dir_a is Array):
+		return
+	if (origin_a as Array).size() < 3 or (dir_a as Array).size() < 3:
 		return
 	var o := Vector3(float(origin_a[0]), float(origin_a[1]), float(origin_a[2]))
 	var d := Vector3(float(dir_a[0]), float(dir_a[1]), float(dir_a[2]))
+	if d.length_squared() < 1e-8:
+		return
 	var proj := Node3D.new()
 	proj.set_script(PROJECTILE)
 	add_child(proj)
-	proj.setup(owner_id, _remote.get(owner_id), o, d, 46.0, Match.damage(),
+	# Keep in sync with SideCannons.SHOT_SPEED.
+	proj.setup(owner_id, _remote.get(owner_id), o, d, 52.0, Match.damage(),
 			str(p.get("token", "")), Color(1.0, 0.35, 0.25))
 	var combat := get_tree().get_first_node_in_group("local_combat")
 	if combat != null and combat.has_method("_on_projectile_hit"):

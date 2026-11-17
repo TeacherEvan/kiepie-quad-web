@@ -3,6 +3,8 @@ extends StaticBody3D
 ## Solid box shell; when the quad slams into it hard enough it bursts into
 ## physics debris (boxes) plus a dust puff, and reports via `smashed`.
 
+const VFX := preload("res://src/game/VfxFactory.gd")
+
 signal smashed(building_name: String)
 
 @export var hit_speed := 3.2           ## minimum bike speed (m/s) to smash
@@ -125,45 +127,7 @@ func smash() -> void:
 				if is_instance_valid(chunk_capture) and chunk_capture.is_inside_tree():
 					chunk_capture.queue_free())
 
-	# dust puff
-	var puff := GPUParticles3D.new()
-	puff.name = "DustPuff"
-	puff.amount = 70
-	puff.lifetime = 1.15
-	puff.one_shot = true
-	puff.explosiveness = 0.9
-	puff.local_coords = false
-	puff.visibility_aabb = AABB(Vector3(-4, -2, -4), Vector3(8, 7, 8))
-	var pm := ParticleProcessMaterial.new()
-	pm.direction = Vector3(0.0, 1.0, 0.0)
-	pm.spread = 78.0
-	pm.gravity = Vector3(0.0, -2.4, 0.0)
-	pm.initial_velocity_min = 2.2
-	pm.initial_velocity_max = 5.4
-	pm.scale_min = 0.9
-	pm.scale_max = 2.4
-	var grad := Gradient.new()
-	grad.set_color(0, Color(0.72, 0.66, 0.58, 0.95))
-	grad.set_offset(0, 0.0)
-	grad.set_color(1, Color(0.55, 0.50, 0.44, 0.0))
-	grad.set_offset(1, 1.0)
-	var ramp := GradientTexture1D.new()
-	ramp.gradient = grad
-	pm.color_ramp = ramp
-	puff.process_material = pm
-	var sm := SphereMesh.new()
-	sm.radius = 0.30
-	sm.height = 0.60
-	sm.radial_segments = 7
-	sm.rings = 4
-	var mat2 := StandardMaterial3D.new()
-	mat2.albedo_color = Color(0.68, 0.62, 0.54, 0.9)
-	mat2.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	sm.material = mat2
-	puff.draw_pass_1 = sm
-	puff.position = Vector3(0.0, 1.2, 0.0)
-	add_child(puff)
-	puff.emitting = true
-	puff.finished.connect(puff.queue_free)
+	# dust puff — soft sprite particles from the shared factory
+	VFX.dust_puff(self, Vector3(0.0, 1.2, 0.0))
 
 	emit_signal("smashed", building_name)

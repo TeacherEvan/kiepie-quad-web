@@ -8,7 +8,9 @@ signal heat_changed(value: float, locked: bool)
 
 const PROJECTILE := preload("res://src/game/Projectile.gd")
 const VFX := preload("res://src/game/VfxFactory.gd")
-const SHOT_SPEED := 46.0
+# Keep in sync with the remote-shot speed in ArenaNet._spawn_remote_shot.
+const SHOT_SPEED := 52.0
+const SHOT_SPREAD := 0.055
 const HEAT_PER_SHOT := 0.24
 const HEAT_DECAY := 0.42
 const OVERHEAT_RESUME := 0.35
@@ -31,8 +33,8 @@ func setup(p_owner: Node3D, p_owner_id: String, p_hit_callback: Callable, p_colo
 	hit_callback = p_hit_callback
 	_color = p_color
 	_muzzles.clear()
-	# Godot's glTF importer drops childless EMPTY nodes, so fall back to the
-	# bore meshes which sit exactly at each barrel tip.
+	# Prefer the authored muzzle empties, falling back to the bore meshes which
+	# also sit exactly at each barrel tip (and are the authoritative anchors).
 	for candidates in [["Muzzle_L", "Cannon_Bore_L"], ["Muzzle_R", "Cannon_Bore_R"]]:
 		var found: Node3D = null
 		for name in candidates:
@@ -97,9 +99,18 @@ func fire() -> void:
 	if cam != null and cam.has_method("add_shake"):
 		cam.call("add_shake", 0.10)
 	var fx_parent := get_tree().current_scene if get_tree() != null and get_tree().current_scene != null else get_tree().root
-	for muzzle in _muzzles:
+	var right_vec := owner_node.global_transform.basis.x.normalized()
+	for i in range(_muzzles.size()):
+		var muzzle: Node3D = _muzzles[i]
 		VFX.muzzle_flash(fx_parent, muzzle.global_position,
 				owner_node.global_transform.basis.z, _color)
+		# eject a brass casing out of the breech, opposite the barrel's side
+		var side := -1.0 if i == 0 else 1.0
+		VFX.casing(fx_parent, muzzle.global_position, right_vec * side + Vector3(0, 0.35, 0))
+	if heat >= 1.0:
+		# overheated: both barrels vent steam as the lockout engages
+		for muzzle in _muzzles:
+			VFX.steam_vent(fx_parent, muzzle.global_position)
 
 	var res: Dictionary = await Match.issue_shot()
 	var token := str(res.get("token", ""))
@@ -110,7 +121,7 @@ func fire() -> void:
 		var forward := owner_node.global_transform.basis.z.normalized()
 		var right := owner_node.global_transform.basis.x.normalized()
 		var side := -1.0 if i == 0 else 1.0
-		var dir := (forward + right * side * 0.07).normalized()
+		var dir := (forward + right * side * SHOT_SPREAD).normalized()
 		var proj := Node3D.new()
 		proj.set_script(PROJECTILE)
 		fx_parent.add_child(proj)

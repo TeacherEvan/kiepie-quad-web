@@ -32,7 +32,7 @@ func _initialize() -> void:
 	var backend := _new_backend()
 	get_root().add_child(backend)
 
-	# Host: first kill scores, reused token is rejected with the MockBackend reason.
+	# Host: first kill scores, reused token is rejected by the backend contract.
 	var first: Dictionary = await backend.call_rpc("register_kill",
 			{"p_target": "2", "p_token": "tok-1", "p_killer": "1"})
 	_check(bool(first.get("ok", false)) and int(first.get("score", 0)) == 1,

@@ -58,6 +58,40 @@ func _ready() -> void:
 	_ensure_audio_buses()
 	_load()
 	apply_all()
+	# The Glow video toggle used to be dead UI; wire it to every
+	# WorldEnvironment that enters the tree (menu, TestRide, arena).
+	get_tree().node_added.connect(_on_world_environment_added)
+	call_deferred("_apply_glow_to_tree")
+
+
+func _on_world_environment_added(node: Node) -> void:
+	if node is WorldEnvironment:
+		_apply_glow(node as WorldEnvironment)
+
+
+func _apply_glow_to_tree() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	for node in tree.root.find_children("*", "WorldEnvironment", true, false):
+		_apply_glow(node as WorldEnvironment)
+
+
+func _apply_glow(world_env: WorldEnvironment) -> void:
+	## Screen-space glow (bloom) for emissive VFX. gl_compatibility-safe:
+	## additive blend on the HDR buffer, modest intensity, threshold above
+	## the sky so only hot cores bloom.
+	var env := world_env.environment
+	if env == null:
+		return
+	var enabled := bool(get_value("video", "glow", true))
+	env.glow_enabled = enabled
+	env.glow_intensity = 0.62
+	env.glow_strength = 1.12
+	env.glow_bloom = 0.14
+	env.glow_hdr_threshold = 0.82
+	env.glow_hdr_scale = 1.6
+	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
 
 
 func _ensure_audio_buses() -> void:
@@ -164,6 +198,8 @@ func _apply(section: String, key: String, value: Variant) -> void:
 				var vp := get_viewport()
 				if vp != null:
 					vp.scaling_3d_scale = float(value)
+			elif key == "glow":
+				_apply_glow_to_tree()
 			# show_fps is consumed by MatchHud's optional FPS overlay
 		_:
 			pass
