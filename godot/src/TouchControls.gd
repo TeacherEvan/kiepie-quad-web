@@ -11,16 +11,34 @@ var _force := false
 var _drive_buttons: Array = []
 
 func _ready() -> void:
+	# Persist the manual TOUCH override across scenes/restarts (the Settings
+	# key existed but was never read).
+	_force = bool(Settings.get_value("controls", "touch_force", false))
 	_wire("BtnLeft", "steer_left")
 	_wire("BtnRight", "steer_right")
 	_wire("BtnGas", "move_forward")
 	_wire("BtnBrake", "move_back")  # same action as keyboard S/Down (brake, then reverse)
 	_wire("BtnTurbo", "turbo")
 	_wire("BtnFire", "fire")
+	_wire("BtnDodgeLeft", "dodge_left")
+	_wire("BtnDodgeRight", "dodge_right")
 	var fire_btn := get_node_or_null("BtnFire") as Button
 	if fire_btn != null:
 		var size := float(Settings.get_value("controls", "fire_size", 1.0))
+		# Centre the scale so enlarging FIRE cannot grow it down over the
+		# driving cluster below (its default pivot is the top-left corner).
+		fire_btn.pivot_offset = Vector2(
+				absf(fire_btn.offset_right - fire_btn.offset_left) * 0.5,
+				absf(fire_btn.offset_bottom - fire_btn.offset_top) * 0.5)
 		fire_btn.scale = Vector2(size, size)
+	# Dodge buttons scale about their centre so growing them never eats the
+	# steering cluster directly below.
+	var dodge_size := clampf(float(Settings.get_value("controls", "dodge_size", 1.0)), 0.7, 1.6)
+	for dodge_name in ["BtnDodgeLeft", "BtnDodgeRight"]:
+		var btn := get_node_or_null(dodge_name) as Button
+		if btn != null:
+			btn.pivot_offset = Vector2(45.0, 45.0)
+			btn.scale = Vector2(dodge_size, dodge_size)
 	_touch_toggle = get_node_or_null("BtnTouchToggle") as Button
 	if _touch_toggle:
 		_touch_toggle.pressed.connect(_on_toggle)
@@ -75,6 +93,7 @@ func _apply_visibility() -> void:
 
 func _on_toggle() -> void:
 	_force = not _force
+	Settings.set_value("controls", "touch_force", _force)
 	_sync_toggle_text()
 	_apply_visibility()
 

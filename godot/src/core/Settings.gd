@@ -29,6 +29,7 @@ const DEFAULTS := {
 	},
 	"controls": {
 		"fire_size": 1.0,           # scales the touch FIRE button
+		"dodge_size": 1.0,          # scales the touch DODGE buttons
 		"steer_sensitivity": 1.0,
 		"touch_force": false,
 	},

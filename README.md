@@ -68,8 +68,9 @@ Controls:
 | `Space` | Handbrake |
 | `Shift` | **Turbo** — hold while throttling: +30 % power, flames from the silencer, "TURBO" flash on the HUD |
 | `C` | Camera — chase ↔ free orbit (drag mouse / wheel to zoom) |
+| `Q` / `E` | Dodge left / right — lateral leap + cartwheel to evade attacks (ground-only, 1 s cooldown) |
 | `R` | Reset to spawn (also the on-screen **Restart** button) |
-| Touch | On-screen overlay (◀ ▶ steer · BRAKE · GAS · TURBO) auto-appears on touch devices; the **TOUCH** button (top-right) force-shows/hides it anywhere |
+| Touch | On-screen overlay (◀ ▶ steer · **DODGE L/R** · BRAKE · GAS · TURBO · FIRE) auto-appears on touch devices; the **TOUCH** button (top-right) force-shows/hides it anywhere. Dodge/FIRE button sizes and steering sensitivity are adjustable in Settings → Controls |
 
 `TestRide.tscn` is the playable demo pad: asphalt, cone ring, start line, three **ramps**,
 three **smashable buildings** (drive into them at speed — they burst into debris and an

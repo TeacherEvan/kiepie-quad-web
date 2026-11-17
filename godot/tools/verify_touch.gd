@@ -22,6 +22,14 @@ func _btn_size(b: Button) -> Vector2:
 	return Vector2(absf(b.offset_right - b.offset_left), absf(b.offset_bottom - b.offset_top))
 
 func _initialize() -> void:
+	# The overlay now persists the TOUCH override, so clear it BEFORE the
+	# scene's TouchControls._ready() reads it — otherwise a previous run
+	# leaving it ON would change this gate's assumptions.
+	await process_frame
+	var settings_node := get_root().get_node_or_null("Settings")
+	if settings_node != null:
+		settings_node.call("set_value", "controls", "touch_force", false)
+
 	var scene: PackedScene = load("res://scenes/TestRide.tscn")
 	var root_node := scene.instantiate() as Node3D
 	get_root().add_child(root_node)
@@ -54,7 +62,8 @@ func _initialize() -> void:
 			"TOUCH toggle stays visible when drive buttons are hidden")
 
 	# ---- buttons: presence, focus mode, touch-target size
-	var names := ["BtnLeft", "BtnRight", "BtnGas", "BtnBrake", "BtnTurbo", "BtnTouchToggle"]
+	var names := ["BtnLeft", "BtnRight", "BtnGas", "BtnBrake", "BtnTurbo",
+			"BtnDodgeLeft", "BtnDodgeRight", "BtnTouchToggle"]
 	var btns := {}
 	for n in names:
 		var b := layer.get_node_or_null(n) as Button
@@ -65,9 +74,25 @@ func _initialize() -> void:
 			var s := _btn_size(b)
 			_check(s.x >= 44.0 and s.y >= 44.0, "%s target >= 44x44 (got %.0fx%.0f)" % [n, s.x, s.y])
 
+	# ---- no two drive buttons may overlap (the Arena TURBO/BRAKE pair once did)
+	var rects := {}
+	for n in btns:
+		if n == "BtnTouchToggle":
+			continue
+		var b: Button = btns[n]
+		rects[n] = Rect2(Vector2(b.offset_left, b.offset_top), _btn_size(b))
+	var keys := rects.keys()
+	for i in range(keys.size()):
+		for j in range(i + 1, keys.size()):
+			var a: String = keys[i]
+			var c: String = keys[j]
+			_check(not rects[a].intersects(rects[c]),
+					"%s and %s touch targets do not overlap" % [a, c])
+
 	# ---- action wiring: button_down/up -> InputMap actions
 	var pairs := {"BtnGas": "move_forward", "BtnBrake": "move_back",
-			"BtnLeft": "steer_left", "BtnRight": "steer_right", "BtnTurbo": "turbo"}
+			"BtnLeft": "steer_left", "BtnRight": "steer_right", "BtnTurbo": "turbo",
+			"BtnDodgeLeft": "dodge_left", "BtnDodgeRight": "dodge_right"}
 	for n in pairs:
 		var action: String = pairs[n]
 		var b: Button = btns.get(n)
@@ -99,6 +124,8 @@ func _initialize() -> void:
 	if toggle:
 		toggle.pressed.emit()
 		_check((layer.get_node("BtnGas") as Button).visible, "toggle ON shows drive buttons")
+		_check((layer.get_node("BtnDodgeLeft") as Button).visible,
+				"toggle ON shows dodge buttons")
 		_check(toggle.text == "TOUCH: ON", "toggle label reads TOUCH: ON")
 		gas = btns.get("BtnGas")
 		if gas:
@@ -128,7 +155,8 @@ func _initialize() -> void:
 	_check(not Input.is_action_pressed("move_forward"), "overlay exit releases held actions")
 
 	# ---- cleanup any stray action state
-	for a in ["move_forward", "move_back", "steer_left", "steer_right", "turbo", "reset_bike"]:
+	for a in ["move_forward", "move_back", "steer_left", "steer_right", "turbo",
+			"dodge_left", "dodge_right", "reset_bike"]:
 		Input.action_release(a)
 
 	print("TOUCH VERIFY: %d failure(s)" % _failures)

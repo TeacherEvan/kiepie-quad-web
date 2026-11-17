@@ -162,9 +162,16 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   a 0.12 s coyote timer stops suspension bounce from eating the input. No new net message is
   needed: `ArenaNet._send_state()` already broadcasts position + quaternion at 15 Hz, so remote
   proxies reproduce the cartwheel. `verify_dodge.gd` locks direction, lift, cooldown, recovery.
+- Touch/mobile: `TouchControls.gd` wires every overlay button to its InputMap action, including
+  `BtnDodgeLeft`/`BtnDodgeRight` → `dodge_left`/`dodge_right` (same leap as Q/E). Both builders
+  add the dodge pair above the steering cluster; `verify_touch.gd` enforces >=44px targets and
+  pairwise non-overlap (it caught an old 30px TURBO/BRAKE overlap in `build_arena.gd`).
+  `controls/dodge_size` scales the dodge buttons (centred pivot) and `controls/touch_force`
+  persists the manual TOUCH override; both are live in Settings → Controls. FIRE also scales
+  from its centre so enlarging it cannot grow over the driving cluster.
 - Headless physics proof: `godot-4.3 --headless --path godot --script tools/truth_test.gd`
   (0 → 9+ m/s, wheel contact). Feature checks: `verify_features.gd`, `diag2.gd`,
-  `verify_controls.gd`.
+  `verify_controls.gd`, `verify_dodge.gd`.
 - Buildings self-register in group `destructible` and call `HUD.register_smash()` directly
   (group lookup, `../HUD` fallback). Runtime `signal.connect()` in a builder is **not** persisted
   into `.tscn`. Emit `smashed` and update the HUD **before** spawning debris.

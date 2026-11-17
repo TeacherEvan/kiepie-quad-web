@@ -325,6 +325,41 @@ func _add_touch_controls(root: Node) -> void:
 	right.add_theme_font_size_override("font_size", 44)
 	touch.add_child(right)
 
+	# --- dodge leaps: above the steering cluster, same left thumb reach
+	var dodge_left := Button.new()
+	dodge_left.name = "BtnDodgeLeft"
+	dodge_left.text = "DODGE L"
+	dodge_left.anchor_left = 0.0
+	dodge_left.anchor_right = 0.0
+	dodge_left.anchor_top = 1.0
+	dodge_left.anchor_bottom = 1.0
+	dodge_left.offset_left = 10.0
+	dodge_left.offset_right = 98.0
+	dodge_left.offset_top = -234.0
+	dodge_left.offset_bottom = -144.0
+	dodge_left.focus_mode = Control.FOCUS_NONE
+	_style_button(dodge_left, Color(0.55, 0.42, 0.78, 0.85))
+	dodge_left.add_theme_font_size_override("font_size", 15)
+	dodge_left.pivot_offset = Vector2(45.0, 45.0)
+	touch.add_child(dodge_left)
+
+	var dodge_right := Button.new()
+	dodge_right.name = "BtnDodgeRight"
+	dodge_right.text = "DODGE R"
+	dodge_right.anchor_left = 0.0
+	dodge_right.anchor_right = 0.0
+	dodge_right.anchor_top = 1.0
+	dodge_right.anchor_bottom = 1.0
+	dodge_right.offset_left = 106.0
+	dodge_right.offset_right = 194.0
+	dodge_right.offset_top = -234.0
+	dodge_right.offset_bottom = -144.0
+	dodge_right.focus_mode = Control.FOCUS_NONE
+	_style_button(dodge_right, Color(0.55, 0.42, 0.78, 0.85))
+	dodge_right.add_theme_font_size_override("font_size", 15)
+	dodge_right.pivot_offset = Vector2(45.0, 45.0)
+	touch.add_child(dodge_right)
+
 	# --- right thumb: TURBO above BRAKE, big GAS on the far right (bottom-right corner)
 	var turbo_btn := Button.new()
 	turbo_btn.name = "BtnTurbo"

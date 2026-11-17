@@ -463,6 +463,41 @@ func _add_touch_controls(root: Node) -> void:
 	right.add_theme_font_size_override("font_size", 44)
 	touch.add_child(right)
 
+	# --- dodge leaps: above the steering cluster, same left thumb reach
+	var dodge_left := Button.new()
+	dodge_left.name = "BtnDodgeLeft"
+	dodge_left.text = "DODGE L"
+	dodge_left.anchor_left = 0.0
+	dodge_left.anchor_right = 0.0
+	dodge_left.anchor_top = 1.0
+	dodge_left.anchor_bottom = 1.0
+	dodge_left.offset_left = 10.0
+	dodge_left.offset_right = 98.0
+	dodge_left.offset_top = -284.0
+	dodge_left.offset_bottom = -194.0
+	dodge_left.focus_mode = Control.FOCUS_NONE
+	_style_button(dodge_left, Color(0.55, 0.42, 0.78, 0.85))
+	dodge_left.add_theme_font_size_override("font_size", 15)
+	dodge_left.pivot_offset = Vector2(45.0, 45.0)
+	touch.add_child(dodge_left)
+
+	var dodge_right := Button.new()
+	dodge_right.name = "BtnDodgeRight"
+	dodge_right.text = "DODGE R"
+	dodge_right.anchor_left = 0.0
+	dodge_right.anchor_right = 0.0
+	dodge_right.anchor_top = 1.0
+	dodge_right.anchor_bottom = 1.0
+	dodge_right.offset_left = 106.0
+	dodge_right.offset_right = 194.0
+	dodge_right.offset_top = -284.0
+	dodge_right.offset_bottom = -194.0
+	dodge_right.focus_mode = Control.FOCUS_NONE
+	_style_button(dodge_right, Color(0.55, 0.42, 0.78, 0.85))
+	dodge_right.add_theme_font_size_override("font_size", 15)
+	dodge_right.pivot_offset = Vector2(45.0, 45.0)
+	touch.add_child(dodge_right)
+
 	# --- right thumb: TURBO above BRAKE, big GAS on the far right
 	var turbo_btn := Button.new()
 	turbo_btn.name = "BtnTurbo"
@@ -474,7 +509,7 @@ func _add_touch_controls(root: Node) -> void:
 	turbo_btn.offset_left = -182.0
 	turbo_btn.offset_right = -98.0
 	turbo_btn.offset_top = -194.0
-	turbo_btn.offset_bottom = -128.0
+	turbo_btn.offset_bottom = -140.0  # clear of BRAKE below (was overlapping by 30px)
 	turbo_btn.focus_mode = Control.FOCUS_NONE
 	_style_button(turbo_btn, Color(1.0, 0.68, 0.16, 0.9))
 	turbo_btn.add_theme_font_size_override("font_size", 18)
@@ -489,7 +524,7 @@ func _add_touch_controls(root: Node) -> void:
 	brake.anchor_bottom = 1.0
 	brake.offset_left = -182.0
 	brake.offset_right = -98.0
-	brake.offset_top = -158.0
+	brake.offset_top = -132.0
 	brake.offset_bottom = -58.0  # above the Web shell hint strip
 	brake.focus_mode = Control.FOCUS_NONE
 	_style_button(brake, Color(0.55, 0.60, 0.70, 0.65))

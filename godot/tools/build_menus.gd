@@ -413,6 +413,8 @@ func _build_settings() -> void:
 	rows.add_child(_section_header("ControlsHeader", "CONTROLS"))
 	rows.add_child(_slider_row("FireSizeRow", "Fire button", _slider("FireSize", 0.5, 2.0, 0.05, 1.0), _value_label("FireSizeValue", "1.00")))
 	rows.add_child(_slider_row("SteerSensitivityRow", "Steering", _slider("SteerSensitivity", 0.3, 2.0, 0.05, 1.0), _value_label("SteerSensitivityValue", "1.00")))
+	rows.add_child(_slider_row("DodgeSizeRow", "Dodge buttons", _slider("DodgeSize", 0.7, 1.6, 0.05, 1.0), _value_label("DodgeSizeValue", "1.00")))
+	rows.add_child(_setting_row("TouchForceRow", "Always show touch pad", _check("TouchForce", "", false)))
 
 	# ----- gameplay
 	rows.add_child(_section_header("GameplayHeader", "GAMEPLAY"))
@@ -494,6 +496,9 @@ func _verify() -> void:
 					"SafeMargin/VBox/Scroll/Rows/FireSizeRow/FireSizeValue",
 					"SafeMargin/VBox/Scroll/Rows/SteerSensitivityRow/SteerSensitivity",
 					"SafeMargin/VBox/Scroll/Rows/SteerSensitivityRow/SteerSensitivityValue",
+					"SafeMargin/VBox/Scroll/Rows/DodgeSizeRow/DodgeSize",
+					"SafeMargin/VBox/Scroll/Rows/DodgeSizeRow/DodgeSizeValue",
+					"SafeMargin/VBox/Scroll/Rows/TouchForceRow/TouchForce",
 					"SafeMargin/VBox/Scroll/Rows/DisplayNameRow/DisplayName",
 					"SafeMargin/VBox/Scroll/Rows/ColorRow/Color",
 					"SafeMargin/VBox/Scroll/Rows/ScreenShakeRow/ScreenShake",
