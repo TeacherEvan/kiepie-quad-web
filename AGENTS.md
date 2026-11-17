@@ -5,8 +5,11 @@ This is a **Blender → Godot → Vercel** asset pipeline, not a normal code app
 
 ## Boundaries (not what a first glance suggests)
 
-- **Root `Kiepie bike/` is a git repo** (`TeacherEvan/kiepie-quad`), pushed to `main`.
-  `web/` is a separate repo with its own history and is pushed independently. `.env` is ignored.
+- **Single repository: `TeacherEvan/kiepie-quad-web`** (merged 2026-11-18). It holds the
+  source tree at the repo root (`src/`, `godot/`, `assets/` …) **and** the Vercel-served Web
+  build at the root (`index.html` / `index.wasm` / `index.pck` / …). `web/` is now only a
+  local export staging folder and is git-ignored. `TeacherEvan/kiepie-quad` was archived
+  (read-only) after the merge. `.env` is ignored.
 - `src/` — Blender `bpy` build scripts. `src/qb_spec.py` holds every master dimension;
   edit dimensions **only there**, then rebuild. Never hand-edit geometry in the Blender GUI.
   `src/qb_weapons.py` builds the side cannons; muzzle anchors are the `Cannon_Bore_*` meshes.
@@ -21,8 +24,10 @@ This is a **Blender → Godot → Vercel** asset pipeline, not a normal code app
 - Backend is **Talo** (scratch Supabase/Convex). `godot/addons/talo/` is a vendored **0.20.0**
   plugin — the last release compatible with Godot 4.3 (1.x needs 4.4+ and crashes the 4.3 editor).
   Never upgrade it without upgrading Godot first.
-- `web/` — **separate git repo** `TeacherEvan/kiepie-quad-web` (now **public**, changed at the
-  user's request on 2026-11-17). Contains only the Godot Web export + README.
+- **Web build** lives at the repository root and is what Vercel serves. Re-exporting
+  overwrites it in place; commit the refreshed `index.*` files and push to `main`.
+  `web/` remains a local staging dir only (git-ignored). `godot/tools/deploy_web.sh`
+  still needs `--apply` for the gated export; plain `git push` does **not** auto-deploy.
 
 ## Commands that actually work
 
@@ -121,8 +126,9 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 
 ## Deploy / Web gotchas
 
-- `web/` pushes do **not** auto-deploy (no Vercel hook). `deploy_web.sh --apply` does the
-  commit + push + `vercel deploy --prod --yes --scope teacher-evans-projects` + live `curl`.
+- Pushes to `main` do **not** auto-deploy (no Vercel hook). `deploy_web.sh --apply` does the
+  gated export → commit → push → `vercel deploy --prod --yes --scope teacher-evans-projects` →
+  live `curl`. Deploys come from the repo root; Vercel serves the root as-is.
 - `patch_web_sw.py` patches `index.service.worker.js` after every export: strips the
   non-existent `index.worker.js`, stores `index.wasm` in a content-hashed `ENGINE_CACHE`
   that survives `.pck` updates, uses Cache-First within each content-hashed `CACHE_NAME` for
