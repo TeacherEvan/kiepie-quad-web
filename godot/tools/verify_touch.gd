@@ -78,6 +78,10 @@ func _initialize() -> void:
 			_check(s.x >= 44.0 and s.y >= 44.0, "%s target >= 44x44 (got %.0fx%.0f)" % [n, s.x, s.y])
 			if n == "BtnGas":
 				_check(s.x <= 84.0 and s.y <= 84.0, "BtnGas compact (~1/3rd footprint, got %.0fx%.0f)" % [s.x, s.y])
+			elif n == "BtnDodgeLeft":
+				_check(b.text == "L" and s.x <= 60.0 and s.y <= 60.0, "BtnDodgeLeft compact 'L' (got '%s' %.0fx%.0f)" % [b.text, s.x, s.y])
+			elif n == "BtnDodgeRight":
+				_check(b.text == "R" and s.x <= 60.0 and s.y <= 60.0, "BtnDodgeRight compact 'R' (got '%s' %.0fx%.0f)" % [b.text, s.x, s.y])
 
 	# ---- analog steering pad: present, >=44x44, does not overlap dodge pair
 	var pad := layer.get_node_or_null("AnalogSteer") as Control

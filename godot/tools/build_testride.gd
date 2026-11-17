@@ -373,39 +373,39 @@ func _add_touch_controls(root: Node) -> void:
 	# --- steering is an analog pad built at runtime by TouchControls.gd
 	# (fills the space the old BtnLeft/BtnRight lived in)
 
-	# --- dodge leaps: above the steering cluster, same left thumb reach
+	# --- dodge leaps: compact "L" & "R" above the steering cluster
 	var dodge_left := Button.new()
 	dodge_left.name = "BtnDodgeLeft"
-	dodge_left.text = "DODGE L"
+	dodge_left.text = "L"
 	dodge_left.anchor_left = 0.0
 	dodge_left.anchor_right = 0.0
 	dodge_left.anchor_top = 1.0
 	dodge_left.anchor_bottom = 1.0
-	dodge_left.offset_left = 36.0
-	dodge_left.offset_right = 126.0
-	dodge_left.offset_top = -280.0
-	dodge_left.offset_bottom = -200.0
+	dodge_left.offset_left = 32.0
+	dodge_left.offset_right = 84.0
+	dodge_left.offset_top = -230.0
+	dodge_left.offset_bottom = -184.0
 	dodge_left.focus_mode = Control.FOCUS_NONE
-	UI.style_button(dodge_left, UI.INFO)
+	UI.style_button(dodge_left, UI.INFO, 15, 44.0)
 	dodge_left.add_theme_font_size_override("font_size", 15)
-	dodge_left.pivot_offset = Vector2(45.0, 40.0)
+	dodge_left.pivot_offset = Vector2(26.0, 23.0)
 	touch.add_child(dodge_left)
 
 	var dodge_right := Button.new()
 	dodge_right.name = "BtnDodgeRight"
-	dodge_right.text = "DODGE R"
+	dodge_right.text = "R"
 	dodge_right.anchor_left = 0.0
 	dodge_right.anchor_right = 0.0
 	dodge_right.anchor_top = 1.0
 	dodge_right.anchor_bottom = 1.0
-	dodge_right.offset_left = 196.0
-	dodge_right.offset_right = 286.0
-	dodge_right.offset_top = -280.0
-	dodge_right.offset_bottom = -200.0
+	dodge_right.offset_left = 108.0
+	dodge_right.offset_right = 160.0
+	dodge_right.offset_top = -230.0
+	dodge_right.offset_bottom = -184.0
 	dodge_right.focus_mode = Control.FOCUS_NONE
-	UI.style_button(dodge_right, UI.INFO)
+	UI.style_button(dodge_right, UI.INFO, 15, 44.0)
 	dodge_right.add_theme_font_size_override("font_size", 15)
-	dodge_right.pivot_offset = Vector2(45.0, 40.0)
+	dodge_right.pivot_offset = Vector2(26.0, 23.0)
 	touch.add_child(dodge_right)
 
 	# --- right thumb: compact GAS pedal (auto-fire handles cannons; analog push handles turbo)
