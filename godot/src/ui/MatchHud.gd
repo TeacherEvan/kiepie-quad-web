@@ -21,6 +21,7 @@ var _announce_label: Label
 var _hp_fill: StyleBoxFlat
 var _hitmarker: Label = null
 var _hit_tween: Tween = null
+var _scores_open := false
 
 
 func _init() -> void:
@@ -58,10 +59,19 @@ func _ready() -> void:
 		Match.lobby_changed.connect(_on_lobby_changed)
 		Match.self_respawn_at.connect(_on_self_respawn_at)
 
-	# --- result & top-right navigation buttons
+	# --- result & top-right navigation + scoreboard dropdown
 	var menu_btn := get_node_or_null("MenuBtn") as Button
 	if menu_btn != null:
 		menu_btn.pressed.connect(_on_leave_match)
+		_compact_btn(menu_btn, 12, 6.0)
+	var score_toggle := get_node_or_null("ScoreToggle") as Button
+	if score_toggle != null:
+		score_toggle.pressed.connect(_on_toggle_scores)
+		_compact_btn(score_toggle, 12, 6.0)
+	var score := get_node_or_null("Scoreboard") as Control
+	if score != null:
+		score.visible = false
+	_sync_score_toggle()
 	Settings.call_deferred("sync_back_handler")
 	var again := get_node_or_null("ResultPanel/PlayAgainBtn") as Button
 	if again != null:
@@ -136,35 +146,67 @@ func _ready() -> void:
 
 # ------------------------------------------------------------------ signals ---
 
+func _compact_btn(btn: Button, font_sz: int, h_margin: float) -> void:
+	if btn == null:
+		return
+	btn.add_theme_font_size_override("font_size", font_sz)
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var sb := btn.get_theme_stylebox(state)
+		if sb is StyleBoxFlat:
+			var dup := sb.duplicate() as StyleBoxFlat
+			dup.content_margin_left = h_margin
+			dup.content_margin_right = h_margin
+			btn.add_theme_stylebox_override(state, dup)
+
+
+func _on_toggle_scores() -> void:
+	_scores_open = not _scores_open
+	_sync_score_toggle()
+
+
+func _sync_score_toggle() -> void:
+	var btn := get_node_or_null("ScoreToggle") as Button
+	if btn != null:
+		btn.text = "SCORES ▴" if _scores_open else "SCORES ▾"
+	var score := get_node_or_null("Scoreboard") as Control
+	if score != null:
+		score.visible = _scores_open
+
+
 func _relayout() -> void:
 	var vp := get_viewport().get_visible_rect().size
 	if vp.x <= 0.0 or vp.y <= 0.0:
 		return
-	var narrow := vp.x <= 560.0
-	var short := vp.y <= 480.0
+	var narrow := vp.x <= 640.0
+	var short := vp.y <= 500.0
+	var corner_w := 120.0 if (narrow or short) else 130.0
+
+	var hl := get_node_or_null("HealthLabel") as Control
+	var hb := get_node_or_null("HealthBar") as Control
+	if hl != null and hb != null:
+		for c in [hl, hb]:
+			c.anchor_left = 0.0
+			c.anchor_right = 0.0
+			c.anchor_top = 0.0
+			c.anchor_bottom = 0.0
+			c.offset_left = 12.0
+			c.offset_right = 12.0 + corner_w
+		hl.offset_top = 8.0 if (narrow or short) else 10.0
+		hl.offset_bottom = hl.offset_top + 15.0
+		hb.offset_top = hl.offset_bottom + 1.0
+		hb.offset_bottom = hb.offset_top + 12.0
 
 	var banner := get_node_or_null("Banner") as Label
 	if banner != null:
-		if narrow:
-			banner.anchor_left = 0.0
-			banner.anchor_right = 0.0
-			banner.offset_left = 12.0
-			banner.offset_right = maxf(140.0, vp.x - 156.0)
-			banner.offset_top = 12.0
-			banner.offset_bottom = 56.0
-			if banner.label_settings != null:
-				banner.label_settings.font_size = 18
-		else:
-			banner.anchor_left = 0.5
-			banner.anchor_right = 0.5
-			var bw := minf(420.0, vp.x - 580.0)
-			bw = maxf(160.0, bw)
-			banner.offset_left = -bw * 0.5
-			banner.offset_right = bw * 0.5
-			banner.offset_top = 8.0 if short else 12.0
-			banner.offset_bottom = banner.offset_top + (42.0 if short else 52.0)
-			if banner.label_settings != null:
-				banner.label_settings.font_size = 28
+		banner.anchor_left = 0.0
+		banner.anchor_right = 0.0
+		banner.anchor_top = 0.0
+		banner.anchor_bottom = 0.0
+		banner.offset_left = 12.0
+		banner.offset_right = 12.0 + corner_w
+		banner.offset_top = 40.0 if (narrow or short) else 42.0
+		banner.offset_bottom = banner.offset_top + 18.0
+		banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 
 	var menu_btn := get_node_or_null("MenuBtn") as Button
 	if menu_btn != null:
@@ -173,92 +215,77 @@ func _relayout() -> void:
 		menu_btn.anchor_top = 0.0
 		menu_btn.anchor_bottom = 0.0
 		if narrow:
-			menu_btn.offset_left = -146.0
-			menu_btn.offset_right = -14.0
-			menu_btn.offset_top = 182.0
-			menu_btn.offset_bottom = 224.0
+			menu_btn.offset_left = -104.0
+			menu_btn.offset_right = -10.0
+			menu_btn.offset_top = 60.0
+			menu_btn.offset_bottom = 104.0
+		elif short:
+			menu_btn.offset_left = -312.0
+			menu_btn.offset_right = -220.0
+			menu_btn.offset_top = 10.0
+			menu_btn.offset_bottom = 54.0
 		else:
-			menu_btn.offset_left = -278.0
-			menu_btn.offset_right = -154.0
-			menu_btn.offset_top = 14.0
-			menu_btn.offset_bottom = 58.0
+			menu_btn.offset_left = -320.0
+			menu_btn.offset_right = -224.0
+			menu_btn.offset_top = 12.0
+			menu_btn.offset_bottom = 56.0
+
+	var score_toggle := get_node_or_null("ScoreToggle") as Button
+	if score_toggle != null:
+		score_toggle.anchor_left = 1.0
+		score_toggle.anchor_right = 1.0
+		score_toggle.anchor_top = 0.0
+		score_toggle.anchor_bottom = 0.0
+		if narrow:
+			score_toggle.offset_left = -204.0
+			score_toggle.offset_right = -110.0
+			score_toggle.offset_top = 10.0
+			score_toggle.offset_bottom = 54.0
+		elif short:
+			score_toggle.offset_left = -212.0
+			score_toggle.offset_right = -114.0
+			score_toggle.offset_top = 10.0
+			score_toggle.offset_bottom = 54.0
+		else:
+			score_toggle.offset_left = -216.0
+			score_toggle.offset_right = -116.0
+			score_toggle.offset_top = 12.0
+			score_toggle.offset_bottom = 56.0
 
 	var score := get_node_or_null("Scoreboard") as Control
 	if score != null:
-		var sw := minf(220.0, vp.x * 0.48) if narrow else (minf(220.0, vp.x * 0.26) if short else 286.0)
-		score.offset_left = -sw - 14.0
-		score.offset_right = -14.0
-		score.offset_top = 66.0
-		score.offset_bottom = 176.0 if (narrow or short) else 240.0
-
-	var feed := get_node_or_null("KillFeed") as Control
-	if feed != null:
-		if short and not narrow:
-			feed.offset_left = 112.0
-			feed.offset_right = minf(270.0, vp.x * 0.32)
-			feed.offset_top = 10.0
-			feed.offset_bottom = 100.0
-		else:
-			feed.offset_left = 12.0
-			feed.offset_right = minf(340.0, vp.x * 0.48) if narrow else 340.0
-			feed.offset_top = 62.0 if narrow else 72.0
-			feed.offset_bottom = feed.offset_top + (90.0 if narrow else 138.0)
+		var sw := minf(220.0, vp.x * 0.56) if narrow else (minf(240.0, vp.x * 0.28) if short else 250.0)
+		var rows_cnt := Match.players.size() if Match != null else 1
+		var sh := clampf(float(maxi(1, rows_cnt)) * 24.0 + 20.0, 54.0, 176.0)
+		score.anchor_left = 1.0
+		score.anchor_right = 1.0
+		score.offset_left = -sw - 10.0
+		score.offset_right = -10.0
+		score.offset_top = 110.0 if narrow else (60.0 if short else 62.0)
+		score.offset_bottom = score.offset_top + sh
+		score.visible = _scores_open
 
 	var radar := get_node_or_null("Radar") as Control
 	if radar != null:
-		radar.visible = not (narrow and short)
-		if short and not narrow:
-			radar.offset_left = 12.0
-			radar.offset_top = 10.0
-			radar.offset_right = 102.0
-			radar.offset_bottom = 100.0
-		else:
-			var rsize := 120.0 if narrow else 180.0
-			radar.offset_left = 12.0
-			radar.offset_top = 160.0 if narrow else 220.0
-			radar.offset_right = 12.0 + rsize
-			radar.offset_bottom = radar.offset_top + rsize
+		radar.visible = vp.y >= 260.0
+		var rsize := 92.0 if narrow else (80.0 if short else 128.0)
+		radar.offset_left = 12.0
+		radar.offset_top = 62.0 if (narrow or short) else 66.0
+		radar.offset_right = 12.0 + rsize
+		radar.offset_bottom = radar.offset_top + rsize
 
-	var hl := get_node_or_null("HealthLabel") as Control
-	var hb := get_node_or_null("HealthBar") as Control
-	if hl != null and hb != null:
-		for c in [hl, hb]:
-			if narrow:
-				c.anchor_left = 0.0
-				c.anchor_right = 0.0
-				c.anchor_top = 1.0
-				c.anchor_bottom = 1.0
-				c.offset_left = 12.0
-				c.offset_right = minf(196.0, vp.x * 0.52)
-			elif short:
-				c.anchor_left = 0.5
-				c.anchor_right = 0.5
-				c.anchor_top = 0.0
-				c.anchor_bottom = 0.0
-				c.offset_left = -120.0
-				c.offset_right = 120.0
-			else:
-				c.anchor_left = 0.5
-				c.anchor_right = 0.5
-				c.anchor_top = 1.0
-				c.anchor_bottom = 1.0
-				c.offset_left = -150.0
-				c.offset_right = 150.0
+	var feed := get_node_or_null("KillFeed") as Control
+	if feed != null:
 		if narrow:
-			hl.offset_top = -390.0
-			hl.offset_bottom = -364.0
-			hb.offset_top = -360.0
-			hb.offset_bottom = -336.0
-		elif short:
-			hl.offset_top = 62.0
-			hl.offset_bottom = 86.0
-			hb.offset_top = 88.0
-			hb.offset_bottom = 110.0
+			feed.offset_left = 12.0
+			feed.offset_right = minf(220.0, vp.x * 0.56)
+			feed.offset_top = 160.0
+			feed.offset_bottom = 236.0
 		else:
-			hl.offset_top = -96.0
-			hl.offset_bottom = -68.0
-			hb.offset_top = -64.0
-			hb.offset_bottom = -36.0
+			feed.offset_left = 154.0
+			feed.offset_right = maxf(240.0, minf(380.0, vp.x - 340.0))
+			feed.offset_top = 10.0
+			feed.offset_bottom = 106.0
 
 	var respawn := get_node_or_null("RespawnOverlay") as Control
 	if respawn != null:
@@ -347,7 +374,7 @@ func _on_health_changed(current: float, maximum: float) -> void:
 		bar.value = current
 	var label := get_node_or_null("HealthLabel") as Label
 	if label != null:
-		label.text = "ARMOR  %d / %d" % [roundi(current), roundi(maximum)]
+		label.text = "ARMOR %d" % roundi(current)
 	if _hp_fill != null and maximum > 0.0:
 		# Green → gold → red as armour falls; mutate the cached resource.
 		_hp_fill.bg_color = _armor_color(clampf(current / maximum, 0.0, 1.0))
@@ -376,6 +403,7 @@ func _on_respawned() -> void:
 
 
 func _on_score_updated(_user_id: String, _score: int) -> void:
+	_refresh_banner()
 	_refresh_scoreboard()
 
 
@@ -467,7 +495,7 @@ func _refresh_banner() -> void:
 	var banner := get_node_or_null("Banner") as Label
 	if banner == null or Match == null:
 		return
-	banner.text = "FIRST TO %d" % Match.kill_target()
+	banner.text = "%d/%d" % [Match.my_score(), Match.kill_target()]
 
 
 func _refresh_scoreboard() -> void:
@@ -475,6 +503,10 @@ func _refresh_scoreboard() -> void:
 	if node == null or Match == null:
 		return
 	var rows: Array = Match.scoreboard()
+	if node is Control:
+		var sc := node as Control
+		var sh := clampf(float(maxi(1, rows.size())) * 24.0 + 20.0, 54.0, 176.0)
+		sc.offset_bottom = sc.offset_top + sh
 	if node is RichTextLabel:
 		var rtl := node as RichTextLabel
 		rtl.clear()

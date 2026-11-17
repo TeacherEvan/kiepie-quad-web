@@ -382,28 +382,29 @@ func _relayout() -> void:
 	var dodge_l := get_node_or_null("BtnDodgeLeft") as Button
 	var dodge_r := get_node_or_null("BtnDodgeRight") as Button
 	var gas := get_node_or_null("BtnGas") as Button
+	var in_arena := get_node_or_null("../HUD/ScoreToggle") != null
 
 	var dodge_size := clampf(float(Settings.get_value("controls", "dodge_size", 1.0)), 0.7, 1.6)
 	var eff_dodge := dodge_size
 
 	if vp.x < 700.0:
-		# Narrow / Portrait (e.g. 390x844): compact left cluster, single clean GAS pad on right
+		# Narrow / Portrait (e.g. 390x844): compact left cluster, ~1/3rd compact GAS pad on right
 		var pad_w := clampf(vp.x * 0.44, 168.0, 250.0)
 		_set_rect(_analog_pad, 10.0, -140.0, 10.0 + pad_w, -20.0, 0.0)
 		_set_rect(dodge_l, 14.0, -238.0, 86.0, -184.0, 0.0)
 		_set_rect(dodge_r, 114.0, -238.0, 186.0, -184.0, 0.0)
-		_set_rect(gas, -144.0, -156.0, -12.0, -20.0, 1.0)
-		_set_btn_compact(gas, 28, 8.0)
+		_set_rect(gas, -82.0, -90.0, -14.0, -22.0, 1.0)
+		_set_btn_compact(gas, 16, 4.0)
 		_set_btn_compact(dodge_l, 12, 6.0)
 		_set_btn_compact(dodge_r, 12, 6.0)
 		eff_dodge = minf(dodge_size, 1.25)
 	elif vp.y < 520.0:
-		# Mobile Landscape (e.g. 844x390): streamlined analog + dodge on left, GAS on right
+		# Mobile Landscape (e.g. 844x390): streamlined analog + dodge on left, compact GAS on right
 		_set_rect(_analog_pad, 12.0, -118.0, 252.0, -14.0, 0.0)
 		_set_rect(dodge_l, 28.0, -194.0, 112.0, -134.0, 0.0)
 		_set_rect(dodge_r, 150.0, -194.0, 234.0, -134.0, 0.0)
-		_set_rect(gas, -152.0, -152.0, -14.0, -16.0, 1.0)
-		_set_btn_compact(gas, 34, 14.0)
+		_set_rect(gas, -86.0, -88.0, -14.0, -16.0, 1.0)
+		_set_btn_compact(gas, 17, 6.0)
 		_set_btn_compact(dodge_l, 13, 6.0)
 		_set_btn_compact(dodge_r, 13, 6.0)
 		eff_dodge = minf(dodge_size, 1.28)
@@ -412,10 +413,21 @@ func _relayout() -> void:
 		_set_rect(_analog_pad, 12.0, -156.0, 312.0, -16.0, 0.0)
 		_set_rect(dodge_l, 36.0, -280.0, 126.0, -200.0, 0.0)
 		_set_rect(dodge_r, 196.0, -280.0, 286.0, -200.0, 0.0)
-		_set_rect(gas, -156.0, -174.0, -14.0, -18.0, 1.0)
-		_set_btn_compact(gas, 36, 14.0)
+		_set_rect(gas, -92.0, -96.0, -14.0, -18.0, 1.0)
+		_set_btn_compact(gas, 18, 6.0)
 		_set_btn_compact(dodge_l, 15, 14.0)
 		_set_btn_compact(dodge_r, 15, 14.0)
+
+	if _touch_toggle != null and in_arena:
+		_touch_toggle.anchor_left = 1.0
+		_touch_toggle.anchor_right = 1.0
+		_touch_toggle.anchor_top = 0.0
+		_touch_toggle.anchor_bottom = 0.0
+		_touch_toggle.offset_left = -104.0 if vp.x <= 640.0 else -108.0
+		_touch_toggle.offset_right = -10.0
+		_touch_toggle.offset_top = 10.0 if vp.x <= 640.0 else 12.0
+		_touch_toggle.offset_bottom = 54.0 if vp.x <= 640.0 else 56.0
+		_set_btn_compact(_touch_toggle, 11, 4.0)
 
 	for btn in [dodge_l, dodge_r]:
 		if btn != null:

@@ -143,7 +143,11 @@ func leave_lobby_channel() -> void:
 
 
 func broadcast(event: String, payload: Dictionary) -> void:
-	_send(event, payload)
+	# TaloBackend already reserves wire kind "state" for host-owned lobby/roster
+	# snapshots; carry realtime ArenaNet bike transforms under "bike_state" so
+	# peer positions are relayed instead of dropped by host checks.
+	var wire_kind := "bike_state" if event == "state" else event
+	_send(wire_kind, payload)
 
 
 # ------------------------------------------------------------------ lobby ops ---
@@ -539,14 +543,18 @@ func _send(kind: String, payload: Dictionary) -> void:
 func _on_socket_message(res: String, data: Dictionary) -> void:
 	if res != "v1.channels.message":
 		return
-	var alias = data.get("playerAlias", null)
-	if alias is Dictionary and int((alias as Dictionary).get("id", -1)) <= 0:
+	var ch = data.get("channel", null)
+	if ch is Dictionary and _channel_id > 0 and int((ch as Dictionary).get("id", _channel_id)) != _channel_id:
 		return
-	# Talo stamps every socket message with the sending alias; use it to reject
-	# spoofed kill requests that name somebody else as the shooter.
+	var alias = data.get("playerAlias", null)
+	# Talo stamps every socket message with the sending alias; use an integer
+	# string so JSON floats (e.g. 12345678.0) match str(Talo.current_alias.id).
 	var sender_id := ""
 	if alias is Dictionary:
-		sender_id = str((alias as Dictionary).get("id", ""))
+		var alias_id := int((alias as Dictionary).get("id", -1))
+		if alias_id <= 0:
+			return
+		sender_id = str(alias_id)
 	var raw := str(data.get("message", ""))
 	var json := JSON.new()
 	if json.parse(raw) != OK or not (json.get_data() is Dictionary):
@@ -640,8 +648,20 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 				if str(p.get("victim", "")) == user_id:
 					# refreshed roster arrives via the host's state message
 					pass
+		"bike_state":
+			if payload is Dictionary:
+				var p := payload as Dictionary
+				var uid := str(p.get("id", ""))
+				if uid == "" or sender_id == "" or uid != sender_id:
+					return
+				broadcast_received.emit("state", payload)
 		"shot":
-			broadcast_received.emit("shot", payload)
+			if payload is Dictionary:
+				var p := payload as Dictionary
+				var oid := str(p.get("id", ""))
+				if oid == "" or sender_id == "" or oid != sender_id:
+					return
+				broadcast_received.emit("shot", payload)
 		"lobby_update":
 			broadcast_received.emit("lobby_update", payload)
 

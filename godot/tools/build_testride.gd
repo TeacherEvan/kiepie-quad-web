@@ -224,26 +224,6 @@ func _initialize() -> void:
 			UI.chip(Color(0.085, 0.075, 0.035, 0.82), Color(UI.GOLD.r, UI.GOLD.g, UI.GOLD.b, 0.28)))
 	layer.add_child(smashed)
 
-	var crosshair := Label.new()
-	crosshair.name = "Crosshair"
-	crosshair.text = "+"
-	crosshair.anchor_left = 0.5
-	crosshair.anchor_right = 0.5
-	crosshair.anchor_top = 0.5
-	crosshair.anchor_bottom = 0.5
-	crosshair.offset_left = -12.0
-	crosshair.offset_right = 12.0
-	crosshair.offset_top = -16.0
-	crosshair.offset_bottom = 16.0
-	crosshair.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	crosshair.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	crosshair.add_theme_font_size_override("font_size", 22)
-	crosshair.add_theme_color_override("font_color", Color(UI.TEXT.r, UI.TEXT.g, UI.TEXT.b, 0.55))
-	crosshair.add_theme_constant_override("outline_size", 4)
-	crosshair.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.65))
-	crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(crosshair)
-
 	var hitmarker := Label.new()
 	hitmarker.name = "HitMarker"
 	hitmarker.text = "×"
@@ -428,7 +408,7 @@ func _add_touch_controls(root: Node) -> void:
 	dodge_right.pivot_offset = Vector2(45.0, 40.0)
 	touch.add_child(dodge_right)
 
-	# --- right thumb: streamlined big GAS pedal (auto-fire handles cannons; analog push handles turbo)
+	# --- right thumb: compact GAS pedal (auto-fire handles cannons; analog push handles turbo)
 	var gas := Button.new()
 	gas.name = "BtnGas"
 	gas.text = "GAS"
@@ -436,13 +416,13 @@ func _add_touch_controls(root: Node) -> void:
 	gas.anchor_right = 1.0
 	gas.anchor_top = 1.0
 	gas.anchor_bottom = 1.0
-	gas.offset_left = -156.0
+	gas.offset_left = -92.0
 	gas.offset_right = -14.0
-	gas.offset_top = -174.0
+	gas.offset_top = -96.0
 	gas.offset_bottom = -18.0
 	gas.focus_mode = Control.FOCUS_NONE
 	UI.style_button(gas, UI.ACCENT)
-	gas.add_theme_font_size_override("font_size", 36)
+	gas.add_theme_font_size_override("font_size", 18)
 	touch.add_child(gas)
 
 	# --- top-right column, below Restart/View/Menu: manual overlay toggle (auto-detect fallback)

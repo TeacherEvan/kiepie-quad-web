@@ -4,6 +4,7 @@ extends Node3D
 const REMOTE_BIKE := preload("res://src/game/NetworkedBike.gd")
 const PROJECTILE := preload("res://src/game/Projectile.gd")
 const SEND_HZ := 15.0
+const SPAWN_ORDER := [0, 4, 2, 6, 1, 5, 3, 7]
 
 @export var local_bike_path: NodePath
 
@@ -15,9 +16,46 @@ var _shot_log: Dictionary = {}   # owner_id -> Array of msec timestamps (1 s, ma
 
 
 func _ready() -> void:
+	_place_local_bike_at_roster_slot()
+	_send_accum = 1.0 / SEND_HZ
 	Supabase.broadcast_received.connect(_on_broadcast)
 	Match.roster_changed.connect(_sync_roster)
 	_sync_roster()
+
+
+func _place_local_bike_at_roster_slot() -> void:
+	if Match == null or Match.players.size() <= 1:
+		return
+	var bike := get_node_or_null(local_bike_path) as VehicleBody3D
+	if bike == null:
+		return
+	var tree := get_tree()
+	if tree == null:
+		return
+	var points := tree.get_nodes_in_group("spawn_point")
+	if points.is_empty():
+		return
+	points.sort_custom(func(a: Node, b: Node) -> bool: return a.name.naturalnocasecmp_to(b.name) < 0)
+	var uids: Array[String] = []
+	for k in Match.players.keys():
+		uids.append(str(k))
+	uids.sort()
+	var idx := maxi(0, uids.find(Supabase.user_id))
+	var slot: int = SPAWN_ORDER[idx % SPAWN_ORDER.size()] % points.size()
+	var sp := points[slot] as Node3D
+	if sp == null:
+		return
+	var t := Transform3D(sp.global_transform.basis.orthonormalized(), sp.global_position + Vector3(0.0, 0.6, 0.0))
+	if bike.has_method("set_spawn"):
+		bike.call("set_spawn", t)
+	bike.global_transform = t
+	bike.linear_velocity = Vector3.ZERO
+	bike.angular_velocity = Vector3.ZERO
+	PhysicsServer3D.body_set_state(bike.get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, t)
+	var cam := tree.get_first_node_in_group("camera_rig") as Node3D
+	if cam != null:
+		cam.global_position = t.origin - t.basis.z * 4.6 + Vector3(0.0, 1.9, 0.0)
+		cam.look_at(t.origin + Vector3(0.0, 0.72, 0.0), Vector3.UP)
 
 
 func _exit_tree() -> void:
@@ -132,8 +170,7 @@ func _create_remote(id: String) -> void:
 	var row: Dictionary = Match.players.get(id, {})
 	if row.is_empty():
 		row = {"display_name": "RIDER", "color": "#40c8ff"}
-	var rb := Node3D.new()
-	rb.set_script(REMOTE_BIKE)
+	var rb := (REMOTE_BIKE as GDScript).new() as StaticBody3D
 	add_child(rb)
 	rb.call("setup", id, str(row.get("display_name", "RIDER")),
 			str(row.get("color", "#40c8ff")))
@@ -194,8 +231,16 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 func _sync_roster() -> void:
 	for uid in Match.players.keys():
 		var id := str(uid)
-		if id != Supabase.user_id and not _remote.has(id):
+		if id == Supabase.user_id:
+			continue
+		if not _remote.has(id):
 			_create_remote(id)
+		else:
+			var rb: Node = _remote.get(id)
+			var row: Dictionary = Match.players.get(uid, {})
+			if is_instance_valid(rb) and rb.has_method("update_identity"):
+				rb.call("update_identity", str(row.get("display_name", "RIDER")),
+						str(row.get("color", "#40c8ff")))
 	for id in _remote.keys():
 		if not Match.players.has(id):
 			var node: Node = _remote[id]

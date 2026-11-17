@@ -34,7 +34,7 @@ verdict() {
 		return
 	fi
 	note "   ok"
-	pass_lines="$(grep -E 'MIN_UP_Y|t=300|TOUCH VERIFY|TOUCH MULTITOUCH|PRACTICE:|STABILITY:|SMASH_IMPACT|UP_Y_AFTER_SMASH|TURBO:|DEBRIS|hud ready|smashed' "$log" | tail -6 || true)"
+	pass_lines="$(grep -E 'MIN_UP_Y|t=300|TOUCH VERIFY|TOUCH MULTITOUCH|PRACTICE:|MULTIPLAYER:|STABILITY:|SMASH_IMPACT|UP_Y_AFTER_SMASH|TURBO:|DEBRIS|hud ready|smashed' "$log" | tail -6 || true)"
 	[ -n "$pass_lines" ] && printf '%s\n' "$pass_lines" | sed 's/^/     /'
 	PASS=$((PASS + 1))
 }
@@ -157,6 +157,7 @@ run_gate controls        verify_controls.gd
 run_gate dodge           verify_dodge.gd
 run_gate vfx             verify_vfx.gd
 run_gate practice        verify_practice.gd
+run_gate multiplayer     verify_multiplayer.gd
 run_gate_windowed touch_multitouch verify_touch_multitouch.gd
 run_gate_gdunit
 

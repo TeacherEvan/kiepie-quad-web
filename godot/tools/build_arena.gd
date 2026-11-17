@@ -250,41 +250,58 @@ func _add_match_hud(root: Node) -> void:
 
 	var banner := Label.new()
 	banner.name = "Banner"
-	banner.text = "FIRST TO 10"
-	banner.anchor_left = 0.5
-	banner.anchor_right = 0.5
-	banner.offset_left = -260.0
-	banner.offset_right = 260.0
-	banner.offset_top = 12.0
-	banner.offset_bottom = 64.0
-	banner.horizontal_alignment = 1
-	_outlined(banner, Color(1.0, 0.86, 0.40, 1.0), 28, 8)
-	banner.label_settings = UI.title_settings(28, Color(1.0, 0.86, 0.40, 1.0))
-	banner.add_theme_stylebox_override("normal",
-			_chip(Color(0.06, 0.07, 0.10, 0.78), Color(1.0, 0.75, 0.25, 0.5)))
+	banner.text = "0/10"
+	banner.anchor_left = 0.0
+	banner.anchor_right = 0.0
+	banner.anchor_top = 0.0
+	banner.anchor_bottom = 0.0
+	banner.offset_left = 12.0
+	banner.offset_right = 136.0
+	banner.offset_top = 41.0
+	banner.offset_bottom = 59.0
+	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_outlined(banner, Color(0.95, 0.88, 0.65, 0.90), 13, 4)
 	hud.add_child(banner)
+
+	var score_toggle := Button.new()
+	score_toggle.name = "ScoreToggle"
+	score_toggle.text = "SCORES ▾"
+	score_toggle.anchor_left = 1.0
+	score_toggle.anchor_right = 1.0
+	score_toggle.anchor_top = 0.0
+	score_toggle.anchor_bottom = 0.0
+	score_toggle.offset_left = -216.0
+	score_toggle.offset_right = -116.0
+	score_toggle.offset_top = 12.0
+	score_toggle.offset_bottom = 56.0
+	score_toggle.focus_mode = Control.FOCUS_NONE
+	_style_button(score_toggle, Color(0.42, 0.50, 0.62, 0.72))
+	score_toggle.add_theme_font_size_override("font_size", 12)
+	hud.add_child(score_toggle)
 
 	var score := RichTextLabel.new()
 	score.name = "Scoreboard"
+	score.visible = false
 	score.anchor_left = 1.0
 	score.anchor_right = 1.0
-	score.offset_left = -300.0
-	score.offset_right = -14.0
-	score.offset_top = 66.0
-	score.offset_bottom = 240.0
+	score.offset_left = -260.0
+	score.offset_right = -10.0
+	score.offset_top = 62.0
+	score.offset_bottom = 200.0
 	score.scroll_active = false
-	score.add_theme_font_size_override("normal_font_size", 16)
-	score.add_theme_stylebox_override("normal", _chip(Color(0.05, 0.06, 0.09, 0.80)))
+	score.add_theme_font_size_override("normal_font_size", 14)
+	score.add_theme_stylebox_override("normal", _chip(Color(0.05, 0.06, 0.09, 0.84)))
 	hud.add_child(score)
 
 	var feed := VBoxContainer.new()
 	feed.name = "KillFeed"
 	feed.anchor_left = 0.0
 	feed.anchor_top = 0.0
-	feed.offset_left = 16.0
-	feed.offset_right = 340.0
-	feed.offset_top = 72.0
-	feed.offset_bottom = 210.0
+	feed.offset_left = 154.0
+	feed.offset_right = 410.0
+	feed.offset_top = 12.0
+	feed.offset_bottom = 124.0
 	feed.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	feed.add_theme_constant_override("separation", 4)
 	hud.add_child(feed)
@@ -293,23 +310,26 @@ func _add_match_hud(root: Node) -> void:
 	radar.name = "Radar"
 	radar.anchor_left = 0.0
 	radar.anchor_top = 0.0
-	radar.offset_left = 16.0
-	radar.offset_top = 220.0
-	radar.offset_right = 196.0
-	radar.offset_bottom = 400.0
+	radar.offset_left = 12.0
+	radar.offset_top = 66.0
+	radar.offset_right = 140.0
+	radar.offset_bottom = 194.0
 	radar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(radar)
 
 	var health_label := Label.new()
 	health_label.name = "HealthLabel"
-	health_label.text = "ARMOR  100 / 100"
+	health_label.text = "ARMOR 100"
 	health_label.anchor_left = 0.0
-	health_label.anchor_top = 1.0
-	health_label.offset_left = 210.0  # clear of the touch steering cluster
-	health_label.offset_right = 510.0
-	health_label.offset_top = -126.0
-	health_label.offset_bottom = -98.0
-	_outlined(health_label, Color(0.62, 1.0, 0.70, 1.0), 16)
+	health_label.anchor_right = 0.0
+	health_label.anchor_top = 0.0
+	health_label.anchor_bottom = 0.0
+	health_label.offset_left = 12.0
+	health_label.offset_right = 142.0
+	health_label.offset_top = 10.0
+	health_label.offset_bottom = 26.0
+	health_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_outlined(health_label, Color(0.62, 1.0, 0.70, 1.0), 11, 4)
 	hud.add_child(health_label)
 
 	var health_bar := ProgressBar.new()
@@ -318,11 +338,14 @@ func _add_match_hud(root: Node) -> void:
 	health_bar.value = 100.0
 	health_bar.show_percentage = false
 	health_bar.anchor_left = 0.0
-	health_bar.anchor_top = 1.0
-	health_bar.offset_left = 210.0  # clear of the touch steering cluster
-	health_bar.offset_right = 510.0
-	health_bar.offset_top = -94.0
-	health_bar.offset_bottom = -66.0
+	health_bar.anchor_right = 0.0
+	health_bar.anchor_top = 0.0
+	health_bar.anchor_bottom = 0.0
+	health_bar.offset_left = 12.0
+	health_bar.offset_right = 142.0
+	health_bar.offset_top = 27.0
+	health_bar.offset_bottom = 39.0
+	health_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	health_bar.add_theme_stylebox_override("fill", UI.bar_fill(UI.OK))
 	health_bar.add_theme_stylebox_override("background", UI.bar_track())
 	hud.add_child(health_bar)
@@ -414,37 +437,20 @@ func _add_match_hud(root: Node) -> void:
 	result.add_child(leave)
 	hud.add_child(result)
 
-	var cross := Label.new()
-	cross.name = "Crosshair"
-	cross.text = "+"
-	cross.anchor_left = 0.5
-	cross.anchor_right = 0.5
-	cross.anchor_top = 0.5
-	cross.anchor_bottom = 0.5
-	cross.offset_left = -14.0
-	cross.offset_right = 14.0
-	cross.offset_top = -18.0
-	cross.offset_bottom = 18.0
-	cross.horizontal_alignment = 1
-	cross.vertical_alignment = 1
-	cross.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_outlined(cross, Color(1.0, 1.0, 1.0, 0.92), 26, 6)
-	hud.add_child(cross)
-
 	var menu_btn := Button.new()
 	menu_btn.name = "MenuBtn"
-	menu_btn.text = "MAIN MENU"
+	menu_btn.text = "MENU"
 	menu_btn.anchor_left = 1.0
 	menu_btn.anchor_right = 1.0
 	menu_btn.anchor_top = 0.0
 	menu_btn.anchor_bottom = 0.0
-	menu_btn.offset_left = -278.0
-	menu_btn.offset_right = -154.0
-	menu_btn.offset_top = 14.0
-	menu_btn.offset_bottom = 58.0
+	menu_btn.offset_left = -320.0
+	menu_btn.offset_right = -224.0
+	menu_btn.offset_top = 12.0
+	menu_btn.offset_bottom = 56.0
 	menu_btn.focus_mode = Control.FOCUS_NONE
 	_style_button(menu_btn, Color(0.42, 0.50, 0.62, 0.72))
-	menu_btn.add_theme_font_size_override("font_size", 13)
+	menu_btn.add_theme_font_size_override("font_size", 12)
 	hud.add_child(menu_btn)
 
 	root.add_child(hud)
@@ -496,7 +502,7 @@ func _add_touch_controls(root: Node) -> void:
 	dodge_right.pivot_offset = Vector2(45.0, 45.0)
 	touch.add_child(dodge_right)
 
-	# --- right thumb: streamlined big GAS pedal (auto-fire handles cannons; analog push handles turbo)
+	# --- right thumb: compact GAS pedal (auto-fire handles cannons; analog push handles turbo)
 	var gas := Button.new()
 	gas.name = "BtnGas"
 	gas.text = "GAS"
@@ -504,16 +510,16 @@ func _add_touch_controls(root: Node) -> void:
 	gas.anchor_right = 1.0
 	gas.anchor_top = 1.0
 	gas.anchor_bottom = 1.0
-	gas.offset_left = -156.0
+	gas.offset_left = -92.0
 	gas.offset_right = -14.0
-	gas.offset_top = -174.0
+	gas.offset_top = -96.0
 	gas.offset_bottom = -18.0
 	gas.focus_mode = Control.FOCUS_NONE
 	_style_button(gas, Color(1.0, 0.46, 0.10, 0.9))
-	gas.add_theme_font_size_override("font_size", 36)
+	gas.add_theme_font_size_override("font_size", 18)
 	touch.add_child(gas)
 
-	# --- top-right column: manual overlay toggle (auto-detect fallback)
+	# --- top-right row: manual overlay toggle (auto-detect fallback)
 	var toggle := Button.new()
 	toggle.name = "BtnTouchToggle"
 	toggle.text = "TOUCH: AUTO"
@@ -521,14 +527,13 @@ func _add_touch_controls(root: Node) -> void:
 	toggle.anchor_right = 1.0
 	toggle.anchor_top = 0.0
 	toggle.anchor_bottom = 0.0
-	toggle.offset_left = -146.0
-	toggle.offset_right = -14.0
-	# Top-right above Scoreboard (offset_top = 66) so they never overlap.
-	toggle.offset_top = 14.0
-	toggle.offset_bottom = 58.0
+	toggle.offset_left = -108.0
+	toggle.offset_right = -10.0
+	toggle.offset_top = 12.0
+	toggle.offset_bottom = 56.0
 	toggle.focus_mode = Control.FOCUS_NONE
 	_style_button(toggle, Color(0.42, 0.50, 0.62, 0.55))
-	toggle.add_theme_font_size_override("font_size", 13)
+	toggle.add_theme_font_size_override("font_size", 11)
 	touch.add_child(toggle)
 
 	root.add_child(touch)

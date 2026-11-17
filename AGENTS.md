@@ -61,9 +61,9 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 - `gdlint` / `gdtoolkit` are **not installed** in this environment — do not rely on them.
   `godot-4.3 --check-only --script <file>` reports false "Identifier not found" for autoloads;
   use `tools/_check_scripts.gd` instead.
-- `run_gates.sh` runs **21 gates**: truth, stability, touch, features, smash_impact, diag2,
+- `run_gates.sh` runs **22 gates**: truth, stability, touch, features, smash_impact, diag2,
   cannons, settings, match_rules, combat, kill_flow, appeal, accessibility, talo_backend,
-  audit_regressions, controls, dodge, vfx, practice + `touch_multitouch` (runs under xvfb, not headless —
+  audit_regressions, controls, dodge, vfx, practice, multiplayer + `touch_multitouch` (runs under xvfb, not headless —
   synthesized touch needs a real window) + GdUnit4. `audit_regressions` locks the surgical-audit
   defects: forged `state` events, 3-stop VFX gradients, exhaust axis, malformed shot arrays and
   `respawn_at` as a future deadline. `settings` locks `Settings` v2 defaults (`video/fullscreen = true`),
@@ -79,7 +79,12 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   `practice` locks practice-mode cannons: TestRide's bike continuously fires via desktop hold-to-fire
   AND mobile target-locked auto-fire with zero overheat (`overheated`/`heat_changed` &
   `HUD/HeatBar`/`HUD/HeatLabel` removed), `MenuBtn` exists, `RestartBtn` recovers dead riders, and
-  no network kill broadcast happens in practice. Keep all green.
+  no network kill broadcast happens in practice. `multiplayer` locks remote-player proxy spawning,
+  visibility, and streamlined Arena HUD layout (`ArenaNet._create_remote()` uses `StaticBody3D`/`NetworkedBike.gd`,
+  surface-override mesh tinting, `CollisionShape3D` + `Label3D` Nameplate, distinct per-peer
+  `SpawnPoint` spreading, `TaloBackend` `"bike_state"` wire separation, 50%-smaller corner
+  `HealthBar`, subtle `"x/y"` corner `Banner`, collapsible `ScoreToggle`->`Scoreboard` dropdown, and
+  compact `BtnGas`). Keep all green.
   Exit 101 from GdUnit4 = pass with benign dummy-renderer orphan warnings; 100 = failure.
 - `run_gates.sh` exports `KIEPIE_MOCK_BACKEND=1` — gates must never touch the live Talo account.
   Backend-touching gates additionally hard-abort (`quit(2)`) if the mock is not active, instead of
