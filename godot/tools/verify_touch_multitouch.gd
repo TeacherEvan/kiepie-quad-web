@@ -58,8 +58,15 @@ func _pad_rect(layer: CanvasLayer) -> Rect2:
 
 func _pad_at(layer: CanvasLayer, frac: float) -> Vector2:
 	# frac: -1.0 (full left) .. +1.0 (full right)
+	return _pad_at_xy(layer, frac, 0.0)
+
+
+func _pad_at_xy(layer: CanvasLayer, x_frac: float, y_forward: float) -> Vector2:
+	# x_frac: -1..1 left..right; y_forward: -1..1 down..up (positive pushes forward)
 	var r := _pad_rect(layer)
-	return Vector2(r.get_center().x + frac * (r.size.x * 0.5 - 30.0), r.get_center().y)
+	return Vector2(
+			r.get_center().x + x_frac * (r.size.x * 0.5 - 30.0),
+			r.get_center().y - y_forward * (r.size.y * 0.5 - 10.0))
 
 
 func _initialize() -> void:
@@ -131,6 +138,40 @@ func _run() -> void:
 			"touch inside deadzone produces no steer")
 	_touch(2, _pad_at(layer, 0.05), false)
 	await process_frame
+
+	# ---- analog push-forward activates turbo while keeping horizontal steer live
+	var pad := layer.get_node_or_null("AnalogSteer") as Control
+	_touch(2, _pad_at_xy(layer, 0.0, 0.20), true)
+	await process_frame
+	_check(not Input.is_action_pressed("turbo"), "slight vertical offset inside band does not engage turbo")
+	_drag(2, _pad_at_xy(layer, 0.85, 0.90))
+	await process_frame
+	_check(Input.is_action_pressed("turbo"), "pushing analog forward engages turbo")
+	_check(Input.is_action_pressed("steer_right"), "pushing analog forward-right still steers right")
+	_check(pad != null and bool(pad.get("turbo_active")), "AnalogSteer view reflects turbo_active=true")
+	_drag(2, _pad_at_xy(layer, 0.85, 0.0))
+	await process_frame
+	_check(not Input.is_action_pressed("turbo"), "returning analog to vertical centre drops turbo")
+	_check(Input.is_action_pressed("steer_right"), "returning to centre keeps horizontal steer_right")
+	_check(pad != null and not bool(pad.get("turbo_active")), "AnalogSteer view reflects turbo_active=false")
+	# co-hold refcounting between analog push-forward and BtnTurbo
+	_drag(2, _pad_at_xy(layer, 0.0, 0.90))
+	_touch(1, _centre(layer, "BtnTurbo"), true)
+	await process_frame
+	_touch(1, _centre(layer, "BtnTurbo"), false)
+	await process_frame
+	_check(Input.is_action_pressed("turbo"), "analog forward keeps turbo held after BtnTurbo lift")
+	_touch(2, _pad_at_xy(layer, 0.0, 0.90), false)
+	await process_frame
+	_check(not Input.is_action_pressed("turbo"), "lifting analog finger drops turbo cleanly")
+	# focus-out during forward push releases turbo and clears view state
+	_touch(2, _pad_at_xy(layer, 0.0, 0.90), true)
+	await process_frame
+	_check(Input.is_action_pressed("turbo"), "analog push-forward holds turbo before focus-out")
+	layer._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
+	await process_frame
+	_check(not Input.is_action_pressed("turbo"), "focus-out releases analog-held turbo")
+	_check(pad != null and not bool(pad.get("turbo_active")), "focus-out resets AnalogSteer turbo_active")
 
 	# ---- two fingers on the same button: refcounted, one lift keeps the hold
 	_touch(0, _centre(layer, "BtnTurbo"), true)

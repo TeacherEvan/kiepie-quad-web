@@ -7,6 +7,7 @@ static var return_scene: String = ""
 const SCENE_MAIN := "res://scenes/MainMenu.tscn"
 const QUALITIES := ["auto", "low", "medium", "high"]
 const UI := preload("res://src/ui/UiTheme.gd")
+const MOBILE_INPUT := preload("res://src/ui/MobileTextInput.gd")
 
 var _refreshing := false
 var _rows: Node
@@ -61,6 +62,17 @@ func _connect_controls() -> void:
 	_bind_check("TouchForceRow/TouchForce", "controls", "touch_force")
 
 	_bind_line("DisplayNameRow/DisplayName", "gameplay", "display_name")
+	var display_name := _c("DisplayNameRow/DisplayName") as LineEdit
+	if display_name != null:
+		MOBILE_INPUT.attach(display_name, {
+			"title": "DISPLAY NAME",
+			"placeholder": "RIDER",
+			"submit_label": "DONE",
+			"enter_key_hint": "done",
+			"uppercase": false,
+			"commit_on_close": true,
+			"max_length": 16,
+		})
 	var color := _c("ColorRow/Color") as ColorPickerButton
 	if color:
 		color.color_changed.connect(func(c):

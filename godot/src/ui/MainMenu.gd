@@ -8,6 +8,7 @@ const SCENE_SETTINGS := "res://scenes/SettingsMenu.tscn"
 const SCENE_ARENA := "res://scenes/Arena.tscn"
 
 const UI := preload("res://src/ui/UiTheme.gd")
+const MOBILE_INPUT := preload("res://src/ui/MobileTextInput.gd")
 const COL_OK := UI.OK
 const COL_WARN := UI.WARN
 const COL_INFO := UI.INFO
@@ -33,6 +34,14 @@ func _ready() -> void:
 	_btn_join_code.pressed.connect(_on_join_code)
 	_btn_settings.pressed.connect(_on_settings)
 	_code.text_submitted.connect(_on_join_code)
+	MOBILE_INPUT.attach(_code, {
+		"title": "ROOM CODE",
+		"placeholder": "ROOM CODE",
+		"submit_label": "JOIN",
+		"enter_key_hint": "go",
+		"uppercase": true,
+		"commit_on_close": false,
+	})
 	Supabase.auth_status.connect(_on_auth_status)
 	Lobby.error_message.connect(_on_error)
 	Match.error_message.connect(_on_error)

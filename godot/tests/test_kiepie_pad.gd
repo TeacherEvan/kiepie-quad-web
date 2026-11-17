@@ -46,3 +46,39 @@ func test_touch_gas_holds_and_releases_action() -> void:
 	assert_bool(Input.is_action_pressed("move_forward")).is_true()
 	gas.button_up.emit()
 	assert_bool(Input.is_action_pressed("move_forward")).is_false()
+
+
+func test_main_menu_attaches_mobile_text_input() -> void:
+	var scene: PackedScene = load("res://scenes/MainMenu.tscn")
+	var menu := scene.instantiate() as Control
+	_roots.append(menu)
+	add_child(menu)
+	await get_tree().process_frame
+	var code_field := menu.get_node_or_null("SafeMargin/Card/VBox/JoinRow/CodeField") as LineEdit
+	assert_object(code_field).is_not_null()
+	assert_object(code_field.get_node_or_null("MobileTextInput")).is_not_null()
+
+
+func test_mobile_text_input_applies_dom_state() -> void:
+	var mobile_input := load("res://src/ui/MobileTextInput.gd")
+	var le := LineEdit.new()
+	_roots.append(le)
+	add_child(le)
+	var submitted := []
+	le.text_submitted.connect(func(t: String) -> void: submitted.append(t))
+
+	# Room code submit: uppercases and emits text_submitted
+	mobile_input.apply_dom_state(le, {"text": "ab12", "submitted": true}, true, false)
+	assert_str(le.text).is_equal("AB12")
+	assert_array(submitted).is_equal(["AB12"])
+
+	# Room code close without submit: preserves typed text, does NOT auto-submit
+	submitted.clear()
+	mobile_input.apply_dom_state(le, {"text": "xy99", "closed": true}, true, false)
+	assert_str(le.text).is_equal("XY99")
+	assert_array(submitted).is_empty()
+
+	# Display name close with commit_on_close: preserves case and commits
+	mobile_input.apply_dom_state(le, {"text": "Lea", "closed": true}, false, true)
+	assert_str(le.text).is_equal("Lea")
+	assert_array(submitted).is_equal(["Lea"])

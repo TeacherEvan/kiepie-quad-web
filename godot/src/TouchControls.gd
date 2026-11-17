@@ -17,13 +17,16 @@ const CAPTURE := "res://src/TouchCapture.gd"
 const ANALOG := "res://src/AnalogSteer.gd"
 
 const DEADZONE := 0.15
+const TURBO_ENGAGE := 0.48
+const TURBO_RELEASE := 0.32
 
 var _held: Dictionary = {}  # Input action -> Button (only actions this layer drives)
 var _counts: Dictionary = {}  # Input action -> hold references (fingers + signal holds)
 var _fingers: Dictionary = {}  # pointer index -> Input action
 var _signal_hold: Dictionary = {}  # Input action -> bool (held via button_down signal)
-var _analog: Dictionary = {}  # pointer index -> signed -1..1 thumb offset
+var _analog: Dictionary = {}  # pointer index -> Vector2(x: -1..1 steer, y: -1..1 forward)
 var _analog_side := 0  # -1 = steer_left held by pad, +1 = steer_right, 0 = none
+var _analog_turbo := false  # true while analog forward deflection holds "turbo"
 var _analog_pad: Control = null
 var _touch_toggle: Button
 var _force := false
@@ -123,15 +126,20 @@ func _analog_rect() -> Rect2:
 		return Rect2()
 	return _analog_pad.get_global_rect()
 
-func _analog_value(at: Vector2) -> float:
+func _analog_value(at: Vector2) -> Vector2:
 	var r := _analog_rect()
-	if r.size.x <= 1.0:
-		return 0.0
-	return clampf((at.x - r.get_center().x) / (r.size.x * 0.5 - 30.0), -1.0, 1.0)
+	if r.size.x <= 1.0 or r.size.y <= 1.0:
+		return Vector2.ZERO
+	var c := r.get_center()
+	var x := clampf((at.x - c.x) / maxf(r.size.x * 0.5 - 30.0, 1.0), -1.0, 1.0)
+	# Up on screen is smaller Y; positive forward means pushed toward/above the top edge.
+	var y := clampf((c.y - at.y) / maxf(r.size.y * 0.5 - 10.0, 1.0), -1.0, 1.0)
+	return Vector2(x, y)
 
 func _on_pointer_down(pointer: int, at: Vector2) -> void:
 	if _analog_rect().has_point(at):
 		_analog[pointer] = _analog_value(at)
+		_sync_analog()
 		return
 	var action := _hit_action(at)
 	if action == "" or _fingers.has(pointer):
@@ -144,6 +152,7 @@ func _on_pointer_move(pointer: int, at: Vector2) -> void:
 		# Deadzone-resistant tracking: the knob stays live under the thumb even
 		# if the finger wanders outside the pad vertically.
 		_analog[pointer] = _analog_value(at)
+		_sync_analog()
 		return
 	if not _fingers.has(pointer):
 		return
@@ -158,6 +167,7 @@ func _on_pointer_move(pointer: int, at: Vector2) -> void:
 func _on_pointer_up(pointer: int, _at: Vector2) -> void:
 	if _analog.has(pointer):
 		_analog.erase(pointer)
+		_sync_analog()
 		return
 	if not _fingers.has(pointer):
 		return
@@ -217,15 +227,21 @@ func _process(_delta: float) -> void:
 			if not btn.is_pressed():
 				_signal_hold[action] = false
 				_drop(action)
-	# Analog steering: strongest offset wins (two thumbs on the pad can't orchestrate
-	# a fight the vehicle feel can't read anyway).
+	_sync_analog()
+
+func _sync_analog() -> void:
+	# Analog steering + push-forward turbo: strongest horizontal offset steers,
+	# and pushing forward past TURBO_ENGAGE holds "turbo" (refcounted alongside BtnTurbo).
 	var target := 0.0
 	var best := 0.0
+	var best_forward := -1.0
 	for pointer in _analog:
-		var t: float = _analog[pointer]
-		if absf(t) > best:
-			best = absf(t)
-			target = t
+		var v: Vector2 = _analog[pointer]
+		if absf(v.x) > best:
+			best = absf(v.x)
+			target = v.x
+		if v.y > best_forward:
+			best_forward = v.y
 	var steer := _curve(target)
 	if steer < -0.001:
 		Input.action_press("steer_left", -steer)
@@ -239,7 +255,23 @@ func _process(_delta: float) -> void:
 		_analog_side = 1
 	else:
 		_release_analog_side()
-	_update_pad_knob(steer)
+
+	var want_turbo := false
+	if not _analog.is_empty():
+		var threshold := TURBO_RELEASE if _analog_turbo else TURBO_ENGAGE
+		want_turbo = best_forward >= threshold
+	_set_analog_turbo(want_turbo)
+	var display_turbo := maxf(0.0, best_forward) if not _analog.is_empty() else 0.0
+	_update_pad_knob(steer, display_turbo, _analog_turbo)
+
+func _set_analog_turbo(active: bool) -> void:
+	if active == _analog_turbo:
+		return
+	_analog_turbo = active
+	if active:
+		_hold("turbo")
+	else:
+		_drop("turbo")
 
 func _release_analog_side() -> void:
 	if _analog_side == -1:
@@ -248,11 +280,20 @@ func _release_analog_side() -> void:
 		Input.action_release("steer_right")
 	_analog_side = 0
 
-func _update_pad_knob(steer: float) -> void:
+func _update_pad_knob(steer: float, turbo_val: float = 0.0, turbo_on: bool = false) -> void:
 	if _analog_pad == null:
 		return
+	var changed := false
 	if not is_equal_approx(_analog_pad.get("value"), steer):
 		_analog_pad.set("value", steer)
+		changed = true
+	if not is_equal_approx(_analog_pad.get("turbo_value"), turbo_val):
+		_analog_pad.set("turbo_value", turbo_val)
+		changed = true
+	if bool(_analog_pad.get("turbo_active")) != turbo_on:
+		_analog_pad.set("turbo_active", turbo_on)
+		changed = true
+	if changed:
 		_analog_pad.queue_redraw()
 
 func _apply_visibility() -> void:
@@ -268,6 +309,7 @@ func _apply_visibility() -> void:
 	if not show_drive:
 		_release_all()
 		_release_analog_side()
+		_update_pad_knob(0.0, 0.0, false)
 
 func _on_toggle() -> void:
 	_force = not _force
@@ -290,6 +332,7 @@ func _release_all() -> void:
 		_signal_hold[action] = false
 	_fingers.clear()
 	_analog.clear()
+	_analog_turbo = false
 
 func _notification(what: int) -> void:
 	# OS-level interruption (phone call, notification shade, app backgrounded)
@@ -298,7 +341,7 @@ func _notification(what: int) -> void:
 	if what == Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT:
 		_release_all()
 		_release_analog_side()
-		_update_pad_knob(0.0)
+		_update_pad_knob(0.0, 0.0, false)
 
 func _exit_tree() -> void:
 	_release_all()
