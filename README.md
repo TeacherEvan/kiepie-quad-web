@@ -243,7 +243,7 @@ Kiepie bike/
 │  │  ├─ LobbyMenu.tscn, SettingsMenu.tscn, Arena.tscn
 │  │  └─ TestRide.tscn, KiepieBike.tscn
 │  ├─ src/                  # gameplay GDScript (core/, game/, net/, audio/, ui/)
-│  └─ tools/                # scene builders + 16 gates + GdUnit4
+│  └─ tools/                # scene builders + 17 gates + GdUnit4
 └─ renders/                 # all preview renders
 ```
 
@@ -272,7 +272,7 @@ deploy helper does this automatically. The Web build ships that key inside the p
 design — use a disposable, scoped dev key, never `TALO_API_ADMIN`. Lobbies are Talo channels,
 state lives in host-owned channel props, and shots/kills flow over channel socket messages.
 Scoring is host-authoritative client logic (no server-side validation). Without a key the client
-uses a full offline `MockBackend`, so all 17 gates run without credentials. The old `supabase/`
+uses a full offline `MockBackend`, so all 18 gates run without credentials. The old `supabase/`
 migrations are retained for history only and are not deployed.
 
 **Appeal pass:** 8 rotating pickups (shield / rapid-fire / repair / overdrive), 10
@@ -288,11 +288,12 @@ resolution. Settings persist in `user://settings.cfg` and can be restored to def
 
 **New gates:** `verify_cannons.gd`, `verify_settings.gd`, `verify_match_rules.gd`,
 `verify_combat.gd`, `verify_kill_flow.gd`, `verify_appeal.gd`, `verify_talo_backend.gd` and
-`verify_audit_regressions.gd` and `verify_controls.gd` join the existing suite —
-`godot/tools/run_gates.sh` now runs 17 gates offline (16 headless gates plus GdUnit4). The new
-gates exercise `TaloBackend` directly with no live account, lock the surgical-audit regressions
-(forged state, VFX gradient stops, exhaust axis, malformed shot payloads, respawn deadline), and
-prove that steering actually yaws the bike while keeping it upright. `godot/tools/deploy_web.sh` runs the gates, exports, checks the bundle,
+`verify_audit_regressions.gd`, `verify_controls.gd` and `verify_dodge.gd` join the existing
+suite — `godot/tools/run_gates.sh` now runs 18 gates offline (17 headless gates plus GdUnit4).
+The new gates exercise `TaloBackend` directly with no live account, lock the surgical-audit
+regressions (forged state, VFX gradient stops, exhaust axis, malformed shot payloads, respawn
+deadline), prove that steering actually yaws the bike while keeping it upright, and lock the
+Q/E dodge (direction, lift, cooldown, recovery). `godot/tools/deploy_web.sh` runs the gates, exports, checks the bundle,
 then (with `--apply`) commits, pushes and deploys to Vercel.
 Web export produces `web/index.pck` (~3.6 MB; the bundle check aborts above 4 MB) plus PWA
 manifest/service worker; deploy with the documented `vercel deploy --prod` command (pushes to

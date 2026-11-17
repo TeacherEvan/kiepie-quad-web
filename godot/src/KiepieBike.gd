@@ -7,6 +7,7 @@ extends VehicleBody3D
 ##   D / Right steer right
 ##   Space     handbrake
 ##   Shift     turbo (hold while throttling) +30% power, flames from the exhaust
+##   Q / E     dodge left / right: leap into a cartwheel to evade attacks
 ##   R         reset to spawn
 
 @export var engine_power := 420.0
@@ -17,6 +18,12 @@ extends VehicleBody3D
 @export var reverse_force := 180.0
 @export var visual_steer_scale := 0.75
 @export var wheel_radius := 0.280
+## Dodge: Q/E leap + cartwheel. Tunable together for feel.
+@export var dodge_lift := 7.2          ## upward velocity on dodge (m/s)
+@export var dodge_side := 5.5          ## lateral velocity (m/s)
+@export var dodge_spin := 8.5          ## cartwheel rate about local forward (rad/s)
+@export var dodge_duration := 0.72     ## seconds the cartwheel is left undamped
+@export var dodge_cooldown := 1.0      ## seconds before another dodge
 
 var turbo_active := false
 var player_id := ""   ## set by CombatController for projectile hit attribution
@@ -26,6 +33,9 @@ var _spawn := Transform3D.IDENTITY
 var _spawn_set := false
 var _turbo_blend := 0.0
 var _steer_sensitivity := 1.0
+var _dodge_time := 0.0
+var _dodge_cd := 0.0
+var _ground_coyote := 0.0   ## brief grace so suspension bounce can't eat a dodge
 
 @onready var _flames: GPUParticles3D = get_node_or_null("ExhaustFlames")
 @onready var _wheel_nodes := {
@@ -114,6 +124,17 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("reset_bike"):
 		reset_bike()
 
+	_dodge_time = maxf(0.0, _dodge_time - delta)
+	_dodge_cd = maxf(0.0, _dodge_cd - delta)
+	if _grounded():
+		_ground_coyote = 0.12
+	else:
+		_ground_coyote = maxf(0.0, _ground_coyote - delta)
+	if Input.is_action_just_pressed("dodge_left"):
+		_try_dodge(-1.0)
+	if Input.is_action_just_pressed("dodge_right"):
+		_try_dodge(1.0)
+
 	# Anti-rollover lives in _integrate_forces — see there.
 
 	var throttle := Input.get_axis("move_back", "move_forward")
@@ -186,11 +207,41 @@ func reset_bike() -> void:
 	_steer = 0.0
 	_turbo_blend = 0.0
 	turbo_active = false
+	_dodge_time = 0.0
+	_dodge_cd = 0.0
+	_ground_coyote = 0.0
 	if _flames:
 		_flames.emitting = false
 
 func speed_kmh() -> float:
 	return linear_velocity.length() * 3.6
+
+
+func _grounded() -> bool:
+	for key in _wheels:
+		var w: VehicleWheel3D = _wheels[key]
+		if w != null and is_instance_valid(w) and w.is_in_contact():
+			return true
+	return false
+
+
+func _try_dodge(dir: float) -> void:
+	## Q = -1 (left), E = +1 (right). Ground-only, with a cooldown so it
+	## cannot be spammed into infinite airtime.
+	if _dodge_cd > 0.0 or _ground_coyote <= 0.0:
+		return
+	_dodge_cd = dodge_cooldown
+	_dodge_time = dodge_duration
+
+	var basis := global_transform.basis.orthonormalized()
+	# Lift + sideways hop. Applying velocity (not impulse) keeps the leap
+	# independent of mass and exactly reproducible for the regression gate.
+	linear_velocity += Vector3.UP * dodge_lift
+	linear_velocity += basis.x * (dir * dodge_side)
+	# Cartwheel about the bike's forward axis. Rotating +Z takes local +Y
+	# toward -X (left), so a left dodge (dir=-1) rolls positively.
+	angular_velocity += basis.z * (-dir * dodge_spin)
+	VfxFactory.dust_puff(self, Vector3.ZERO, 28)
 
 
 func _on_settings_changed(section: String, key: String, _value: Variant) -> void:
@@ -208,4 +259,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var trans := av - yaw
 	var lean := clampf(1.0 - up.dot(Vector3.UP), 0.0, 1.0)
 	var damp := lerpf(0.80, 0.96, lean)
+	if _dodge_time > 0.0:
+		# Mid-cartwheel: the spin IS roll, so leave transverse angular
+		# velocity undamped until the dodge window closes.
+		damp = 0.0
 	state.angular_velocity = yaw + trans * (1.0 - damp)

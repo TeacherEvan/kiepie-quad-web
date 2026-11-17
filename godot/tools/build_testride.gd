@@ -171,7 +171,8 @@ func _initialize() -> void:
 	var help := Label.new()
 	help.name = "Help"
 	help.text = ("KIEPIE QUAD\nW/Up throttle   S/Down brake   A/D steer\n"
-			+ "Space handbrake   SHIFT = turbo   C = camera   R = restart")
+			+ "Q/E dodge left/right   SHIFT = turbo\n"
+			+ "Space handbrake   C = camera   R = restart")
 	help.position = Vector2(16, 14)
 	help.offset_right = 244.0
 	help.offset_bottom = 110.0
