@@ -32,7 +32,14 @@ func _count_projectiles(node: Node) -> int:
 func _run() -> void:
 	await process_frame
 	var settings_node := root.get_node_or_null("Settings")
+	var sb: Node = root.get_node_or_null("Supabase")
+	if sb != null and not bool(sb.get("use_mock")):
+		printerr("LIVE BACKEND — refusing to run gate (KIEPIE_MOCK_BACKEND=1 not effective)")
+		quit(2)
+		return
+	var _touch_force_prior: Variant = null
 	if settings_node != null:
+		_touch_force_prior = settings_node.call("get_value", "controls", "touch_force", false)
 		settings_node.call("set_value", "controls", "touch_force", true)
 
 	var match_state: Node = root.get_node("Match")
@@ -84,9 +91,17 @@ func _run() -> void:
 	var after := _count_projectiles(ride)
 	_check(after > before, "practice fire spawns a projectile (%d -> %d)" % [before, after])
 
-	# ---- cleanup
+	# ---- practice damage actually lands (drums can kill the rider)
+	if combat != null:
+		var hp_before := float(combat.get("health"))
+		combat.call("take_damage", 30.0, "audit-practice", Vector3.ZERO)
+		var hp_after := float(combat.get("health"))
+		_check(hp_after == hp_before - 30.0,
+				"practice take_damage applies (%.0f -> %.0f)" % [hp_before, hp_after])
+
+	# ---- cleanup (restore the developer's actual touch_force prior)
 	if settings_node != null:
-		settings_node.call("set_value", "controls", "touch_force", false)
+		settings_node.call("set_value", "controls", "touch_force", _touch_force_prior)
 	Input.action_release("fire")
 
 	print("PRACTICE: %d failure(s)" % _fail)

@@ -39,8 +39,6 @@ func _initialize() -> void:
 	print("Workshop _intact=%s" % intact)
 	print("UP_Y_AFTER_SMASH: %.3f (expect > 0.80)" % up_after)
 	print("DEBRIS: %d RigidBody3D children in root (1 is the bike; 14 new debris expected)" % debris)
-	if intact == false and debris >= 15:
-		print("SMASH_IMPACT: PASS")
-	else:
-		print("SMASH_IMPACT: FAIL")
-	quit()
+	var ok: bool = intact == false and debris >= 15
+	print("SMASH_IMPACT: %s" % ("PASS" if ok else "FAIL"))
+	quit(0 if ok else 1)

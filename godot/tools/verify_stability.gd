@@ -28,8 +28,5 @@ func _initialize() -> void:
 	var final_up := bike.global_transform.basis.y.normalized().y
 	print("STABILITY: min up.y = %.3f (expect > 0.80)" % min_up)
 	print("STABILITY: final up.y = %.3f (expect > 0.95)" % final_up)
-	if min_up > 0.80 and final_up > 0.95:
-		print("STABILITY: PASS")
-	else:
-		print("STABILITY: FAIL")
-	quit()
+	print("STABILITY: PASS" if (min_up > 0.80 and final_up > 0.95) else "STABILITY: FAIL")
+	quit(0 if (min_up > 0.80 and final_up > 0.95) else 1)

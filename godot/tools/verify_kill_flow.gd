@@ -21,6 +21,10 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var sb: Node = root.get_node("Supabase")
+	if not bool(sb.get("use_mock")):
+		printerr("LIVE BACKEND — refusing to run gate (KIEPIE_MOCK_BACKEND=1 not effective)")
+		quit(2)
+		return
 	var match_state: Node = root.get_node("Match")
 	var lobby: Node = root.get_node("Lobby")
 	await lobby.call("join_auto")

@@ -27,7 +27,9 @@ func _initialize() -> void:
 	# leaving it ON would change this gate's assumptions.
 	await process_frame
 	var settings_node := get_root().get_node_or_null("Settings")
+	var _touch_force_prior: Variant = null
 	if settings_node != null:
+		_touch_force_prior = settings_node.call("get_value", "controls", "touch_force", false)
 		settings_node.call("set_value", "controls", "touch_force", false)
 
 	var scene: PackedScene = load("res://scenes/TestRide.tscn")
@@ -169,10 +171,12 @@ func _initialize() -> void:
 		await process_frame
 	_check(not Input.is_action_pressed("move_forward"), "overlay exit releases held actions")
 
-	# ---- cleanup any stray action state
+	# ---- cleanup any stray action state; restore developer's touch_force prior
 	for a in ["move_forward", "move_back", "steer_left", "steer_right", "turbo",
 			"dodge_left", "dodge_right", "reset_bike"]:
 		Input.action_release(a)
+	if settings_node != null:
+		settings_node.call("set_value", "controls", "touch_force", _touch_force_prior)
 
 	print("TOUCH VERIFY: %d failure(s)" % _failures)
 	quit(1 if _failures > 0 else 0)

@@ -28,7 +28,17 @@ func _new_backend() -> Node:
 	backend._channel_id = -1
 	return backend
 
+
 func _initialize() -> void:
+	await process_frame
+	await process_frame
+	# autoload _ready runs after the tool's _initialize in --script mode;
+	# the mock/live decision is only meaningful once it has run
+	var sb: Node = get_root().get_node_or_null("Supabase")
+	if sb == null or not bool(sb.get("use_mock")):
+		printerr("LIVE BACKEND — refusing to run gate (KIEPIE_MOCK_BACKEND=1 not effective)")
+		quit(2)
+		return
 	var backend := _new_backend()
 	get_root().add_child(backend)
 
@@ -41,6 +51,12 @@ func _initialize() -> void:
 			{"p_target": "2", "p_token": "tok-1", "p_killer": "1"})
 	_check(not bool(reused.get("ok", true)) and str(reused.get("reason", "")) == "token_consumed",
 			"host rejects a reused token with token_consumed")
+
+	# Host: kill claims inside the per-killer cooldown are rate-limited.
+	var rapid: Dictionary = await backend.call_rpc("register_kill",
+			{"p_target": "2", "p_token": "tok-5", "p_killer": "1"})
+	_check(not bool(rapid.get("ok", true)) and str(rapid.get("reason", "")) == "rate_limited",
+			"host rate-limits a second kill within 1 s")
 
 	# Host: self-kill and non-playing lobby are refused.
 	var self_kill: Dictionary = await backend.call_rpc("register_kill",
@@ -62,7 +78,11 @@ func _initialize() -> void:
 	_check(int((backend._roster["2"] as Dictionary).get("score", 0)) == score_before,
 			"host ignores kill_request from a mismatched alias")
 
-	# Host: a genuine alias-authored kill_request is applied.
+	# Host: a genuine alias-authored kill_request is applied (after host's
+	# 1-second per-killer cooldown elapses).
+	var wait_start := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - wait_start < 1100:
+		await process_frame
 	var genuine := JSON.stringify({"k": "kill_request",
 			"p": {"killer": "2", "target": "1", "token": "tok-genuine"}})
 	await backend._on_socket_message("v1.channels.message",

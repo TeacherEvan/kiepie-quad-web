@@ -76,6 +76,16 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   broadcast happens in practice. Keep all green.
   Exit 101 from GdUnit4 = pass with benign dummy-renderer orphan warnings; 100 = failure.
 - `run_gates.sh` exports `KIEPIE_MOCK_BACKEND=1` — gates must never touch the live Talo account.
+  Backend-touching gates additionally hard-abort (`quit(2)`) if the mock is not active, instead of
+  relying on this env export alone; gate timeouts are enforced via `timeout` (150/240 s) and the
+  xvfb leg fails loudly when `xvfb-run` is missing. `verify_settings.gd` wraps itself in a
+  `user://settings.cfg` backup/restore; other gates restore captured priors rather than hardcoded
+  defaults. `godot/reports/` is gitignored (untrack with `git rm -r --cached godot/reports`).
+- Combat scoring hardening (post-audit): TaloBackend applies a per-killer 1 s cooldown and a
+  20/min window to `register_kill` (client-minted shot tokens cannot be issuance-bound on Talo v1;
+  rate is the only server-side lever), and `join`/`leave` socket messages are bound to the sender's
+  alias with score/row clamping. ArenaNet drops non-finite, far-off-origin, oversized-direction and
+  >12/s shot payloads, and CombatController never names an attacker the lobby doesn't know.
 - Headless dummy-renderer RID/leak `ERROR:` lines at exit are benign; gates judge PASS/FAIL lines
   and script errors, not those.
 - `verify_appeal.gd` tests the drum chain with a **wall-clock timer**, not frame counts —
@@ -189,7 +199,9 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   network kill broadcasts and the match gate are skipped — the local death/respawn flow still
   works). TestRide's touch overlay has a `BtnFire`; `verify_practice.gd` locks presence,
   focus, target size, wiring and an actual input-driven shot. Fire keys/buttons behave the
-  same in practice as in the arena.
+  same in practice as in the arena. As of the 2026-11-17 hardening, `take_damage()` also bypasses
+  the match gate in practice mode (drums damage/kill the rider offline); `verify_practice.gd`
+  locks that too.
 - Touch/mobile: `TouchControls.gd` + `TouchCapture.gd` (full-rect, MOUSE_FILTER_PASS) implement
   real two-thumb multi-touch: every overlay drive button is a MOUSE_FILTER_IGNORE shell,
   hit-tested by the capture

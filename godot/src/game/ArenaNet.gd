@@ -11,6 +11,7 @@ var _remote: Dictionary = {}
 var _send_accum := 0.0
 var _streak := 0
 var _hitstop := false
+var _shot_log: Dictionary = {}   # owner_id -> Array of msec timestamps (1 s, max 12)
 
 
 func _ready() -> void:
@@ -153,8 +154,32 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 		return
 	var o := Vector3(float(origin_a[0]), float(origin_a[1]), float(origin_a[2]))
 	var d := Vector3(float(dir_a[0]), float(dir_a[1]), float(dir_a[2]))
+	# Socket payloads are untrusted: JSON "1e999" parses to float inf, which
+	# sails straight through a zero-length guard.
+	if not (is_finite(o.x) and is_finite(o.y) and is_finite(o.z)
+			and is_finite(d.x) and is_finite(d.y) and is_finite(d.z)):
+		return
+	# shots leave the muzzle of a live bike (well, its ~4 m lag window); anything
+	# parked further away is fabricated coordinates
+	var sender: Node3D = _remote.get(owner_id)
+	if sender != null and is_instance_valid(sender) and sender.global_position.distance_to(o) > 5.0:
+		return
 	if d.length_squared() < 1e-8:
 		return
+	if d.length() > 100.0:
+		# absurd impulse: not a direction we are willing to simulate
+		return
+	# per-sender rate limit: 12 remote shots per second
+	var now := Time.get_ticks_msec() / 1000.0
+	var window: Array = _shot_log.get(owner_id, [])
+	var kept: Array = []
+	for t in window:
+		if now - float(t) < 1.0:
+			kept.append(t)
+	if kept.size() >= 12:
+		return
+	kept.append(now)
+	_shot_log[owner_id] = kept
 	var proj := Node3D.new()
 	proj.set_script(PROJECTILE)
 	add_child(proj)

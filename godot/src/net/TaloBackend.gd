@@ -21,6 +21,8 @@ var _lobby: Dictionary = {}
 var _roster: Dictionary = {}          # user_id -> player row
 var _starting := false
 var _used_tokens: Dictionary = {}     # shot token -> true, stops echoed kills scoring twice
+var _kill_cooldowns: Dictionary = {}  # killer -> msec timestamp of last scored kill (host only)
+var _kill_window: Dictionary = {}     # killer -> Array of msec timestamps (60 s, max 20)
 var _prop_gen := 0                    # guards interleaved channel-prop writes
 var _reconnecting := false
 
@@ -346,6 +348,23 @@ func _register_kill(args: Dictionary) -> Dictionary:
 				"winner_id": str(_lobby.get("winner_id", ""))}
 	if _used_tokens.has(token):
 		return {"ok": false, "reason": "token_consumed"}
+	# host rate limit: one scored kill per second per killer, max 20 a minute.
+	# kill claims carry a forgeable token (clients mint their own); rate is the
+	# server-side lever we actually have.
+	var now_s := Time.get_ticks_msec() / 1000.0
+	var last := float(_kill_cooldowns.get(killer, -10.0))
+	if now_s - last < 1.0:
+		return {"ok": false, "reason": "rate_limited"}
+	var arr: Array = _kill_window.get(killer, [])
+	var kept: Array = []
+	for t in arr:
+		if now_s - float(t) < 60.0:
+			kept.append(t)
+	if kept.size() >= 20:
+		return {"ok": false, "reason": "rate_limited"}
+	kept.append(now_s)
+	_kill_cooldowns[killer] = now_s
+	_kill_window[killer] = kept
 	if killer == target:
 		return {"ok": false, "reason": "self_kill"}
 	if str(_lobby.get("status", "")) != "playing":
@@ -453,9 +472,23 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 				var uid := str(p.get("user_id", ""))
 				if uid == "":
 					return
+				if sender_id == "" or uid != sender_id:
+					# the alias stamp and the claimed identity must agree —
+					# otherwise any member could forge or erase another's row
+					return
 				if kind == "join":
+					if _roster.size() >= 8 and not _roster.has(uid):
+						return  # full lobby; no unbounded growth
 					var row := p.duplicate(true)
 					row["user_id"] = uid
+					row["display_name"] = str(row.get("display_name", "RIDER")).substr(0, 32)
+					var col := str(row.get("color", "#40c8ff"))
+					if not _is_hex_color(col):
+						col = "#40c8ff"
+					row["color"] = col
+					row["score"] = 0
+					row["is_ready"] = false
+					row["respawn_at"] = ""
 					_roster[uid] = row
 				else:
 					_roster.erase(uid)
@@ -539,3 +572,14 @@ func _parse_iso(value: String) -> float:
 
 func _token() -> String:
 	return "%d-%d" % [Time.get_ticks_usec(), randi()]
+
+
+func _is_hex_color(col: String) -> bool:
+	if col.length() != 7 or col[0] != "#":
+		return false
+	for i in range(1, 7):
+		var c := col.substr(i, 1)
+		var ok := (c >= "0" and c <= "9") or (c >= "a" and c <= "f") or (c >= "A" and c <= "F")
+		if not ok:
+			return false
+	return true

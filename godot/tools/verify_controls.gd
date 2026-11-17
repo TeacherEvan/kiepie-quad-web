@@ -54,6 +54,11 @@ func _measure(sensitivity: float) -> Dictionary:
 
 func _run() -> void:
 	await process_frame
+	# capture the developer's prior before any _set_setting mutates it
+	var _steer_prior: Variant = 1.0
+	var _node: Node = get_root().get_node_or_null("Settings")
+	if _node != null:
+		_steer_prior = _node.call("get_value", "controls", "steer_sensitivity", 1.0)
 	var normal: Dictionary = await _measure(1.0)
 	_check(float(normal["heading"]) > 15.0,
 			"steering yaws the bike (heading %.1f deg)" % float(normal["heading"]))
@@ -64,6 +69,6 @@ func _run() -> void:
 	_check(float(high["heading"]) > float(low["heading"]) * 1.15,
 			"steer sensitivity changes turn rate (low %.1f vs high %.1f deg)" % [
 					float(low["heading"]), float(high["heading"])])
-	_set_setting("steer_sensitivity", 1.0)
+	_set_setting("steer_sensitivity", _steer_prior)
 	print("CONTROLS: %d failure(s)" % _fail)
 	quit(1 if _fail > 0 else 0)

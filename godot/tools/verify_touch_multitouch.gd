@@ -69,7 +69,9 @@ func _initialize() -> void:
 func _run() -> void:
 	await process_frame
 	var settings_node := root.get_node_or_null("Settings")
+	var _touch_force_prior: Variant = null
 	if settings_node != null:
+		_touch_force_prior = settings_node.call("get_value", "controls", "touch_force", false)
 		settings_node.call("set_value", "controls", "touch_force", true)
 
 	var scene := load("res://scenes/TestRide.tscn") as PackedScene
@@ -247,7 +249,7 @@ func _run() -> void:
 			"dodge_left", "dodge_right", "fire"]:
 		Input.action_release(a)
 	if settings_node != null:
-		settings_node.call("set_value", "controls", "touch_force", false)
+		settings_node.call("set_value", "controls", "touch_force", _touch_force_prior)
 	Input.action_release("reset_bike")
 
 	print("TOUCH MULTITOUCH: %d failure(s)" % _failures)
