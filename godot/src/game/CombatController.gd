@@ -122,7 +122,9 @@ func _play_sfx(name: String) -> void:
 
 
 func take_damage(amount: float, attacker_id: String, point: Vector3, token: String = "") -> void:
-	if not alive or not Match.is_playing():
+	# practice mode: cannons/drums/buildings fire and deal damage without an
+	# arena lobby (the match gate is for network sync, not for offline play)
+	if not alive or (not practice_mode and not Match.is_playing()):
 		return
 	var now := Time.get_ticks_msec() / 1000.0
 	if now < _invuln_until or now < _shield_until:
@@ -143,14 +145,21 @@ func take_damage(amount: float, attacker_id: String, point: Vector3, token: Stri
 
 func _die(by: String) -> void:
 	alive = false
-	killer_id = by
-	died.emit(by)
+	# never name an attacker the lobby doesn't know: broadcasts relay unverified
+	# wire strings verbatim, and every honest peer would score them
+	var attributable := by
+	if practice_mode or Match.players.is_empty() or Match.players.has(by):
+		attributable = by
+	else:
+		attributable = ""
+	killer_id = attributable
+	died.emit(attributable)
 	VFX.explosion(_fx_parent(), bike.global_position, player_color, 1.3)
 	_play_sfx("explosion")
 	_shake(0.55)
 	if not practice_mode:
 		Supabase.broadcast("kill", {
-			"killer": by,
+			"killer": attributable,
 			"victim": Supabase.user_id,
 			"token": _last_hit_token,
 			"at": Time.get_ticks_msec(),
@@ -172,6 +181,8 @@ func _respawn() -> void:
 	if not points.is_empty():
 		var pick: Node3D = points[RandomNumberGenerator.new().randi_range(0, points.size() - 1)] as Node3D
 		pos = pick.global_position + Vector3(0.0, 0.6, 0.0)
+	elif practice_mode:
+		pos = Vector3(0.0, 0.6, 0.0)
 	else:
 		pos = Vector3(RandomNumberGenerator.new().randf_range(-25, 25), 0.6,
 				RandomNumberGenerator.new().randf_range(-25, 25))
@@ -237,6 +248,8 @@ func _on_projectile_hit(collider: Object, point: Vector3, projectile: Node) -> v
 		if (collider as Node).has_method("ignite"):
 			(collider as Node).call("ignite", owner_id, token)
 			_play_sfx("impact")
+		if owner_id == Supabase.user_id:
+			hit_confirmed.emit()
 		return
 	if target_id == "":
 		return

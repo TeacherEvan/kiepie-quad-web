@@ -104,11 +104,12 @@ func _decal_caps() -> void:
 	root.add_child(holder)
 	for i in range(20):
 		vf.scorch(holder, Vector3(float(i), 0.0, 0.0))
+	for i in range(vf.MAX_SCAR + 5):
 		vf.scar(holder, Vector3(float(i), 1.0, 0.0), Vector3.UP, "metal")
 	_check(get_nodes_in_group("vfx_scorch").size() <= vf.MAX_SCORCH,
 			"scorch decals capped at %d" % vf.MAX_SCORCH)
 	_check(get_nodes_in_group("vfx_scar").size() <= vf.MAX_SCAR,
-			"bullet scars capped at %d" % vf.MAX_SCAR)
+			"bullet scars capped at %d (exercised at MAX+5)" % vf.MAX_SCAR)
 	holder.free()
 
 

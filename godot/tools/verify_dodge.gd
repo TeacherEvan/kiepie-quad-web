@@ -38,9 +38,10 @@ func _trial(action: String, expected_side_sign: float, label: String) -> void:
 	_check(grounded, label + " starts with wheels down")
 	await _spin(4)
 
+	var spin_sign := -expected_side_sign
 	Input.action_press(action)
 	var fired := await _wait_until(func():
-		return absf(bike.angular_velocity.dot(bike.global_transform.basis.z.normalized())) > 3.0, 240)
+		return bike.angular_velocity.dot(bike.global_transform.basis.z.normalized()) * spin_sign > 3.0, 240)
 	_check(fired, label + " triggers a cartwheel")
 	if not fired:
 		_release_all()
@@ -54,13 +55,18 @@ func _trial(action: String, expected_side_sign: float, label: String) -> void:
 			"%s hops %s (side=%.2f)" % [label,
 					"left" if expected_side_sign > 0.0 else "right", side])
 
-	# Cooldown: an immediate re-press must not fire a second dodge.
+	# Cooldown: the re-press must not re-arm the cartwheel (mid-air vy is just
+	# the first leap's remnant). _dodge_time stays decrementing, never re-armed.
 	_release_all()
 	await _spin(2)
+	var time_before := float(bike.get("_dodge_time"))
 	Input.action_press(action)
-	await _spin(4)
+	await _spin(6)
 	var cd := float(bike.get("_dodge_cd"))
 	_check(cd > 0.0, "%s respects cooldown (cd=%.2fs)" % [label, cd])
+	var time_after := float(bike.get("_dodge_time"))
+	_check(time_after < time_before,
+			"%s triggers no second cartwheel during cooldown (_dodge_time %.2f -> %.2f)" % [label, time_before, time_after])
 	_release_all()
 
 	# Recovery: within 4 simulated seconds it must be upright again.

@@ -43,7 +43,8 @@ run_gate() {
 	local name="$1" tool="$2"
 	local log="$LOGDIR/$name.log"
 	note "== $name"
-	"$GODOT" --headless --path godot --script "tools/$tool" >"$log" 2>&1
+	# wall-clock budget: a wedged await must not hang the suite forever
+	timeout --foreground 150 "$GODOT" --headless --path godot --script "tools/$tool" </dev/null >"$log" 2>&1
 	verdict "$name" "$log" $?
 }
 
@@ -54,8 +55,13 @@ run_gate_windowed() {
 	local name="$1" tool="$2"
 	local log="$LOGDIR/$name.log"
 	note "== $name (xvfb)"
-	xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --resolution 1280x720 \
-		--path godot --script "tools/$tool" >"$log" 2>&1
+	if ! command -v xvfb-run >/dev/null 2>&1; then
+		note "   FAIL  xvfb-run not present — multi-touch gate cannot run (install xvfb)"
+		FAILED+=("$name")
+		return
+	fi
+	timeout --foreground 240 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --resolution 1280x720 \
+		--path godot --script "tools/$tool" </dev/null >"$log" 2>&1
 	verdict "$name" "$log" $?
 }
 
@@ -117,8 +123,8 @@ fi
 run_gate_gdunit() {
 	local log="$LOGDIR/gdunit.log"
 	note "== gdunit"
-	"$GODOT" --headless --path godot -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd \
-		--ignoreHeadlessMode -a res://tests >"$log" 2>&1
+	timeout --foreground 240 "$GODOT" --headless --path godot -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd \
+		--ignoreHeadlessMode -a res://tests </dev/null >"$log" 2>&1
 	local rc=$?
 	# gdUnit4 exit codes: 0 = all pass, 100 = failure, 101 = pass with orphan
 	# warnings (dummy-renderer RIDs in headless; benign here), 103/104 = env errors

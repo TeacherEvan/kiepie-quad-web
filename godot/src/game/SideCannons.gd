@@ -25,6 +25,7 @@ var _cooldown := 0.0
 var _rapid := false
 var _muzzles: Array[Node3D] = []
 var _color := Color(1.0, 0.55, 0.15)
+var _fx_holder: Node3D = null
 
 
 func setup(p_owner: Node3D, p_owner_id: String, p_hit_callback: Callable, p_color: Color) -> void:
@@ -32,23 +33,26 @@ func setup(p_owner: Node3D, p_owner_id: String, p_hit_callback: Callable, p_colo
 	owner_id = p_owner_id
 	hit_callback = p_hit_callback
 	_color = p_color
+	# purge stale fallback mounts from an earlier setup on the same owner
+	for m in _muzzles:
+		if is_instance_valid(m) and m.name == "MuzzleFallback":
+			m.queue_free()
 	_muzzles.clear()
 	# Prefer the authored muzzle empties, falling back to the bore meshes which
 	# also sit exactly at each barrel tip (and are the authoritative anchors).
-	for candidates in [["Muzzle_L", "Cannon_Bore_L"], ["Muzzle_R", "Cannon_Bore_R"]]:
+	for spec in [["Muzzle_L", "Cannon_Bore_L", -0.62], ["Muzzle_R", "Cannon_Bore_R", 0.62]]:
 		var found: Node3D = null
-		for name in candidates:
-			found = _find_named(p_owner, name)
+		for node_name in [spec[0], spec[1]]:
+			found = _find_named(p_owner, node_name)
 			if found != null:
 				break
 		if found != null:
 			_muzzles.append(found)
-	if _muzzles.size() < 2:
-		# fallback: symmetric mounts near the front fenders (Godot local space)
-		for x in [-0.62, 0.62]:
+		else:
+			# per-side fallback: one missing muzzle must not triple the mounts
 			var anchor := Node3D.new()
 			anchor.name = "MuzzleFallback"
-			anchor.position = Vector3(x, 0.62, 0.78)
+			anchor.position = Vector3(spec[2], 0.62, 0.78)
 			p_owner.add_child(anchor)
 			_muzzles.append(anchor)
 
@@ -86,7 +90,8 @@ func fire() -> void:
 	if not can_fire():
 		return
 	_cooldown = 0.09 if _rapid else 0.20
-	heat = minf(1.0, heat + (HEAT_PER_SHOT * 0.55 if _rapid else HEAT_PER_SHOT))
+	var added := HEAT_PER_SHOT * (0.55 if _rapid else 1.0)
+	heat = minf(1.0, heat + added)
 	if heat >= 1.0:
 		overheated = true
 	heat_changed.emit(heat, overheated)
@@ -108,9 +113,11 @@ func fire() -> void:
 		else:
 			# headless/tool contexts have no current scene and a Window root:
 			# mount effects on a dedicated holder instead of a non-Node3D parent
-			fx_parent = Node3D.new()
-			fx_parent.name = "CannonFX"
-			get_tree().root.add_child(fx_parent)
+			if _fx_holder == null or not is_instance_valid(_fx_holder):
+				_fx_holder = Node3D.new()
+				_fx_holder.name = "CannonFX"
+				get_tree().root.add_child(_fx_holder)
+			fx_parent = _fx_holder
 	var right_vec := owner_node.global_transform.basis.x.normalized()
 	for i in range(_muzzles.size()):
 		var muzzle: Node3D = _muzzles[i]
@@ -127,9 +134,18 @@ func fire() -> void:
 	var res: Dictionary = await Match.issue_shot()
 	var token := str(res.get("token", ""))
 	if token == "":
+		# dry-fire: refund the heat this shot spent; no resources burned for nothing
+		heat = maxf(0.0, heat - added)
+		if heat < 1.0:
+			overheated = false
+		heat_changed.emit(heat, overheated)
+		push_warning("SideCannons: backend issued no shot token — heat refunded")
 		return
 	for i in range(_muzzles.size()):
 		var muzzle: Node3D = _muzzles[i]
+		if not is_instance_valid(muzzle) or not is_instance_valid(owner_node) or not is_instance_valid(fx_parent):
+			# scene change / bike teardown across the issue_shot round-trip
+			continue
 		var forward := owner_node.global_transform.basis.z.normalized()
 		var right := owner_node.global_transform.basis.x.normalized()
 		var side := -1.0 if i == 0 else 1.0
