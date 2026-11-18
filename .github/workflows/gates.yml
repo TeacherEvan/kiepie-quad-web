@@ -26,7 +26,7 @@ jobs:
           sudo install -m 0755 /tmp/Godot_v4.3-stable_linux.x86_64 /usr/local/bin/godot-4.3
           godot-4.3 --version
 
-      - name: Run gates (23 gates + GdUnit4, scene_sync, xvfb multi-touch)
+      - name: Run gates (24 gates + GdUnit4, scene_sync, xvfb multi-touch)
         run: bash godot/tools/run_gates.sh
         env:
           KIEPIE_MOCK_BACKEND: "1"
