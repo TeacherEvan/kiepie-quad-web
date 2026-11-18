@@ -7,6 +7,7 @@ signal connection_state(state: String)
 signal broadcast_received(event: String, payload: Variant)
 signal postgres_change(data: Dictionary)
 signal backend_error(message: String)
+signal host_lost()
 
 const MOCK_SCRIPT := preload("res://src/net/MockBackend.gd")
 const TALO_PATH := "res://src/net/TaloBackend.gd"
@@ -33,6 +34,8 @@ func _ready() -> void:
 		mock.broadcast_received.connect(_on_broadcast)
 		mock.postgres_change.connect(_on_pg_change)
 		mock.backend_error.connect(backend_error.emit)
+		if mock.has_signal("host_lost"):
+			mock.host_lost.connect(host_lost.emit)
 		user_id = "mock-host"
 		is_ready = true
 		auth_status.emit(true, "offline mock backend")
@@ -47,6 +50,8 @@ func _ready() -> void:
 	talo.broadcast_received.connect(_on_broadcast)
 	talo.postgres_change.connect(_on_pg_change)
 	talo.backend_error.connect(backend_error.emit)
+	if talo.has_signal("host_lost"):
+		talo.host_lost.connect(host_lost.emit)
 	talo.start()
 
 

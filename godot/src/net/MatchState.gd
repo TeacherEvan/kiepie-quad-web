@@ -2,6 +2,8 @@ extends Node
 ## Authoritative mirror of lobby + match state. Autoload name: Match.
 ## All score / win / respawn rules read from here, never from a peer.
 
+const KT := preload("res://src/core/KiepieTime.gd")
+
 signal roster_changed()
 signal lobby_changed()
 signal match_started()
@@ -15,6 +17,7 @@ var players: Dictionary = {}      # user_id -> player row
 var my_user_id := ""
 var last_result: Dictionary = {}
 var _time_up_called := false
+var _settings_cache: Dictionary = {}   # refreshed on every lobby mutation; avoids per-frame deep dup
 
 
 func _ready() -> void:
@@ -22,6 +25,20 @@ func _ready() -> void:
 	Supabase.auth_status.connect(_on_auth)
 	Supabase.postgres_change.connect(_on_pg_change)
 	Supabase.broadcast_received.connect(_on_broadcast)
+	if Supabase.has_signal("host_lost"):
+		Supabase.host_lost.connect(_on_host_lost)
+
+
+func _on_host_lost() -> void:
+	## The host went silent mid-match: end the match deterministically instead of
+	## letting every peer simulate a game whose score can never be written.
+	if lobby.is_empty() or not is_playing():
+		return
+	lobby["status"] = "finished"
+	lobby["winner_id"] = ""
+	_refresh_settings_cache()
+	lobby_changed.emit()
+	match_finished.emit("")
 
 
 func _on_auth(ok: bool, _message: String) -> void:
@@ -30,7 +47,7 @@ func _on_auth(ok: bool, _message: String) -> void:
 
 
 func time_limit_seconds() -> int:
-	return maxi(0, int(settings().get("match_seconds", 0)))
+	return maxi(0, int(_settings_cache.get("match_seconds", 0)))
 
 
 func _process(_delta: float) -> void:
@@ -63,6 +80,7 @@ func set_lobby(result: Dictionary) -> void:
 	if result.has("player"):
 		var p := (result["player"] as Dictionary).duplicate(true)
 		players[str(p.get("user_id", my_user_id))] = p
+	_refresh_settings_cache()
 	lobby_changed.emit()
 	roster_changed.emit()
 
@@ -72,6 +90,7 @@ func apply_lobby(row: Dictionary) -> void:
 	lobby = row.duplicate(true)
 	if is_playing() and not was_playing:
 		_time_up_called = false
+	_refresh_settings_cache()
 	lobby_changed.emit()
 	match str(row.get("status", "")):
 		"playing":
@@ -81,7 +100,11 @@ func apply_lobby(row: Dictionary) -> void:
 
 
 func settings() -> Dictionary:
-	return (lobby.get("settings", {}) as Dictionary).duplicate(true)
+	return _settings_cache.duplicate(true)
+
+
+func _refresh_settings_cache() -> void:
+	_settings_cache = (lobby.get("settings", {}) as Dictionary).duplicate(true)
 
 
 func kill_target() -> int:
@@ -124,7 +147,9 @@ func my_score() -> int:
 func leader_id() -> String:
 	var best := ""
 	var best_score := -1
-	for uid in players.keys():
+	var uids := players.keys()
+	uids.sort()  # deterministic tie-break: lowest user_id wins a score tie
+	for uid in uids:
 		var s := int((players[uid] as Dictionary).get("score", 0))
 		if s > best_score:
 			best = str(uid)
@@ -177,12 +202,7 @@ func respawn_remaining(user_id: String) -> float:
 
 
 func _iso_to_unix(value: String) -> float:
-	var s := value.replace("Z", "")
-	var utc := value.ends_with("Z")
-	var dict := Time.get_datetime_dict_from_datetime_string(s, utc)
-	if dict.is_empty():
-		return 0.0
-	return float(Time.get_unix_time_from_datetime_dict(dict))
+	return KT.parse_iso(value)
 
 
 # ------------------------------------------------------------------ RPCs ---

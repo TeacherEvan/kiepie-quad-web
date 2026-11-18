@@ -77,9 +77,9 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	_t += delta
 	if _collected:
 		return
+	_t = fmod(_t + delta, TAU)
 	if is_instance_valid(_visual):
 		_visual.rotation.y += delta * 1.6
 		_visual.position.y = sin(_t * 2.2) * 0.12
@@ -113,6 +113,7 @@ func _pickup_handler(body: Node) -> Node:
 
 func _collect() -> void:
 	_collected = true
+	set_process(false)
 	set_deferred("monitoring", false)
 	if is_instance_valid(_trigger):
 		_trigger.set_deferred("disabled", true)
@@ -133,6 +134,8 @@ func _respawn() -> void:
 	if not is_instance_valid(self) or not is_inside_tree():
 		return
 	_collected = false
+	_t = 0.0
+	set_process(true)
 	set_deferred("monitoring", true)
 	if is_instance_valid(_trigger):
 		_trigger.set_deferred("disabled", false)

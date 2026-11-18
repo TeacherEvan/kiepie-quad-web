@@ -25,13 +25,13 @@ extends VehicleBody3D
 @export var dodge_spin := 8.5          ## cartwheel rate about local forward (rad/s)
 @export var dodge_duration := 0.72     ## seconds the cartwheel is left undamped
 @export var dodge_cooldown := 1.0      ## seconds before another dodge
+## (Rollover immunity is enforced in _integrate_forces — see AGENTS.md.)
 
 var turbo_active := false
 var player_id := ""   ## set by CombatController for projectile hit attribution
 
 var _steer := 0.0
 var _spawn := Transform3D.IDENTITY
-var _spawn_set := false
 var _turbo_blend := 0.0
 var _steer_sensitivity := 1.0
 var _dodge_time := 0.0
@@ -64,7 +64,6 @@ var _jet_t := 0.0
 func _ready() -> void:
 	add_to_group("bike") # group is not persisted in the baked .tscn; register at runtime
 	_spawn = global_transform
-	_spawn_set = true
 	_steer_sensitivity = clampf(float(Settings.get_value("controls", "steer_sensitivity", 1.0)), 0.3, 2.0)
 	Settings.changed.connect(_on_settings_changed)
 	VfxFactory.prewarm()
@@ -378,11 +377,13 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		state.linear_velocity = Vector3.ZERO
 		state.angular_velocity = Vector3.ZERO
 		_pending_reset = false
-	# Damp roll/pitch only, leaving yaw (steering) untouched. Must run here,
-	# not in _physics_process: writing angular_velocity there clobbers the
-	# wheel-generated yaw before the next solver step.
-	# Rollover immunity — the quad cannot tip over. Two mechanisms, both
-	# suspended mid-dodge (the cartwheel IS roll):
+	# Rollover immunity — the quad cannot tip over. This MUST live in
+	# _integrate_forces() and must damp/rotate only the roll/pitch part
+	# (world-Y yaw about the bike's local up is left intact): writing
+	# angular_velocity in _physics_process() clobbers the wheel-generated
+	# yaw before the solver step and the bike slides sideways without
+	# turning. Two mechanisms, both suspended mid-dodge (the cartwheel
+	# IS roll):
 	# (1) near-total angular-velocity lockout on roll/pitch (yaw untouched)
 	# (2) an active righting spring rotating the chassis back toward level
 	var basis := state.transform.basis.orthonormalized()

@@ -304,35 +304,6 @@ def respawn():
 
 
 # ---------------------------------------------------------------------------
-# 9. overheat — hiss + two warning blips
-# ---------------------------------------------------------------------------
-def overheat():
-    n = int(SR * 0.35)
-    out = [0.0] * n
-    lp = 0.0
-    for i in range(n):
-        t = i / SR
-        nz = random.uniform(-1.0, 1.0)
-        lp = one_pole_lp(lp, nz, 1800.0)
-        hiss = nz - lp                        # high-passed = airy steam hiss
-        env = min(1.0, t / 0.02) * (0.55 + 0.20 * math.sin(TAU * 23.0 * t))
-        out[i] = 0.55 * hiss * env
-    for start in (0.07, 0.20):
-        s = int(start * SR)
-        for j in range(int(0.055 * SR)):
-            idx = s + j
-            if idx >= n:
-                break
-            tj = j / SR
-            env = min(1.0, tj / 0.004) * min(1.0, (0.055 - tj) / 0.008)
-            out[idx] += env * (
-                0.22 * math.sin(TAU * 880.0 * tj)
-                + 0.08 * math.sin(TAU * 2640.0 * tj)
-            )
-    return out
-
-
-# ---------------------------------------------------------------------------
 # 10. engine loop — 2.0 s seamless quad rumble
 # ---------------------------------------------------------------------------
 def engine_loop():
@@ -374,7 +345,6 @@ SOUNDS = [
     ("kill.wav", kill, 0.95),
     ("ui_click.wav", ui_click, 0.85),
     ("respawn.wav", respawn, 0.92),
-    ("overheat.wav", overheat, 0.90),
     ("engine_loop.wav", engine_loop, 0.70),  # quieter: it loops forever
 ]
 

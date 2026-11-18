@@ -55,6 +55,8 @@ const QUALITY_PRESETS := {
 var data: Dictionary = {}
 var _cfg := ConfigFile.new()
 var _web_back_installed := false
+var _back_poll_accum := 0.0
+var _scale_pending := false
 
 
 func _ready() -> void:
@@ -143,9 +145,15 @@ func sync_back_handler() -> void:
 		JavaScriptBridge.eval("window.__kiepieDisarmBack && window.__kiepieDisarmBack();", true)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not _web_back_installed or not Engine.has_singleton("JavaScriptBridge"):
 		return
+	# Poll the browser back-button bridge at 4 Hz, not every frame — each JS
+	# bridge crossing is synchronous and competes with the render loop on Web.
+	_back_poll_accum += delta
+	if _back_poll_accum < 0.25:
+		return
+	_back_poll_accum = 0.0
 	var pending := bool(JavaScriptBridge.eval("!!window.__kiepieBackPending", true))
 	if pending:
 		JavaScriptBridge.eval("window.__kiepieBackPending = false;", true)
@@ -170,6 +178,19 @@ func _trigger_back_handler() -> void:
 
 
 func _sync_mobile_scale() -> void:
+	# Coalesce drag-resize storms into one sync per 100 ms window. On Web this
+	# path makes a synchronous JS-bridge call (devicePixelRatio), so it must not
+	# run per resize event.
+	if _scale_pending:
+		return
+	_scale_pending = true
+	var timer := get_tree().create_timer(0.1)
+	timer.timeout.connect(func() -> void:
+		_scale_pending = false
+		_sync_mobile_scale_now())
+
+
+func _sync_mobile_scale_now() -> void:
 	if DisplayServer.get_name() == "headless":
 		return
 	var win := get_tree().root
@@ -277,6 +298,8 @@ func _load() -> void:
 		# Migrate v1 configs to enable fullscreen-on-launch by default.
 		if int((data.get("meta", {}) as Dictionary).get("version", 1)) < 2:
 			(data["video"] as Dictionary)["fullscreen"] = true
+	else:
+		push_warning("Settings: no readable settings.cfg at %s — using defaults" % PATH)
 	data["meta"]["version"] = VERSION
 	_save()
 
@@ -285,7 +308,10 @@ func _save() -> void:
 	for section in data.keys():
 		for key in (data[section] as Dictionary).keys():
 			_cfg.set_value(section, key, data[section][key])
-	_cfg.save(PATH)
+	var err := _cfg.save(PATH)
+	if err != OK:
+		# Silent settings loss on full disk / Web quota rejection used to be invisible.
+		push_warning("Settings: could not write %s (err=%d) — changes are session-only" % [PATH, err])
 
 
 func get_value(section: String, key: String, fallback: Variant = null) -> Variant:

@@ -15,6 +15,7 @@ var on_hit: Callable
 
 var _age := 0.0
 var _life := 2.2
+var _inert := true  # setup() re-arms; a never-configured bolt dies instantly
 var _trail: GPUParticles3D
 var _tracer: Node3D
 var _light: OmniLight3D
@@ -105,13 +106,25 @@ func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
 	owner_id = p_owner_id
 	owner_node = p_owner_node
 	global_position = p_origin
-	velocity = p_direction.normalized() * p_speed
+	# Defence in depth: every caller passes a valid direction today, but a
+	# degenerate vector would otherwise yield an immortal zero-velocity bolt.
+	if p_direction.length_squared() < 1e-8 or not is_finite(p_direction.x + p_direction.y + p_direction.z):
+		velocity = Vector3.ZERO
+		_inert = true
+		_life = 0.05  # immortal zero-velocity bolt guard
+	else:
+		velocity = p_direction.normalized() * p_speed
+		_inert = false
 	damage = p_damage
 	token = p_token
 	hit_color = p_color
+	_build_tracer()
 
 
-func _ready() -> void:
+func _build_tracer() -> void:
+	if _inert:
+		# No visuals for a degenerate bolt — it dies in 0.05 s.
+		return
 	# Tracer: elongated capsule stretched along the line of flight. The capsule
 	# is rotationally symmetric about its long axis, so basis orientation
 	# sign conventions can't flip the visual.
@@ -164,6 +177,10 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_age += delta
+	if _inert:
+		if _age >= _life:
+			queue_free()
+		return
 	if _age >= _life:
 		queue_free()
 		return

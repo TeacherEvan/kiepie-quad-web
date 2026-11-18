@@ -68,10 +68,11 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 - `gdlint` / `gdtoolkit` are **not installed** in this environment — do not rely on them.
   `godot-4.3 --check-only --script <file>` reports false "Identifier not found" for autoloads;
   use `tools/_check_scripts.gd` instead.
-- `run_gates.sh` runs **22 gates**: truth, stability, touch, features, smash_impact, diag2,
+- `run_gates.sh` runs **24 gates**: truth, stability, touch, features, smash_impact, diag2,
   cannons, settings, match_rules, combat, kill_flow, appeal, accessibility, talo_backend,
-  audit_regressions, controls, dodge, vfx, practice, multiplayer + `touch_multitouch` (runs under xvfb, not headless —
-  synthesized touch needs a real window) + GdUnit4. `audit_regressions` locks the surgical-audit
+  audit_regressions, controls, dodge, rollover, vfx, practice, multiplayer + `touch_multitouch` (runs under xvfb, not headless —
+  synthesized touch needs a real window) + GdUnit4 + `scene_sync` (tracked `.tscn` must equal
+  the builders' output modulo resource-id churn; hand edits to generated scenes fail loudly). `audit_regressions` locks the surgical-audit
   defects: forged `state` events, 3-stop VFX gradients, exhaust axis, malformed shot arrays and
   `respawn_at` as a future deadline. `settings` locks `Settings` v2 defaults (`video/fullscreen = true`),
   persistence, quality presets, reset, `v1 -> v2` fullscreen migration, and `SettingsMenu.tscn`'s
@@ -177,6 +178,11 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   roster JSON stored in **channel props** (only the host may `update` them), shots/kills/joins as
   `v1.channels.message` socket events. Scoring is **host-authoritative client logic** — Talo has
   no SQL RPC, so the old server-side anti-cheat validation is gone. Don't claim otherwise.
+  Every lobby is stamped with a **`protocol_version` channel prop** (`PROTOCOL_VERSION`,
+  wire protocol `1`). Peers mismatched on the version are never mixed into a lobby:
+  `join_auto` skips those channels (`is_channel_joinable`), `join_by_code` reports a version
+  error. Bump `PROTOCOL_VERSION` only on a wire-breaking change (message kinds, prop keys,
+  token semantics) — it is not a content semver.
 - Talo 0.20's `channels.update()` sends `props` as a Dictionary but the v1 API wants an **array**
   of `{key,value}`; `TaloBackend._apply_props()` bypasses it via `channels.client.make_request`.
 - If `TALO_API_GAME` is absent or `KIEPIE_MOCK_BACKEND=1`, the facade uses `MockBackend`. Gates
@@ -186,6 +192,10 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 - Scene builders: `build_bike.gd`, `build_testride.gd`, `build_menus.gd`, `build_arena.gd`.
   Groups only persist through `PackedScene.pack()` with `add_to_group(name, true)`, and a child
   added to an instanced sub-scene must be owned by the **outer** root or it is dropped on pack.
+  But do **not** re-own the nodes *inside* an imported GLB instance (`find_children` + `owner=`):
+  that serializes ~200 duplicate meshes + inline `ArrayMesh` data into the scene (was 2.87 MB of
+  ASCII in `KiepieBike.tscn`, double geometry at runtime). Runtime lookups (`Model/Wheel_*`)
+  resolve through the instance — see the NOTE in `tools/build_bike.gd`.
 - Control-UI skin lives in `src/ui/UiTheme.gd` (used by both `build_menus.gd` and `build_arena.gd`);
   add colours/styleboxes there, then rebuild the scenes. Godot 4.3 gotchas: `StyleBoxFlat` has no
   `detail_*` props, HSlider grabbers are ICONS not styleboxes, and a flat track needs content
@@ -212,6 +222,13 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   intact). Writing `angular_velocity` in `_physics_process()` clobbers the wheel-generated yaw
   before the solver step: the wheels reach full lock but the bike slides sideways without
   turning. `verify_controls.gd` locks this — keep it green.
+- Capsized recovery lives there too: held inverted (`basis.y · UP < 0.25`) for `RIGHTING_DELAY_S`
+  (0.5 s), `_integrate_forces()` switches to a steered barrel-roll — transverse angular velocity
+  lerps toward `corr = up × UP` (falling back to the wheelbase axis when `up` is perfectly
+  antiparallel), plus a one-shot `RIGHTING_HOP_VEL` (2.6 m/s) hop so the roof-contact pivot can't
+  wedge it. Hysteresis (`RIGHTING_INVERSION_DOT` out / `RIGHTING_EXIT_DOT` back in) stops the
+  steer quitting at the exact threshold where gravity topples the bike back in. Suspended during
+  dodge. `verify_rollover.gd` locks it — keep it green.
 - Steering respects `controls/steer_sensitivity` (0.3–2.0, slider in Settings → Controls);
   it scales both the max steer angle and the rate. The settings key was dead before it was wired.
 - Q / E dodge: ground-only lateral leap + cartwheel (exports `dodge_lift/side/spin/duration/cooldown`

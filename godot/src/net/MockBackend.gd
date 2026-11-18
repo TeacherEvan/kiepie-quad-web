@@ -6,6 +6,7 @@ class_name MockBackend
 signal broadcast_received(event: String, payload: Variant)
 signal postgres_change(data: Dictionary)
 signal backend_error(message: String)
+signal host_lost()
 
 const DEFAULT_SETTINGS := {
 	"kill_target": 10,
@@ -174,3 +175,8 @@ func simulate_remote_state(payload: Dictionary) -> void:
 
 func simulate_remote_shot(payload: Dictionary) -> void:
 	broadcast_received.emit("shot", payload)
+
+
+func simulate_host_loss() -> void:
+	## Test hook: the host vanished mid-match (gates, not game code).
+	host_lost.emit()

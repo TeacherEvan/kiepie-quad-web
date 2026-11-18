@@ -365,84 +365,8 @@ func _set_owners(node: Node, owner: Node) -> void:
 
 
 func _add_touch_controls(root: Node) -> void:
-	var touch := CanvasLayer.new()
-	touch.name = "TouchHUD"
-	touch.layer = 2  # above the HUD; clusters don't overlap it visually
-	touch.set_script(load("res://src/TouchControls.gd"))
-
-	# --- steering is an analog pad built at runtime by TouchControls.gd
-	# (fills the space the old BtnLeft/BtnRight lived in)
-
-	# --- dodge leaps: compact "L" & "R" above the steering cluster
-	var dodge_left := Button.new()
-	dodge_left.name = "BtnDodgeLeft"
-	dodge_left.text = "L"
-	dodge_left.anchor_left = 0.0
-	dodge_left.anchor_right = 0.0
-	dodge_left.anchor_top = 1.0
-	dodge_left.anchor_bottom = 1.0
-	dodge_left.offset_left = 32.0
-	dodge_left.offset_right = 84.0
-	dodge_left.offset_top = -230.0
-	dodge_left.offset_bottom = -184.0
-	dodge_left.focus_mode = Control.FOCUS_NONE
-	UI.style_button(dodge_left, UI.INFO, 15, 44.0)
-	dodge_left.add_theme_font_size_override("font_size", 15)
-	dodge_left.pivot_offset = Vector2(26.0, 23.0)
-	touch.add_child(dodge_left)
-
-	var dodge_right := Button.new()
-	dodge_right.name = "BtnDodgeRight"
-	dodge_right.text = "R"
-	dodge_right.anchor_left = 0.0
-	dodge_right.anchor_right = 0.0
-	dodge_right.anchor_top = 1.0
-	dodge_right.anchor_bottom = 1.0
-	dodge_right.offset_left = 108.0
-	dodge_right.offset_right = 160.0
-	dodge_right.offset_top = -230.0
-	dodge_right.offset_bottom = -184.0
-	dodge_right.focus_mode = Control.FOCUS_NONE
-	UI.style_button(dodge_right, UI.INFO, 15, 44.0)
-	dodge_right.add_theme_font_size_override("font_size", 15)
-	dodge_right.pivot_offset = Vector2(26.0, 23.0)
-	touch.add_child(dodge_right)
-
-	# --- right thumb: compact GAS pedal (auto-fire handles cannons; analog push handles turbo)
-	var gas := Button.new()
-	gas.name = "BtnGas"
-	gas.text = "GAS"
-	gas.anchor_left = 1.0
-	gas.anchor_right = 1.0
-	gas.anchor_top = 1.0
-	gas.anchor_bottom = 1.0
-	gas.offset_left = -92.0
-	gas.offset_right = -14.0
-	gas.offset_top = -96.0
-	gas.offset_bottom = -18.0
-	gas.focus_mode = Control.FOCUS_NONE
-	UI.style_button(gas, UI.ACCENT)
-	gas.add_theme_font_size_override("font_size", 18)
-	touch.add_child(gas)
-
-	# --- top-right column, below Restart/View/Menu: manual overlay toggle (auto-detect fallback)
-	var toggle := Button.new()
-	toggle.name = "BtnTouchToggle"
-	toggle.text = "TOUCH: AUTO"
-	toggle.anchor_left = 1.0
-	toggle.anchor_right = 1.0
-	toggle.anchor_top = 0.0
-	toggle.anchor_bottom = 0.0
-	toggle.offset_left = -146.0
-	toggle.offset_right = -14.0
-	toggle.offset_top = 166.0
-	toggle.offset_bottom = 210.0
-	toggle.focus_mode = Control.FOCUS_NONE
-	UI.style_button(toggle, UI.TEXT)
-	toggle.add_theme_font_size_override("font_size", 13)
-	touch.add_child(toggle)
-
-	root.add_child(touch)
+	# Shared builder (tools/TouchOverlayKit.gd) — preset "testride".
+	(load("res://tools/TouchOverlayKit.gd") as GDScript).build(root, "testride")
 
 
 func _add_cone_ring(root: Node, radius: float, count: int) -> void:

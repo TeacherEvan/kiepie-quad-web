@@ -39,6 +39,7 @@ func _run() -> void:
 	_textures()
 	_scaling()
 	_effects()
+	await _anchored()
 	_decal_caps()
 	await _layout()
 	print("VFX: %d failure(s)" % _fail)
@@ -96,6 +97,30 @@ func _effects() -> void:
 	vf.dust_ring(holder, Vector3(7, 0, 1), 1.2, 4.0)
 	vf.roost(holder, Vector3(8, 0, 1), Vector3.FORWARD)
 	_check(holder.get_child_count() > 0, "all VFX entry points build without script errors")
+	holder.free()
+
+
+func _anchored() -> void:
+	## MVTH-1 / P2-5 regression gate: the staggered settlement dust from
+	## smash_burst() must stay anchored to the collapse site. The old code
+	## handed `local` offsets to dust_puff() as world positions, which spawned
+	## the delayed dust columns near the origin regardless of where the
+	## building fell. This gate would have caught that bug.
+	var holder := Node3D.new()
+	root.add_child(holder)
+	var anchor := Vector3(12.0, 0.5, -8.0)
+	vf.smash_burst(holder, anchor, Vector3(6.5, 3.4, 5.0))
+	# puffs fire at delays 0 / 0.12 / 0.28 s — wait for the last one to land
+	await create_timer(0.6).timeout
+	var total := 0
+	var near := 0
+	for child in holder.get_children():
+		if child is GPUParticles3D:
+			total += 1
+			if (child as GPUParticles3D).global_position.distance_to(anchor) <= 5.0:
+				near += 1
+	_check(total >= 5 and near >= 3,
+			"collapse dust anchored to site (%d of %d emitters within 5 m of (12, 0.5, -8))" % [near, total])
 	holder.free()
 
 
