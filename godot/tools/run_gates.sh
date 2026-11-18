@@ -171,6 +171,7 @@ run_gate talo_backend   verify_talo_backend.gd
 run_gate audit_regressions verify_audit_regressions.gd
 run_gate controls        verify_controls.gd
 run_gate dodge           verify_dodge.gd
+run_gate rollover        verify_rollover.gd
 run_gate vfx             verify_vfx.gd
 run_gate practice        verify_practice.gd
 run_gate multiplayer     verify_multiplayer.gd

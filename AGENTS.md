@@ -61,9 +61,9 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 - `gdlint` / `gdtoolkit` are **not installed** in this environment — do not rely on them.
   `godot-4.3 --check-only --script <file>` reports false "Identifier not found" for autoloads;
   use `tools/_check_scripts.gd` instead.
-- `run_gates.sh` runs **23 gates**: truth, stability, touch, features, smash_impact, diag2,
+- `run_gates.sh` runs **24 gates**: truth, stability, touch, features, smash_impact, diag2,
   cannons, settings, match_rules, combat, kill_flow, appeal, accessibility, talo_backend,
-  audit_regressions, controls, dodge, vfx, practice, multiplayer + `touch_multitouch` (runs under xvfb, not headless —
+  audit_regressions, controls, dodge, rollover, vfx, practice, multiplayer + `touch_multitouch` (runs under xvfb, not headless —
   synthesized touch needs a real window) + GdUnit4 + `scene_sync` (tracked `.tscn` must equal
   the builders' output modulo resource-id churn; hand edits to generated scenes fail loudly). `audit_regressions` locks the surgical-audit
   defects: forged `state` events, 3-stop VFX gradients, exhaust axis, malformed shot arrays and
@@ -214,6 +214,13 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   intact). Writing `angular_velocity` in `_physics_process()` clobbers the wheel-generated yaw
   before the solver step: the wheels reach full lock but the bike slides sideways without
   turning. `verify_controls.gd` locks this — keep it green.
+- Capsized recovery lives there too: held inverted (`basis.y · UP < 0.25`) for `RIGHTING_DELAY_S`
+  (0.5 s), `_integrate_forces()` switches to a steered barrel-roll — transverse angular velocity
+  lerps toward `corr = up × UP` (falling back to the wheelbase axis when `up` is perfectly
+  antiparallel), plus a one-shot `RIGHTING_HOP_VEL` (2.6 m/s) hop so the roof-contact pivot can't
+  wedge it. Hysteresis (`RIGHTING_INVERSION_DOT` out / `RIGHTING_EXIT_DOT` back in) stops the
+  steer quitting at the exact threshold where gravity topples the bike back in. Suspended during
+  dodge. `verify_rollover.gd` locks it — keep it green.
 - Steering respects `controls/steer_sensitivity` (0.3–2.0, slider in Settings → Controls);
   it scales both the max steer angle and the rate. The settings key was dead before it was wired.
 - Q / E dodge: ground-only lateral leap + cartwheel (exports `dodge_lift/side/spin/duration/cooldown`

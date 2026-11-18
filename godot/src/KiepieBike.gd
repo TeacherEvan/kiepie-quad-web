@@ -25,6 +25,15 @@ extends VehicleBody3D
 @export var dodge_spin := 8.5          ## cartwheel rate about local forward (rad/s)
 @export var dodge_duration := 0.72     ## seconds the cartwheel is left undamped
 @export var dodge_cooldown := 1.0      ## seconds before another dodge
+## Capsized recovery: basis.y · world-up below this for RIGHTING_DELAY_S
+## seconds starts a steered barrel-roll out of the capsize. Never active
+## during a dodge (the cartwheel IS the spin).
+const RIGHTING_INVERSION_DOT := 0.25   ## bike counts as inverted below this
+const RIGHTING_EXIT_DOT := 0.55        ## hysteresis: righting stops only above this
+const RIGHTING_DELAY_S := 0.5          ## seconds held inverted before righting
+const RIGHTING_RATE := 3.4             ## target angular rate (rad/s) out of the capsize
+const RIGHTING_GAIN := 9.0             ## per-second lerp rate toward the righting spin
+const RIGHTING_HOP_VEL := 2.6          ## one-shot upward shove when righting engages
 
 var turbo_active := false
 var player_id := ""   ## set by CombatController for projectile hit attribution
@@ -39,6 +48,9 @@ var _ground_coyote := 0.0   ## brief grace so suspension bounce can't eat a dodg
 var _was_grounded := false   ## visual-only landing detector
 var _roost_accum := 0.0
 var _pending_reset := false
+var _inverted_accum := 0.0     ## seconds the bike has been held upside-down (for righting)
+var _righting_hop_done := false  ## one shove per capsize, not a pogo stick
+var _righting_active := false  ## hysteresis: stays on until RIGHTING_EXIT_DOT
 
 @onready var _flames: GPUParticles3D = get_node_or_null("ExhaustFlames")
 var _jet_plume: Node3D = null
@@ -311,6 +323,9 @@ func reset_bike() -> void:
 	_dodge_time = 0.0
 	_dodge_cd = 0.0
 	_ground_coyote = 0.0
+	_inverted_accum = 0.0
+	_righting_hop_done = false
+	_righting_active = false
 	for key in _wheels.keys():
 		var w: VehicleWheel3D = _wheels[key]
 		if w != null and is_instance_valid(w):
@@ -376,10 +391,36 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		state.linear_velocity = Vector3.ZERO
 		state.angular_velocity = Vector3.ZERO
 		_pending_reset = false
+	# Capsized recovery. Upright bikes do nothing; a bike held on its roof
+	# or side for RIGHTING_DELAY_S seconds is rolled back onto its wheels.
+	# Hysteresis: once engaged it stays engaged until up_world clears
+	# RIGHTING_EXIT_DOT — otherwise the steer quits at the exact threshold
+	# where gravity topples the bike back in.
+	var up := global_transform.basis.y.normalized()
+	var up_world := up.dot(Vector3.UP)
+	if _righting_active:
+		if up_world > RIGHTING_EXIT_DOT:
+			_righting_active = false
+			_inverted_accum = 0.0
+			_righting_hop_done = false
+	else:
+		if _dodge_time <= 0.0 and up_world < RIGHTING_INVERSION_DOT:
+			_inverted_accum += state.step
+		else:
+			_inverted_accum = 0.0
+		if _inverted_accum >= RIGHTING_DELAY_S:
+			_righting_active = true
+	if _righting_active and not _righting_hop_done:
+		_righting_hop_done = true
+		# One shove so the roof-contact pivot can't wedge the barrel-roll:
+		# friction wins only while the hull is on the ground.
+		if state.linear_velocity.y < 1.0:
+			state.linear_velocity = Vector3(state.linear_velocity.x, RIGHTING_HOP_VEL, state.linear_velocity.z)
+	var righting := _righting_active
+
 	# Damp roll/pitch only, leaving yaw (steering) untouched. Must run here,
 	# not in _physics_process: writing angular_velocity there clobbers the
 	# wheel-generated yaw before the next solver step.
-	var up := global_transform.basis.y.normalized()
 	var av := state.angular_velocity
 	var yaw := av.dot(up) * up
 	var trans := av - yaw
@@ -389,4 +430,19 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		# Mid-cartwheel: the spin IS roll, so leave transverse angular
 		# velocity undamped until the dodge window closes.
 		damp = 0.0
-	state.angular_velocity = yaw + trans * (1.0 - damp)
+	if righting:
+		# Righting steer wins over the roll damping — the transverse spin
+		# is the whole point right now.
+		damp = 0.0
+	var damped := yaw + trans * (1.0 - damp)
+	if righting:
+		var corr := up.cross(Vector3.UP)
+		if corr.length_squared() < 1e-4:
+			# Perfectly upside-down: up and world-up are antiparallel, the
+			# cross vanishes. Use the forward axis as the barrel-roll axis.
+			corr = state.transform.basis.z.normalized()
+		else:
+			corr = corr.normalized()
+		var w: float = clampf(state.step * RIGHTING_GAIN, 0.0, 1.0)
+		damped = yaw + trans.lerp(corr * RIGHTING_RATE, w)
+	state.angular_velocity = damped
