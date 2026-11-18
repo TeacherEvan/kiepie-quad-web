@@ -40,6 +40,9 @@ This is a **Blender → Godot → Vercel** asset pipeline, not a normal code app
 # Rebuild model + export .glb + previews
 blender -b -noaudio -P src/build_quad.py
 
+# PRINCESS (pogo man) vehicle sculpt: rebuild Pogo_Princess.blend + godot/assets/Pogo_Princess.glb
+blender -b -noaudio -P src/build_pogo_princess.py
+
 # Full model pipeline: rebuild → ground-seat → export .glb/.stl/.blend → round-trip verify
 blender -b -noaudio -P src/repair_and_verify.py
 
@@ -72,9 +75,9 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 - `gdlint` / `gdtoolkit` are **not installed** in this environment — do not rely on them.
   `godot-4.3 --check-only --script <file>` reports false "Identifier not found" for autoloads;
   use `tools/_check_scripts.gd` instead.
-- `run_gates.sh` runs **25 gates**: truth, stability, touch, features, smash_impact, diag2,
+- `run_gates.sh` runs **26 gates**: truth, stability, touch, features, smash_impact, diag2,
   cannons, settings, match_rules, combat, kill_flow, appeal, accessibility, talo_backend,
-  audit_regressions, controls, dodge, rollover, vfx, practice, multiplayer, check_scripts + `touch_multitouch` (runs under xvfb, not headless —
+  audit_regressions, controls, dodge, rollover, vfx, practice, multiplayer, pogo, check_scripts + `touch_multitouch` (runs under xvfb, not headless —
   synthesized touch needs a real window) + GdUnit4 + `scene_sync` (tracked `.tscn` must equal
   the builders' output modulo resource-id churn; hand edits to generated scenes fail loudly). `audit_regressions` locks the surgical-audit
   defects: forged `state` events, 3-stop VFX gradients, exhaust axis, malformed shot arrays and
@@ -225,6 +228,23 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 
 ## Vehicle / gameplay conventions
 
+- **PRINCESS pogo vehicle** — every player is **dealt** a vehicle; nobody picks. The draw is
+  a deterministic hash of the player id (FNV-1a-32 over UTF-8 bytes) in
+  `godot/src/game/VehicleRegistry.gd`. Do NOT randomize on the client, do NOT add
+  per-player scenes, and do NOT special-case peers — the hash keeps every peer in agreement
+  with zero extra wire traffic (`mock-host → KiepieBike` keeps gates on the bike).
+  `KiepieBike.gd` swaps the visual shell in `_enter_tree` (parent-first, so
+  CombatController caches the post-swap muzzle anchors); physics, wheels, mass and collision
+  are identical to the bike.
+  - `Pogo_Princess.blend` → `src/build_pogo_princess.py` → `godot/assets/Pogo_Princess.glb`
+    (never hand-edit). GLB layout is one level flat: `Rider/` (bobs via
+    `src/game/PogoVisual.gd` — cosmetic spring, belly slosh + landing squash) and `Stick/`
+    (the pogo). Weapon is bananas (`BananaProjectile.gd`, procedural crescent; 60 dmg,
+    0.40 s / 0.18 s rapid, `pop` SFX) — twice the cannon damage at half the rate.
+    `vehicle_profile` on `KiepieBike.gd` carries `bike|pogo`; `SideCannons` PROFILES is
+    keyed `bike`/`pogo` only.
+  - `verify_pogo.gd` locks assignment determinism, the runtime swap, weapon profile and
+    the pogo ground datum (minZ = 0.000).
 - Forward axis is local **+Z** (positive `engine_force` drives +Z; GLB import already flips the
   Blender nose to +Z). FL/FR wheels at z = +0.68, rear at -0.66; chase camera is at
   `origin - basis.z * distance`. Don't re-flip without re-running `tools/truth_test.gd`.

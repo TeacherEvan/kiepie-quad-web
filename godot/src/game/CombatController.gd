@@ -52,8 +52,9 @@ func setup(p_bike: VehicleBody3D) -> void:
 	cannons.name = "SideCannons"
 	cannons.set_script(CANNON)
 	add_child(cannons)
+	var profile := str(p_bike.get("vehicle_profile")) if "vehicle_profile" in p_bike else "bike"
 	cannons.setup(bike, Supabase.user_id,
-			Callable(self, "_on_projectile_hit"), player_color)
+			Callable(self, "_on_projectile_hit"), player_color, profile)
 	# Adding meshes/audio during the parent's setup phase is illegal in Godot
 	# 4.3 - defer until the bike is fully in the tree.
 	call_deferred("_setup_decorations")

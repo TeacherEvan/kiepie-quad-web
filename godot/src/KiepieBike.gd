@@ -19,6 +19,10 @@ extends VehicleBody3D
 @export var reverse_force := 180.0
 @export var visual_steer_scale := 0.75
 @export var wheel_radius := 0.280
+## Per-vehicle visual + weapon profile (Cars stay identical — see
+## VehicleRegistry). Baked scenes default to the bike; the assigned vehicle
+## is applied at runtime in _ready so one .tscn serves every player.
+@export var vehicle_profile := "bike"
 ## Dodge: Q/E leap + cartwheel. Tunable together for feel.
 @export var dodge_lift := 7.2          ## upward velocity on dodge (m/s)
 @export var dodge_side := 5.5          ## lateral velocity (m/s)
@@ -58,12 +62,19 @@ var _jet_t := 0.0
 	"FL": get_node_or_null("Model/Steer_FL"),
 	"FR": get_node_or_null("Model/Steer_FR"),
 }
+const POGO_VISUAL := preload("res://src/game/PogoVisual.gd")
 @onready var _wheels := {
 	"FL": get_node("WheelFL"),
 	"FR": get_node("WheelFR"),
 	"RL": get_node("WheelRL"),
 	"RR": get_node("WheelRR"),
 }
+
+func _enter_tree() -> void:
+	# Swap the visual shell BEFORE children _ready (parent enters first) so
+	# CombatController caches the post-swap muzzle anchors. Physics, wheels and
+	# collision are untouched — only Model (and hence the anchors) changes.
+	_assign_vehicle()
 
 func _ready() -> void:
 	add_to_group("bike") # group is not persisted in the baked .tscn; register at runtime
@@ -119,9 +130,9 @@ func _build_flames() -> void:
 	flame_mesh.material = mat
 	p.draw_pass_1 = flame_mesh
 
-	# Match the imported Silencer_Tip node: (-0.278, 0.487, -0.715) in the
-	# bike's local frame (+Z is forward, so the exhaust sits at negative Z).
-	p.position = Vector3(-0.278, 0.487, -0.715)
+	# Match the imported rim: (-0.278, 0.487, -0.715) for the bike's exhaust,
+	# and the pogo spring for PRINCESS (funny fires from the base — comedy).
+	p.position = Vector3(0.0, 0.30, -0.18) if vehicle_profile == "pogo" else Vector3(-0.278, 0.487, -0.715)
 
 	# Inner afterburner jet cone + Mach shock diamonds for unmistakable turbine thrust.
 	var plume := Node3D.new()
@@ -194,6 +205,54 @@ func _build_flames() -> void:
 	_jet_plume = plume
 	add_child(p)
 	_flames = p
+
+func _assign_vehicle() -> StringName:
+	## Remote-player identity rule: the vehicle is a deterministic hash of the
+	## player id, so a baked shared .tscn picks the right model for every peer
+	## with zero extra network traffic.
+	var id := ""
+	if typeof(Supabase) != TYPE_NIL and Supabase != null and "user_id" in Supabase:
+		id = str(Supabase.user_id)
+	var assigned := VehicleRegistry.for_player(id if id != "" else "anonymous")
+	vehicle_profile = VehicleRegistry.profile(assigned)
+	if assigned != VehicleRegistry.VEHICLE_BIKE:
+		_swap_model(assigned, VehicleRegistry.model_path(assigned))
+	return assigned
+
+
+func _swap_model(assigned: StringName, glb_path: String) -> void:
+	## Swap the baked bike GLB for the assigned vehicle's model (same runtime
+	## pattern the remote proxies use). Physics (wheels, mass, collision) is
+	## identical — only the visual shell changes.
+	var scene: PackedScene = load(glb_path)
+	if scene == null:
+		push_warning("VehicleRegistry: could not load %s" % glb_path)
+		return
+	var new_model := scene.instantiate()
+	new_model.name = "Model"
+	var old := get_node_or_null("Model")
+	if old != null:
+		remove_child(old)
+		old.queue_free()
+	add_child(new_model)
+	# give the rider its bounce personality
+	if VehicleRegistry.is_pogo(assigned):
+		var rider := new_model.get_node_or_null("Rider")
+		if rider != null:
+			rider.set_script(POGO_VISUAL)
+	# refresh runtime visual lookups — the Pogo has no wheel meshes (raycasts
+	# only), and the dicts here are keyed for the bike GLB
+	_wheel_nodes = {
+		"WheelFL": get_node_or_null("Model/Wheel_FL"),
+		"WheelFR": get_node_or_null("Model/Wheel_FR"),
+		"WheelRL": get_node_or_null("Model/Wheel_RL"),
+		"WheelRR": get_node_or_null("Model/Wheel_RR"),
+	}
+	_steer_nodes = {
+		"FL": get_node_or_null("Model/Steer_FL"),
+		"FR": get_node_or_null("Model/Steer_FR"),
+	}
+
 
 func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("reset_bike"):

@@ -1,39 +1,61 @@
 extends Node3D
-## Twin side cannons. One FIRE input fires both barrels forward with a slight
-## outward spread. Cooldown paces shots cleanly without any overheat lockout.
+## Player weapon mount. One FIRE input fires both barrels/handles forward with a
+## slight outward spread. Cooldown paces shots cleanly without any overheat lockout.
+## Vehicle weapon profiles live here (VehicleRegistry picks which one applies).
 
 signal fired(token: String)
 
 const PROJECTILE := preload("res://src/game/Projectile.gd")
+const BANANA := preload("res://src/game/BananaProjectile.gd")
 const VFX := preload("res://src/game/VfxFactory.gd")
 # Keep in sync with the remote-shot speed in ArenaNet._spawn_remote_shot.
 const SHOT_SPEED := 52.0
 const SHOT_SPREAD := 0.055
+# Per-vehicle firing profiles. Bike keeps its historical cooldown/damage.
+const PROFILES := {
+	"bike": {
+		"muzzles": [["Muzzle_L", "Cannon_Bore_L", -0.62], ["Muzzle_R", "Cannon_Bore_R", 0.62]],
+		"cooldown": 0.20, "rapid_cooldown": 0.09, "damage_mult": 1.0,
+		"spread": SHOT_SPREAD, "speed": SHOT_SPEED, "sfx": "fire",
+		"color": Color(1.0, 0.55, 0.15), "banana": false,
+	},
+	"pogo": {
+		"muzzles": [["BananaMuzzle_L", "BananaMuzzle_L", -0.235], ["BananaMuzzle_R", "BananaMuzzle_R", 0.235]],
+		"cooldown": 0.40, "rapid_cooldown": 0.18, "damage_mult": 2.0,
+		"spread": 0.075, "speed": SHOT_SPEED, "sfx": "pop",
+		"color": Color(1.0, 0.9, 0.25), "banana": true,
+	},
+}
 
 var owner_node: Node3D
 var owner_id := ""
 var hit_callback: Callable
+var weapon_profile := "bike"
 
 var _cooldown := 0.0
 var _rapid := false
 var _muzzles: Array[Node3D] = []
 var _color := Color(1.0, 0.55, 0.15)
 var _fx_holder: Node3D = null
+var _profile: Dictionary = PROFILES["bike"]
 
 
-func setup(p_owner: Node3D, p_owner_id: String, p_hit_callback: Callable, p_color: Color) -> void:
+func setup(p_owner: Node3D, p_owner_id: String, p_hit_callback: Callable, p_color: Color,
+		p_profile: String = "bike") -> void:
 	owner_node = p_owner
 	owner_id = p_owner_id
 	hit_callback = p_hit_callback
-	_color = p_color
+	weapon_profile = p_profile if PROFILES.has(p_profile) else "bike"
+	_profile = PROFILES[weapon_profile]
+	_color = Color(_profile["color"]) if weapon_profile != "bike" else p_color
 	# purge stale fallback mounts from an earlier setup on the same owner
 	for m in _muzzles:
 		if is_instance_valid(m) and m.name == "MuzzleFallback":
 			m.queue_free()
 	_muzzles.clear()
-	# Prefer the authored muzzle empties, falling back to the bore meshes which
-	# also sit exactly at each barrel tip (and are the authoritative anchors).
-	for spec in [["Muzzle_L", "Cannon_Bore_L", -0.62], ["Muzzle_R", "Cannon_Bore_R", 0.62]]:
+	# Prefer the authored muzzle empties/meshes, with a per-side fallback so one
+	# missing anchor must not triple the mounts.
+	for spec in _profile["muzzles"]:
 		var found: Node3D = null
 		for node_name in [spec[0], spec[1]]:
 			found = _find_named(p_owner, node_name)
@@ -42,7 +64,6 @@ func setup(p_owner: Node3D, p_owner_id: String, p_hit_callback: Callable, p_colo
 		if found != null:
 			_muzzles.append(found)
 		else:
-			# per-side fallback: one missing muzzle must not triple the mounts
 			var anchor := Node3D.new()
 			anchor.name = "MuzzleFallback"
 			anchor.position = Vector3(spec[2], 0.62, 0.78)
@@ -75,12 +96,12 @@ func can_fire() -> bool:
 func fire() -> void:
 	if not can_fire():
 		return
-	_cooldown = 0.09 if _rapid else 0.20
+	_cooldown = float(_profile["rapid_cooldown"] if _rapid else _profile["cooldown"])
 
 	# muzzle flash is instant; the token arrives a fraction of a second later
 	var sfx := get_node_or_null("/root/Sfx")
 	if sfx != null and sfx.has_method("play"):
-		sfx.call("play", "fire")
+		sfx.call("play", str(_profile["sfx"]))
 	var cam := get_tree().get_first_node_in_group("camera_rig") if get_tree() != null else null
 	if cam != null and cam.has_method("add_shake"):
 		cam.call("add_shake", 0.10)
@@ -113,6 +134,10 @@ func fire() -> void:
 	if token == "":
 		push_warning("SideCannons: backend issued no shot token")
 		return
+	var spread := float(_profile["spread"])
+	var speed := float(_profile["speed"])
+	var proj_script: GDScript = BANANA if bool(_profile["banana"]) else PROJECTILE
+	var dmg := Match.damage() * float(_profile["damage_mult"])
 	for i in range(_muzzles.size()):
 		var muzzle: Node3D = _muzzles[i]
 		if not is_instance_valid(muzzle) or not is_instance_valid(owner_node) or not is_instance_valid(fx_parent):
@@ -121,12 +146,12 @@ func fire() -> void:
 		var forward := owner_node.global_transform.basis.z.normalized()
 		var right := owner_node.global_transform.basis.x.normalized()
 		var side := -1.0 if i == 0 else 1.0
-		var dir := (forward + right * side * SHOT_SPREAD).normalized()
+		var dir := (forward + right * side * spread).normalized()
 		var proj := Node3D.new()
-		proj.set_script(PROJECTILE)
+		proj.set_script(proj_script)
 		fx_parent.add_child(proj)
 		proj.setup(owner_id, owner_node, muzzle.global_position, dir,
-				SHOT_SPEED, Match.damage(), token, _color)
+				speed, dmg, token, _color)
 		if hit_callback.is_valid():
 			proj.on_hit = hit_callback
 		Supabase.broadcast("shot", {

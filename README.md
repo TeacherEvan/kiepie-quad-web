@@ -29,6 +29,19 @@ Captured live from the practice track under the real renderer (WebGL2 via xvfb) 
 
 ---
 
+## Vehicles
+
+Every rider is **dealt** their machine — you don't pick. The draw is a deterministic hash
+(FNV-1a-32) of the player id, so every peer in the lobby computes the same assignment with
+no extra wire traffic:
+
+- **Kiepie QUAD** — the blast quad. Photo-anchored dimensions, 22-inch tyres, twin side
+  cannons (30 damage, 0.20 s cooldown; rapid-fire pickup shaves it to 0.09 s).
+- **PRINCESS** — an obese man in a hot-pink Borat mankini on a tiny pogo stick (his belly
+  sloshes with every hop, plus the gold PRINCESS print across the back). He fires **bananas**
+  (60 damage — twice the cannon — at 0.40 s / 0.18 s rapid cooldown). Identical top speed,
+  acceleration, handling, armour and dodge stats to the QUAD — different attitude, same fight.
+
 ## Quick facts — controls
 
 - `W` / `↑` — throttle (4WD)
@@ -304,7 +317,7 @@ state lives in host-owned channel props, and shots/kills flow over channel socke
 Scoring is host-authoritative client logic (no server-side validation). Lobbies are stamped with a
 `protocol_version` channel prop — clients on a different wire version never get mixed in
 (`join_auto` skips the channel; `join_by_code` reports a version error). Without a key the client
-uses a full offline `MockBackend`, so all 25 gates run without credentials. The old `supabase/`
+uses a full offline `MockBackend`, so all 26 gates run without credentials. The old `supabase/`
 migrations are retained for history only and are not deployed.
 
 **VFX pass:** effects are built by `godot/src/game/VfxFactory.gd` from five tiny sprites
@@ -336,8 +349,11 @@ proportional steer strength, large touch controls and quality presets
 **New gates:** `verify_cannons.gd`, `verify_settings.gd`, `verify_match_rules.gd`,
 `verify_combat.gd`, `verify_kill_flow.gd`, `verify_appeal.gd`, `verify_talo_backend.gd` and
 `verify_audit_regressions.gd`, `verify_controls.gd`, `verify_dodge.gd` and `verify_rollover.gd` join the existing
-suite — `godot/tools/run_gates.sh` now runs 25 gates offline (22 headless gates plus GdUnit4,
+suite — `godot/tools/run_gates.sh` now runs 26 gates offline (23 headless gates plus GdUnit4,
 the `scene_sync` drift check and one xvfb-windowed multi-touch gate, `verify_touch_multitouch.gd`).
+The new `verify_pogo.gd` locks the PRINCESS vehicle: deterministic FNV-based assignment,
+runtime model swap in `KiepieBike._enter_tree`, pogo weapon profile (0.40 s cooldown, 2×
+damage), Rider/Stick GLB layout, `PogoVisual.gd` belly-wobble attach, and the pogo ground datum.
 The new `verify_practice.gd` locks practice-mode cannons (no lobby required, desktop
 hold-to-fire + mobile right-analog-up manual firing (no auto-fire), real input-driven projectile spawn).
 The new `verify_vfx.gd` locks effect contracts (reduced motion, quality scaling, decal caps,

@@ -173,6 +173,20 @@ def explosion():
 # ---------------------------------------------------------------------------
 # 4. pickup — rising four-note bell arpeggio
 # ---------------------------------------------------------------------------
+def pop():
+    n = int(SR * 0.22)
+    out = [0.0] * n
+    for i in range(n):
+        t = i / SR
+        freq = 720.0 - 380.0 * math.exp(-t / 0.060)   # squeaky pitch drop
+        vib = 1.0 + 0.08 * math.sin(TAU * 27.0 * t)   # cartoon wobble
+        env = math.exp(-t / 0.055)
+        tone = math.sin(TAU * freq * vib * t) * env
+        tone += 0.4 * math.sin(TAU * freq * 1.5 * vib * t) * math.exp(-t / 0.04)
+        out[i] = 0.80 * tone
+    return out
+
+
 def pickup():
     n = int(SR * 0.4)
     out = [0.0] * n
@@ -340,6 +354,7 @@ SOUNDS = [
     ("cannon_fire.wav", cannon_fire, 0.96),
     ("impact.wav", impact, 0.96),
     ("explosion.wav", explosion, 0.96),
+    ("pop.wav", pop, 0.92),
     ("pickup.wav", pickup, 0.94),
     ("turbo.wav", turbo, 0.92),
     ("kill.wav", kill, 0.95),

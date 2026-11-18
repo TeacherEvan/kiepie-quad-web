@@ -23,7 +23,7 @@ func _run() -> void:
 	if sfx != null:
 		var sample_count := int((sfx.get("SAMPLES") as Dictionary).size())
 		# 9 since the dead overheat sample was removed (audit P3-25; the mechanic is gone).
-		_check(sample_count == 9, "9 sound samples registered (got %d)" % sample_count)
+		_check(sample_count == 10, "10 sound samples registered (got %d)" % sample_count)
 
 	var arena_scene: PackedScene = load("res://scenes/Arena.tscn")
 	_check(arena_scene != null, "Arena scene loads")

@@ -349,22 +349,6 @@ func _add_match_hud(root: Node) -> void:
 	health_bar.add_theme_stylebox_override("background", UI.bar_track())
 	hud.add_child(health_bar)
 
-	var turbo := Label.new()
-	turbo.name = "Turbo"
-	turbo.text = "TURBO"
-	turbo.visible = false
-	turbo.anchor_left = 0.5
-	turbo.anchor_right = 0.5
-	turbo.offset_left = -130.0
-	turbo.offset_right = 130.0
-	turbo.offset_top = 70.0
-	turbo.offset_bottom = 120.0
-	turbo.horizontal_alignment = 1
-	_outlined(turbo, Color(1.0, 0.68, 0.16, 1.0), 34, 10)
-	turbo.add_theme_stylebox_override("normal",
-			_chip(Color(0.13, 0.05, 0.01, 0.85), Color(1.0, 0.55, 0.12, 0.65)))
-	hud.add_child(turbo)
-
 	var respawn := Label.new()
 	respawn.name = "RespawnOverlay"
 	respawn.text = "DOWN — RESPAWNING…"

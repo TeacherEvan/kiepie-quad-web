@@ -22,7 +22,6 @@ var _hp_fill: StyleBoxFlat
 var _hitmarker: Label = null
 var _hit_tween: Tween = null
 var _announce_tween: Tween = null
-var _last_turbo := false
 var _scores_open := false
 
 
@@ -593,16 +592,6 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
-	if _combat != null:
-		# Multiplayer twin of Hud.gd's TestRide wiring: the Arena builder bakes a
-		# "Turbo" label into the HUD; light it while turbo is engaged.
-		var bike_var: Variant = _combat.get("bike")
-		var turbo := bool(bike_var.get("turbo_active")) if bike_var != null else false
-		if turbo != _last_turbo:
-			_last_turbo = turbo
-			var turbo_label := get_node_or_null("Turbo")
-			if turbo_label != null:
-				turbo_label.visible = turbo
 	if Settings.get_value("video", "show_fps", false):
 		if _fps_label == null:
 			_fps_label = Label.new()

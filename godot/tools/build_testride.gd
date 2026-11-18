@@ -245,25 +245,6 @@ func _initialize() -> void:
 	hitmarker.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(hitmarker)
 
-	var turbo := Label.new()
-	turbo.name = "Turbo"
-	turbo.text = "TURBO"
-	turbo.visible = false
-	turbo.anchor_left = 0.5
-	turbo.anchor_right = 0.5
-	turbo.offset_left = -110.0
-	turbo.offset_right = 110.0
-	turbo.offset_top = 20.0
-	turbo.offset_bottom = 84.0
-	turbo.horizontal_alignment = 1
-	turbo.add_theme_font_size_override("font_size", 42)
-	turbo.add_theme_color_override("font_color", UI.GOLD)
-	turbo.add_theme_constant_override("outline_size", 10)
-	turbo.add_theme_color_override("font_outline_color", Color(0.10, 0.02, 0.0, 0.9))
-	turbo.add_theme_stylebox_override("normal",
-			UI.chip(Color(0.13, 0.05, 0.01, 0.85), Color(UI.ACCENT.r, UI.ACCENT.g, UI.ACCENT.b, 0.65)))
-	layer.add_child(turbo)
-
 	var restart := Button.new()
 	restart.name = "RestartBtn"
 	restart.text = "Restart  (R)"

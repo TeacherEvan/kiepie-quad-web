@@ -13,6 +13,7 @@ extends Node
 
 const SAMPLES := {
 	"fire": "res://assets/sfx/cannon_fire.wav",
+	"pop": "res://assets/sfx/pop.wav",
 	"impact": "res://assets/sfx/impact.wav",
 	"explosion": "res://assets/sfx/explosion.wav",
 	"pickup": "res://assets/sfx/pickup.wav",
@@ -25,7 +26,7 @@ const SAMPLES := {
 
 const MAX_VOICES := 24
 const PITCH_JITTER := 0.05  # +-5 % on repeated impact/fire sounds
-const JITTERED := {"fire": true, "impact": true, "explosion": true}
+const JITTERED := {"fire": true, "impact": true, "explosion": true, "pop": true}
 
 var _streams: Dictionary = {}
 var _voices: Array[AudioStreamPlayer] = []

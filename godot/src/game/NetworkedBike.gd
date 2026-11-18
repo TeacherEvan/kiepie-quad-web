@@ -2,8 +2,8 @@ extends StaticBody3D
 ## Visual/interpolated proxy for a remote player. Collision is a simple box so
 ## projectiles can raycast against it; no driving physics runs locally.
 
-const MODEL := "res://assets/Kiepie_Bike.glb"
 const VFX := preload("res://src/game/VfxFactory.gd")
+const POGO_VISUAL := preload("res://src/game/PogoVisual.gd")
 
 var player_id := ""
 var display_name := ""
@@ -27,11 +27,18 @@ func setup(id: String, name_text: String, color_hex: String) -> void:
 	# Stay hidden until the first live state snapshot places us at the peer's real transform.
 	visible = false
 
-	var glb: PackedScene = load(MODEL)
+	var vehicle := VehicleRegistry.for_player(player_id)
+	var pogo := VehicleRegistry.is_pogo(vehicle)
+	var model_path := VehicleRegistry.model_path(vehicle)
+	var glb: PackedScene = load(model_path)
 	if glb != null:
 		var model := glb.instantiate()
 		model.name = "Model"
 		add_child(model)
+		if pogo:
+			var rider := model.get_node_or_null("Rider")
+			if rider != null:
+				rider.set_script(POGO_VISUAL)
 		# tint the body slightly so players are distinguishable at a glance
 		var tinted_cache: Dictionary = {}
 		for mesh in model.find_children("*", "MeshInstance3D", true, false):

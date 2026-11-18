@@ -10,7 +10,6 @@ var _cam_rig: Node
 var _combat: Node
 var _speed_label: Label
 var _smash_label: Label
-var _turbo_label: Label
 var _hitmarker: Label
 var _hit_tween: Tween
 var _help_label: Label
@@ -20,7 +19,6 @@ var _menu_btn: Button
 var _smashed := 0
 var _total := 3
 var _last_speed := -1
-var _last_turbo := false
 var _last_view := ""
 var _relayout_pending := false
 @export var smash_total := 3   ## set by tools/build_testride.gd (serialized into the scene)
@@ -37,7 +35,6 @@ func _ready() -> void:
 	_help_label = get_node_or_null("Help") as Label
 	_speed_label = get_node_or_null("Speed") as Label
 	_smash_label = get_node_or_null("Smashed") as Label
-	_turbo_label = get_node_or_null("Turbo") as Label
 	_hitmarker = get_node_or_null("HitMarker") as Label
 	_restart_btn = get_node_or_null("RestartBtn") as Button
 	_view_btn = get_node_or_null("ViewBtn") as Button
@@ -67,11 +64,6 @@ func _process(_delta: float) -> void:
 		if kmh != _last_speed:
 			_last_speed = kmh
 			_speed_label.text = "%d km/h" % kmh
-	if _turbo_label:
-		var turbo := bool(_bike.get("turbo_active"))
-		if turbo != _last_turbo:
-			_last_turbo = turbo
-			_turbo_label.visible = turbo
 	if _cam_rig and _view_btn:
 		var mode := str(_cam_rig.get("mode"))
 		if mode != _last_view:
@@ -157,13 +149,6 @@ func _relayout() -> void:
 		_smash_label.size.x = smash_w
 		_smash_label.add_theme_font_size_override("font_size", 13 if narrow else 16)
 		_update_smash_label()
-	if _turbo_label != null:
-		if narrow:
-			_turbo_label.offset_top = 166.0
-			_turbo_label.offset_bottom = 212.0
-		else:
-			_turbo_label.offset_top = 12.0 if compact_h else 20.0
-			_turbo_label.offset_bottom = _turbo_label.offset_top + (48.0 if compact_h else 64.0)
 	if _restart_btn != null:
 		_restart_btn.offset_left = -132.0 if narrow else -150.0
 		_restart_btn.offset_right = -14.0

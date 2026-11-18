@@ -186,6 +186,7 @@ run_gate rollover        verify_rollover.gd
 run_gate vfx             verify_vfx.gd
 run_gate practice        verify_practice.gd
 run_gate multiplayer     verify_multiplayer.gd
+run_gate pogo             verify_pogo.gd
 run_gate check_scripts    _check_scripts.gd
 run_gate_windowed touch_multitouch verify_touch_multitouch.gd
 run_gate_gdunit

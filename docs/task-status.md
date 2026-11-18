@@ -5,9 +5,10 @@ navigation in [index.md](index.md). Statuses are evidence-backed: commit hashes,
 gate names, or live checks — not assumptions.
 
 **Last verified:** 2026-11-19 — `scene_sync OK (6 scenes match HEAD)`, full gate suite
-25/25 green after the INP-3 touch-arbitration fix (including three new assertions in
-`verify_touch_multitouch.gd`); live site HTTP 200 on the `a3ec39c` auto-deploy, which
-ships that fix. Previous deploy: `f09c80e`.
+**26/26** green after the PRINCESS pogo-vehicle pass (including the new `verify_pogo.gd`
+and three rebuilt scenes); live site HTTP 200 on the `a3ec39c` auto-deploy. A web re-export
+of the pogo-vehicle build follows this series via `godot/tools/deploy_web.sh --apply`.
+Previous deploy: `f09c80e`.
 
 ## Audit remediation — 10 Principal Engineer (2026-11-18)
 
@@ -93,6 +94,24 @@ findings). Web re-export + deploy: **`f09c80e`**. Earlier surgical audit:
 | Showcase `.glb` duplication inflating pck (P3) | Root showcase files live **outside** the Godot project; `godot/assets/` holds exactly one runtime `Kiepie_Bike.glb` | `ls godot/assets/*.glb` (2026-11-19) |
 | Monolithic merge diffs bypass review (P1) | Historical: PR #6 merge completed; keep future PRs under the review ceiling | process note |
 | Client-authoritative scoring spoofing (P2) | Design constraint of Talo v1 (no SQL RPC). Mitigations: per-killer 1 s / 20 min caps, join/leave alias binding, score clamping, shot-payload validation | AGENTS.md · `TaloBackend.gd` |
+
+
+## Feature — PRINCESS pogo vehicle + TURBO banner removal (2026-11-19)
+
+New vehicle, dealt randomly to every rider (nobody picks), plus removal of the TURBO
+flash banner from both HUDs.
+
+| ID | Change | Evidence |
+| --- | --- | --- |
+| POG-1 | `VehicleRegistry.gd`: FNV-1a-32 hash of player id → vehicle (mock-host → QUAD, peer-1/peer-3 → pogo); zero wire traffic; future vehicles extend the table | `godot/src/game/VehicleRegistry.gd` · `verify_pogo.gd` |
+| POG-2 | Blender sculpt `src/build_pogo_princess.py`: PRINCESS — Borat mankini pogo man, PRINCESS gold decal on the back (image-texture, never text geometry), belly morph split into a `Belly` pivot | `Pogo_Princess.blend` · `godot/assets/Pogo_Princess.glb` (4.6 k verts, minZ = 0.000, 0 non-manifold) |
+| POG-3 | Runtime swap in `KiepieBike._enter_tree` (parent-first): model shell swap, physics/wheels/mass/collision byte-identical to the bike; `PogoVisual.gd` cosmetic bounce + belly slosh + landing squash | `KiepieBike.gd` · gates unchanged (bike default under mock backend) |
+| POG-4 | Weapons: profile-based `SideCannons` (`bike`/`pogo`) — banana projectile (`BananaProjectile.gd`, procedural crescent), 60 dmg (2× cannon), 0.40 s / 0.18 s rapid cooldown, `pop` SFX; remote/ArenaNet path applies the same profile by hash | `SideCannons.gd` · `BananaProjectile.gd` · `ArenaNet.gd` · `Sfx.gd` · `verify_practice/pogo` green |
+| POG-5 | Remote proxies (`NetworkedBike.gd`) load the GLB for the peer's hashed vehicle (deterministic mix across peers) | `NetworkedBike.gd` · `verify_multiplayer` green |
+| POG-6 | TURBO HUD flash banner removed from Arena + TestRide builders and runtime toggles in `Hud.gd`/`MatchHud.gd`; turbo mechanic, flames and FOV kick unchanged; scenes rebuilt (`.tscn` committed with builders) | `build_arena.gd` · `build_testride.gd` · rebuilt scenes · gates stay green |
+| POG-7 | New gate `verify_pogo.gd` (26th gate): hash determinism, runtime swap, weapon profile, GLB integrity, ground datum | `godot/tools/verify_pogo.gd` · `.github/workflows/gates.yml` (via run_gates.sh) |
+
+| Docs | Synced: README, SOURCE.md, AGENTS.md, project-plan constants (26 gates; QUAD/PRINCESS cooldowns) | this commit |
 
 ## Pending and blocked
 

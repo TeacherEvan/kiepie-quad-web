@@ -3,6 +3,7 @@ extends Node3D
 
 const REMOTE_BIKE := preload("res://src/game/NetworkedBike.gd")
 const PROJECTILE := preload("res://src/game/Projectile.gd")
+const BANANA := preload("res://src/game/BananaProjectile.gd")
 const SEND_HZ := 15.0
 const SPAWN_ORDER := [0, 4, 2, 6, 1, 5, 3, 7]
 
@@ -225,12 +226,17 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 		return
 	kept.append(now)
 	_shot_log[owner_id] = kept
+	var vehicle := VehicleRegistry.for_player(owner_id)
+	var pogo := VehicleRegistry.is_pogo(vehicle)
+	var proj_script: GDScript = BANANA if pogo else PROJECTILE
+	var dmg := Match.damage() * VehicleRegistry.damage_multiplier(vehicle)
+	var shot_color := Color(1.0, 0.9, 0.25) if pogo else Color(1.0, 0.35, 0.25)
 	var proj := Node3D.new()
-	proj.set_script(PROJECTILE)
+	proj.set_script(proj_script)
 	add_child(proj)
 	# Keep in sync with SideCannons.SHOT_SPEED.
-	proj.setup(owner_id, _remote.get(owner_id), o, d, 52.0, Match.damage(),
-			str(p.get("token", "")), Color(1.0, 0.35, 0.25))
+	proj.setup(owner_id, _remote.get(owner_id), o, d, 52.0, dmg,
+			str(p.get("token", "")), shot_color)
 	var combat := get_tree().get_first_node_in_group("local_combat")
 	if combat != null and combat.has_method("_on_projectile_hit"):
 		proj.on_hit = Callable(combat, "_on_projectile_hit")
