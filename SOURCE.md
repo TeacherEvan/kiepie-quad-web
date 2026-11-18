@@ -323,6 +323,16 @@ then (with `--apply`) commits, pushes and deploys to Vercel.
 `xvfb-run -a godot-4.3 --path godot --script tools/vfx_showcase.gd` re-renders five VFX/layout
 proof images into `renders/` under the real Web renderer (not a gate).
 
-Web export produces `web/index.pck` (~3.8 MB; the bundle check aborts above 4 MB) plus PWA
-manifest/service worker; deploy with the documented `vercel deploy --prod` command (pushes to
-`web/` do **not** auto-deploy).
+Web export produces `web/index.pck` (~2.7 MB; the bundle check aborts above 4 MB) plus PWA
+manifest/service worker. Pushes to `main` auto-deploy to Vercel; `godot/tools/deploy_web.sh --apply`
+is the gated path (export → bundle check → commit → push → live curl). `web/` is a git-ignored
+staging folder.
+
+The web shell carries a **themed loading surface**: `web-assets/dashboard_bg.jpg` (navy quad
+ghost + grid behind the progress bar) and `web-assets/kiepie-quad-splash.mp4` (8 s splash,
+1280x720, ~1.9 MB — Blender hero-quad plates rendered via the `surgical-media` pipeline,
+muted autoplay, click/touch/Esc/end-to-skip, returning visitors skipped via
+`localStorage['kiepie_splash_seen_v1']`, removed instantly under `prefers-reduced-motion`).
+`html/head_include` in `godot/export_presets.cfg` embeds the same splash markup/JS so re-exports
+keep it; root `index.html` ships it directly, and `web-assets/` lives outside `godot/` so the pck
+stays small. `index.png` is a themed 1200x900 loading card (replaces the default Godot logo).

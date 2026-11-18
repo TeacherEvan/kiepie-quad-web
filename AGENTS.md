@@ -145,6 +145,12 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   extension_api.json, reports/*, tools/*, docs/*, .env*` and **includes `addons/talo/settings.cfg`** — the export filter is
   `all_resources`, so a plain `.cfg` is otherwise dropped and the plugin silently falls back to
   MockBackend. `html/head_include` carries the fullscreen-on-launch bridge
+  and the web-shell splash: inline CSS/JS injecting `#splash` (autoplay-muted
+  `web-assets/kiepie-quad-splash.mp4`, click/touch/`Esc` skip,
+  `localStorage['kiepie_splash_seen_v1']` for returning visitors, instant removal under
+  `prefers-reduced-motion`). Root `index.html` ships the identical markup and the preset
+  embeds it, so re-exports keep it. `web-assets/` (dashboard background + splash) lives
+  **outside** `godot/` so the pck stays small — do not move those files into `godot/assets/`.
   (`window.__kiepieSetFullscreen`) that `Settings.gd` drives via `JavaScriptBridge` on Web
   (fullscreen is now default-on; `Settings` schema v2 migrates v1 configs) — don't clobber it
   when editing the preset. Expect root `index.pck` ≈ **2.7 MB**; `deploy_web.sh` aborts above **4 MB**,
