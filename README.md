@@ -290,7 +290,7 @@ deploy helper does this automatically. The Web build ships that key inside the p
 design — use a disposable, scoped dev key, never `TALO_API_ADMIN`. Lobbies are Talo channels,
 state lives in host-owned channel props, and shots/kills flow over channel socket messages.
 Scoring is host-authoritative client logic (no server-side validation). Without a key the client
-uses a full offline `MockBackend`, so all 21 gates run without credentials. The old `supabase/`
+uses a full offline `MockBackend`, so all 23 gates run without credentials. The old `supabase/`
 migrations are retained for history only and are not deployed.
 
 **VFX pass:** effects are built by `godot/src/game/VfxFactory.gd` from five tiny sprites
@@ -322,8 +322,8 @@ proportional steer strength, large touch controls and quality presets
 **New gates:** `verify_cannons.gd`, `verify_settings.gd`, `verify_match_rules.gd`,
 `verify_combat.gd`, `verify_kill_flow.gd`, `verify_appeal.gd`, `verify_talo_backend.gd` and
 `verify_audit_regressions.gd`, `verify_controls.gd` and `verify_dodge.gd` join the existing
-suite — `godot/tools/run_gates.sh` now runs 21 gates offline (19 headless gates plus GdUnit4
-and one xvfb-windowed multi-touch gate, `verify_touch_multitouch.gd`).
+suite — `godot/tools/run_gates.sh` now runs 23 gates offline (20 headless gates plus GdUnit4,
+the `scene_sync` drift check and one xvfb-windowed multi-touch gate, `verify_touch_multitouch.gd`).
 The new `verify_practice.gd` locks practice-mode cannons (no lobby required, FIRE
 wired for touch, real input-driven projectile spawn).
 The new `verify_vfx.gd` locks effect contracts (reduced motion, quality scaling, decal caps,
