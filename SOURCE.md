@@ -70,12 +70,13 @@ Controls:
 | `C` | Camera — chase ↔ free orbit (drag mouse / wheel to zoom) |
 | `Q` / `E` | Dodge left / right — lateral leap + cartwheel to evade attacks (ground-only, 1 s cooldown) |
 | `R` | Reset to spawn (also the on-screen **Restart** button) |
-| Touch | On-screen overlay (◀ ▶ steer · **DODGE L/R** · BRAKE · GAS · TURBO · FIRE) auto-appears on touch devices; the **TOUCH** button (top-right) force-shows/hides it anywhere. Dodge/FIRE button sizes and steering sensitivity are adjustable in Settings → Controls |
+| Touch | On-screen overlay (analog steer — push forward for **turbo**, pull back to brake/reverse · **DODGE L/R** · GAS; cannons **auto-fire** at targets) auto-appears on touch devices; the **TOUCH** button (top-right) force-shows/hides it anywhere. Dodge button size, steering sensitivity and touch force are adjustable in Settings → Controls |
 
 `TestRide.tscn` is the playable practice pad: asphalt, cone ring, start line, six **ramps**
 (including a cone-clearing jump line with a landing slope), four **smashable buildings**
 (drive into them at speed — they burst into debris and an on-screen counter tracks it),
-a follow camera, working **practice cannons** (F / Fire button — no lobby required, no
+a follow camera, working **practice cannons** (F / left mouse on desktop,
+target-locked auto-fire on mobile — no lobby required, no
 network kill broadcasts) and a HUD with speed readout, smash counter,
 turbo indicator and Restart / View buttons. Rollover-immune physics (lowered center of
 mass + angular damping) — the quad cannot flip. It is a placeholder — build your real
@@ -197,7 +198,7 @@ See `AGENTS.md` for toolchain details and exporter gotchas.
 ## Known limitations / roadmap
 
 - Front suspension is fixed; steering rotates the wheel meshes only (no tie-rod articulation).
-- No rider, no saddle animation, no engine sound, no swingarm animation.
+- No rider, no saddle animation, no swingarm animation (engine-loop audio ships in the sound pack).
 - Buildings restack as static decor — demolition is once per run (no respawn).
 - No factory Yamaha dimensions were used (none were provided); everything stays within
   ±10 % of the photos.
@@ -262,9 +263,9 @@ The game now boots into a **Main Menu** with `Practice` (the original free-ride/
 `Create Lobby`, `Join Auto`, `Join by code` and `Settings`. `Join Auto` finds a waiting lobby
 with a free slot and creates one if none exists.
 
-**Combat:** the Blender-authored twin side cannons fire with **F / left mouse / the touch FIRE
-button**. Each bike has 100 armour; the host-configured damage default is 30 per hit, cannons
-overheat if held down, and a destroyed bike explodes and respawns at a random spawn point after
+**Combat:** the Blender-authored twin side cannons fire with **F / left mouse** on desktop
+and **target-locked auto-fire** on mobile. Each bike has 100 armour; the host-configured damage default is 30 per hit, cannons
+are cooldown-gated (no overheat mechanic), and a destroyed bike explodes and respawns at a random spawn point after
 the lobby's respawn delay. The shooter scores the kill; first to the lobby's kill target wins.
 The arena (~100 m) has cover, ten ramps (two designed gap-jump lines plus two cover hops),
 seven destructible buildings, an outside-the-walls venue silhouette with floodlights, a radar

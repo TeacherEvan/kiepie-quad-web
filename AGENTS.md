@@ -21,6 +21,10 @@ This is a **Blender → Godot → Vercel** asset pipeline, not a normal code app
 - `godot/assets/sfx/` — generated WAVs + `generate_sfx.py`; edit the generator, not the WAVs by hand.
 - `supabase/` — **retired** migrations from the abandoned Supabase plan. Keep for history only;
   they are not applied anywhere and both connected Supabase MCP projects are unrelated apps.
+- `docs/` — `index.md` (navigation), `project-plan.md` (canonical plan + the single constants
+  table), `task-status.md` (audit-remediation ledger with commit evidence), `audits/` (source
+  reports). Sync them with every behavior/dependency change; sweep constants across README,
+  AGENTS.md and docs in the same commit. `docs/.scratch-audit/` is git-ignored run scratch.
 - Backend is **Talo** (scratch Supabase/Convex). `godot/addons/talo/` is a vendored **0.20.0**
   plugin — the last release compatible with Godot 4.3 (1.x needs 4.4+ and crashes the 4.3 editor).
   Never upgrade it without upgrading Godot first.
@@ -104,7 +108,7 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   20/min window to `register_kill` (client-minted shot tokens cannot be issuance-bound on Talo v1;
   rate is the only server-side lever), and `join`/`leave` socket messages are bound to the sender's
   alias with score/row clamping. ArenaNet drops non-finite, far-off-origin, oversized-direction and
-  >12/s shot payloads, and CombatController never names an attacker the lobby doesn't know.
+  >24/s shot payloads, and CombatController never names an attacker the lobby doesn't know.
 - Headless dummy-renderer RID/leak `ERROR:` lines at exit are benign; gates judge PASS/FAIL lines
   and script errors, not those.
 - `verify_appeal.gd` tests the drum chain with a **wall-clock timer**, not frame counts —
@@ -142,7 +146,7 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   MockBackend. `html/head_include` carries the fullscreen-on-launch bridge
   (`window.__kiepieSetFullscreen`) that `Settings.gd` drives via `JavaScriptBridge` on Web
   (fullscreen is now default-on; `Settings` schema v2 migrates v1 configs) — don't clobber it
-  when editing the preset. Expect root `index.pck` ≈ **3 MB**; `deploy_web.sh` aborts above **4 MB**,
+  when editing the preset. Expect root `index.pck` ≈ **2.7 MB**; `deploy_web.sh` aborts above **4 MB**,
   so check the printed size after adding assets (and update the script's expected-size note if it changes).
 - The Talo **game** key (JWT, `eyJ…`) is injected from root `.env` `TALO_API_GAME` and ships in the
   public pck by design. `TALO_API_ADMIN` (`ta_…`) is rejected by the v1 API — never use it here.

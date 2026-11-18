@@ -39,8 +39,9 @@ Captured live from the practice track under the real renderer (WebGL2 via xvfb) 
 - `F` / left mouse — **fire both side cannons** in the arena (cooldown-gated)
 - `C` — camera: chase ↔ free orbit (drag / scroll to zoom)
 - `R` — reset to spawn (also the on-screen Restart button)
-- On-screen touch overlay — steer/gas/brake/turbo/**FIRE**; auto-appears on touch
-  devices, and the **TOUCH** button force-shows/hides it anywhere.
+- On-screen touch overlay — analog steer (push forward = turbo, pull back =
+  brake/reverse), GAS and DODGE L/R; cannons auto-fire at targets on mobile.
+  Auto-appears on touch devices; the **TOUCH** button force-shows/hides it anywhere.
 
 ## Combat
 
@@ -56,8 +57,8 @@ hit-stop, damage numbers, tyre smoke, scorch marks and a full sound pack.
 ## Mobile / settings
 
 Responsive landscape layout with safe-area support. Settings (persisted on your
-device) cover quality presets for slower phones, audio, controls (including FIRE
-button size), display name/colour and a diagnostics overlay. Use **Restore
+device) cover quality presets for slower phones, audio, controls (including dodge
+button size, steering sensitivity and touch force), display name/colour and a diagnostics overlay. Use **Restore
 Defaults** to reset.
 
 ## Notes
@@ -70,6 +71,13 @@ Defaults** to reset.
 
 ## Repository
 This is the single repository for the Kiepie Quad project: the Blender/Godot **source** at the repo root, and the **Web build** (`index.html` / `index.wasm` / `index.pck` …) served from the repository root by Vercel. `SOURCE.md` carries the original source/QA documentation. `web/` (the export staging folder) is git-ignored so export artifacts never enter the repo unverified.
+
+## Documentation
+
+- **[docs/index.md](docs/index.md)** — navigation hub for all docs.
+- **[docs/project-plan.md](docs/project-plan.md)** — canonical project plan, architecture pointers and the single canonical constants table.
+- **[docs/task-status.md](docs/task-status.md)** — done-vs-pending ledger: the 2026-11-18 10-principal-engineer audit remediation per finding (commits `1494b0d`, `60a8b82`, deploy `f09c80e`), blocked items and deferred work.
+- **[docs/audits/](docs/audits/)** — audit source reports.
 ---
 
 Controls:
@@ -84,12 +92,13 @@ Controls:
 | `C` | Camera — chase ↔ free orbit (drag mouse / wheel to zoom) |
 | `Q` / `E` | Dodge left / right — lateral leap + cartwheel to evade attacks (ground-only, 1 s cooldown) |
 | `R` | Reset to spawn (also the on-screen **Restart** button) |
-| Touch | On-screen overlay (◀ ▶ steer · **DODGE L/R** · BRAKE · GAS · TURBO · FIRE) auto-appears on touch devices; the **TOUCH** button (top-right) force-shows/hides it anywhere. Dodge/FIRE button sizes and steering sensitivity are adjustable in Settings → Controls |
+| Touch | On-screen overlay (analog steer — push forward for **turbo**, pull back to brake/reverse · **DODGE L/R** · GAS; cannons **auto-fire** at targets) auto-appears on touch devices; the **TOUCH** button (top-right) force-shows/hides it anywhere. Dodge button size, steering sensitivity and touch force are adjustable in Settings → Controls |
 
 `TestRide.tscn` is the playable practice pad: asphalt, cone ring, start line, six **ramps**
 (including a cone-clearing jump line with a landing slope), four **smashable buildings**
 (drive into them at speed — they burst into debris and an on-screen counter tracks it),
-a follow camera, working **practice cannons** (F / Fire button — no lobby required, no
+a follow camera, working **practice cannons** (F / left mouse on desktop,
+target-locked auto-fire on mobile — no lobby required, no
 network kill broadcasts) and a HUD with speed readout, smash counter,
 turbo indicator and Restart / View buttons. Rollover immunity (lowered center of
 mass + angular lockout + righting spring) — the quad cannot flip. It is a placeholder — build your real
@@ -211,7 +220,7 @@ See `AGENTS.md` for toolchain details and exporter gotchas.
 ## Known limitations / roadmap
 
 - Front suspension is fixed; steering rotates the wheel meshes only (no tie-rod articulation).
-- No rider, no saddle animation, no engine sound, no swingarm animation.
+- No rider, no saddle animation, no swingarm animation (engine-loop audio ships in the sound pack).
 - Buildings restack as static decor — demolition is once per run (no respawn).
 - No factory Yamaha dimensions were used (none were provided); everything stays within
   ±10 % of the photos.
@@ -294,7 +303,7 @@ state lives in host-owned channel props, and shots/kills flow over channel socke
 Scoring is host-authoritative client logic (no server-side validation). Lobbies are stamped with a
 `protocol_version` channel prop — clients on a different wire version never get mixed in
 (`join_auto` skips the channel; `join_by_code` reports a version error). Without a key the client
-uses a full offline `MockBackend`, so all 24 gates run without credentials. The old `supabase/`
+uses a full offline `MockBackend`, so all 25 gates run without credentials. The old `supabase/`
 migrations are retained for history only and are not deployed.
 
 **VFX pass:** effects are built by `godot/src/game/VfxFactory.gd` from five tiny sprites
@@ -326,10 +335,10 @@ proportional steer strength, large touch controls and quality presets
 **New gates:** `verify_cannons.gd`, `verify_settings.gd`, `verify_match_rules.gd`,
 `verify_combat.gd`, `verify_kill_flow.gd`, `verify_appeal.gd`, `verify_talo_backend.gd` and
 `verify_audit_regressions.gd`, `verify_controls.gd`, `verify_dodge.gd` and `verify_rollover.gd` join the existing
-suite — `godot/tools/run_gates.sh` now runs 24 gates offline (21 headless gates plus GdUnit4,
+suite — `godot/tools/run_gates.sh` now runs 25 gates offline (22 headless gates plus GdUnit4,
 the `scene_sync` drift check and one xvfb-windowed multi-touch gate, `verify_touch_multitouch.gd`).
-The new `verify_practice.gd` locks practice-mode cannons (no lobby required, FIRE
-wired for touch, real input-driven projectile spawn).
+The new `verify_practice.gd` locks practice-mode cannons (no lobby required, desktop
+hold-to-fire + mobile target-locked auto-fire, real input-driven projectile spawn).
 The new `verify_vfx.gd` locks effect contracts (reduced motion, quality scaling, decal caps,
 flat-normal safety) and the new arena/test-track ramp and building counts with spawn clearance.
 The new gates exercise `TaloBackend` directly with no live account, lock the surgical-audit
@@ -340,6 +349,14 @@ then (with `--apply`) commits, pushes and deploys to Vercel.
 `xvfb-run -a godot-4.3 --path godot --script tools/vfx_showcase.gd` re-renders five VFX/layout
 proof images into `renders/` under the real Web renderer (not a gate), and
 `KIEPIE_MOCK_BACKEND=1 xvfb-run -a -s "-screen 0 1280x720x24" godot-4.3 --resolution 1280x720 --path godot --script tools/screenshot_gameplay.gd` re-renders the three gameplay shots above.
+
+**Audit hardening (2026-11-18):** the 10-principal-engineer audit
+([docs/audits/](docs/audits/)) was remediated in `1494b0d` + `60a8b82` — deploy-script
+locking and branch assertions, PWA double-WASM-download fix, serialized center of mass,
+frame-rate-invariant rollover damping, transitions-only match events, touch-emulation
+fire fixes, host-leave/join/reconnect handshakes, monotonic relay ticks and VFX content
+caching. Per-finding evidence and the remaining deferred items:
+[docs/task-status.md](docs/task-status.md).
 
 Web export produces `web/index.pck` (~2.7 MB; the bundle check aborts above 4 MB) plus PWA
 manifest/service worker. `web/` is a git-ignored staging folder; `godot/tools/deploy_web.sh --apply`
