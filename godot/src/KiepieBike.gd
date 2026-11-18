@@ -262,7 +262,10 @@ func _physics_process(delta: float) -> void:
 		if throttle > 0.0:
 			w.engine_force = power * throttle
 		elif throttle < 0.0:
-			if linear_velocity.length() < 2.0:
+			# Signed forward speed, not length(): reversing past 2 m/s must keep
+			# driving in reverse, not slam 2600 N of brake against the motion.
+			var forward_speed := linear_velocity.dot(global_transform.basis.z)
+			if forward_speed < 2.0:
 				w.engine_force = -reverse_force * -throttle
 			else:
 				w.brake = brake_force
@@ -395,8 +398,12 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	if _dodge_time > 0.0:
 		# Mid-cartwheel: the spin IS roll — leave it completely undamped.
 		return
-	var damp := lerpf(0.90, 0.997, lean)
-	state.angular_velocity = yaw + trans * (1.0 - damp)
+	# Frame-rate invariant: the step is scaled to a 60 Hz reference tick so the
+	# per-tick retention/torque does not over-damp at high physics rates or
+	# under-damp at low ones. pow(keep, dt_scale) is the exponential form.
+	var dt_scale := clampf(state.step * 60.0, 0.25, 4.0)
+	var keep := lerpf(0.90, 0.997, lean)
+	state.angular_velocity = yaw + trans * pow(keep, dt_scale)
 	# (2) righting spring: rotate about the tilt axis (y × world-UP) —
 	# frame-free, so it works at any yaw. Deadzone keeps small lean free;
 	# effort scales with lean and is capped per physics step.
@@ -411,7 +418,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		if axis.length() <= 0.0001:
 			axis = Vector3(basis.z.x, 0.0, basis.z.z)
 	if tilt > 0.055 and axis.length() > 0.0001:
-		var effort := minf(tilt * (0.10 + lean * 1.5), 0.14)
+		var effort := minf(tilt * (0.10 + lean * 1.5), 0.14) * dt_scale
 		basis = Basis(Quaternion(axis.normalized(), effort)) * basis
 		basis = basis.orthonormalized()
 		state.transform = Transform3D(basis, state.transform.origin)

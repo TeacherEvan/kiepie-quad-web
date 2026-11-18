@@ -52,6 +52,9 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var settings: Node = root.get_node("Settings")
+	# The launching machine's user://settings.cfg leaks into the autoload before
+	# this gate runs; reset it so the defaults are what we assert.
+	settings.call("reset_defaults")
 	_check(str(settings.call("get_value", "gameplay", "display_name", "")) == "RIDER", "default display name")
 	_check(float(settings.call("get_value", "video", "particles", 1.0)) == 1.0, "default particle multiplier")
 

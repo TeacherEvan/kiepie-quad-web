@@ -25,7 +25,8 @@ func _initialize() -> void:
 	bike.angular_velocity = Vector3.ZERO
 	Input.action_press("move_forward")
 	for i in range(300):
-		await process_frame
+		# physics ticks, not render frames: throttle only applies per tick
+		await physics_frame
 	Input.action_release("move_forward")
 	var intact = workshop.get("_intact")
 	var up_after := bike.global_transform.basis.y.normalized().y
@@ -39,6 +40,6 @@ func _initialize() -> void:
 	print("Workshop _intact=%s" % intact)
 	print("UP_Y_AFTER_SMASH: %.3f (expect > 0.80)" % up_after)
 	print("DEBRIS: %d RigidBody3D children in root (1 is the bike; 14 new debris expected)" % debris)
-	var ok: bool = intact == false and debris >= 15
+	var ok: bool = intact == false and debris >= 15 and up_after > 0.80
 	print("SMASH_IMPACT: %s" % ("PASS" if ok else "FAIL"))
 	quit(0 if ok else 1)

@@ -38,9 +38,29 @@ SCENES = [
 ]
 
 
+def _attrs(line: str) -> dict:
+    return dict(re.findall(r'([A-Za-z_][\w-]*)="([^"]*)"', line))
+
+
 def normalize(text: str) -> str:
+    raw_lines = text.splitlines()
+    # Pass 1: collect the resource-id -> identity map. Collapsing every
+    # reference to ExtResource(X) made node property lines indistinguishable,
+    # so swapping two script assignments between nodes slipped through.
+    ext_map: dict[str, str] = {}
+    sub_map: dict[str, str] = {}
+    for raw in raw_lines:
+        stripped = raw.strip()
+        if stripped.startswith("[ext_resource"):
+            attrs = _attrs(stripped)
+            if "id" in attrs and "path" in attrs:
+                ext_map[attrs["id"]] = attrs["path"]
+        elif stripped.startswith("[sub_resource"):
+            attrs = _attrs(stripped)
+            if "id" in attrs:
+                sub_map[attrs["id"]] = attrs.get("type", "SubResource")
     out: list[str] = []
-    for raw in text.splitlines():
+    for raw in raw_lines:
         line = raw.rstrip()
         if line.startswith("[gd_scene "):
             # load_steps count and format version are volatile serializer noise
@@ -49,8 +69,10 @@ def normalize(text: str) -> str:
         # volatile resource ids / uuid-ish attributes, but keep everything else
         line = re.sub(r'\bid="[^"]*"', 'id="X"', line)
         line = re.sub(r"load_steps=\d+", "load_steps=N", line)
-        line = re.sub(r'ExtResource\("[^"]*"\)', "ExtResource(X)", line)
-        line = re.sub(r'SubResource\("[^"]*"\)', "SubResource(X)", line)
+        line = re.sub(r'ExtResource\("([^"]*)"\)',
+                      lambda m: 'ExtResource(%s)' % ext_map.get(m.group(1), "X"), line)
+        line = re.sub(r'SubResource\("([^"]*)"\)',
+                      lambda m: 'SubResource(%s)' % sub_map.get(m.group(1), "X"), line)
         line = re.sub(r'uid="uid://[^"]*"', 'uid="uid://X"', line)
         out.append(line)
     # collapse runs of blank lines for stability

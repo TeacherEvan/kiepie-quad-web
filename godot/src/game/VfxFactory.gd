@@ -486,7 +486,16 @@ static func muzzle_flash(parent: Node3D, pos: Vector3, dir: Vector3, color: Colo
 		t.tween_interval(0.14)
 	else:
 		t.tween_property(light, "light_energy", 0.0, 0.14)
-	t.tween_callback(holder.queue_free)
+	# The 0.75 s smoke wisp child outlives the 0.14 s light fade — freeing the
+	# holder with the light chopped the smoke short on every shot. The holder
+	# goes after the slowest child, not with the light.
+	var smoke_tree := holder.get_tree()
+	if smoke_tree != null:
+		smoke_tree.create_timer(0.9).timeout.connect(func() -> void:
+			if is_instance_valid(holder):
+				holder.queue_free())
+	else:
+		t.tween_callback(holder.queue_free)
 
 
 static func casing(parent: Node3D, pos: Vector3, eject_dir: Vector3) -> void:

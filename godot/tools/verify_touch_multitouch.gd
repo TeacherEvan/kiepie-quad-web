@@ -238,8 +238,12 @@ func _run() -> void:
 	_check(not Input.is_action_pressed("move_forward"), "desktop mouse release drops GAS")
 
 	# ---- canceled touch (OS edge gesture) releases a held finger
+	# paired emulated mouse presses included: a real OS cancel strands the
+	# synthesized MOUSE_BUTTON_LEFT latch, which is what TouchCapture now drops.
 	_touch(5, _centre(layer, "BtnGas"), true)
+	_mouse(_centre(layer, "BtnGas"), true)
 	_touch(6, _pad_at(layer, 1.0), true)
+	_mouse(_pad_at(layer, 1.0), true)
 	await process_frame
 	_check(Input.is_action_pressed("move_forward"), "cancel test: gas held before cancel")
 	_cancel(5, _centre(layer, "BtnGas"))
@@ -247,9 +251,11 @@ func _run() -> void:
 	_check(not Input.is_action_pressed("move_forward"), "canceled gas finger releases move_forward")
 	_check(Input.is_action_pressed("steer_right"), "canceled other finger unaffected")
 	_touch(6, _pad_at(layer, 1.0), false)
+	_mouse(_pad_at(layer, 1.0), false)
 	await process_frame
 	# cancel on the pad itself
 	_touch(7, _pad_at(layer, -1.0), true)
+	_mouse(_pad_at(layer, -1.0), true)
 	await process_frame
 	_check(Input.is_action_pressed("steer_left"), "analog held before cancel")
 	_cancel(7, _pad_at(layer, -1.0))

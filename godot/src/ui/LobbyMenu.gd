@@ -55,7 +55,7 @@ func _ready() -> void:
 	add_to_group("back_handler")
 	Settings.call_deferred("sync_back_handler")
 	_apply_safe_area(_safe)
-	get_viewport().size_changed.connect(func(): _apply_safe_area(_safe))
+	get_viewport().size_changed.connect(_on_viewport_resized)
 	UI.style_scroll($SafeMargin/Scroll)
 	_connect_signals()
 	var mode := pending_mode
@@ -90,7 +90,7 @@ func _connect_signals() -> void:
 	_pickups.toggled.connect(func(_v): _push_settings())
 
 	Match.roster_changed.connect(_refresh_players)
-	Match.score_updated.connect(func(_uid, _score): _refresh_players())
+	Match.score_updated.connect(_on_score_updated)
 	Match.lobby_changed.connect(_on_lobby_changed)
 	Match.match_started.connect(_on_match_started)
 	Match.error_message.connect(_on_error)
@@ -162,6 +162,25 @@ func _refresh_status(board: Array) -> void:
 	else:
 		_set_status("Room %s · RIDER · Waiting for host (%d/%d ready)" % [
 				code_lbl, ready_cnt, board.size()], COL_INFO)
+
+
+func _on_viewport_resized() -> void:
+	_apply_safe_area(_safe)
+
+
+func _on_score_updated(_user_id: String, _score: int) -> void:
+	_refresh_players()
+
+
+func _exit_tree() -> void:
+	# Named handlers disconnect cleanly when the autoload/viewport outlives us;
+	# inline lambdas pinned the freed menu in memory and kept firing on stale
+	# nodes after scene changes.
+	var vp := get_viewport()
+	if vp != null and vp.size_changed.is_connected(_on_viewport_resized):
+		vp.size_changed.disconnect(_on_viewport_resized)
+	if Match.score_updated.is_connected(_on_score_updated):
+		Match.score_updated.disconnect(_on_score_updated)
 
 
 func _on_lobby_changed() -> void:

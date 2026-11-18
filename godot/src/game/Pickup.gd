@@ -16,6 +16,7 @@ var _glow: OmniLight3D
 var _trigger: CollisionShape3D
 var _t := 0.0
 var _collected := false
+var _lobby_enabled := true
 
 
 func _color() -> Color:
@@ -74,10 +75,48 @@ func _ready() -> void:
 	add_child(_glow)
 
 	body_entered.connect(_on_body_entered)
+	if Match != null:
+		if not Match.lobby_changed.is_connected(_on_lobby_changed):
+			Match.lobby_changed.connect(_on_lobby_changed)
+		_lobby_enabled = _lobby_pickups_enabled()
+		if not _lobby_enabled:
+			_apply_enabled(false)
+
+
+func _lobby_pickups_enabled() -> bool:
+	# No lobby (practice/TestRide or pre-lobby menu): pickups default to on.
+	if Match == null:
+		return true
+	var lobby: Variant = Match.get("lobby")
+	if lobby == null or (lobby is Dictionary and (lobby as Dictionary).is_empty()):
+		return true
+	if Match.has_method("pickups_enabled"):
+		return bool(Match.pickups_enabled())
+	return true
+
+
+func _apply_enabled(v: bool) -> void:
+	_lobby_enabled = v
+	if _collected:
+		# The respawn path re-applies state when the cooldown expires.
+		return
+	set_deferred("monitoring", v)
+	set_process(v)
+	if is_instance_valid(_trigger):
+		_trigger.set_deferred("disabled", not v)
+	if is_instance_valid(_visual):
+		_visual.visible = v
+	if is_instance_valid(_glow):
+		_glow.visible = v
+
+
+func _on_lobby_changed() -> void:
+	# Host toggled pickups mid-match: react immediately.
+	_apply_enabled(_lobby_pickups_enabled())
 
 
 func _process(delta: float) -> void:
-	if _collected:
+	if _collected or not _lobby_enabled:
 		return
 	_t = fmod(_t + delta, TAU)
 	if is_instance_valid(_visual):
@@ -135,14 +174,8 @@ func _respawn() -> void:
 		return
 	_collected = false
 	_t = 0.0
-	set_process(true)
-	set_deferred("monitoring", true)
-	if is_instance_valid(_trigger):
-		_trigger.set_deferred("disabled", false)
-	if is_instance_valid(_visual):
-		_visual.visible = true
-	if is_instance_valid(_glow):
-		_glow.visible = true
+	# Respect the host's pickups toggle across respawns.
+	_apply_enabled(_lobby_pickups_enabled())
 
 
 func _fx_parent() -> Node3D:

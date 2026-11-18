@@ -393,6 +393,7 @@ static func _install_js_bridge() -> void:
   window.__kiepieVk = {
     isMobileLike: isMobileLike,
     isOpen: function() { return !!activeId; },
+    close: function() { closeActive(false); },
     setField: function(id, cfg) {
       fields[id] = cfg;
       if (activeId === id && (!cfg || !cfg.visible)) {

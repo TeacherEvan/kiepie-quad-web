@@ -41,6 +41,12 @@ func _input(event: InputEvent) -> void:
 		# an action latched because of it.
 		if touch.canceled:
 			pointer_up.emit(touch.index, touch.position)
+			# The paired emulated mouse stream (primary touch) has no guaranteed
+			# pressed=false after an OS cancel either: release its latch or the
+			# refcounted hold in TouchControls never reaches zero.
+			if _left_down:
+				_left_down = false
+				pointer_up.emit(MOUSE_POINTER, touch.position)
 		elif touch.pressed:
 			pointer_down.emit(touch.index, touch.position)
 		else:

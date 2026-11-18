@@ -166,10 +166,13 @@ func _on_pointer_move(pointer: int, at: Vector2) -> void:
 	_hold(hovered)
 
 func _on_pointer_up(pointer: int, _at: Vector2) -> void:
+	# Release both halves independently: under paired touch->mouse emulation the
+	# shared MOUSE_POINTER can own a pad (analog) hold and a button hold at the
+	# same time; dropping only analog and returning stranded the button half
+	# (e.g. gas latched forever after a canceled primary touch).
 	if _analog.has(pointer):
 		_analog.erase(pointer)
 		_sync_analog()
-		return
 	if not _fingers.has(pointer):
 		return
 	var action: String = _fingers[pointer]

@@ -20,7 +20,11 @@ export KIEPIE_MOCK_BACKEND=1
 BUILD=1
 [ "${1:-}" = "--no-build" ] && BUILD=0
 
-LOGDIR="$(mktemp -d /tmp/opencode/gates.XXXXXX)"
+# CI runners (GitHub Actions ubuntu-24.04) have no /tmp/opencode; mktemp -d does
+# not create parents, and without -e the script would continue with LOGDIR="" and
+# retarget every log redirect to / (Permission denied, all gates fail).
+mkdir -p "${TMPDIR:-/tmp}/opencode"
+LOGDIR="$(mktemp -d "${TMPDIR:-/tmp}/opencode/gates.XXXXXX")"
 PASS=0; FAILED=()
 
 note() { printf '%s\n' "$*"; }
@@ -182,6 +186,7 @@ run_gate rollover        verify_rollover.gd
 run_gate vfx             verify_vfx.gd
 run_gate practice        verify_practice.gd
 run_gate multiplayer     verify_multiplayer.gd
+run_gate check_scripts    _check_scripts.gd
 run_gate_windowed touch_multitouch verify_touch_multitouch.gd
 run_gate_gdunit
 

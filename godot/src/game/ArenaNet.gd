@@ -76,7 +76,10 @@ func _process(delta: float) -> void:
 
 func _send_state() -> void:
 	var bike := get_node_or_null(local_bike_path) as Node3D
-	if bike == null or not bike.visible:
+	# No visibility gate: dead bikes must keep broadcasting "d": true during
+	# their respawn window so peers stop showing them and remote proxies enter
+	# the respawn state instead of reappearing at the corpse position.
+	if bike == null:
 		return
 	var q := Quaternion(bike.global_transform.basis)
 	var combat := get_tree().get_first_node_in_group("local_combat")
@@ -111,7 +114,7 @@ func _on_broadcast(event: String, payload: Variant) -> void:
 			var token := str(p.get("token", ""))
 			# The victim broadcasts its death; only the killer's client awards
 			# the point through the authoritative RPC (the server owns scores).
-			if killer == Supabase.user_id and victim != "" and token != "":
+			if killer == Supabase.user_id and victim != "" and victim != Supabase.user_id and token != "":
 				_streak += 1
 				Match.register_kill(victim, token)
 				_play_sfx("kill")
@@ -206,14 +209,16 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 	if d.length() > 100.0:
 		# absurd impulse: not a direction we are willing to simulate
 		return
-	# per-sender rate limit: 12 remote shots per second
+	# per-sender rate limit: 24 remote shots per second. Twin-barrel rapid fire
+	# emits 2 shots every 0.09 s (~22/s) — the old 12/s cap silently dropped
+	# legitimate tracers on fast fire. Still bounds any forged shot flood.
 	var now := Time.get_ticks_msec() / 1000.0
 	var window: Array = _shot_log.get(owner_id, [])
 	var kept: Array = []
 	for t in window:
 		if now - float(t) < 1.0:
 			kept.append(t)
-	if kept.size() >= 12:
+	if kept.size() >= 24:
 		return
 	kept.append(now)
 	_shot_log[owner_id] = kept

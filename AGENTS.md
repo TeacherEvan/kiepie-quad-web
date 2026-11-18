@@ -68,9 +68,9 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 - `gdlint` / `gdtoolkit` are **not installed** in this environment — do not rely on them.
   `godot-4.3 --check-only --script <file>` reports false "Identifier not found" for autoloads;
   use `tools/_check_scripts.gd` instead.
-- `run_gates.sh` runs **24 gates**: truth, stability, touch, features, smash_impact, diag2,
+- `run_gates.sh` runs **25 gates**: truth, stability, touch, features, smash_impact, diag2,
   cannons, settings, match_rules, combat, kill_flow, appeal, accessibility, talo_backend,
-  audit_regressions, controls, dodge, rollover, vfx, practice, multiplayer + `touch_multitouch` (runs under xvfb, not headless —
+  audit_regressions, controls, dodge, rollover, vfx, practice, multiplayer, check_scripts + `touch_multitouch` (runs under xvfb, not headless —
   synthesized touch needs a real window) + GdUnit4 + `scene_sync` (tracked `.tscn` must equal
   the builders' output modulo resource-id churn; hand edits to generated scenes fail loudly). `audit_regressions` locks the surgical-audit
   defects: forged `state` events, 3-stop VFX gradients, exhaust axis, malformed shot arrays and

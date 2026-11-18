@@ -24,7 +24,12 @@ def _sha12(path: Path) -> str:
 
 
 def patch_service_worker(src: str, wasm_hash: str = "dev", pck_hash: str = "dev") -> str:
-    out = src.replace('"index.worker.js",', '')
+    # index.worker.js does not exist on single-threaded exports, and index.wasm
+    # must live ONLY in ENGINE_CACHE (keyed by wasm content hash): leaving it in
+    # CACHED_FILES makes the install event re-download 35 MB into CACHE_NAME on
+    # every .pck deploy, while the fetch handler reads ENGINE_CACHE and downloads
+    # it a second time on first load.
+    out = src.replace('"index.worker.js",', '').replace('"index.wasm",', '')
 
     # Incorporate index.pck content hash into CACHE_VERSION so every pck change swaps
     # CACHE_NAME cleanly, allowing index.pck to be Cache-First inside its own version bucket.
@@ -51,7 +56,10 @@ def patch_service_worker(src: str, wasm_hash: str = "dev", pck_hash: str = "dev"
     )
     new_install = (
         "self.addEventListener('install', (event) => {\n"
-        "\tevent.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(CACHED_FILES)).then(() => self.skipWaiting()));\n"
+        "\tevent.waitUntil(Promise.all([\n"
+        "\t\tcaches.open(CACHE_NAME).then((cache) => cache.addAll(CACHED_FILES)),\n"
+        "\t\tcaches.open(ENGINE_CACHE).then((cache) => cache.match('index.wasm').then((hit) => hit ? undefined : cache.add('index.wasm'))),\n"
+        "\t]).then(() => self.skipWaiting()));\n"
         "});"
     )
     if old_install in out:

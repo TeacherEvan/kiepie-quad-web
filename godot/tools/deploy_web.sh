@@ -12,6 +12,34 @@ GODOT="${GODOT:-godot-4.3}"
 APPLY=0
 [ "${1:-}" = "--apply" ] && APPLY=1
 
+# Serialize deploys: two overlapping runs interleave web/ artifacts and push
+# mismatched bundles. Fail fast instead of racing.
+# per-machine lock in /tmp — never a repo artifact
+LOCK="${TMPDIR:-/tmp}/kiepie-quad-web-deploy.lock"
+exec 9>"$LOCK"
+if ! flock -n 9; then
+	echo "DEPLOY ABORTED: another deploy_web.sh run is in progress (lock: $LOCK)"
+	exit 1
+fi
+
+# inject_talo_key.py rewrites the git-ignored addons/talo/settings.cfg with the
+# live production key. Back it up up front and restore/remove on exit so the
+# key never lingers in the working tree after the export.
+SETTINGS_CFG="$ROOT/godot/addons/talo/settings.cfg"
+SETTINGS_BAK=""
+if [ -f "$SETTINGS_CFG" ]; then
+	SETTINGS_BAK="$(mktemp "${TMPDIR:-/tmp}/talo-settings.XXXXXX")"
+	cp -p "$SETTINGS_CFG" "$SETTINGS_BAK"
+fi
+cleanup() {
+	if [ -n "$SETTINGS_BAK" ]; then
+		mv -f "$SETTINGS_BAK" "$SETTINGS_CFG"
+	else
+		rm -f "$SETTINGS_CFG"
+	fi
+}
+trap cleanup EXIT
+
 echo "== gates"
 bash godot/tools/run_gates.sh || { echo "DEPLOY ABORTED: gates failed"; exit 1; }
 
@@ -19,6 +47,8 @@ echo "== talo key"
 python3 godot/tools/inject_talo_key.py || { echo "DEPLOY ABORTED: no Talo game key"; exit 1; }
 
 echo "== web export (staging: web/ — git-ignored)"
+# Start from a clean slate: leftover chunks from an older export would mix in.
+rm -rf "$ROOT/web"
 mkdir -p "$ROOT/web"
 "$GODOT" --headless --path godot --export-release "Web" "$ROOT/web/index.html" || {
 	echo "DEPLOY ABORTED: export failed"; exit 1;
@@ -46,11 +76,16 @@ if [ "$APPLY" -ne 1 ]; then
 fi
 
 echo "== sync web/ -> repo root"
+[ "$(git rev-parse --abbrev-ref HEAD)" = "main" ] || {
+	echo "DEPLOY ABORTED: --apply must run from branch 'main' (on $(git rev-parse --abbrev-ref HEAD))"
+	exit 1
+}
 cp -f "$ROOT/web/"* "$ROOT/" || { echo "DEPLOY ABORTED: sync failed"; exit 1; }
-git add index.html index.js index.wasm index.pck index.manifest.json index.service.worker.js \
+# --only commits exactly these paths even if unrelated files are staged already.
+git commit --only -m "Kiepie Quad: web export refresh $(date -u +%Y-%m-%dT%H:%M:%SZ)" -- \
+	  index.html index.js index.wasm index.pck index.manifest.json index.service.worker.js \
 	  index.audio.worklet.js index.offline.html index.png favicon.ico index.144x144.png \
-	  index.180x180.png index.512x512.png
-git commit -m "Kiepie Quad: web export refresh $(date -u +%Y-%m-%dT%H:%M:%SZ)" || {
+	  index.180x180.png index.512x512.png || {
 	echo "   (nothing to commit — bundle identical)"
 }
 git push origin main || { echo "DEPLOY ABORTED: push failed"; exit 1; }

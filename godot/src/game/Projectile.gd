@@ -147,6 +147,11 @@ func _build_tracer() -> void:
 	_ray_query = PhysicsRayQueryParameters3D.new()
 	_ray_query.collide_with_areas = false
 	_ray_query.collide_with_bodies = true
+	if owner_node is CollisionObject3D:
+		# Own chassis never blocks the frame-1 trace: intersect_ray returns only
+		# the first hit, so a point-blank self-hit would otherwise teleport the
+		# bolt past whatever it should have hit.
+		_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()]
 
 	# Dynamic OmniLight3D per bolt multiplies forward WebGL shader lights; skip on low/mobile-auto budgets.
 	if Settings.quality_multiplier() >= 0.75:

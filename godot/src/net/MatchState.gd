@@ -87,16 +87,19 @@ func set_lobby(result: Dictionary) -> void:
 
 func apply_lobby(row: Dictionary) -> void:
 	var was_playing := is_playing()
+	var was_finished := is_finished()
 	lobby = row.duplicate(true)
 	if is_playing() and not was_playing:
 		_time_up_called = false
 	_refresh_settings_cache()
 	lobby_changed.emit()
-	match str(row.get("status", "")):
-		"playing":
-			match_started.emit()
-		"finished":
-			match_finished.emit(str(row.get("winner_id", "")))
+	# Transitions only: every mid-match kill/settings echo re-broadcasts this
+	# row, and unguarded emits wipe MatchHud's respawn overlay (match_started)
+	# or re-fire the result panel (match_finished) while the match is live.
+	if is_playing() and not was_playing:
+		match_started.emit()
+	elif is_finished() and not was_finished:
+		match_finished.emit(str(row.get("winner_id", "")))
 
 
 func settings() -> Dictionary:

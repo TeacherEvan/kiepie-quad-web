@@ -77,22 +77,32 @@ func _physics_process(delta: float) -> void:
 	var power := _base_power * (1.35 if now < _overdrive_until else 1.0)
 	bike.set("engine_power", power)
 
-	if Input.is_action_pressed("fire") and cannons != null:
+	if _is_auto_fire_enabled():
+		# Touch overlay owns firing: target-locked auto-fire, plus physical F for
+		# desktops running the overlay. The "fire" action also binds emulated
+		# MOUSE_BUTTON_LEFT, and touch buttons are MOUSE_FILTER_IGNORE (invisible
+		# to gui_get_hovered_control), so routing action("fire") here free-fired
+		# the cannons on every BtnGas/AnalogSteer touch and starved auto-fire.
+		if Input.is_physical_key_pressed(KEY_F) and cannons != null:
+			cannons.fire()
+		elif cannons != null:
+			_try_auto_fire(delta)
+	elif Input.is_action_pressed("fire") and cannons != null:
 		# Do not fire desktop weapons when clicking a HUD button with the mouse.
 		var vp := get_viewport()
 		var hovered := vp.gui_get_hovered_control() if vp != null else null
 		if not (hovered is BaseButton and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)):
 			cannons.fire()
-	elif cannons != null and _is_auto_fire_enabled():
-		_try_auto_fire(delta)
 
 	# tyre smoke while braking/handbraking at speed
 	if Input.is_action_pressed("brake") and bike.linear_velocity.length() > 3.0:
 		_smoke_accum += delta
 		if _smoke_accum >= 0.06:
 			_smoke_accum = 0.0
+			var basis := bike.global_transform.basis
 			for x in [-0.55, 0.55]:
-				VFX.tire_smoke(_fx_parent(), bike.global_position + Vector3(x, 0.15, -0.6))
+				VFX.tire_smoke(_fx_parent(),
+						bike.global_position + basis.x * x + Vector3(0.0, 0.15, 0.0) - basis.z * 0.6)
 
 
 func apply_pickup(kind: String) -> void:
@@ -171,6 +181,10 @@ func _die(by: String) -> void:
 		})
 	bike.visible = false
 	bike.set_physics_process(false)
+	# A dead body left on layer 1 keeps eating live projectiles and blocking
+	# bikes for the whole respawn window, though it is invisible and inert.
+	bike.collision_layer = 0
+	bike.collision_mask = 0
 	_respawn_at = Time.get_ticks_msec() / 1000.0 + Match.respawn_delay()
 	Match.self_respawn_at.connect(_on_server_respawn, CONNECT_ONE_SHOT)
 
@@ -191,11 +205,14 @@ func _respawn() -> void:
 	else:
 		pos = Vector3(RandomNumberGenerator.new().randf_range(-25, 25), 0.6,
 				RandomNumberGenerator.new().randf_range(-25, 25))
-	var t := Transform3D(bike.global_transform.basis, pos)
+	var t := Transform3D(Basis.IDENTITY, pos)
 	bike.set_spawn(t)
-	bike.global_transform = t
-	bike.linear_velocity = Vector3.ZERO
-	bike.angular_velocity = Vector3.ZERO
+	# reset_bike() zeroes wheel force/brake/steer, clears dodge state and pushes
+	# the spawn transform into PhysicsServer3D — direct global_transform writes
+	# get overwritten on the next physics sync step.
+	bike.reset_bike()
+	bike.collision_layer = 1
+	bike.collision_mask = 1
 	bike.set_physics_process(true)
 	bike.visible = true
 	health = MAX_HEALTH
@@ -273,7 +290,8 @@ func _acquire_forward_target() -> Node3D:
 	for spec in [
 		["bike", 78.0, 0.85, 3.0],
 		["hazard", 55.0, 0.90, 2.0],
-		["destructible", 36.0, 0.93, 1.0],
+		# "destructible" intentionally absent: cannons cannot smash buildings
+		# (only vehicle SmashTrigger can) — auto-fire would just waste shots.
 	]:
 		var group_name: String = spec[0]
 		var max_dist: float = spec[1]
@@ -287,8 +305,6 @@ func _acquire_forward_target() -> Node3D:
 			if not node.visible:
 				continue
 			if group_name == "hazard" and bool(node.get("_ignited")):
-				continue
-			if group_name == "destructible" and not bool(node.get("_intact")):
 				continue
 			var to_t := node.global_position - bike.global_position
 			var horiz := Vector3(to_t.x, 0.0, to_t.z)

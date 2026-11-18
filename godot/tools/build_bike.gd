@@ -19,7 +19,10 @@ func _initialize() -> void:
 	var bike := VehicleBody3D.new()
 	bike.name = "KiepieBike"
 	bike.mass = 185.0
-	bike.center_of_mass_mode = 0
+	# CENTER_OF_MASS_MODE_AUTO (0) makes the physics server ignore center_of_mass
+	# entirely and derive it from the CollisionShape3D centroid (+0.56 m — top
+	# heavy). CUSTOM (1) serializes and honours the authored CoM below the axles.
+	bike.center_of_mass_mode = VehicleBody3D.CENTER_OF_MASS_MODE_CUSTOM
 	bike.center_of_mass = Vector3(0.0, -0.32, 0.0)
 	bike.inertia = Vector3(70.0, 120.0, 150.0)
 	bike.continuous_cd = true

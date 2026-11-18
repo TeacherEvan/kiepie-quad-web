@@ -552,10 +552,10 @@ func _add_building(root: Node, node_name: String, display_name: String,
 	var awning_mat := StandardMaterial3D.new()
 	awning_mat.albedo_color = Color(0.85, 0.42, 0.08, 1)
 	awning_mat.roughness = 0.55
-	door_mesh = awning_mesh
+	awning_mesh.material = awning_mat
 	var awning := MeshInstance3D.new()
 	awning.name = "Awning"
-	awning.mesh = door_mesh
+	awning.mesh = awning_mesh
 	awning.position = Vector3(0.0, size.y * 0.62 + 0.28, size.z * 0.5 + 0.16)
 	building.add_child(awning)
 

@@ -22,7 +22,7 @@ func _ready() -> void:
 	add_to_group("back_handler")
 	Settings.call_deferred("sync_back_handler")
 	_apply_safe_area(_safe)
-	get_viewport().size_changed.connect(func(): _apply_safe_area(_safe))
+	get_viewport().size_changed.connect(_on_viewport_resized)
 	UI.style_scroll($SafeMargin/VBox/Scroll)
 	_rows = $SafeMargin/VBox/Scroll/Rows
 	_connect_controls()
@@ -88,7 +88,14 @@ func _connect_controls() -> void:
 	_bind_check("ReducedMotionRow/ReducedMotion", "gameplay", "reduced_motion")
 
 
+func _on_viewport_resized() -> void:
+	_apply_safe_area(_safe)
+
+
 func _exit_tree() -> void:
+	var vp := get_viewport()
+	if vp != null and vp.size_changed.is_connected(_on_viewport_resized):
+		vp.size_changed.disconnect(_on_viewport_resized)
 	_flush_writes()
 
 

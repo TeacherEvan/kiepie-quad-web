@@ -21,6 +21,8 @@ var _last_respawn_text := ""
 var _hp_fill: StyleBoxFlat
 var _hitmarker: Label = null
 var _hit_tween: Tween = null
+var _announce_tween: Tween = null
+var _last_turbo := false
 var _scores_open := false
 
 
@@ -365,6 +367,13 @@ func _on_hit_confirmed() -> void:
 func announce(text: String) -> void:
 	if _announce_label == null:
 		return
+	# Overlapping announcements kill the previous banner instead of stacking
+	# tweens on the same label.
+	if _announce_tween != null and _announce_tween.is_valid():
+		_announce_tween.kill()
+	_announce_tween = null
+	_announce_label.modulate.a = 1.0
+	_announce_label.scale = Vector2.ONE
 	_announce_label.text = text
 	if _reduced_motion():
 		_announce_label.modulate.a = 1.0
@@ -375,10 +384,17 @@ func announce(text: String) -> void:
 		return
 	_announce_label.scale = Vector2(0.6, 0.6)
 	var t := create_tween()
+	_announce_tween = t
 	t.tween_property(_announce_label, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK)
 	t.tween_interval(1.2)
 	t.tween_property(_announce_label, "modulate:a", 0.0, 0.4)
-	t.tween_callback(func(): _announce_label.modulate.a = 1.0)
+	t.tween_callback(func() -> void:
+		if is_instance_valid(_announce_label):
+			# Hidden means hidden: clear the text and leave alpha at 0 like the
+			# reduced-motion path. Snapping alpha back to 1 left stale banners
+			# stuck on screen for the rest of the match.
+			_announce_label.modulate.a = 0.0
+			_announce_label.text = "")
 
 
 func _on_health_changed(current: float, maximum: float) -> void:
@@ -577,6 +593,16 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
+	if _combat != null:
+		# Multiplayer twin of Hud.gd's TestRide wiring: the Arena builder bakes a
+		# "Turbo" label into the HUD; light it while turbo is engaged.
+		var bike_var: Variant = _combat.get("bike")
+		var turbo := bool(bike_var.get("turbo_active")) if bike_var != null else false
+		if turbo != _last_turbo:
+			_last_turbo = turbo
+			var turbo_label := get_node_or_null("Turbo")
+			if turbo_label != null:
+				turbo_label.visible = turbo
 	if Settings.get_value("video", "show_fps", false):
 		if _fps_label == null:
 			_fps_label = Label.new()
