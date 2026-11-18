@@ -34,10 +34,12 @@ for f in index.html index.js index.wasm index.manifest.json index.service.worker
 done
 # Godot 4.3's generated PWA service worker precaches index.worker.js (missing on
 # single-threaded exports) and serves stale index.html/index.pck Cache-First.
+WASM_HASH=$(sha256sum "$ROOT/web/index.wasm" | cut -c1-12)
+PCK_HASH=$(sha256sum "$ROOT/web/index.pck" | cut -c1-12)
 python3 "$HERE/patch_web_sw.py" "$ROOT/web/index.service.worker.js" || {
 	echo "DEPLOY ABORTED: failed to patch service worker"; exit 1;
 }
-echo "   web bundle complete"
+echo "   web bundle complete (wasm=$WASM_HASH pck=$PCK_HASH)"
 
 if [ "$APPLY" -ne 1 ]; then
 	echo "DRY RUN only. Re-run with --apply to commit, push and deploy."
@@ -46,8 +48,13 @@ fi
 
 echo "== commit + push web/"
 cd "$ROOT/web"
-git add -A
-git commit -m "Kiepie Quad: multiplayer combat, cannons, mobile Web build" || true
+if [ -n "$(git status --porcelain)" ]; then
+	git add -A
+	git status --short
+	git commit -m "deploy(web): wasm=$WASM_HASH pck=$PCK_HASH" || { echo "DEPLOY ABORTED: commit failed"; exit 1; }
+else
+	echo "   web bundle unchanged — nothing to commit"
+fi
 git push origin main || { echo "DEPLOY ABORTED: push failed"; exit 1; }
 
 echo "== vercel deploy"

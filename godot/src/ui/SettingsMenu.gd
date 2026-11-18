@@ -11,6 +11,9 @@ const MOBILE_INPUT := preload("res://src/ui/MobileTextInput.gd")
 
 var _refreshing := false
 var _rows: Node
+var _pending_writes: Dictionary = {}     # "section.key" -> [section, key, value]
+var _flush_timer: Timer = null
+var _refresh_pending := false
 
 @onready var _safe: MarginContainer = $SafeMargin
 
@@ -79,10 +82,35 @@ func _connect_controls() -> void:
 		color.color_changed.connect(func(c):
 			if _refreshing:
 				return
-			Settings.set_value("gameplay", "color", "#" + c.to_html(false))
+			_queue_write("gameplay", "color", "#" + c.to_html(false))
 		)
 	_bind_slider("ScreenShakeRow/ScreenShake", "ScreenShakeRow/ScreenShakeValue", "gameplay", "screen_shake", "%.2f")
 	_bind_check("ReducedMotionRow/ReducedMotion", "gameplay", "reduced_motion")
+
+
+func _exit_tree() -> void:
+	_flush_writes()
+
+
+func _queue_write(section: String, key: String, value: Variant) -> void:
+	## Coalesce a burst of slider/color ticks into one ConfigFile write.
+	_pending_writes["%s.%s" % [section, key]] = [section, key, value]
+	if _flush_timer == null:
+		_flush_timer = Timer.new()
+		_flush_timer.one_shot = true
+		_flush_timer.wait_time = 0.35
+		_flush_timer.timeout.connect(_flush_writes)
+		add_child(_flush_timer)
+	_flush_timer.start()
+
+
+func _flush_writes() -> void:
+	if _pending_writes.is_empty():
+		return
+	var pending := _pending_writes
+	_pending_writes = {}
+	for entry in pending.values():
+		Settings.set_value(entry[0], entry[1], entry[2])
 
 
 func _bind_slider(path: String, value_path: String, section: String, key: String, fmt: String) -> void:
@@ -92,7 +120,7 @@ func _bind_slider(path: String, value_path: String, section: String, key: String
 	slider.value_changed.connect(func(v):
 		if _refreshing:
 			return
-		Settings.set_value(section, key, v)
+		_queue_write(section, key, v)
 		var lbl := _c(value_path) as Label
 		if lbl:
 			lbl.text = fmt % (v * 100.0 if fmt == "%.0f%%" else v)
@@ -188,8 +216,15 @@ func _refresh_all() -> void:
 
 
 func _on_setting_changed(_section: String, _key: String, _value: Variant) -> void:
-	if not _refreshing:
-		_refresh_all()
+	## A slider burst emits one signal per tick; repaint all widgets once, at the end.
+	if _refreshing or _refresh_pending:
+		return
+	_refresh_pending = true
+	var timer := get_tree().create_timer(0.15)
+	timer.timeout.connect(func() -> void:
+		_refresh_pending = false
+		if is_instance_valid(self):
+			_refresh_all())
 
 
 # ----------------------------------------------------------------- actions ---

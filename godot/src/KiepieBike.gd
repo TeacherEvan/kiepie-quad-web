@@ -31,7 +31,6 @@ var player_id := ""   ## set by CombatController for projectile hit attribution
 
 var _steer := 0.0
 var _spawn := Transform3D.IDENTITY
-var _spawn_set := false
 var _turbo_blend := 0.0
 var _steer_sensitivity := 1.0
 var _dodge_time := 0.0
@@ -64,7 +63,6 @@ var _jet_t := 0.0
 func _ready() -> void:
 	add_to_group("bike") # group is not persisted in the baked .tscn; register at runtime
 	_spawn = global_transform
-	_spawn_set = true
 	_steer_sensitivity = clampf(float(Settings.get_value("controls", "steer_sensitivity", 1.0)), 0.3, 2.0)
 	Settings.changed.connect(_on_settings_changed)
 	VfxFactory.prewarm()

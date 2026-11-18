@@ -6,11 +6,14 @@ extends Node
 ## exactly as the old client-side path was; the Supabase server-side validation is
 ## intentionally not reproduced. Offline gates use MockBackend instead of this.
 
+const KT := preload("res://src/core/KiepieTime.gd")
+
 signal auth_status(ok: bool, message: String)
 signal connection_state(state: String)
 signal broadcast_received(event: String, payload: Variant)
 signal postgres_change(data: Dictionary)
 signal backend_error(message: String)
+signal host_lost()
 
 var user_id := ""
 var is_ready := false
@@ -26,11 +29,19 @@ var _kill_window: Dictionary = {}     # killer -> Array of msec timestamps (60 s
 const HEARTBEAT_INTERVAL_S := 20.0
 const STALE_LOBBY_S := 90.0
 const HOST_ACK_TIMEOUT_MS := 2000
+const HOST_POLL_INTERVAL_S := 15.0
+const MAX_USED_TOKENS := 512
 
 var _prop_gen := 0                    # guards interleaved channel-prop writes
 var _reconnecting := false
+var _reconnect_attempts := 0          # exponential backoff for socket re-open
 var _host_ack := false
 var _heartbeat_accum := 0.0
+var _host_poll_accum := 0.0           # non-host: staleness watch for the host
+var _apply_inflight := false          # single-writer lock for channel props
+var _apply_dirty := false             # a write was requested while one was in flight
+var _apply_extra: Dictionary = {}     # merged one-shot prop overrides
+var _host_lost_emitted := false       # emit host_lost once per lobby, not every poll
 
 
 # ------------------------------------------------------------------ lifecycle ---
@@ -41,10 +52,12 @@ func start() -> void:
 	_starting = true
 	var key := str(Talo.settings.get_value("", "access_key", ""))
 	if not key.begins_with("eyJ"):
+		_starting = false
 		auth_status.emit(false, "Talo game key missing — set TALO_API_GAME in .env")
 		return
 	await Talo.players.identify("anonymous", Talo.players.generate_identifier())
 	if Talo.current_alias == null:
+		_starting = false
 		auth_status.emit(false, "Talo identify failed — check key scopes")
 		return
 	user_id = str(Talo.current_alias.id)
@@ -56,22 +69,63 @@ func start() -> void:
 	var sock_deadline := Time.get_ticks_msec() + 2500
 	while not bool(Talo.socket.get("_identified")) and Time.get_ticks_msec() < sock_deadline:
 		await get_tree().process_frame
+	if not bool(Talo.socket.get("_identified")):
+		# Wall-clock deadline, no server verdict: report failure, never a
+		# false "online" that silently drops every send.
+		is_ready = false
+		_starting = false
+		auth_status.emit(false, "Talo socket timed out — check your connection")
+		return
 	is_ready = true
+	_reconnect_attempts = 0
 	connection_state.emit("connected")
 	auth_status.emit(true, "talo online · " + str(Talo.current_alias.identifier))
 
 
 func _process(delta: float) -> void:
-	if not is_ready or _channel_id <= 0 or not _is_host():
+	if not is_ready or _channel_id <= 0:
 		_heartbeat_accum = 0.0
+		_host_poll_accum = 0.0
 		return
-	if str(_lobby.get("status", "")) != "waiting":
-		_heartbeat_accum = 0.0
+	var status := str(_lobby.get("status", ""))
+	if _is_host():
+		# Heartbeat lives in channel props, so it must keep flowing during a
+		# match — otherwise non-hosts polling it cannot tell host-silence from
+		# host-aliveness. Skip only once the lobby is finished.
+		if status == "finished":
+			_heartbeat_accum = 0.0
+			return
+		_heartbeat_accum += delta
+		if _heartbeat_accum >= HEARTBEAT_INTERVAL_S:
+			_heartbeat_accum = 0.0
+			_apply_props()
 		return
-	_heartbeat_accum += delta
-	if _heartbeat_accum >= HEARTBEAT_INTERVAL_S:
-		_heartbeat_accum = 0.0
-		_apply_props()
+	# Non-host: watch for host silence mid-match (tab kill, network drop).
+	# One failed poll is not a verdict; only a stale heartbeat ends the match.
+	if status == "playing":
+		_host_poll_accum += delta
+		if _host_poll_accum >= HOST_POLL_INTERVAL_S:
+			_host_poll_accum = 0.0
+			_poll_host_alive()
+	else:
+		_host_poll_accum = 0.0
+
+
+func _poll_host_alive() -> void:
+	if not is_inside_tree():
+		return
+	var ch: Variant = await Talo.channels.find(_channel_id)
+	if ch == null:
+		return  # transient fetch failure; do not void the match on one poll
+	var hb := float(str(ch.get_prop("heartbeat", "0")))
+	if hb <= 0.0:
+		return
+	if Time.get_unix_time_from_system() - hb > STALE_LOBBY_S:
+		if _host_lost_emitted:
+			return  # one verdict per lobby; MatchState already ended the match
+		_host_lost_emitted = true
+		connection_state.emit("host_lost")
+		host_lost.emit()
 
 
 func _on_socket_closed(_code: int, _reason: String) -> void:
@@ -79,7 +133,9 @@ func _on_socket_closed(_code: int, _reason: String) -> void:
 	if not is_ready or _reconnecting:
 		return
 	_reconnecting = true
-	await get_tree().create_timer(2.0).timeout
+	_reconnect_attempts += 1
+	var delay := minf(30.0, 2.0 * pow(2.0, float(_reconnect_attempts - 1)))
+	await get_tree().create_timer(delay).timeout
 	_reconnecting = false
 	if is_ready:
 		Talo.socket.open_connection()
@@ -127,6 +183,7 @@ func join_lobby_channel(lobby_id: String) -> void:
 	_channel = joined if joined != null else await Talo.channels.find(id)
 	if _channel != null:
 		_channel_id = id
+		_host_lost_emitted = false
 		_load_state()
 		_send("join", {"user_id": user_id,
 				"display_name": Settings.display_name(),
@@ -140,6 +197,7 @@ func leave_lobby_channel() -> void:
 	_channel_id = -1
 	_lobby.clear()
 	_roster.clear()
+	_host_lost_emitted = false
 
 
 func broadcast(event: String, payload: Dictionary) -> void:
@@ -332,8 +390,16 @@ func _handoff_host_before_leave() -> void:
 		{"key": "roster", "value": JSON.stringify(new_roster)},
 	]
 	_send("state", {"lobby": new_lobby, "roster": new_roster})
-	await Talo.channels.client.make_request(
-			HTTPClient.METHOD_PUT, "/%s" % _channel_id, {"ownerAliasId": int(next_host), "props": prop_array})
+	for attempt in range(2):
+		var res: Variant = await Talo.channels.client.make_request(
+				HTTPClient.METHOD_PUT, "/%s" % _channel_id,
+				{"ownerAliasId": int(next_host), "props": prop_array})
+		if int((res as Dictionary).get("status", 0)) == 200:
+			return
+		if attempt == 0:
+			continue  # one retry for transient failures
+		backend_error.emit(
+				"Host hand-off failed (%s) — the lobby may be abandoned" % str((res as Dictionary).get("status", "?")))
 
 
 func _load_state() -> void:
@@ -354,7 +420,28 @@ func _load_state() -> void:
 	_roster = _parse_dict(_channel.get_prop("roster", "{}"))
 
 
+## Single-writer queue for channel-prop writes. The heartbeat and the
+## match-writers (kills, joins, readies) all funnel through here: requests made
+## while a write is in flight coalesce into one follow-up write carrying the
+## newest snapshot, so a stale heartbeat can never land after a fresher roster
+## and roll the server state back. (_prop_gen keeps response freshness local;
+## this lock is what orders the wire.)
 func _apply_props(extra: Dictionary = {}) -> void:
+	for k in extra.keys():
+		_apply_extra[k] = extra[k]
+	_apply_dirty = true
+	if _apply_inflight:
+		return
+	_apply_inflight = true
+	while _apply_dirty:
+		_apply_dirty = false
+		var payload_extra := _apply_extra
+		_apply_extra = {}
+		await _write_props(payload_extra)
+	_apply_inflight = false
+
+
+func _write_props(extra: Dictionary) -> void:
 	if _channel == null:
 		return
 	var props := {
@@ -479,6 +566,9 @@ func _register_kill(args: Dictionary) -> Dictionary:
 	_kill_cooldowns[killer] = now_s
 	_kill_window[killer] = kept
 	_used_tokens[token] = true
+	while _used_tokens.size() > MAX_USED_TOKENS:
+		# Dictionary preserves insertion order: drop the oldest consumed token.
+		_used_tokens.erase(_used_tokens.keys()[0])
 	var row: Dictionary = _roster.get(killer, {})
 	var score := int(row.get("score", 0)) + 1
 	row["score"] = score
@@ -520,7 +610,9 @@ func _time_up() -> Dictionary:
 		return {}
 	var best := ""
 	var best_score := -1
-	for uid in _roster.keys():
+	var uids := _roster.keys()
+	uids.sort()  # deterministic tie-break: lowest user_id wins a score tie
+	for uid in uids:
 		var s := int((_roster[uid] as Dictionary).get("score", 0))
 		if s > best_score:
 			best = str(uid)
@@ -543,6 +635,7 @@ func _send(kind: String, payload: Dictionary) -> void:
 func _on_socket_message(res: String, data: Dictionary) -> void:
 	if res != "v1.channels.message":
 		return
+	_reconnect_attempts = 0
 	var ch = data.get("channel", null)
 	if ch is Dictionary and _channel_id > 0 and int((ch as Dictionary).get("id", _channel_id)) != _channel_id:
 		return
@@ -682,30 +775,24 @@ static func _parse_dict_static(text: String) -> Dictionary:
 
 
 func _now_iso() -> String:
-	return Time.get_datetime_string_from_system(true, true).replace("T", " ") + "Z"
+	return KT.now_iso()
 
 
 func _now_iso_from_now(seconds: float) -> String:
 	## ISO deadline `seconds` in the future, formatted to match _now_iso().
-	return _iso_from_unix(Time.get_unix_time_from_system() + maxf(0.0, seconds))
+	return KT.iso_from_now(seconds)
 
 
 func _iso_from_unix(unix: float) -> String:
-	var dict := Time.get_datetime_dict_from_unix_time(int(unix))
-	return "%04d-%02d-%02d %02d:%02d:%02dZ" % [dict["year"], dict["month"],
-			dict["day"], dict["hour"], dict["minute"], dict["second"]]
+	return KT.iso_from_unix(unix)
 
 
 func _parse_iso(value: String) -> float:
-	return _parse_iso_static(value)
+	return KT.parse_iso(value)
 
 
 static func _parse_iso_static(value: String) -> float:
-	var s := value.replace("Z", "").replace("T", " ")
-	var dict := Time.get_datetime_dict_from_datetime_string(s, true)
-	if dict.is_empty():
-		return 0.0
-	return float(Time.get_unix_time_from_datetime_dict(dict))
+	return KT.parse_iso(value)
 
 
 func _token() -> String:

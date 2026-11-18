@@ -112,6 +112,8 @@ func set_respawning(value: bool) -> void:
 		return
 	is_respawning = value
 	visible = not value
+	# A hidden respawning proxy must not eat projectiles mid-flight.
+	set_deferred("collision_layer", 0 if value else 1)
 	var fx_parent: Node3D = null
 	if get_tree() != null and get_tree().current_scene is Node3D:
 		fx_parent = get_tree().current_scene as Node3D

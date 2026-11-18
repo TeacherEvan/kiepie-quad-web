@@ -11,12 +11,12 @@ var _combat: Node = null
 var _dead := false
 var _died_at := 0.0
 var _kill_lines: Array = []
-var _frame := 0
 var _fps_label: Label
 var _fps_accum := 0.0
 var _fps_frames := 0
 var _vignette: ColorRect
 var _announce_label: Label
+var _last_respawn_text := ""
 # Cached bar fill: mutate one StyleBox instead of allocating per damage tick.
 var _hp_fill: StyleBoxFlat
 var _hitmarker: Label = null
@@ -91,7 +91,7 @@ func _ready() -> void:
 	_refresh_banner()
 	_refresh_scoreboard()
 	_relayout()
-	get_viewport().size_changed.connect(_relayout)
+	get_viewport().size_changed.connect(_on_viewport_resized)
 	var overlay := get_node_or_null("RespawnOverlay")
 	if overlay != null:
 		overlay.visible = false
@@ -171,6 +171,20 @@ func _sync_score_toggle() -> void:
 	var score := get_node_or_null("Scoreboard") as Control
 	if score != null:
 		score.visible = _scores_open
+
+
+var _relayout_pending := false
+
+
+func _on_viewport_resized() -> void:
+	# Coalesce drag-resize storms into one relayout per 100 ms window.
+	if _relayout_pending:
+		return
+	_relayout_pending = true
+	var timer := get_tree().create_timer(0.1)
+	timer.timeout.connect(func() -> void:
+		_relayout_pending = false
+		_relayout())
 
 
 func _relayout() -> void:
@@ -420,12 +434,12 @@ func _on_match_started() -> void:
 
 
 func _on_match_finished(winner_id: String) -> void:
-	var winner := "NO ONE"
-	if winner_id != "":
-		winner = _name_for(winner_id).to_upper()
 	var winner_label := get_node_or_null("ResultPanel/WinnerLabel") as Label
 	if winner_label != null:
-		winner_label.text = "%s WINS" % winner
+		if winner_id == "":
+			winner_label.text = "HOST LOST — MATCH VOID"
+		else:
+			winner_label.text = "%s WINS" % _name_for(winner_id).to_upper()
 	var result := get_node_or_null("ResultPanel")
 	if result != null:
 		result.visible = true
@@ -585,9 +599,10 @@ func _process(delta: float) -> void:
 		var overlay := get_node_or_null("RespawnOverlay") as Label
 		var delay := Match.respawn_delay() if Match != null else 2.5
 		var remaining := delay - (Time.get_ticks_msec() / 1000.0 - _died_at)
-		if overlay != null:
-			overlay.text = "DOWN — RESPAWNING IN %d" % maxi(0, ceili(remaining))
-	_frame += 1
+		var text := "DOWN — RESPAWNING IN %d" % maxi(0, ceili(remaining))
+		if overlay != null and text != _last_respawn_text:
+			_last_respawn_text = text
+			overlay.text = text
 
 
 # ------------------------------------------------------------------- radar ---

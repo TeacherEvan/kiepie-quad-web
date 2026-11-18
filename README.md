@@ -262,10 +262,11 @@ The game now boots into a **Main Menu** with `Practice` (the original free-ride/
 `Create Lobby`, `Join Auto`, `Join by code` and `Settings`. `Join Auto` finds a waiting lobby
 with a free slot and creates one if none exists.
 
-**Combat:** the Blender-authored twin side cannons fire with **F / left mouse / the touch FIRE
-button**. Each bike has 100 armour; the host-configured damage default is 30 per hit, cannons
-overheat if held down, and a destroyed bike explodes and respawns at a random spawn point after
-the lobby's respawn delay. The shooter scores the kill; first to the lobby's kill target wins.
+**Combat:** the Blender-authored twin side cannons fire with **F / left mouse** on desktop,
+and **target-locked auto-fire** on mobile (push analog forward for turbo). Each bike has 100
+armour; the host-configured damage default is 30 per hit; cannons fire on a short cooldown, and
+a destroyed bike explodes and respawns at a random spawn point after the lobby's respawn delay.
+The shooter scores the kill; first to the lobby's kill target wins.
 The arena (~100 m) has cover, ten ramps (two designed gap-jump lines plus two cover hops),
 seven destructible buildings, an outside-the-walls venue silhouette with floodlights, a radar
 and an off-screen-free scoreboard/kill feed.
