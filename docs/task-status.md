@@ -6,8 +6,8 @@ gate names, or live checks — not assumptions.
 
 **Last verified:** 2026-11-19 — `scene_sync OK (6 scenes match HEAD)`, full gate suite
 25/25 green after the INP-3 touch-arbitration fix (including three new assertions in
-`verify_touch_multitouch.gd`); live site HTTP 200 on the `f09c80e` auto-deploy. The
-INP-3 fix is code-fixed and gated locally; it ships in the next Web export.
+`verify_touch_multitouch.gd`); live site HTTP 200 on the `a3ec39c` auto-deploy, which
+ships that fix. Previous deploy: `f09c80e`.
 
 ## Audit remediation — 10 Principal Engineer (2026-11-18)
 
@@ -56,7 +56,7 @@ findings). Web re-export + deploy: **`f09c80e`**. Earlier surgical audit:
 | --- | --- | --- | --- |
 | INP-1 | Emulated `MOUSE_LEFT` on `MOUSE_FILTER_IGNORE` fires cannons / starves auto-fire (P0) | physical-key-only manual fire while auto-fire enabled | `1494b0d` · `CombatController.gd` |
 | INP-2 | Canceled touch leaks emulated pointer hold (P0) | `touch.canceled` releases paired pointer; `pointer_up` releases analog **and** button halves | `1494b0d` · `TouchCapture.gd` / `TouchControls.gd` |
-| INP-3 | Opposing analog pad vectors latch turbo + move_back, cancelling drive (P1) | newest pad finger owns arbitration; stale opposing vector ignored; dual-touch regression assertions | `this commit` · `TouchControls.gd` + `verify_touch_multitouch.gd` |
+| INP-3 | Opposing analog pad vectors latch turbo + move_back, cancelling drive (P1) | newest pad finger owns arbitration; stale opposing vector ignored; dual-touch regression assertions | `b35bae7` · `TouchControls.gd` + `verify_touch_multitouch.gd`; shipped in `a3ec39c` |
 
 ### Fixed — HUD / UI / lifecycle
 
@@ -111,6 +111,7 @@ findings). Web re-export + deploy: **`f09c80e`**. Earlier surgical audit:
 - [x] Rollover immunity (lockout + righting spring), dodge Q/E, steering sensitivity — locked by `verify_rollover/dodge/controls`
 - [x] Talo backend cutover + `protocol_version` handshake — `8d94cbb`
 - [x] Surgical audit 2026-11-18 regressions locked — `verify_audit_regressions.gd`
-- [x] 10-Principal-Engineer audit remediation — `1494b0d` + `60a8b82` + INP-3 arbitration (`this commit`), 25/25 gates
+- [x] 10-Principal-Engineer audit remediation — `1494b0d` + `60a8b82` + INP-3 arbitration (`b35bae7`), 25/25 gates
 - [x] Web re-export + auto-deploy of remediated build — `f09c80e`, live HTTP 200
+- [x] INP-3 arbitration re-export + auto-deploy — `a3ec39c`, live HTTP 200
 - [x] Documentation sync (plan / index / task-status / README / AGENTS constants sweep) — this commit

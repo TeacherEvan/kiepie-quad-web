@@ -28,7 +28,7 @@ their durable content is distilled into [task-status.md](task-status.md).
 - Plan ↔ ledger: [project-plan.md](project-plan.md) roadmap items carry the same
   TS-xxx IDs as [task-status.md](task-status.md#pending-and-blocked).
 - Ledger ↔ evidence: every fixed finding cites its commit (`1494b0d`, `60a8b82`,
-  the INP-3 arbitration fix as `this commit`, and web deploy `f09c80e`) and file;
+  the INP-3 arbitration fix `b35bae7`, and web deploys `f09c80e` / `a3ec39c`) and file;
   every gate claim names the gate script in `godot/tools/`.
 - Constants: the single canonical table lives in
   [project-plan.md](project-plan.md#canonical-constants-table); README/AGENTS
