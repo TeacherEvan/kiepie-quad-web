@@ -208,6 +208,28 @@ func _run() -> void:
 	await process_frame
 	_check(not Input.is_action_pressed("dodge_right"), "right pad release drops dodge_right")
 
+	# ---- the gesture must reach KiepieBike's cartwheel, not just set an action
+	var dodge_bike := root_node.get_node_or_null("KiepieBike") as VehicleBody3D
+	if dodge_bike != null:
+		dodge_bike.call("reset_bike")
+		var grounded := false
+		for _f in range(150):
+			await physics_frame
+			if float(dodge_bike.get("_ground_coyote")) > 0.0:
+				grounded = true
+				break
+		_check(grounded, "right-pad dodge test starts with wheels down")
+		if grounded:
+			_touch(14, _drive(layer, -1.0, 0.0), true)
+			for _f in range(6):
+				await physics_frame
+				await process_frame
+			_check(float(dodge_bike.get("_dodge_time")) > 0.0 or float(dodge_bike.get("_dodge_cd")) > 0.0,
+					"right-pad LEFT launches the bike's cartwheel dodge")
+			_touch(14, _drive(layer, -1.0, 0.0), false)
+			for _f in range(2):
+				await process_frame
+
 	# ---- two fingers on the right pad: gas is refcounted; one lift keeps hold
 	_touch(0, _drive(layer, 0.0, 0.0), true)
 	_touch(1, _drive(layer, 0.0, 0.0), true)

@@ -269,7 +269,9 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   a real touch always outranks the emulated mouse on the same pad (browsers that stop emitting
   mouse-motion during a drag would otherwise freeze the pad). **Auto-fire is removed**:
   `CombatController` polls `TouchControls.is_fire_held()` rather than the `fire` InputAction
-  (emulated `MOUSE_BUTTON_LEFT` is bound to it and would free-fire); physical F still works.
+  (emulated `MOUSE_BUTTON_LEFT` is bound to it and would free-fire). Physical F still works;
+  plain left-mouse fire is only available when the overlay is OFF (on a touch-capable laptop
+  where it auto-shows, use F or the right pad's UP gesture).
   Both builders add `MenuBtn` (`Main Menu`) on `HUD` (`FOCUS_NONE`), paired with Android/Web Back
   (`NOTIFICATION_WM_GO_BACK_REQUEST` + `popstate`) + Esc handling.
   `verify_touch.gd` enforces >=44px non-overlapping pads and the gas/fire/dodge gestures, and

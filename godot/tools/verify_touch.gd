@@ -55,8 +55,8 @@ func _fire_held(layer: CanvasLayer) -> bool:
 
 
 func _initialize() -> void:
-	# The overlay persists the TOUCH override, so clear it BEFORE the scene's
-	# TouchControls._ready() reads it.
+	# Force the persisted TOUCH override ON before the scene's
+	# TouchControls._ready() reads it, so headless sees the drive pads.
 	await process_frame
 	var settings_node := get_root().get_node_or_null("Settings")
 	var _touch_force_prior: Variant = null
