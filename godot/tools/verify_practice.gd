@@ -1,10 +1,12 @@
 extends SceneTree
 ## Offline gate for practice mode (TestRide): the local bike carries
-## CombatController in practice_mode, mobile uses target-locked auto-fire,
-## shots fire continuously on cooldown without overheat, and Restart works.
+## CombatController in practice_mode, mobile fires only when the right analog
+## is pushed UP (no auto-fire), shots cycle on cooldown without overheat,
+## and Restart works.
 ## Exits 1 on any failure.
 
 var _fail := 0
+var _overlay: CanvasLayer
 
 
 func _check(cond: bool, label: String) -> void:
@@ -19,25 +21,37 @@ func _initialize() -> void:
 	_run()
 
 
+# Headless gates have no window to deliver viewport input events; drive the
+# overlay's pointer handlers directly (the xvfb multitouch gate covers real
+# InputEventScreenTouch delivery). 100 mirrors TouchCapture.MOUSE_POINTER.
 func _touch(index: int, pos: Vector2, pressed: bool) -> void:
-	var ev := InputEventScreenTouch.new()
-	ev.index = index
-	ev.position = pos
-	ev.pressed = pressed
-	root.get_viewport().push_input(ev)
+	if pressed:
+		_overlay.call("_on_pointer_down", index, pos)
+	else:
+		_overlay.call("_on_pointer_up", index, pos)
 
 
 func _mouse(pos: Vector2, pressed: bool) -> void:
-	var ev := InputEventMouseButton.new()
-	ev.button_index = MOUSE_BUTTON_LEFT
-	ev.position = pos
-	ev.pressed = pressed
-	root.get_viewport().push_input(ev)
+	_touch(100, pos, pressed)
 
 
 func _btn_centre(layer: CanvasLayer, btn_name: String) -> Vector2:
 	var btn := layer.get_node_or_null(btn_name) as Button
 	return btn.get_global_rect().get_center() if btn != null else Vector2.ZERO
+
+
+func _drag(index: int, pos: Vector2) -> void:
+	_overlay.call("_on_pointer_move", index, pos)
+
+
+func _drive_at(layer: CanvasLayer, x: float, y: float) -> Vector2:
+	var pad := layer.get_node_or_null("AnalogDrive") as Control
+	if pad == null:
+		return Vector2.ZERO
+	var r := pad.get_global_rect()
+	return Vector2(
+			r.get_center().x + x * (r.size.x * 0.5 - 22.0),
+			r.get_center().y - y * (r.size.y * 0.5 - 22.0))
 
 
 func _count_projectiles(node: Node) -> int:
@@ -81,6 +95,7 @@ func _run() -> void:
 
 	# ---- streamlined touch overlay removes manual FIRE / TURBO / BRAKE buttons
 	var layer := ride.get_node_or_null("TouchHUD") as CanvasLayer
+	_overlay = layer
 	_check(layer != null, "TouchHUD exists")
 	if layer != null:
 		for removed in ["BtnFire", "BtnTurbo", "BtnBrake"]:
@@ -114,47 +129,58 @@ func _run() -> void:
 	_check(after > before, "practice fire spawns a projectile (%d -> %d)" % [before, after])
 	_check(shot_cycles[0] >= 2, "holding desktop fire continuously fires across cooldown (%d cycles)" % shot_cycles[0])
 
-	# ---- mobile touch overlay auto-fires at a forward drum target without manual fire input
+	# ---- mobile: NO auto-fire; only the right pad's UP gesture fires
 	if layer != null and combat != null and bike != null:
 		var toggle := layer.get_node_or_null("BtnTouchToggle") as Button
 		if toggle != null and not bool(layer.call("is_overlay_active")):
 			toggle.pressed.emit()
-		var drum := ride.get_node_or_null("FuelDrum0") as Node3D
-		if drum != null:
-			var look := Vector3(drum.global_position.x, bike.global_position.y, drum.global_position.z)
-			# (A) gas finger held while aiming AWAY from every target: the emulated
-			# mouse pair must not free-fire the cannons and auto-fire must stay
-			# silent without a target. This is the regression the desktop-only
-			# hold-to-fire test could not see.
-			var away_dir := Vector3(bike.global_position.x - drum.global_position.x, 0.0,
-					bike.global_position.z - drum.global_position.z)
-			if away_dir.length_squared() < 0.01:
-				away_dir = Vector3(0.0, 0.0, 1.0)
-			bike.look_at(bike.global_position + away_dir, Vector3.UP, true)
-			combat.set("_auto_fire_cd", 0.0)
-			combat.get("cannons").set("_cooldown", 0.0)
-			var un_aimed_before := _count_projectiles(ride)
-			_touch(0, _btn_centre(layer, "BtnGas"), true)
-			_mouse(_btn_centre(layer, "BtnGas"), true)   # paired emulated mouse press
-			for i in range(6):
-				await process_frame
-			var un_aimed_after := _count_projectiles(ride)
-			_check(un_aimed_after == un_aimed_before,
-					"gas held away from target fires nothing (%d -> %d)" % [un_aimed_before, un_aimed_after])
-			# (B) same finger still held, now aimed at FuelDrum0 inside the
-			# forward auto-fire cone: auto-fire must trigger.
-			bike.look_at(look, Vector3.UP, true)
-			combat.set("_auto_fire_cd", 0.0)
-			combat.get("cannons").set("_cooldown", 0.0)
-			var auto_before := _count_projectiles(ride)
-			for i in range(6):
-				await process_frame
-			var auto_after := _count_projectiles(ride)
-			_check(auto_after > auto_before, "mobile overlay auto-fires at forward target (%d -> %d)" % [auto_before, auto_after])
-			_touch(0, _btn_centre(layer, "BtnGas"), false)
-			_mouse(_btn_centre(layer, "BtnGas"), false)
-			# Repeated shots never overheat or lock out automatic firing, and heat signals/props are absent.
+			# Pad rects settle on the next frame; touching in the same frame as
+			# the toggle misses the pad entirely.
+			await process_frame
+			await process_frame
+		if layer.get_node_or_null("AnalogDrive") == null:
+			_check(false, "AnalogDrive right pad exists")
+		else:
 			var cannons_node := combat.get("cannons") as Node
+			# Aim straight at a drum so the old target-scan auto-fire would have
+			# fired — gas alone must now fire nothing.
+			var drum := ride.get_node_or_null("FuelDrum0") as Node3D
+			if drum != null:
+				var look := Vector3(drum.global_position.x, bike.global_position.y, drum.global_position.z)
+				bike.look_at(look, Vector3.UP, true)
+			if cannons_node != null:
+				cannons_node.set("_cooldown", 0.0)
+			var before_gas := _count_projectiles(ride)
+			_touch(0, _drive_at(layer, 0.0, 0.0), true)
+			_mouse(_drive_at(layer, 0.0, 0.0), true)   # paired emulated mouse press
+			for i in range(8):
+				await physics_frame
+				await process_frame
+			var after_gas := _count_projectiles(ride)
+			_check(after_gas == before_gas,
+					"mobile gas-only fires nothing (no auto-fire) (%d -> %d)" % [before_gas, after_gas])
+			# Push UP: manual fire, continuously across the cannon cooldown.
+			var shots := [0]
+			if cannons_node != null and cannons_node.has_signal("fired"):
+				cannons_node.connect("fired", func(_tok: String) -> void: shots[0] += 1)
+			_drag(0, _drive_at(layer, 0.0, 1.0))
+			for i in range(22):
+				await physics_frame
+				await process_frame
+			# Count fired() cycles, not live projectiles: old shots expire while
+			# new ones spawn, so a raw child count can stay flat or even drop.
+			_check(shots[0] >= 2, "right-pad UP fires continuously on cooldown (%d cycles)" % shots[0])
+			# Return to centre: firing stops.
+			_drag(0, _drive_at(layer, 0.0, 0.0))
+			for i in range(4):
+				await process_frame
+			var stop_mark := int(shots[0])
+			for i in range(10):
+				await process_frame
+			_check(shots[0] == stop_mark, "releasing UP stops firing (%d -> %d cycles)" % [stop_mark, shots[0]])
+			_touch(0, _drive_at(layer, 0.0, 0.0), false)
+			_mouse(_drive_at(layer, 0.0, 0.0), false)
+			# Repeated shots never overheat or lock out firing, and heat props are absent.
 			if cannons_node != null:
 				for _s in range(8):
 					cannons_node.set("_cooldown", 0.0)

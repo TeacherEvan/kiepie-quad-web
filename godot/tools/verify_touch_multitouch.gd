@@ -1,7 +1,8 @@
 extends SceneTree
-## Offline gate for two-thumb driving: raw InputEventScreenTouch injection proves
-## every finger owns its own action, steering slides work, and refcounted holds
-## don't leak when two fingers land on the same button.
+## Offline gate for two-thumb driving with the new dual analog pads: raw
+## InputEventScreenTouch injection proves each finger owns its action, left-pad
+## steering/turbo/reverse still work, right-pad gas/fire/dodge work, refcounted
+## holds don't leak, and HUD buttons remain clickable.
 ## TestRide.tscn must NOT be rebuilt — this reads the checked-in scene.
 
 var _failures := 0
@@ -17,7 +18,7 @@ func _touch(index: int, pos: Vector2, pressed: bool) -> void:
 	var ev := InputEventScreenTouch.new()
 	ev.index = index
 	ev.position = pos
-	ev.pressed = true if pressed else false
+	ev.pressed = pressed
 	root.get_viewport().push_input(ev)
 
 
@@ -36,8 +37,14 @@ func _mouse(pos: Vector2, pressed: bool) -> void:
 	root.get_viewport().push_input(ev)
 
 
+func _mouse_move(pos: Vector2) -> void:
+	var ev := InputEventMouseMotion.new()
+	ev.position = pos
+	ev.button_mask = MOUSE_BUTTON_MASK_LEFT
+	root.get_viewport().push_input(ev)
+
+
 func _cancel(index: int, pos: Vector2) -> void:
-	# OS edge gesture cancels a finger with no paired pressed=false.
 	var ev := InputEventScreenTouch.new()
 	ev.index = index
 	ev.position = pos
@@ -46,27 +53,29 @@ func _cancel(index: int, pos: Vector2) -> void:
 	root.get_viewport().push_input(ev)
 
 
-func _centre(layer: CanvasLayer, btn_name: String) -> Vector2:
-	var btn := layer.get_node_or_null(btn_name) as Button
-	return btn.get_global_rect().get_center() if btn != null else Vector2.ZERO
-
-
-func _pad_rect(layer: CanvasLayer) -> Rect2:
-	var pad := layer.get_node_or_null("AnalogSteer") as Control
+func _pad_rect(layer: CanvasLayer, name: String) -> Rect2:
+	var pad := layer.get_node_or_null(name) as Control
 	return pad.get_global_rect() if pad != null else Rect2()
 
 
-func _pad_at(layer: CanvasLayer, frac: float) -> Vector2:
-	# frac: -1.0 (full left) .. +1.0 (full right)
-	return _pad_at_xy(layer, frac, 0.0)
-
-
-func _pad_at_xy(layer: CanvasLayer, x_frac: float, y_forward: float) -> Vector2:
-	# x_frac: -1..1 left..right; y_forward: -1..1 down..up (positive pushes forward)
-	var r := _pad_rect(layer)
+func _at(layer: CanvasLayer, name: String, x: float, y: float,
+		xm: float, ym: float) -> Vector2:
+	var r := _pad_rect(layer, name)
 	return Vector2(
-			r.get_center().x + x_frac * (r.size.x * 0.5 - 30.0),
-			r.get_center().y - y_forward * (r.size.y * 0.5 - 10.0))
+			r.get_center().x + x * (r.size.x * 0.5 - xm),
+			r.get_center().y - y * (r.size.y * 0.5 - ym))
+
+
+func _steer(layer: CanvasLayer, x: float, y: float) -> Vector2:
+	return _at(layer, "AnalogSteer", x, y, 30.0, 10.0)
+
+
+func _drive(layer: CanvasLayer, x: float, y: float) -> Vector2:
+	return _at(layer, "AnalogDrive", x, y, 22.0, 22.0)
+
+
+func _fire_held(layer: CanvasLayer) -> bool:
+	return bool(layer.call("is_fire_held"))
 
 
 func _initialize() -> void:
@@ -94,225 +103,223 @@ func _run() -> void:
 		return
 	_check((layer.get_node("TouchCapture") as Control).mouse_filter == Control.MOUSE_FILTER_IGNORE,
 			"raw pointer capture layer built with MOUSE_FILTER_IGNORE")
-	_check((layer.get_node("BtnGas") as Button).mouse_filter == Control.MOUSE_FILTER_IGNORE,
-			"drive buttons do not ride the single emulated mouse pointer")
+	var right := layer.get_node_or_null("AnalogDrive") as Control
+	_check(right != null and right.mouse_filter == Control.MOUSE_FILTER_IGNORE,
+			"right analog pad does not ride the emulated mouse pointer")
 
-	# ---- one finger on GAS + another analog-steering right at the same time
-	_touch(0, _centre(layer, "BtnGas"), true)
-	_touch(1, _pad_at(layer, 1.0), true)
+	# ---- one finger on GAS (right pad) + another steering left pad at the same time
+	_touch(0, _drive(layer, 0.0, 0.0), true)
+	_touch(1, _steer(layer, 1.0, 0.0), true)
 	await process_frame
-	_check(Input.is_action_pressed("move_forward"), "finger 0 holds move_forward")
+	_check(Input.is_action_pressed("move_forward"), "finger 0 holds gas")
 	_check(Input.is_action_pressed("steer_right"), "finger 1 steers right")
 	_check(Input.get_action_strength("steer_right") > 0.5, "analog strength flows to get_axis")
-	# ---- lifting one finger leaves the other untouched
-	_touch(0, _centre(layer, "BtnGas"), false)
+	_touch(0, _drive(layer, 0.0, 0.0), false)
 	await process_frame
-	_check(not Input.is_action_pressed("move_forward"), "finger 0 release only drops move_forward")
+	_check(not Input.is_action_pressed("move_forward"), "finger 0 release only drops gas")
 	_check(Input.is_action_pressed("steer_right"), "finger 1 still steering right")
-	_touch(1, _pad_at(layer, 1.0), false)
+	_touch(1, _steer(layer, 1.0, 0.0), false)
 	await process_frame
 	_check(not Input.is_action_pressed("steer_right"), "finger 1 release drops steer_right")
 
-	# ---- analog pad: half-left, centre deadzone, sweep left->right
-	_touch(2, _pad_at(layer, -0.5), true)
+	# ---- left pad: half-left, deadzone, sweep left->right
+	_touch(2, _steer(layer, -0.5, 0.0), true)
 	await process_frame
 	_check(Input.is_action_pressed("steer_left"), "pad half-left steers left")
 	var half_left := Input.get_action_strength("steer_left")
 	_check(half_left > 0.10 and half_left < 0.60, "analog midpoint gives partial strength (%.2f)" % half_left)
-	_drag(2, _pad_at(layer, 0.0))
+	_drag(2, _steer(layer, 0.0, 0.0))
 	await process_frame
 	_check(not Input.is_action_pressed("steer_left") and not Input.is_action_pressed("steer_right"),
 			"pad centre sits inside the deadzone")
-	_drag(2, _pad_at(layer, 1.0))
+	_drag(2, _steer(layer, 1.0, 0.0))
 	await process_frame
 	_check(Input.is_action_pressed("steer_right"), "sweep to full right engages steer_right")
 	_check(not Input.is_action_pressed("steer_left"), "sweep off steer_left releases it")
 	_check(Input.get_action_strength("steer_right") > 0.5, "full-right gives near-full strength")
-	_touch(2, _pad_at(layer, 1.0), false)
+	_touch(2, _steer(layer, 1.0, 0.0), false)
 	await process_frame
 	_check(not Input.is_action_pressed("steer_right"), "pad release centres the steering")
 
 	# ---- deadzone: resting near the centre never steers
-	_touch(2, _pad_at(layer, 0.05), true)
+	_touch(2, _steer(layer, 0.05, 0.0), true)
 	await process_frame
 	_check(not Input.is_action_pressed("steer_left") and not Input.is_action_pressed("steer_right"),
 			"touch inside deadzone produces no steer")
-	_touch(2, _pad_at(layer, 0.05), false)
+	_touch(2, _steer(layer, 0.05, 0.0), false)
 	await process_frame
 
-	# ---- analog push-forward activates turbo while keeping horizontal steer live
+	# ---- left pad push-forward turbo / pull-back reverse (unchanged contract)
 	var pad := layer.get_node_or_null("AnalogSteer") as Control
-	_touch(2, _pad_at_xy(layer, 0.0, 0.20), true)
+	_touch(2, _steer(layer, 0.0, 0.20), true)
 	await process_frame
 	_check(not Input.is_action_pressed("turbo"), "slight vertical offset inside band does not engage turbo")
-	_drag(2, _pad_at_xy(layer, 0.85, 0.90))
+	_drag(2, _steer(layer, 0.85, 0.90))
 	await process_frame
-	_check(Input.is_action_pressed("turbo"), "pushing analog forward engages turbo")
-	_check(Input.is_action_pressed("steer_right"), "pushing analog forward-right still steers right")
+	_check(Input.is_action_pressed("turbo"), "pushing left pad forward engages turbo")
+	_check(Input.is_action_pressed("steer_right"), "pushing forward-right still steers right")
 	_check(pad != null and bool(pad.get("turbo_active")), "AnalogSteer view reflects turbo_active=true")
-	_drag(2, _pad_at_xy(layer, 0.85, 0.0))
+	_drag(2, _steer(layer, 0.85, 0.0))
 	await process_frame
-	_check(not Input.is_action_pressed("turbo"), "returning analog to vertical centre drops turbo")
+	_check(not Input.is_action_pressed("turbo"), "returning to vertical centre drops turbo")
 	_check(Input.is_action_pressed("steer_right"), "returning to centre keeps horizontal steer_right")
 	_check(pad != null and not bool(pad.get("turbo_active")), "AnalogSteer view reflects turbo_active=false")
-	# co-hold focus-out during forward push releases turbo and clears view state
-	_drag(2, _pad_at_xy(layer, 0.0, 0.90))
+	_drag(2, _steer(layer, 0.0, -0.90))
 	await process_frame
-	_check(Input.is_action_pressed("turbo"), "analog push-forward holds turbo before focus-out")
-	layer._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
-	await process_frame
-	_check(not Input.is_action_pressed("turbo"), "focus-out releases analog-held turbo")
-	_check(pad != null and not bool(pad.get("turbo_active")), "focus-out resets AnalogSteer turbo_active")
-
-	# ---- analog pull-back holds move_back (brake, then reverse)
-	_touch(2, _pad_at_xy(layer, 0.0, 0.0), true)
-	_drag(2, _pad_at_xy(layer, -0.30, -0.90))
-	await process_frame
-	_check(Input.is_action_pressed("move_back"), "pushing analog back engages move_back (brake/reverse)")
-	_check(Input.is_action_pressed("steer_left"), "pulling back-left still steers left")
+	_check(Input.is_action_pressed("move_back"), "pulling left pad back engages move_back (brake/reverse)")
+	_check(right != null and bool(right.get("gas_active")) == false, "right pad gas not latched by left pad")
 	_check(pad != null and bool(pad.get("reverse_active")), "AnalogSteer view reflects reverse_active=true")
-	_drag(2, _pad_at_xy(layer, -0.30, 0.0))
+	_drag(2, _steer(layer, 0.0, 0.0))
 	await process_frame
-	_check(not Input.is_action_pressed("move_back"), "returning analog to centre drops move_back")
-	_check(pad != null and not bool(pad.get("reverse_active")), "AnalogSteer view reflects reverse_active=false")
-	# co-hold focus-out during backward push releases move_back and clears view state
-	_drag(2, _pad_at_xy(layer, 0.0, -0.90))
+	_check(not Input.is_action_pressed("move_back"), "returning left pad to centre drops move_back")
+	_touch(2, _steer(layer, 0.0, 0.0), false)
 	await process_frame
-	_check(Input.is_action_pressed("move_back"), "analog pull-back holds move_back before focus-out")
-	layer._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
-	await process_frame
-	_check(not Input.is_action_pressed("move_back"), "focus-out releases analog-held move_back")
-	_check(pad != null and not bool(pad.get("reverse_active")), "focus-out resets AnalogSteer reverse_active")
 
-	# ---- two fingers on the same button: refcounted, one lift keeps the hold
-	_touch(0, _centre(layer, "BtnGas"), true)
-	_touch(1, _centre(layer, "BtnGas"), true)
+	# ---- right pad: UP holds fire, DOWN never fires, release stops
+	_touch(3, _drive(layer, 0.0, 0.0), true)
 	await process_frame
-	_touch(0, _centre(layer, "BtnGas"), false)
+	_check(not _fire_held(layer), "right pad centre fires nothing")
+	_drag(3, _drive(layer, 0.0, 1.0))
+	await process_frame
+	_check(_fire_held(layer), "right pad UP holds fire")
+	_check(right != null and bool(right.get("fire_active")), "AnalogDrive view reflects fire_active=true")
+	_drag(3, _drive(layer, 0.0, 0.0))
+	await process_frame
+	_check(not _fire_held(layer), "right pad centre releases fire")
+	_drag(3, _drive(layer, 0.0, -1.0))
+	await process_frame
+	_check(not _fire_held(layer), "right pad DOWN does not fire")
+	_touch(3, _drive(layer, 0.0, -1.0), false)
+	await process_frame
+
+	# ---- right pad dodge: one edge per deflection, re-arm on centre
+	_touch(4, _drive(layer, -1.0, 0.0), true)
+	await process_frame
+	_check(Input.is_action_pressed("dodge_left"), "right pad LEFT engages dodge_left")
+	_check(right != null and bool(right.get("dodge_left_active")), "AnalogDrive view reflects dodge_left_active")
+	_drag(4, _drive(layer, 0.0, 0.0))
+	await process_frame
+	_check(not Input.is_action_pressed("dodge_left"), "centring releases dodge_left (re-arms)")
+	_drag(4, _drive(layer, 1.0, 0.0))
+	await process_frame
+	_check(Input.is_action_pressed("dodge_right"), "right pad RIGHT engages dodge_right")
+	_check(not Input.is_action_pressed("dodge_left"), "sweep off dodge_left releases it")
+	_touch(4, _drive(layer, 1.0, 0.0), false)
+	await process_frame
+	_check(not Input.is_action_pressed("dodge_right"), "right pad release drops dodge_right")
+
+	# ---- two fingers on the right pad: gas is refcounted; one lift keeps hold
+	_touch(0, _drive(layer, 0.0, 0.0), true)
+	_touch(1, _drive(layer, 0.0, 0.0), true)
+	await process_frame
+	_touch(0, _drive(layer, 0.0, 0.0), false)
 	await process_frame
 	_check(Input.is_action_pressed("move_forward"), "second finger keeps GAS held")
-	_touch(1, _centre(layer, "BtnGas"), false)
+	_touch(1, _drive(layer, 0.0, 0.0), false)
 	await process_frame
 	_check(not Input.is_action_pressed("move_forward"), "both fingers lifted drops GAS")
 
-	# ---- dodge slide pair works the same way
-	_touch(3, _centre(layer, "BtnDodgeLeft"), true)
+	# ---- paired emulated mouse must not double-trigger dodge or leak gas
+	_touch(0, _drive(layer, -1.0, 0.0), true)
+	_mouse(_drive(layer, -1.0, 0.0), true)
 	await process_frame
-	_drag(3, _centre(layer, "BtnDodgeRight"))
+	_touch(0, _drive(layer, -1.0, 0.0), false)
+	_mouse(_drive(layer, -1.0, 0.0), false)
 	await process_frame
-	_check(not Input.is_action_pressed("dodge_left"), "dodge slide leaves dodge_left")
-	_check(Input.is_action_pressed("dodge_right"), "dodge slide engages dodge_right")
-	_touch(3, _centre(layer, "BtnDodgeRight"), false)
-	await process_frame
-
-	# ---- gas stays latched even if finger slides onto another zone
-	_touch(4, _centre(layer, "BtnGas"), true)
-	await process_frame
-	_drag(4, _centre(layer, "BtnDodgeRight"))
-	await process_frame
-	_check(Input.is_action_pressed("move_forward"), "gas is slide-latched, not swap-prone")
-	_check(not Input.is_action_pressed("dodge_right"), "gas slide does not engage dodge_right")
-	_touch(4, _centre(layer, "BtnDodgeRight"), false)
-	await process_frame
-	_check(not Input.is_action_pressed("move_forward"), "gas finger released")
-
-	# ---- paired emulated mouse stream must not leak or double-drop
-	_touch(0, _centre(layer, "BtnGas"), true)
-	_mouse(_centre(layer, "BtnGas"), true)   # emulated pair
-	_touch(0, _centre(layer, "BtnGas"), false)
-	_mouse(_centre(layer, "BtnGas"), false)
-	_touch(1, _centre(layer, "BtnDodgeRight"), true)  # left holding dodge while pair completes
-	await process_frame
+	_check(not Input.is_action_pressed("dodge_left"), "dodge released after touch+emulated pair")
 	_check(not Input.is_action_pressed("move_forward"), "gas released after touch+emulated pair")
-	_check(Input.is_action_pressed("dodge_right"), "other finger unaffected by pair completion")
-	_touch(1, _centre(layer, "BtnDodgeRight"), false)
+	_touch(1, _steer(layer, 1.0, 0.0), true)
 	await process_frame
-	_check(not Input.is_action_pressed("dodge_right"), "dodge released cleanly")
+	_check(Input.is_action_pressed("steer_right"), "other finger unaffected by pair completion")
+	_touch(1, _steer(layer, 1.0, 0.0), false)
+	await process_frame
 
-	# ---- desktop mouse click drives the button with no touch at all
-	_mouse(_centre(layer, "BtnGas"), true)
+	# ---- desktop mouse drives the right pad with no touch at all
+	_mouse(_drive(layer, 0.0, 0.0), true)
 	await process_frame
-	_check(Input.is_action_pressed("move_forward"), "desktop mouse holds GAS")
-	_mouse(_centre(layer, "BtnGas"), false)
+	_check(Input.is_action_pressed("move_forward"), "desktop mouse holds GAS on right pad")
+	_mouse_move(_drive(layer, 0.0, 1.0))
 	await process_frame
-	_check(not Input.is_action_pressed("move_forward"), "desktop mouse release drops GAS")
+	_check(_fire_held(layer), "desktop mouse push-up holds fire")
+	_mouse(_drive(layer, 0.0, 1.0), false)
+	await process_frame
+	_check(not Input.is_action_pressed("move_forward") and not _fire_held(layer),
+			"desktop mouse release drops GAS and fire")
 
-	# ---- canceled touch (OS edge gesture) releases a held finger
-	# paired emulated mouse presses included: a real OS cancel strands the
-	# synthesized MOUSE_BUTTON_LEFT latch, which is what TouchCapture now drops.
-	_touch(5, _centre(layer, "BtnGas"), true)
-	_mouse(_centre(layer, "BtnGas"), true)
-	_touch(6, _pad_at(layer, 1.0), true)
-	_mouse(_pad_at(layer, 1.0), true)
+	# ---- canceled touch releases a held finger
+	_touch(5, _drive(layer, 0.0, 0.0), true)
+	_mouse(_drive(layer, 0.0, 0.0), true)
+	_touch(6, _steer(layer, 1.0, 0.0), true)
+	_mouse(_steer(layer, 1.0, 0.0), true)
 	await process_frame
 	_check(Input.is_action_pressed("move_forward"), "cancel test: gas held before cancel")
-	_cancel(5, _centre(layer, "BtnGas"))
+	_cancel(5, _drive(layer, 0.0, 0.0))
 	await process_frame
-	_check(not Input.is_action_pressed("move_forward"), "canceled gas finger releases move_forward")
+	_check(not Input.is_action_pressed("move_forward"), "canceled gas finger releases gas")
 	_check(Input.is_action_pressed("steer_right"), "canceled other finger unaffected")
-	_touch(6, _pad_at(layer, 1.0), false)
-	_mouse(_pad_at(layer, 1.0), false)
+	_touch(6, _steer(layer, 1.0, 0.0), false)
+	_mouse(_steer(layer, 1.0, 0.0), false)
 	await process_frame
-	# cancel on the pad itself
-	_touch(7, _pad_at(layer, -1.0), true)
-	_mouse(_pad_at(layer, -1.0), true)
+	# cancel on the right pad while firing
+	_touch(7, _drive(layer, 0.0, 1.0), true)
+	_mouse(_drive(layer, 0.0, 1.0), true)
 	await process_frame
-	_check(Input.is_action_pressed("steer_left"), "analog held before cancel")
-	_cancel(7, _pad_at(layer, -1.0))
+	_check(_fire_held(layer), "right pad fire held before cancel")
+	_cancel(7, _drive(layer, 0.0, 1.0))
 	await process_frame
-	_check(not Input.is_action_pressed("steer_left"), "canceled pad finger releases steer_left")
-	_touch(6, _pad_at(layer, 1.0), false)
-	await process_frame
+	_check(not _fire_held(layer), "canceled right-pad finger releases fire")
 
-	# ---- focus-out in the middle of an analog sweep
-	_touch(7, _pad_at(layer, -1.0), true)
-	_drag(7, _pad_at(layer, 1.0))
+	# ---- focus-out during a right-pad sweep
+	_touch(8, _drive(layer, -1.0, 0.0), true)
+	_drag(8, _drive(layer, 1.0, 0.0))
 	await process_frame
-	_check(Input.is_action_pressed("steer_right"), "analog sweep in place before interruption")
+	_check(Input.is_action_pressed("dodge_right"), "right-pad sweep in place before interruption")
 	layer._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
 	await process_frame
-	_check(not Input.is_action_pressed("steer_left"), "focus-out releases steer_left")
-	_check(not Input.is_action_pressed("steer_right"), "focus-out releases steer_right")
-
-	# ---- multi-finger simultaneous: gas + analog steer + analog forward turbo + dodge
-	_touch(8, _centre(layer, "BtnGas"), true)
-	_touch(9, _pad_at_xy(layer, 1.0, 0.90), true)
-	_touch(10, _centre(layer, "BtnDodgeRight"), true)
+	_check(not Input.is_action_pressed("dodge_left") and not Input.is_action_pressed("dodge_right"),
+			"focus-out releases dodge actions")
+	_check(not Input.is_action_pressed("move_forward") and not _fire_held(layer),
+			"focus-out releases gas and fire")
+	_touch(8, _drive(layer, 1.0, 0.0), false)
 	await process_frame
-	_check(Input.is_action_pressed("move_forward") and Input.is_action_pressed("steer_right")
-			and Input.is_action_pressed("turbo") and Input.is_action_pressed("dodge_right"),
-			"simultaneous gas + analog steer/turbo + dodge all held")
-	for i in [8, 9, 10]:
-		var spots := {8: func() -> Vector2: return _centre(layer, "BtnGas"),
-					9: func() -> Vector2: return _pad_at_xy(layer, 1.0, 0.90),
-					10: func() -> Vector2: return _centre(layer, "BtnDodgeRight")}
+
+	# ---- multi-finger simultaneous: gas + fire (right pad) + steer/turbo (left pad)
+	_touch(9, _drive(layer, 0.0, 0.0), true)   # gas owner
+	_touch(10, _drive(layer, 0.0, 1.0), true)  # newest right-pad finger owns fire
+	_touch(11, _steer(layer, 1.0, 0.90), true)
+	await process_frame
+	_check(Input.is_action_pressed("move_forward") and _fire_held(layer)
+			and Input.is_action_pressed("steer_right") and Input.is_action_pressed("turbo"),
+			"simultaneous gas + fire + analog steer/turbo all held")
+	for i in [9, 10, 11]:
+		var spots := {9: func() -> Vector2: return _drive(layer, 0.0, 0.0),
+					10: func() -> Vector2: return _drive(layer, 0.0, 1.0),
+					11: func() -> Vector2: return _steer(layer, 1.0, 0.90)}
 		_touch(i, spots[i].call(), false)
 	await process_frame
-	_check(not Input.is_action_pressed("move_forward") and not Input.is_action_pressed("steer_right")
-			and not Input.is_action_pressed("turbo") and not Input.is_action_pressed("dodge_right"),
+	_check(not Input.is_action_pressed("move_forward") and not _fire_held(layer)
+			and not Input.is_action_pressed("steer_right") and not Input.is_action_pressed("turbo"),
 			"all simultaneous fingers released")
 
-	# ---- opposing analog vectors (audit INP-3): newest pad finger owns throttle.
-	# Two thumbs on opposite ends must never latch turbo AND move_back — with gas
-	# held that pair cancels Input.get_axis and stalls the bike mid-maneuver.
-	_touch(11, _pad_at_xy(layer, 0.0, 1.0), true)
+	# ---- opposing right-pad vectors: newest finger owns fire/dodge, no stuck pair
+	_touch(12, _drive(layer, 0.0, 1.0), true)
 	await process_frame
-	_check(Input.is_action_pressed("turbo") and not Input.is_action_pressed("move_back"),
-			"full-forward pad holds turbo, not reverse")
-	_touch(12, _pad_at_xy(layer, 0.0, -1.0), true)
+	_check(_fire_held(layer) and not Input.is_action_pressed("dodge_left"),
+			"right pad UP holds fire, not dodge")
+	_touch(13, _drive(layer, -1.0, 0.0), true)
 	await process_frame
-	_check(Input.is_action_pressed("move_back") and not Input.is_action_pressed("turbo"),
-			"newest opposing pad vector wins (no turbo+reverse lock)")
-	_touch(12, _pad_at_xy(layer, 0.0, -1.0), false)
+	_check(Input.is_action_pressed("dodge_left") and not _fire_held(layer),
+			"newest opposing pad vector wins (no stuck fire+dodge)")
+	_touch(13, _drive(layer, -1.0, 0.0), false)
 	await process_frame
-	_check(Input.is_action_pressed("turbo") and not Input.is_action_pressed("move_back"),
+	_check(_fire_held(layer) and not Input.is_action_pressed("dodge_left"),
 			"remaining finger resumes when newest lifts")
-	_touch(11, _pad_at_xy(layer, 0.0, 1.0), false)
+	_touch(12, _drive(layer, 0.0, 1.0), false)
 	await process_frame
 
 	# ---- OS interruption drops everything this layer holds
-	_touch(0, _centre(layer, "BtnGas"), true)
-	_touch(1, _pad_at(layer, 1.0), true)
+	_touch(0, _drive(layer, 0.0, 0.0), true)
+	_touch(1, _steer(layer, 1.0, 0.0), true)
 	layer._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
 	await process_frame
 	_check(not Input.is_action_pressed("move_forward"), "focus-out releases gas")
@@ -341,7 +348,6 @@ func _run() -> void:
 				await process_frame
 			_check(bike.global_position.distance_to(spawn_pos) < 1.5,
 					"RestartBtn mouse click resets bike back to spawn (dist=%.2f)" % bike.global_position.distance_to(spawn_pos))
-			# Also verify keyboard R (reset_bike) resets even if pushed through InputEventKey
 			bike.global_position = spawn_pos + Vector3(-10.0, 1.5, 14.0)
 			for _f in range(3):
 				await physics_frame

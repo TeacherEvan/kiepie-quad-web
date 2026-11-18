@@ -414,7 +414,7 @@ func _build_settings() -> void:
 	# ----- controls
 	rows.add_child(_section_header("ControlsHeader", "CONTROLS"))
 	rows.add_child(_slider_row("SteerSensitivityRow", "Steering", _slider("SteerSensitivity", 0.3, 2.0, 0.05, 1.0), _value_label("SteerSensitivityValue", "1.00")))
-	rows.add_child(_slider_row("DodgeSizeRow", "Dodge buttons", _slider("DodgeSize", 0.7, 1.6, 0.05, 1.0), _value_label("DodgeSizeValue", "1.00")))
+	rows.add_child(_slider_row("DodgeSizeRow", "Dodge pad size", _slider("DodgeSize", 0.7, 1.6, 0.05, 1.0), _value_label("DodgeSizeValue", "1.00")))
 	rows.add_child(_setting_row("TouchForceRow", "Always show touch pad", _check("TouchForce", "", false)))
 
 	# ----- gameplay

@@ -80,7 +80,8 @@ below is deliberately deferred architectural work, not a defect.
 5. **Server-side kill validation** — Talo v1 has no SQL RPC; rate caps are the only
    server-side lever. Design constraint, documented in AGENTS.md.
 6. **Cannons vs destructible buildings** — auto-fire no longer targets indestructible
-   shells; whether cannons *should* smash buildings is a gameplay decision for the owner.
+   shells; mobile auto-fire has now been removed outright (all shots are manual from the right
+   analog's UP gesture). Whether cannons *should* smash buildings is a gameplay decision for the owner.
 
 ### Model / asset follow-ups (from README limitations)
 

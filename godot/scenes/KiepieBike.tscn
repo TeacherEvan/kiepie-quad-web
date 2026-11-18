@@ -1,9 +1,9 @@
 [gd_scene load_steps=4 format=3]
 
-[ext_resource type="Script" path="res://src/KiepieBike.gd" id="1_y4scr"]
-[ext_resource type="PackedScene" path="res://assets/Kiepie_Bike.glb" id="2_b0vp8"]
+[ext_resource type="Script" path="res://src/KiepieBike.gd" id="1_bmi4d"]
+[ext_resource type="PackedScene" path="res://assets/Kiepie_Bike.glb" id="2_k8dfr"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_vgtj2"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_dq63l"]
 size = Vector3(0.86, 0.52, 2.05)
 
 [node name="KiepieBike" type="VehicleBody3D"]
@@ -12,7 +12,7 @@ center_of_mass_mode = 1
 center_of_mass = Vector3(0, -0.32, 0)
 inertia = Vector3(70, 120, 150)
 continuous_cd = true
-script = ExtResource("1_y4scr")
+script = ExtResource("1_bmi4d")
 engine_power = 210.0
 turbo_boost = 1.3
 max_steer = 0.62
@@ -28,11 +28,11 @@ dodge_spin = 8.5
 dodge_duration = 0.72
 dodge_cooldown = 1.0
 
-[node name="Model" type="Node3D" parent="." instance=ExtResource("2_b0vp8")]
+[node name="Model" type="Node3D" parent="." instance=ExtResource("2_k8dfr")]
 
 [node name="@CollisionShape3D@2" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.56, 0.02)
-shape = SubResource("BoxShape3D_vgtj2")
+shape = SubResource("BoxShape3D_dq63l")
 
 [node name="WheelFL" type="VehicleWheel3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.545, 0.5, 0.68)

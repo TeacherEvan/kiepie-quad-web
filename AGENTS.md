@@ -85,18 +85,19 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   effect contracts (reduced motion, quality scaling, scorch/scar caps, flat hit normals) and
   level counts: Arena = 10 ramps / 7 buildings, TestRide = 6 ramps / 4 buildings, with spawn
   and ramp clearances. `touch_multitouch` locks two-thumb driving (raw screen-touch indices
-  own independent actions, refcounted holds, sliding steer/dodge swap, paired emulated-mouse
-  double-handling, desktop mouse clicks) plus `TouchCapture` `MOUSE_FILTER_IGNORE` pass-through so
-  `HUD/RestartBtn`, `HUD/ViewBtn`, `TouchHUD/BtnTouchToggle`, and keyboard `R` resets work cleanly.
+  own independent actions, refcounted holds, paired emulated-mouse double-handling, desktop mouse
+  clicks, and real touches outranking the emulated mouse on the same pad) plus `TouchCapture`
+  `MOUSE_FILTER_IGNORE` pass-through so `HUD/RestartBtn`, `HUD/ViewBtn`,
+  `TouchHUD/BtnTouchToggle`, and keyboard `R` resets work cleanly.
   `practice` locks practice-mode cannons: TestRide's bike continuously fires via desktop hold-to-fire
-  AND mobile target-locked auto-fire with zero overheat (`overheated`/`heat_changed` &
-  `HUD/HeatBar`/`HUD/HeatLabel` removed), `MenuBtn` exists, `RestartBtn` recovers dead riders, and
+  AND the mobile right-analog UP gesture with zero overheat and NO auto-fire (`overheated`/`heat_changed`
+  & `HUD/HeatBar`/`HUD/HeatLabel` removed), `MenuBtn` exists, `RestartBtn` recovers dead riders, and
   no network kill broadcast happens in practice. `multiplayer` locks remote-player proxy spawning,
   visibility, and streamlined Arena HUD layout (`ArenaNet._create_remote()` uses `StaticBody3D`/`NetworkedBike.gd`,
   surface-override mesh tinting, `CollisionShape3D` + `Label3D` Nameplate, distinct per-peer
   `SpawnPoint` spreading, `TaloBackend` `"bike_state"` wire separation, 50%-smaller corner
   `HealthBar`, subtle `"x/y"` corner `Banner`, collapsible `ScoreToggle`->`Scoreboard` dropdown, and
-  compact `BtnGas`). Keep all green.
+  both analog pads). Keep all green.
   Exit 101 from GdUnit4 = pass with benign dummy-renderer orphan warnings; 100 = failure.
 - `run_gates.sh` exports `KIEPIE_MOCK_BACKEND=1` — gates must never touch the live Talo account.
   Backend-touching gates additionally hard-abort (`quit(2)`) if the mock is not active, instead of
@@ -241,11 +242,12 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   proxies reproduce the cartwheel. `verify_dodge.gd` locks direction, lift, cooldown, recovery.
 - Practice mode (TestRide) carries the full combat kit: the bike gets a `CombatController`
   child with `practice_mode = true` (works without an arena lobby; desktop continuous hold-to-fire,
-  skipped while hovering a HUD `BaseButton`, and mobile target-locked forward-cone auto-fire work
-  standalone, while network kill broadcasts and the match gate are skipped — the local
-  death/respawn flow still works). `verify_practice.gd` locks streamlined touch controls (no
-  `BtnFire`/`BtnTurbo`/`BtnBrake`), `MenuBtn`, desktop hold-to-fire, mobile auto-fire, no
-  overheat/HUD heat bar, offline drum/rider damage, and `RestartBtn` recovery from death.
+  skipped while hovering a HUD `BaseButton`, and mobile right-analog UP manual fire work standalone,
+  while network kill broadcasts and the match gate are skipped — the local death/respawn flow still
+  works). `verify_practice.gd` locks streamlined touch controls (no
+  `BtnFire`/`BtnTurbo`/`BtnBrake`/`BtnGas`/L-R dodge buttons), `MenuBtn`, desktop hold-to-fire,
+  mobile UP-to-fire with NO auto-fire, no overheat/HUD heat bar, offline drum/rider damage, and
+  `RestartBtn` recovery from death.
 - Cannon cooldown & restart: `SideCannons.gd` has **no overheat mechanic or `HeatBar`** (shots
   are strictly cooldown-gated at `0.20s` normal / `0.09s` rapid; `heat_changed` and `HUD/HeatBar`
   were removed). `KiepieBike.reset_bike()` (called by `HUD/RestartBtn`, `R` / `reset_bike`, and
@@ -253,23 +255,28 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   `_integrate_forces` `_pending_reset` latch because writing `VehicleBody3D.global_transform` from
   GUI button callbacks gets overwritten on the next physics sync step; `Hud._on_restart()` also
   calls `CombatController.reset_state()`.
-- Touch/mobile: `TouchControls.gd` + `TouchCapture.gd` implement real two-thumb multi-touch.
+- Touch/mobile: `TouchControls.gd` + `TouchCapture.gd` implement real two-thumb multi-touch with
+  **two runtime-created analog pads** — `AnalogSteer.gd` (left: steer, push-forward turbo,
+  pull-back brake/reverse) and `AnalogDrive.gd` (right: a resting finger holds `move_forward`,
+  push-UP holds fire, push L/R triggers a one-shot dodge with return-to-centre re-arm).
+  The old `BtnGas` and `BtnDodgeLeft/Right` ("L"/"R") buttons are GONE from both builders.
   The capture is a full-rect `MOUSE_FILTER_IGNORE` `Control` reading `_input()` (with
   `make_input_local`) so it never swallows HUD buttons on lower CanvasLayers or earlier
-  siblings (`BtnTouchToggle`, `MenuBtn`, `RestartBtn`); every overlay drive button is a
-  `MOUSE_FILTER_IGNORE` shell, hit-tested per `InputEventScreenTouch.index` — mouse emulation
-  is a shared pointer and cannot drive two actions at once, which is why this layer exists. Holds are
-  refcounted (touch + the deterministically paired emulated-mouse stream share symmetrical +1/-1);
-  dodge neighbours swap on thumb slides, `BtnGas` stays latched. Manual `BtnFire`/`BtnTurbo`/`BtnBrake`
-  are omitted on mobile: pushing forward on `AnalogSteer` triggers `turbo`, pulling it back holds
-  `move_back` (brake, then reverse — same as keyboard S/Down), and `CombatController`
-  auto-fires when aiming at targets with clear LOS while `TouchHUD` is active. Both builders add
-  the dodge pair above the steering cluster and `MenuBtn` (`Main Menu`) on `HUD` (`FOCUS_NONE`),
-  paired with Android/Web Back (`NOTIFICATION_WM_GO_BACK_REQUEST` + `popstate`) + Esc handling.
-  `verify_touch.gd` enforces >=44px targets and pairwise non-overlap, and
-  `verify_touch_multitouch.gd` (runs under xvfb) locks the multi-touch contract,
-  including newest-pointer arbitration for opposing analog vectors (no turbo+move_back lock).
-  `controls/dodge_size` and `controls/touch_force` are live in Settings → Controls.
+  siblings (`BtnTouchToggle`, `MenuBtn`, `RestartBtn`); both pads are `MOUSE_FILTER_IGNORE`
+  views hit-tested per `InputEventScreenTouch.index` — mouse emulation is a shared pointer and
+  cannot drive two actions at once, which is why this layer exists. Holds are refcounted
+  (touch + the deterministically paired emulated-mouse stream share symmetrical +1/-1), and
+  a real touch always outranks the emulated mouse on the same pad (browsers that stop emitting
+  mouse-motion during a drag would otherwise freeze the pad). **Auto-fire is removed**:
+  `CombatController` polls `TouchControls.is_fire_held()` rather than the `fire` InputAction
+  (emulated `MOUSE_BUTTON_LEFT` is bound to it and would free-fire); physical F still works.
+  Both builders add `MenuBtn` (`Main Menu`) on `HUD` (`FOCUS_NONE`), paired with Android/Web Back
+  (`NOTIFICATION_WM_GO_BACK_REQUEST` + `popstate`) + Esc handling.
+  `verify_touch.gd` enforces >=44px non-overlapping pads and the gas/fire/dodge gestures, and
+  `verify_touch_multitouch.gd` (runs under xvfb) locks the multi-touch contract, including
+  newest-real-touch arbitration (no stuck turbo+move_back or fire+dodge pairs).
+  `controls/dodge_size` (now scales the right pad), `steer_sensitivity` and `controls/touch_force`
+  are live in Settings → Controls.
 - Headless physics proof: `godot-4.3 --headless --path godot --script tools/truth_test.gd`
   (0 → 9+ m/s, wheel contact). Feature checks: `verify_features.gd`, `diag2.gd`,
   `verify_controls.gd`, `verify_dodge.gd`.

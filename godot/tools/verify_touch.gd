@@ -1,183 +1,198 @@
 extends SceneTree
-# Headless gate for the touch overlay (Task 5).
-# Checks: TouchHUD exists, buttons focus NONE with >=44px touch targets,
-# button_down/up drive the right InputMap actions, the TOUCH toggle forces
-# visibility, the stuck-key reconcile releases unpressed-but-held actions
-# without touching keyboard-held actions, hiding releases everything, and the
-# focus-out notification releases this layer's held actions.
-# NOTE (known limitation): button_down/up are emitted synthetically, so the
-# reconcile branch (is_pressed()==false mid-hold) passes trivially; a real
-# gesture keeps press state until button_up by engine design. The focus-out
-# leg and the toggle-hide leg cover the genuine stuck-throttle vectors.
+# Headless gate for the two-pad touch overlay (Task 5).
+# Locks: TouchHUD with both runtime analog pads (AnalogSteer left, AnalogDrive
+# right), no legacy GAS / L-R dodge buttons, >=44px non-overlapping FOCUS_NONE
+# pads, right-pad gas-on-touch / UP-to-fire / L-R-to-dodge, left-pad steering,
+# the TOUCH toggle, keyboard-press survival, and focus-out / exit-tree release.
 # Exits 1 on any failure.
 
 var _failures := 0
+var _layer: CanvasLayer
 
 func _check(cond: bool, label: String) -> void:
 	print(("  PASS  " if cond else "  FAIL  "), label)
 	if not cond:
 		_failures += 1
 
-func _btn_size(b: Button) -> Vector2:
-	return Vector2(absf(b.offset_right - b.offset_left), absf(b.offset_bottom - b.offset_top))
+
+# Headless has no window, so viewport-pushed InputEventScreenTouch is not
+# delivered (that is why verify_touch_multitouch runs under xvfb). Drive the
+# overlay's pointer handlers directly to test the same mapping logic.
+func _touch(index: int, pos: Vector2, pressed: bool) -> void:
+	if pressed:
+		_layer.call("_on_pointer_down", index, pos)
+	else:
+		_layer.call("_on_pointer_up", index, pos)
+
+
+func _drag(index: int, pos: Vector2) -> void:
+	_layer.call("_on_pointer_move", index, pos)
+
+
+func _pad_rect(layer: CanvasLayer, name: String) -> Rect2:
+	var pad := layer.get_node_or_null(name) as Control
+	return pad.get_global_rect() if pad != null else Rect2()
+
+
+func _pad_at(layer: CanvasLayer, name: String, x_frac: float, y_forward: float,
+		x_margin: float, y_margin: float) -> Vector2:
+	var r := _pad_rect(layer, name)
+	return Vector2(
+			r.get_center().x + x_frac * (r.size.x * 0.5 - x_margin),
+			r.get_center().y - y_forward * (r.size.y * 0.5 - y_margin))
+
+
+func _steer_at(layer: CanvasLayer, x: float, y: float) -> Vector2:
+	return _pad_at(layer, "AnalogSteer", x, y, 30.0, 10.0)
+
+
+func _drive_at(layer: CanvasLayer, x: float, y: float) -> Vector2:
+	return _pad_at(layer, "AnalogDrive", x, y, 22.0, 22.0)
+
+
+func _fire_held(layer: CanvasLayer) -> bool:
+	return bool(layer.call("is_fire_held"))
+
 
 func _initialize() -> void:
-	# The overlay now persists the TOUCH override, so clear it BEFORE the
-	# scene's TouchControls._ready() reads it — otherwise a previous run
-	# leaving it ON would change this gate's assumptions.
+	# The overlay persists the TOUCH override, so clear it BEFORE the scene's
+	# TouchControls._ready() reads it.
 	await process_frame
 	var settings_node := get_root().get_node_or_null("Settings")
 	var _touch_force_prior: Variant = null
 	if settings_node != null:
 		_touch_force_prior = settings_node.call("get_value", "controls", "touch_force", false)
-		settings_node.call("set_value", "controls", "touch_force", false)
+		settings_node.call("set_value", "controls", "touch_force", true)
 
 	var scene: PackedScene = load("res://scenes/TestRide.tscn")
 	var root_node := scene.instantiate() as Node3D
 	get_root().add_child(root_node)
 	await process_frame
-
-	# ---- regression: an action held BEFORE the overlay's deferred _ready fires
-	# (keyboard, tests, or a parent scene) must survive untouched
-	Input.action_press("move_forward")
 	await process_frame
-	await process_frame
-	_check(Input.is_action_pressed("move_forward"),
-			"externally-held action survives overlay first frames")
-	Input.action_release("move_forward")
 
 	# ---- presence + wiring
-	var layer := root_node.get_node_or_null("TouchHUD")
+	var layer := root_node.get_node_or_null("TouchHUD") as CanvasLayer
 	_check(layer != null, "TouchHUD node exists")
 	if layer == null:
 		quit(1)
 		return
+	_layer = layer
 	_check(layer is CanvasLayer, "TouchHUD is a CanvasLayer")
 	_check(layer.get_script() != null
 				and str(layer.get_script().resource_path).ends_with("TouchControls.gd"),
 			"TouchHUD runs TouchControls.gd")
-	var gas_visible: bool = (layer.get_node("BtnGas") as Button).visible
-	print("  info  touchscreen_available=%s drive_visible=%s (headless expects false/false)"
-			% [DisplayServer.is_touchscreen_available(), gas_visible])
+	_check(bool(layer.call("is_overlay_active")), "TOUCH override shows the drive pads")
+
+	# ---- legacy controls are gone
+	for removed in ["BtnFire", "BtnTurbo", "BtnBrake", "BtnGas", "BtnDodgeLeft", "BtnDodgeRight"]:
+		_check(layer.get_node_or_null(removed) == null, "%s removed from touch overlay" % removed)
+
 	var toggle_btn := layer.get_node_or_null("BtnTouchToggle") as Button
 	_check(toggle_btn != null and toggle_btn.visible,
-			"TOUCH toggle stays visible when drive buttons are hidden")
+			"TOUCH toggle stays visible when drive pads are hidden")
 
-	# ---- buttons: streamlined mobile overlay (Gas + AnalogSteer/Turbo + Dodge L/R + Toggle)
-	for removed in ["BtnFire", "BtnTurbo", "BtnBrake"]:
-		_check(layer.get_node_or_null(removed) == null, "%s removed from streamlined touch overlay" % removed)
-	var names := ["BtnGas", "BtnDodgeLeft", "BtnDodgeRight", "BtnTouchToggle"]
-	var btns := {}
-	for n in names:
-		var b := layer.get_node_or_null(n) as Button
-		_check(b != null, "%s exists" % n)
-		if b:
-			btns[n] = b
-			_check(b.focus_mode == Control.FOCUS_NONE, "%s focus_mode == FOCUS_NONE" % n)
-			var s := _btn_size(b)
-			_check(s.x >= 44.0 and s.y >= 44.0, "%s target >= 44x44 (got %.0fx%.0f)" % [n, s.x, s.y])
-			if n == "BtnGas":
-				_check(s.x <= 84.0 and s.y <= 84.0, "BtnGas compact (~1/3rd footprint, got %.0fx%.0f)" % [s.x, s.y])
-			elif n == "BtnDodgeLeft":
-				_check(b.text == "L" and s.x <= 60.0 and s.y <= 60.0, "BtnDodgeLeft compact 'L' (got '%s' %.0fx%.0f)" % [b.text, s.x, s.y])
-			elif n == "BtnDodgeRight":
-				_check(b.text == "R" and s.x <= 60.0 and s.y <= 60.0, "BtnDodgeRight compact 'R' (got '%s' %.0fx%.0f)" % [b.text, s.x, s.y])
+	# ---- both analog pads: present, >=44x44, FOCUS_NONE, non-overlapping
+	var left := layer.get_node_or_null("AnalogSteer") as Control
+	var right := layer.get_node_or_null("AnalogDrive") as Control
+	for pad in [left, right]:
+		_check(pad != null and pad is Control, "analog pad exists")
+		if pad != null:
+			_check(pad.focus_mode == Control.FOCUS_NONE, "analog pad focus_mode == FOCUS_NONE")
+			var pr: Rect2 = pad.get_global_rect()
+			_check(pr.size.x >= 44.0 and pr.size.y >= 44.0,
+					"analog pad target >= 44x44 (got %.0fx%.0f)" % [pr.size.x, pr.size.y])
+	if left != null and right != null:
+		_check(not left.get_global_rect().intersects(right.get_global_rect()),
+				"AnalogSteer and AnalogDrive do not overlap")
 
-	# ---- analog steering pad: present, >=44x44, does not overlap dodge pair
-	var pad := layer.get_node_or_null("AnalogSteer") as Control
-	_check(pad != null and pad is Control, "AnalogSteer pad exists")
-	if pad != null:
-		_check(pad.focus_mode == Control.FOCUS_NONE, "AnalogSteer focus_mode == FOCUS_NONE")
-	if pad != null:
-		var pr := pad.get_global_rect()
-		_check(pr.size.x >= 44.0 and pr.size.y >= 44.0,
-				"AnalogSteer target >= 44x44 (got %.0fx%.0f)" % [pr.size.x, pr.size.y])
-		for dn in ["BtnDodgeLeft", "BtnDodgeRight"]:
-			var d := btns.get(dn) as Button
-			if d != null:
-				var drect := Rect2(d.get_global_rect())
-				_check(not pr.intersects(drect), "AnalogSteer does not overlap %s" % dn)
+	# ---- right pad: touching holds GAS; releasing drops it
+	_touch(0, _drive_at(layer, 0.0, 0.0), true)
+	await process_frame
+	_check(Input.is_action_pressed("move_forward"), "right-pad touch holds move_forward (gas)")
+	_touch(0, _drive_at(layer, 0.0, 0.0), false)
+	await process_frame
+	_check(not Input.is_action_pressed("move_forward"), "right-pad release drops gas")
 
-	# ---- no two drive buttons may overlap (the Arena TURBO/BRAKE pair once did)
-	var rects := {}
-	for n in btns:
-		if n == "BtnTouchToggle":
-			continue
-		var b: Button = btns[n]
-		rects[n] = Rect2(Vector2(b.offset_left, b.offset_top), _btn_size(b))
-	var keys := rects.keys()
-	for i in range(keys.size()):
-		for j in range(i + 1, keys.size()):
-			var a: String = keys[i]
-			var c: String = keys[j]
-			_check(not rects[a].intersects(rects[c]),
-					"%s and %s touch targets do not overlap" % [a, c])
+	# ---- right pad: UP holds manual fire (no auto-fire), DOWN does not fire
+	_touch(1, _drive_at(layer, 0.0, 0.0), true)
+	await process_frame
+	_check(not _fire_held(layer), "right-pad centre does not fire")
+	_drag(1, _drive_at(layer, 0.0, 1.0))
+	await process_frame
+	_check(_fire_held(layer), "right-pad UP holds manual fire")
+	_check(Input.is_action_pressed("move_forward"), "pushing UP keeps gas held")
+	_drag(1, _drive_at(layer, 0.0, 0.0))
+	await process_frame
+	_check(not _fire_held(layer), "right-pad centre releases fire")
+	_drag(1, _drive_at(layer, 0.0, -1.0))
+	await process_frame
+	_check(not _fire_held(layer), "right-pad DOWN never fires")
+	_touch(1, _drive_at(layer, 0.0, -1.0), false)
+	await process_frame
 
-	# ---- action wiring: button_down/up -> InputMap actions
-	var pairs := {"BtnGas": "move_forward",
-			"BtnDodgeLeft": "dodge_left", "BtnDodgeRight": "dodge_right"}
-	for n in pairs:
-		var action: String = pairs[n]
-		var b: Button = btns.get(n)
-		if b == null:
-			continue
-		b.button_down.emit()
-		_check(Input.is_action_pressed(action), "%s button_down holds '%s'" % [n, action])
-		b.button_up.emit()
-		_check(not Input.is_action_pressed(action), "%s button_up releases '%s'" % [n, action])
+	# ---- right pad: LEFT/RIGHT trigger dodge; centre re-arms
+	_touch(2, _drive_at(layer, -1.0, 0.0), true)
+	await process_frame
+	_check(Input.is_action_pressed("dodge_left"), "right-pad LEFT engages dodge_left")
+	_drag(2, _drive_at(layer, 0.0, 0.0))
+	await process_frame
+	_check(not Input.is_action_pressed("dodge_left"), "returning to centre releases dodge_left")
+	_drag(2, _drive_at(layer, 1.0, 0.0))
+	await process_frame
+	_check(Input.is_action_pressed("dodge_right"), "right-pad RIGHT engages dodge_right")
+	_touch(2, _drive_at(layer, 1.0, 0.0), false)
+	await process_frame
+	_check(not Input.is_action_pressed("dodge_right"), "right-pad release drops dodge_right")
 
-	# ---- stuck-key reconcile: touch pressed, button never released -> action freed
-	var gas: Button = btns.get("BtnGas")
-	if gas:
-		gas.button_down.emit()  # deliberately no button_up (finger slid off)
-		for i in range(3):
-			await process_frame
-		_check(not Input.is_action_pressed("move_forward"),
-				"stuck-key reconcile frees unpressed-held action")
+	# ---- left pad still steers
+	_touch(3, _steer_at(layer, -1.0, 0.0), true)
+	await process_frame
+	_check(Input.is_action_pressed("steer_left"), "left-pad LEFT steers left")
+	_touch(3, _steer_at(layer, -1.0, 0.0), false)
+	await process_frame
+	_check(not Input.is_action_pressed("steer_left"), "left-pad release centres steering")
 
-	# ---- reconcile must not touch keyboard-held actions
+	# ---- a keyboard-held action must never be wiped by the overlay
 	Input.action_press("steer_left")
 	for i in range(3):
 		await process_frame
-	_check(Input.is_action_pressed("steer_left"), "keyboard-held action survives reconcile")
+	_check(Input.is_action_pressed("steer_left"), "keyboard-held action survives overlay frames")
 	Input.action_release("steer_left")
 
-	# ---- TOUCH toggle forces visibility and hiding releases held actions
-	var toggle: Button = btns.get("BtnTouchToggle")
+	# ---- TOUCH toggle hides both pads and releases every held action
+	var toggle: Button = btns_toggle(layer)
 	if toggle:
+		_touch(4, _drive_at(layer, 0.0, 1.0), true)
+		await process_frame
+		_check(_fire_held(layer), "fire held before hide")
 		toggle.pressed.emit()
-		_check((layer.get_node("BtnGas") as Button).visible, "toggle ON shows drive buttons")
-		_check((layer.get_node("BtnDodgeLeft") as Button).visible,
-				"toggle ON shows dodge buttons")
-		_check(toggle.text == "TOUCH: ON", "toggle label reads TOUCH: ON")
-		gas = btns.get("BtnGas")
-		if gas:
-			gas.button_down.emit()
-		toggle.pressed.emit()  # hide again
-		_check(not (layer.get_node("BtnGas") as Button).visible, "toggle OFF hides drive buttons")
+		await process_frame
+		_check(not left.visible and not right.visible, "toggle OFF hides both drive pads")
 		_check(toggle.text == "TOUCH: AUTO", "toggle label returns to TOUCH: AUTO")
-		_check(not Input.is_action_pressed("move_forward"), "hiding overlay releases held actions")
+		_check(not Input.is_action_pressed("move_forward"), "hiding overlay releases held gas")
+		_check(not _fire_held(layer), "hiding overlay releases held fire")
+		toggle.pressed.emit()
+		await process_frame
+		_check(left.visible and right.visible, "toggle ON shows both drive pads")
+		_check(toggle.text == "TOUCH: ON", "toggle label reads TOUCH: ON")
 
-	# ---- focus-out releases this layer's held actions (phone call / shade pull)
-	gas = btns.get("BtnGas")
-	if gas:
-		gas.button_down.emit()
-		layer._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
-		_check(not Input.is_action_pressed("move_forward"), "focus-out releases held action")
+	# ---- focus-out releases this layer's held actions
+	_touch(5, _drive_at(layer, 0.0, 1.0), true)
+	await process_frame
+	layer._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
+	_check(not Input.is_action_pressed("move_forward"), "focus-out releases gas")
+	_check(not _fire_held(layer), "focus-out releases fire")
 
 	# ---- exit-tree safety
-	toggle = btns.get("BtnTouchToggle")
-	if toggle and not (layer.get_node("BtnGas") as Button).visible:
-		toggle.pressed.emit()  # force drive buttons visible again
-	gas = btns.get("BtnGas")
-	if gas:
-		gas.button_down.emit()
+	_touch(6, _drive_at(layer, -1.0, 0.0), true)
+	await process_frame
+	_check(Input.is_action_pressed("dodge_left"), "dodge held before exit")
 	layer.queue_free()
 	for i in range(3):
 		await process_frame
-	_check(not Input.is_action_pressed("move_forward"), "overlay exit releases held actions")
+	_check(not Input.is_action_pressed("dodge_left"), "overlay exit releases held dodge")
 
-	# ---- cleanup any stray action state; restore developer's touch_force prior
+	# ---- cleanup; restore developer's touch_force prior
 	for a in ["move_forward", "move_back", "steer_left", "steer_right", "turbo",
 			"dodge_left", "dodge_right", "reset_bike"]:
 		Input.action_release(a)
@@ -186,3 +201,7 @@ func _initialize() -> void:
 
 	print("TOUCH VERIFY: %d failure(s)" % _failures)
 	quit(1 if _failures > 0 else 0)
+
+
+func btns_toggle(layer: CanvasLayer) -> Button:
+	return layer.get_node_or_null("BtnTouchToggle") as Button

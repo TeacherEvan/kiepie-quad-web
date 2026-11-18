@@ -57,6 +57,7 @@ findings). Web re-export + deploy: **`f09c80e`**. Earlier surgical audit:
 | INP-1 | Emulated `MOUSE_LEFT` on `MOUSE_FILTER_IGNORE` fires cannons / starves auto-fire (P0) | physical-key-only manual fire while auto-fire enabled | `1494b0d` · `CombatController.gd` |
 | INP-2 | Canceled touch leaks emulated pointer hold (P0) | `touch.canceled` releases paired pointer; `pointer_up` releases analog **and** button halves | `1494b0d` · `TouchCapture.gd` / `TouchControls.gd` |
 | INP-3 | Opposing analog pad vectors latch turbo + move_back, cancelling drive (P1) | newest pad finger owns arbitration; stale opposing vector ignored; dual-touch regression assertions | `b35bae7` · `TouchControls.gd` + `verify_touch_multitouch.gd`; shipped in `a3ec39c` |
+| INP-4 | Feature change: mobile GAS button + L/R dodge buttons + auto-fire replaced by a right analog | `AnalogDrive.gd` right pad: touch=gas, UP=manual fire, L/R=cartwheel; auto-fire + target scan deleted; real touch outranks emulated mouse | `this commit` · `AnalogDrive.gd` / `TouchControls.gd` / `CombatController.gd` / `TouchOverlayKit.gd` |
 
 ### Fixed — HUD / UI / lifecycle
 
@@ -79,7 +80,7 @@ findings). Web re-export + deploy: **`f09c80e`**. Earlier surgical audit:
 
 | Gate | Fix | Evidence |
 | --- | --- | --- |
-| `verify_practice.gd` | real synthetic touch + mouse pairing; aim-away ⇒ 0 shots, re-aim ⇒ auto-fire | `1494b0d` |
+| `verify_practice.gd` | real synthetic touch + mouse pairing; gas-only ⇒ 0 shots (no auto-fire), right-pad UP ⇒ continuous shots | `1494b0d` / `this commit` |
 | `verify_settings.gd` | `reset_defaults` before default assertions | `1494b0d` |
 | `verify_smash_impact.gd` | `up_after > 0.80` now asserted, not just printed | `1494b0d` |
 | `verify_touch_multitouch.gd` | cancel tests include the paired emulated mouse; opposing-vector arbitration assertions (INP-3) | `1494b0d` / `this commit` |

@@ -36,16 +36,44 @@ func test_smash_increments_hud_counter() -> void:
 	var smashed := root.get_node("HUD").get_node_or_null("Smashed") as Label
 	assert_str(smashed.text).is_equal("Buildings smashed: 1 / 4")
 
-func test_touch_gas_holds_and_releases_action() -> void:
+func test_touch_drive_pad_holds_gas_and_fire() -> void:
 	var root := _boot_pad()
 	# _ready is deferred (AGENTS.md gotcha) - let the tree settle before probing
 	await get_tree().create_timer(0.1).timeout
-	var gas := root.get_node("TouchHUD").get_node_or_null("BtnGas") as Button
-	assert_object(gas).is_not_null()
-	gas.button_down.emit()
+	var layer := root.get_node_or_null("TouchHUD") as CanvasLayer
+	assert_object(layer).is_not_null()
+	var pad := layer.get_node_or_null("AnalogDrive") as Control
+	assert_object(pad).is_not_null()
+	assert_object(layer.get_node_or_null("BtnGas")).is_null()
+	# Headless has no touchscreen, so force the overlay on like the TOUCH toggle.
+	var toggle := layer.get_node_or_null("BtnTouchToggle") as Button
+	assert_object(toggle).is_not_null()
+	var was_on := bool(layer.call("is_overlay_active"))
+	if not was_on:
+		layer.call("_on_toggle")
+		await get_tree().process_frame
+	assert_bool(pad.visible).is_true()
+
+	# Headless GdUnit has no window for viewport input events; drive the
+	# overlay's pointer handlers directly (xvfb gate covers real touch delivery).
+	var centre := pad.get_global_rect().get_center()
+	layer.call("_on_pointer_down", 77, centre)
+	await get_tree().process_frame
 	assert_bool(Input.is_action_pressed("move_forward")).is_true()
-	gas.button_up.emit()
+	assert_bool(bool(layer.call("is_fire_held"))).is_false()
+
+	var up_pos := centre + Vector2(0.0, -(pad.size.y * 0.5 - 22.0))
+	layer.call("_on_pointer_move", 77, up_pos)
+	await get_tree().process_frame
+	assert_bool(bool(layer.call("is_fire_held"))).is_true()
+
+	layer.call("_on_pointer_up", 77, up_pos)
+	await get_tree().process_frame
 	assert_bool(Input.is_action_pressed("move_forward")).is_false()
+	assert_bool(bool(layer.call("is_fire_held"))).is_false()
+	Input.action_release("move_forward")
+	if not was_on:
+		layer.call("_on_toggle")  # restore the developer's overlay state
 
 
 func test_main_menu_attaches_mobile_text_input() -> void:

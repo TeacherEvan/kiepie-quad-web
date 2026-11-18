@@ -118,7 +118,7 @@ func _run() -> void:
 			_check(rb2.visible and rb2.global_position.distance_to(Vector3(-24.0, 0.6, 14.0)) < 1.5,
 					"respawn state reveals and moves remote proxy")
 
-	# ---- Arena HUD minimalism: corner 50%-smaller armor, x/y counter, scoreboard dropdown, compact GAS
+	# ---- Arena HUD minimalism: corner 50%-smaller armor, x/y counter, scoreboard dropdown, dual analog pads
 	var hud := arena.get_node_or_null("HUD") as CanvasLayer
 	var touch_hud := arena.get_node_or_null("TouchHUD") as CanvasLayer
 	if hud != null:
@@ -143,10 +143,17 @@ func _run() -> void:
 		else:
 			_check(false, "Arena ScoreToggle and Scoreboard dropdown exist")
 	if touch_hud != null:
-		var gas := touch_hud.get_node_or_null("BtnGas") as Button
-		_check(gas != null and gas.size.x >= 44.0 and gas.size.y >= 44.0
-				and gas.size.x <= 84.0 and gas.size.y <= 84.0,
-				"Arena BtnGas is compact (~1/3rd size) and >= 44px (%s)" % (str(gas.size) if gas else "null"))
+		var left_pad := touch_hud.get_node_or_null("AnalogSteer") as Control
+		var right_pad := touch_hud.get_node_or_null("AnalogDrive") as Control
+		_check(left_pad != null and left_pad.size.x >= 44.0 and left_pad.size.y >= 44.0
+				and right_pad != null and right_pad.size.x >= 44.0 and right_pad.size.y >= 44.0,
+				"Arena has both analog pads at >= 44px (%s / %s)" % [
+					str(left_pad.size) if left_pad else "null",
+					str(right_pad.size) if right_pad else "null"])
+		_check(touch_hud.get_node_or_null("BtnGas") == null
+				and touch_hud.get_node_or_null("BtnDodgeLeft") == null
+				and touch_hud.get_node_or_null("BtnDodgeRight") == null,
+				"Arena touch overlay has no GAS / L-R dodge buttons")
 
 	# Check local bike spawn slot assignment for host vs guest
 	if sp0 != null and local_bike != null and net != null:

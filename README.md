@@ -39,9 +39,10 @@ Captured live from the practice track under the real renderer (WebGL2 via xvfb) 
 - `F` / left mouse — **fire both side cannons** in the arena (cooldown-gated)
 - `C` — camera: chase ↔ free orbit (drag / scroll to zoom)
 - `R` — reset to spawn (also the on-screen Restart button)
-- On-screen touch overlay — analog steer (push forward = turbo, pull back =
-  brake/reverse), GAS and DODGE L/R; cannons auto-fire at targets on mobile.
-  Auto-appears on touch devices; the **TOUCH** button force-shows/hides it anywhere.
+- On-screen touch overlay — **left analog** steer (push forward = turbo, pull back =
+  brake/reverse) and **right analog** drive (rest finger = gas, push up = fire,
+  push left/right = dodge cartwheel). No auto-fire: cannons fire only on the
+  up-gesture. Auto-appears on touch devices; the **TOUCH** button force-shows/hides it anywhere.
 
 ## Combat
 
@@ -92,13 +93,13 @@ Controls:
 | `C` | Camera — chase ↔ free orbit (drag mouse / wheel to zoom) |
 | `Q` / `E` | Dodge left / right — lateral leap + cartwheel to evade attacks (ground-only, 1 s cooldown) |
 | `R` | Reset to spawn (also the on-screen **Restart** button) |
-| Touch | On-screen overlay (analog steer — push forward for **turbo**, pull back to brake/reverse · **DODGE L/R** · GAS; cannons **auto-fire** at targets) auto-appears on touch devices; the **TOUCH** button (top-right) force-shows/hides it anywhere. Dodge button size, steering sensitivity and touch force are adjustable in Settings → Controls |
+| Touch | Two analog pads auto-appear on touch devices. **Left**: steer, push forward for **turbo**, pull back to brake/reverse. **Right**: rest a finger for **gas**, push **up** to **fire** (manual, cooldown-gated — no auto-fire), push **left/right** for the **dodge** cartwheel. The **TOUCH** button (top-right) force-shows/hides them. Dodge pad size, steering sensitivity and touch force are adjustable in Settings → Controls |
 
 `TestRide.tscn` is the playable practice pad: asphalt, cone ring, start line, six **ramps**
 (including a cone-clearing jump line with a landing slope), four **smashable buildings**
 (drive into them at speed — they burst into debris and an on-screen counter tracks it),
 a follow camera, working **practice cannons** (F / left mouse on desktop,
-target-locked auto-fire on mobile — no lobby required, no
+right-analog up on mobile — no lobby required, no
 network kill broadcasts) and a HUD with speed readout, smash counter,
 turbo indicator and Restart / View buttons. Rollover immunity (lowered center of
 mass + angular lockout + righting spring) — the quad cannot flip. It is a placeholder — build your real
@@ -287,7 +288,7 @@ The game now boots into a **Main Menu** with `Practice` (the original free-ride/
 with a free slot and creates one if none exists.
 
 **Combat:** the Blender-authored twin side cannons fire with **F / left mouse** on desktop,
-and **target-locked auto-fire** on mobile (push analog forward for turbo). Each bike has 100
+and the **right analog pushed up** on mobile (left pad push-forward is turbo). Each bike has 100
 armour; the host-configured damage default is 30 per hit; cannons fire on a short cooldown, and
 a destroyed bike explodes and respawns at a random spawn point after the lobby's respawn delay.
 The shooter scores the kill; first to the lobby's kill target wins.
@@ -338,7 +339,7 @@ proportional steer strength, large touch controls and quality presets
 suite — `godot/tools/run_gates.sh` now runs 25 gates offline (22 headless gates plus GdUnit4,
 the `scene_sync` drift check and one xvfb-windowed multi-touch gate, `verify_touch_multitouch.gd`).
 The new `verify_practice.gd` locks practice-mode cannons (no lobby required, desktop
-hold-to-fire + mobile target-locked auto-fire, real input-driven projectile spawn).
+hold-to-fire + mobile right-analog-up manual firing (no auto-fire), real input-driven projectile spawn).
 The new `verify_vfx.gd` locks effect contracts (reduced motion, quality scaling, decal caps,
 flat-normal safety) and the new arena/test-track ramp and building counts with spawn clearance.
 The new gates exercise `TaloBackend` directly with no live account, lock the surgical-audit

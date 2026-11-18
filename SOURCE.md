@@ -70,13 +70,13 @@ Controls:
 | `C` | Camera — chase ↔ free orbit (drag mouse / wheel to zoom) |
 | `Q` / `E` | Dodge left / right — lateral leap + cartwheel to evade attacks (ground-only, 1 s cooldown) |
 | `R` | Reset to spawn (also the on-screen **Restart** button) |
-| Touch | On-screen overlay (analog steer — push forward for **turbo**, pull back to brake/reverse · **DODGE L/R** · GAS; cannons **auto-fire** at targets) auto-appears on touch devices; the **TOUCH** button (top-right) force-shows/hides it anywhere. Dodge button size, steering sensitivity and touch force are adjustable in Settings → Controls |
+| Touch | Two analog pads auto-appear on touch devices. **Left**: steer, push forward for **turbo**, pull back to brake/reverse. **Right**: rest a finger for **gas**, push **up** to **fire** (manual, cooldown-gated — no auto-fire), push **left/right** for the **dodge** cartwheel. The **TOUCH** button (top-right) force-shows/hides them. Dodge pad size, steering sensitivity and touch force are adjustable in Settings → Controls |
 
 `TestRide.tscn` is the playable practice pad: asphalt, cone ring, start line, six **ramps**
 (including a cone-clearing jump line with a landing slope), four **smashable buildings**
 (drive into them at speed — they burst into debris and an on-screen counter tracks it),
 a follow camera, working **practice cannons** (F / left mouse on desktop,
-target-locked auto-fire on mobile — no lobby required, no
+right-analog up on mobile — no lobby required, no
 network kill broadcasts) and a HUD with speed readout, smash counter,
 turbo indicator and Restart / View buttons. Rollover-immune physics (lowered center of
 mass + angular damping) — the quad cannot flip. It is a placeholder — build your real
@@ -264,7 +264,7 @@ The game now boots into a **Main Menu** with `Practice` (the original free-ride/
 with a free slot and creates one if none exists.
 
 **Combat:** the Blender-authored twin side cannons fire with **F / left mouse** on desktop
-and **target-locked auto-fire** on mobile. Each bike has 100 armour; the host-configured damage default is 30 per hit, cannons
+and the **right analog pushed up** on mobile. Each bike has 100 armour; the host-configured damage default is 30 per hit, cannons
 are cooldown-gated (no overheat mechanic), and a destroyed bike explodes and respawns at a random spawn point after
 the lobby's respawn delay. The shooter scores the kill; first to the lobby's kill target wins.
 The arena (~100 m) has cover, ten ramps (two designed gap-jump lines plus two cover hops),
