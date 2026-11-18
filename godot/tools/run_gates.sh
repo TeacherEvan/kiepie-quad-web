@@ -66,6 +66,13 @@ run_gate_windowed() {
 }
 
 note "Kiepie Bike gate suite — root: $ROOT"
+# Fresh checkouts (CI) have no .godot/ import cache: the vendored Talo
+# plugin's scripts only parse once Godot has built the global class cache.
+# Import once when it is missing; this is a no-op otherwise.
+if [ ! -d "$ROOT/godot/.godot" ]; then
+	note "== import (fresh checkout: no .godot — building import cache)"
+	"$GODOT" --headless --path godot --import >"$LOGDIR/import.log" 2>&1 || true
+fi
 if [ "$BUILD" -eq 1 ]; then
 	note "== build (KiepieBike.tscn + TestRide.tscn)"
 	"$GODOT" --headless --path godot --script tools/build_bike.gd >"$LOGDIR/build_bike.log" 2>&1
