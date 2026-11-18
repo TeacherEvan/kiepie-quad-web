@@ -8,6 +8,12 @@ extends Node
 
 const KT := preload("res://src/core/KiepieTime.gd")
 
+## Talo wire protocol. Bump ONLY when the wire format breaks (message kinds,
+## prop keys, kill-token semantics). Lobbies stamp it as the `protocol_version`
+## channel prop; peers present it too — mismatched peers are never mixed into
+## the same lobby.
+const PROTOCOL_VERSION := "1"
+
 signal auth_status(ok: bool, message: String)
 signal connection_state(state: String)
 signal broadcast_received(event: String, payload: Variant)
@@ -254,6 +260,7 @@ func _create_lobby(args: Dictionary) -> Dictionary:
 		"started_at": "",
 		"winner_id": "",
 		"heartbeat": str(int(Time.get_unix_time_from_system())),
+		"protocol_version": PROTOCOL_VERSION,
 		"roster": JSON.stringify({user_id: _player_row(args)}),
 	}
 	var channel = await Talo.channels.create(code, true, props)
@@ -269,8 +276,18 @@ func _create_lobby(args: Dictionary) -> Dictionary:
 	return {"lobby": _lobby, "player": _roster[user_id]}
 
 
+static func protocol_ok(channel) -> bool:
+	## A lobby is only matchable within the same protocol version. A missing
+	## prop means a pre-versioning lobby: skip it rather than mix wires.
+	if channel == null:
+		return false
+	return str(channel.get_prop("protocol_version", "")) == PROTOCOL_VERSION
+
+
 static func is_channel_joinable(channel, now_unix: float, max_stale_sec: float = STALE_LOBBY_S) -> bool:
 	if channel == null:
+		return false
+	if not protocol_ok(channel):
 		return false
 	if str(channel.get_prop("status", "waiting")) != "waiting":
 		return false
@@ -330,13 +347,24 @@ func _join_by_code(args: Dictionary) -> Dictionary:
 	var code := str(args.get("p_code", "")).strip_edges().to_upper()
 	var res = await Talo.channels.get_channels(0)
 	var channels: Array = res[0] if res is Array and res.size() > 0 else []
+	var saw_protocol_mismatch := false
 	for channel in channels:
-		if str(channel.get_prop("code", "")).to_upper() == code and await _try_join(channel, args):
+		if str(channel.get_prop("code", "")).to_upper() != code:
+			continue
+		if not protocol_ok(channel):
+			saw_protocol_mismatch = true
+			continue
+		if await _try_join(channel, args):
 			return {"lobby": _lobby, "player": _roster.get(user_id, {})}
+	if saw_protocol_mismatch:
+		return {"message": "That room is on a different game version — update the game to join."}
 	return {}
 
 
 func _try_join(channel, args: Dictionary) -> bool:
+	if not protocol_ok(channel):
+		backend_error.emit("Protocol mismatch — room is on a different game version")
+		return false
 	if str(channel.get_prop("status", "waiting")) != "waiting":
 		return false
 	var settings := _parse_dict(channel.get_prop("settings", "{}"))
@@ -387,6 +415,7 @@ func _handoff_host_before_leave() -> void:
 		{"key": "started_at", "value": str(new_lobby.get("started_at", ""))},
 		{"key": "winner_id", "value": str(new_lobby.get("winner_id", ""))},
 		{"key": "heartbeat", "value": str(int(Time.get_unix_time_from_system()))},
+		{"key": "protocol_version", "value": PROTOCOL_VERSION},
 		{"key": "roster", "value": JSON.stringify(new_roster)},
 	]
 	_send("state", {"lobby": new_lobby, "roster": new_roster})
@@ -453,6 +482,7 @@ func _write_props(extra: Dictionary) -> void:
 		"started_at": str(_lobby.get("started_at", "")),
 		"winner_id": str(_lobby.get("winner_id", "")),
 		"heartbeat": str(int(Time.get_unix_time_from_system())),
+		"protocol_version": PROTOCOL_VERSION,
 		"roster": JSON.stringify(_roster),
 	}
 	for k in extra.keys():

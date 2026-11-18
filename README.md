@@ -289,7 +289,9 @@ time from `TALO_API_GAME` in the repo-root `.env` via `godot/tools/inject_talo_k
 deploy helper does this automatically. The Web build ships that key inside the public pck by
 design — use a disposable, scoped dev key, never `TALO_API_ADMIN`. Lobbies are Talo channels,
 state lives in host-owned channel props, and shots/kills flow over channel socket messages.
-Scoring is host-authoritative client logic (no server-side validation). Without a key the client
+Scoring is host-authoritative client logic (no server-side validation). Lobbies are stamped with a
+`protocol_version` channel prop — clients on a different wire version never get mixed in
+(`join_auto` skips the channel; `join_by_code` reports a version error). Without a key the client
 uses a full offline `MockBackend`, so all 23 gates run without credentials. The old `supabase/`
 migrations are retained for history only and are not deployed.
 

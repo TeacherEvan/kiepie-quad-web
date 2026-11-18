@@ -123,14 +123,17 @@ func _initialize() -> void:
 	# Auto-join channel filter: reject 0-member, stale, owner-mismatch, and full channels.
 	var talo_script = load("res://src/net/TaloBackend.gd")
 	var now := Time.get_unix_time_from_system()
-	var make_ch := func(members: int, owner_id: int, host_id: String, hb: float, roster_obj: Dictionary, status: String = "waiting") -> RefCounted:
-		return FakeChannel.new(members, owner_id, "2026-11-17T00:00:00Z", {
+	var make_ch := func(members: int, owner_id: int, host_id: String, hb: float, roster_obj: Dictionary, status: String = "waiting", proto: String = "1") -> RefCounted:
+		var props := {
 			"status": status,
 			"host_id": host_id,
 			"heartbeat": str(int(hb)),
 			"roster": JSON.stringify(roster_obj),
 			"settings": JSON.stringify({"max_players": 4}),
-		})
+		}
+		if proto != "":
+			props["protocol_version"] = proto
+		return FakeChannel.new(members, owner_id, "2026-11-17T00:00:00Z", props)
 	var live_roster := {"10": {"user_id": "10", "display_name": "H"}}
 	_check(bool(talo_script.call("is_channel_joinable", make_ch.call(1, 10, "10", now - 5.0, live_roster), now)),
 			"live active channel is joinable")
@@ -144,6 +147,14 @@ func _initialize() -> void:
 			"channel missing host in roster is rejected by join_auto")
 	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(4, 10, "10", now - 5.0, live_roster), now)),
 			"full channel is rejected by join_auto")
+	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(1, 10, "10", now - 5.0, live_roster, "waiting", "2"), now)),
+			"protocol-versioned channel with a different version is rejected")
+	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(1, 10, "10", now - 5.0, live_roster, "waiting", ""), now)),
+			"channel missing protocol_version is rejected (pre-versioning lobby)")
+	_check(bool(talo_script.call("protocol_ok", make_ch.call(1, 10, "10", now - 5.0, live_roster))),
+			"protocol_ok accepts the current wire version")
+	_check(not bool(talo_script.call("protocol_ok", make_ch.call(1, 10, "10", now - 5.0, live_roster, "waiting", "2"))),
+			"protocol_ok rejects a different wire version")
 
-	print("talo backend contract: %d checks, %d failure(s)" % [14, _failures])
+	print("talo backend contract: %d checks, %d failure(s)" % [19, _failures])
 	quit(1 if _failures > 0 else 0)

@@ -170,6 +170,11 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   roster JSON stored in **channel props** (only the host may `update` them), shots/kills/joins as
   `v1.channels.message` socket events. Scoring is **host-authoritative client logic** — Talo has
   no SQL RPC, so the old server-side anti-cheat validation is gone. Don't claim otherwise.
+  Every lobby is stamped with a **`protocol_version` channel prop** (`PROTOCOL_VERSION`,
+  wire protocol `1`). Peers mismatched on the version are never mixed into a lobby:
+  `join_auto` skips those channels (`is_channel_joinable`), `join_by_code` reports a version
+  error. Bump `PROTOCOL_VERSION` only on a wire-breaking change (message kinds, prop keys,
+  token semantics) — it is not a content semver.
 - Talo 0.20's `channels.update()` sends `props` as a Dictionary but the v1 API wants an **array**
   of `{key,value}`; `TaloBackend._apply_props()` bypasses it via `channels.client.make_request`.
 - If `TALO_API_GAME` is absent or `KIEPIE_MOCK_BACKEND=1`, the facade uses `MockBackend`. Gates
