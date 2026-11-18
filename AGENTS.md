@@ -222,13 +222,12 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   intact). Writing `angular_velocity` in `_physics_process()` clobbers the wheel-generated yaw
   before the solver step: the wheels reach full lock but the bike slides sideways without
   turning. `verify_controls.gd` locks this — keep it green.
-- Capsized recovery lives there too: held inverted (`basis.y · UP < 0.25`) for `RIGHTING_DELAY_S`
-  (0.5 s), `_integrate_forces()` switches to a steered barrel-roll — transverse angular velocity
-  lerps toward `corr = up × UP` (falling back to the wheelbase axis when `up` is perfectly
-  antiparallel), plus a one-shot `RIGHTING_HOP_VEL` (2.6 m/s) hop so the roof-contact pivot can't
-  wedge it. Hysteresis (`RIGHTING_INVERSION_DOT` out / `RIGHTING_EXIT_DOT` back in) stops the
-  steer quitting at the exact threshold where gravity topples the bike back in. Suspended during
-  dodge. `verify_rollover.gd` locks it — keep it green.
+- Rollover immunity lives there too (merged from the live branch): a near-total roll/pitch
+  angular-velocity lockout (yaw untouched) plus an active righting spring — rotates the chassis
+  about the tilt axis (y × world-UP) toward level, ~3° deadzone, effort scales with lean and is
+  capped per physics step; fully-inverted antiparallel fallback rotates about a horizontal
+  side/forward projection. Both are suspended mid-dodge (the cartwheel IS roll).
+  `verify_rollover.gd` locks it — keep it green.
 - Steering respects `controls/steer_sensitivity` (0.3–2.0, slider in Settings → Controls);
   it scales both the max steer angle and the rate. The settings key was dead before it was wired.
 - Q / E dodge: ground-only lateral leap + cartwheel (exports `dodge_lift/side/spin/duration/cooldown`
