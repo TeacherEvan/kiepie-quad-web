@@ -18,28 +18,40 @@ bash godot/tools/run_gates.sh || { echo "DEPLOY ABORTED: gates failed"; exit 1; 
 echo "== talo key"
 python3 godot/tools/inject_talo_key.py || { echo "DEPLOY ABORTED: no Talo game key"; exit 1; }
 
-echo "== web export"
-"$GODOT" --headless --path godot --export-release "Web" "$ROOT/web/index.html" || {
-	echo "DEPLOY ABORTED: export failed"; exit 1;
+echo "== web export (staged)"
+# Export into an isolated temp dir first; web/ is only written after every
+# check passes. A failed/partial export must never leave web/ inconsistent.
+STAGE="$(mktemp -d /tmp/kiepie-web-stage.XXXXXX)"
+trap 'rm -rf "$STAGE"' EXIT
+"$GODOT" --headless --path godot --export-release "Web" "$STAGE/index.html" || {
+	echo "DEPLOY ABORTED: export failed (web/ untouched)"; exit 1;
 }
-PCK="$ROOT/web/index.pck"
+PCK="$STAGE/index.pck"
 SIZE=$(stat -c %s "$PCK" 2>/dev/null || echo 0)
 echo "   index.pck: $((SIZE / 1024 / 1024)) MB ($SIZE bytes)"
 if [ "$SIZE" -gt 4194304 ]; then
-	echo "DEPLOY ABORTED: pck unexpectedly large (expected ~3.0 MB, saw $SIZE)"
+	echo "DEPLOY ABORTED: pck unexpectedly large (expected ~2.7 MB, saw $SIZE)"
 	exit 1
 fi
-for f in index.html index.js index.wasm index.manifest.json index.service.worker.js; do
-	[ -s "$ROOT/web/$f" ] || { echo "DEPLOY ABORTED: missing $f"; exit 1; }
+for f in index.html index.js index.wasm index.pck index.manifest.json index.service.worker.js index.offline.html; do
+	[ -s "$STAGE/$f" ] || { echo "DEPLOY ABORTED: missing $f in staged export"; exit 1; }
 done
 # Godot 4.3's generated PWA service worker precaches index.worker.js (missing on
 # single-threaded exports) and serves stale index.html/index.pck Cache-First.
-WASM_HASH=$(sha256sum "$ROOT/web/index.wasm" | cut -c1-12)
-PCK_HASH=$(sha256sum "$ROOT/web/index.pck" | cut -c1-12)
-python3 "$HERE/patch_web_sw.py" "$ROOT/web/index.service.worker.js" || {
+WASM_HASH=$(sha256sum "$STAGE/index.wasm" | cut -c1-12)
+PCK_HASH=$(sha256sum "$STAGE/index.pck" | cut -c1-12)
+python3 "$HERE/patch_web_sw.py" "$STAGE/index.service.worker.js" || {
 	echo "DEPLOY ABORTED: failed to patch service worker"; exit 1;
 }
-echo "   web bundle complete (wasm=$WASM_HASH pck=$PCK_HASH)"
+# Only now is web/ written: overwrite the whitelisted bundle files, nothing else.
+WHITELIST="index.html index.js index.wasm index.pck index.manifest.json index.service.worker.js index.offline.html index.audio.worklet.js index.png index.144x144.png index.180x180.png index.512x512.png"
+for f in $WHITELIST; do
+	[ -s "$STAGE/$f" ] || { echo "DEPLOY ABORTED: missing staged $f (web/ untouched)"; exit 1; }
+done
+for f in $WHITELIST; do
+	cp -f "$STAGE/$f" "$ROOT/web/$f" || { echo "DEPLOY ABORTED: failed copying $f into web/"; exit 1; }
+done
+echo "   staged -> web/ (wasm=$WASM_HASH pck=$PCK_HASH)"
 
 if [ "$APPLY" -ne 1 ]; then
 	echo "DRY RUN only. Re-run with --apply to commit, push and deploy."
