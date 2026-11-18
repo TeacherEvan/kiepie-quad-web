@@ -66,6 +66,13 @@ run_gate_windowed() {
 }
 
 note "Kiepie Bike gate suite — root: $ROOT"
+# Fresh checkouts (CI) have no .godot/ import cache: the vendored Talo
+# plugin's scripts only parse once Godot has built the global class cache.
+# Import once when it is missing; this is a no-op otherwise.
+if [ ! -d "$ROOT/godot/.godot" ]; then
+	note "== import (fresh checkout: no .godot — building import cache)"
+	"$GODOT" --headless --path godot --import >"$LOGDIR/import.log" 2>&1 || true
+fi
 if [ "$BUILD" -eq 1 ]; then
 	note "== build (KiepieBike.tscn + TestRide.tscn)"
 	"$GODOT" --headless --path godot --script tools/build_bike.gd >"$LOGDIR/build_bike.log" 2>&1
@@ -138,6 +145,22 @@ run_gate_gdunit() {
 	fi
 }
 
+# Drift check: tracked .tscn must match the builders (modulo resource-id
+# churn). Hand edits to generated scenes fail loudly here instead of being
+# silently overwritten on the next rebuild.
+note "== scene_sync"
+timeout --foreground 60 python3 godot/tools/check_scene_sync.py >"$LOGDIR/scene_sync.log" 2>&1
+_sync_rc=$?
+if [ "$_sync_rc" -eq 0 ] && ! grep -q "FAIL" "$LOGDIR/scene_sync.log"; then
+	note "   ok"
+	cat "$LOGDIR/scene_sync.log" | sed 's/^/     /'
+	PASS=$((PASS + 1))
+else
+	note "   FAIL  (rc=$_sync_rc; log: $LOGDIR/scene_sync.log)"
+	cat "$LOGDIR/scene_sync.log" | sed 's/^/     /'
+	FAILED+=("scene_sync")
+fi
+
 run_gate truth          truth_test.gd
 run_gate stability      verify_stability.gd
 run_gate touch          verify_touch.gd
@@ -155,6 +178,7 @@ run_gate talo_backend   verify_talo_backend.gd
 run_gate audit_regressions verify_audit_regressions.gd
 run_gate controls        verify_controls.gd
 run_gate dodge           verify_dodge.gd
+run_gate rollover        verify_rollover.gd
 run_gate vfx             verify_vfx.gd
 run_gate practice        verify_practice.gd
 run_gate multiplayer     verify_multiplayer.gd

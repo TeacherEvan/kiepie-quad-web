@@ -342,28 +342,7 @@ def add_box(name, size, loc, rot=(0, 0, 0), mat=None, coll=None, bevel=0.0,
     return ob
 
 
-def add_sphere(name, r, loc, scale=(1, 1, 1), mat=None, coll=None, seg=24, rings=12):
-    mb = MB()
-    verts, faces = [], []
-    for i in range(rings + 1):
-        phi = math.pi * i / rings
-        for j in range(seg):
-            th = TAU * j / seg
-            verts.append((r * math.sin(phi) * math.cos(th) * scale[0],
-                          r * math.sin(phi) * math.sin(th) * scale[1],
-                          r * math.cos(phi) * scale[2]))
-    for i in range(rings):
-        for j in range(seg):
-            j2 = (j + 1) % seg
-            faces.append([i * seg + j, i * seg + j2,
-                          (i + 1) * seg + j2, (i + 1) * seg + j])
-    ob = mb.to_object(name, mat, coll, smooth=True)
-    ob.location = loc
-    return ob
-
-
-def add_tube(name, pts, radius, mat=None, coll=None, res=6, smooth=True,
-             taper=None, closed=False):
+def add_tube(name, pts, radius, mat=None, coll=None, res=6, smooth=True):
     """Round tube through a list of points."""
     mb = MB()
     mb.tube(pts, radius, seg=max(6, res + 4))

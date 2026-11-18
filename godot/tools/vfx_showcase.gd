@@ -1,9 +1,13 @@
 extends SceneTree
 ## Renderer-only visual proof for the VFX/content pass. Not a gate.
 ##   xvfb-run -a godot-4.3 --path godot --script tools/vfx_showcase.gd
-## Writes four PNGs to renders/ for before/after inspection.
+## Writes its PNGs into this repo's renders/ (repo-root/renders, derived from
+## res:// -> godot/ -> ../renders, absolute). Previously this was a hardcoded
+## absolute path into a different checkout; before that it was an accident of
+## the cwd (relative "renders/" resolves against the project dir under --path,
+## not the shell's cwd).
 
-const OUT := "/home/leandi-duplessis/github/3D builds/Kiepie bike/renders/"
+var OUT := ""
 var vf: GDScript
 
 
@@ -41,6 +45,8 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	OUT = ProjectSettings.globalize_path("res://").path_join("..").path_join("renders") + "/"
+	print("output dir: ", OUT)
 	await process_frame
 	vf = load("res://src/game/VfxFactory.gd") as GDScript
 	# 1 — arena layout from above: confirms ramps/buildings placement

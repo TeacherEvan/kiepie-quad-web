@@ -68,9 +68,11 @@ func _initialize() -> void:
 	# give the whole bike a script for driving + visual wheel spin
 	bike.set_script(load("res://src/KiepieBike.gd"))
 
-	# make sure every node in the saved scene is owned by the root
-	for child in bike.find_children("*", "Node3D", true, false):
-		child.owner = bike
+	# NOTE: do NOT re-own the GLB instance's children. They belong to the
+	# imported PackedScene; re-owning them makes pack() serialize ~200 duplicate
+	# mesh nodes + inline ArrayMesh data into this scene (2.87 MB, double
+	# geometry at runtime). Runtime lookups (Model/Wheel_*, Silencer_Tip)
+	# resolve through the instance.
 
 	var scene := PackedScene.new()
 	var err := scene.pack(bike)

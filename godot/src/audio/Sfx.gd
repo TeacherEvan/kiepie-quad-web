@@ -20,7 +20,6 @@ const SAMPLES := {
 	"kill": "res://assets/sfx/kill.wav",
 	"ui_click": "res://assets/sfx/ui_click.wav",
 	"respawn": "res://assets/sfx/respawn.wav",
-	"overheat": "res://assets/sfx/overheat.wav",
 	"engine": "res://assets/sfx/engine_loop.wav",
 }
 

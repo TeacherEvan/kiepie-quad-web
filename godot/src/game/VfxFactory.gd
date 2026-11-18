@@ -40,6 +40,8 @@ static var _sprite_quads: Dictionary = {}
 static var _rubble_meshes: Array[BoxMesh] = []
 static var _rubble_shapes: Array[BoxShape3D] = []
 static var _shaders_warmed := false
+static var _casing_count := 0
+const MAX_CASINGS := 24
 
 
 static func _q() -> float:
@@ -420,13 +422,17 @@ static func _cap_group(parent: Node, group: String, cap: int) -> void:
 	if tree == null:
 		return
 	var old := tree.get_nodes_in_group(group)
-	while old.size() > cap:
-		var victim = old.pop_front()
+	var excess := old.size() - cap
+	var i := 0
+	while excess > 0 and i < old.size():
+		var victim = old[i]
 		if is_instance_valid(victim):
 			# Leave the group now: queue_free() is deferred, so until the frame
 			# ends the decal would still count against the cap.
 			(victim as Node).remove_from_group(group)
 			(victim as Node).queue_free()
+			excess -= 1
+		i += 1
 
 
 # ------------------------------------------------------------------ shoot ----
@@ -486,6 +492,11 @@ static func muzzle_flash(parent: Node3D, pos: Vector3, dir: Vector3, color: Colo
 static func casing(parent: Node3D, pos: Vector3, eject_dir: Vector3) -> void:
 	if parent == null:
 		return
+	# Hard cap on live ejection bodies — a per-shot RigidBody3D is the one
+	# VFX node that exercises the physics solver; the Web budget is finite.
+	if _casing_count >= MAX_CASINGS:
+		return
+	_casing_count += 1
 	var body := RigidBody3D.new()
 	body.mass = 0.02
 	body.collision_layer = 0
@@ -515,9 +526,16 @@ static func casing(parent: Node3D, pos: Vector3, eject_dir: Vector3) -> void:
 	body.linear_velocity = out * 2.6 + Vector3(0, 2.4, 0)
 	body.angular_velocity = Vector3(randf_range(-14, 14), randf_range(-14, 14),
 			randf_range(-14, 14))
-	var t := body.create_tween()
-	t.tween_interval(2.4)
-	t.tween_callback(body.queue_free)
+	# Timer lives on the tree (not the body), so teardown still releases the slot.
+	var tree := parent.get_tree()
+	if tree != null:
+		var timer := tree.create_timer(2.4)
+		timer.timeout.connect(func() -> void:
+			_casing_count = maxi(0, _casing_count - 1)
+			if is_instance_valid(body):
+				body.queue_free())
+	else:
+		_casing_count = maxi(0, _casing_count - 1)
 
 
 static func steam_vent(parent: Node3D, pos: Vector3) -> void:
@@ -757,7 +775,10 @@ static func roost(parent: Node3D, pos: Vector3, forward: Vector3) -> void:
 	## Rear-wheel dirt/rooster-tail kicked up at speed or under hard steering.
 	if parent == null or _q() <= 0.0:
 		return
-	_particle(parent, pos, 6, 0.42, -forward.normalized() + Vector3.UP * 0.45, 42.0, 1.6, 4.0,
+	var fwd := forward
+	if fwd.length_squared() < 1e-8:
+		fwd = Vector3.FORWARD
+	_particle(parent, pos, 6, 0.42, -fwd.normalized() + Vector3.UP * 0.45, 42.0, 1.6, 4.0,
 			[Color(0.72, 0.68, 0.62, 0.55), Color(0.55, 0.52, 0.48, 0.0)], 0.34,
 			Vector3(0, -2.4, 0), false, {"tex": "smoke", "quad": 0.9})
 
@@ -838,7 +859,9 @@ static func smash_burst(parent: Node3D, pos: Vector3, size: Vector3) -> void:
 		var timer := tree.create_timer(delay)
 		timer.timeout.connect(func() -> void:
 			if is_instance_valid(parent):
-				dust_puff(parent, local + Vector3(0, height, 0), 22))
+				# Anchor to the collapse site: `local` is a relative offset,
+				# not a world-space position.
+				dust_puff(parent, pos + local + Vector3(0, height, 0), 22))
 
 
 # --------------------------------------------------------------- pickups -----

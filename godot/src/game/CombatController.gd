@@ -77,7 +77,7 @@ func _physics_process(delta: float) -> void:
 	var power := _base_power * (1.35 if now < _overdrive_until else 1.0)
 	bike.set("engine_power", power)
 
-	if (Input.is_action_just_pressed("fire") or Input.is_action_pressed("fire")) and cannons != null:
+	if Input.is_action_pressed("fire") and cannons != null:
 		# Do not fire desktop weapons when clicking a HUD button with the mouse.
 		var vp := get_viewport()
 		var hovered := vp.gui_get_hovered_control() if vp != null else null

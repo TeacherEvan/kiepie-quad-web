@@ -187,11 +187,14 @@ def build_belt(coll, mats):
     verts, faces = [], []
     n = len(pts)
     for i, (y, z, x) in enumerate(pts):
-        nxt = (i + 1) % n
-        yn = pts[nxt][1] - pts[i - 1][1] if i > 0 else pts[1][1] - pts[0][1]
-        zn = pts[nxt][2] - pts[i - 1][2] if i > 0 else pts[1][2] - pts[0][2]
-        ln = math.hypot(yn, zn) or 1.0
-        ny_, nz_ = yn / ln, zn / ln
+        # Central difference on the closed (y, z) loop — uniform at the seam.
+        prev = pts[(i - 1) % n]
+        nxt_pt = pts[(i + 1) % n]
+        ty = nxt_pt[0] - prev[0]
+        tz = nxt_pt[1] - prev[1]
+        ln = math.hypot(ty, tz) or 1.0
+        # normal in the (y, z) plane
+        ny_, nz_ = -tz / ln, ty / ln
         verts += [(x - hw, y + ny_ * th / 2.0, z + nz_ * th / 2.0),
                   (x + hw, y + ny_ * th / 2.0, z + nz_ * th / 2.0),
                   (x + hw, y - ny_ * th / 2.0, z - nz_ * th / 2.0),

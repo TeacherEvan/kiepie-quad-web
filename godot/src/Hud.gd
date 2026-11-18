@@ -19,6 +19,10 @@ var _view_btn: Button
 var _menu_btn: Button
 var _smashed := 0
 var _total := 3
+var _last_speed := -1
+var _last_turbo := false
+var _last_view := ""
+var _relayout_pending := false
 @export var smash_total := 3   ## set by tools/build_testride.gd (serialized into the scene)
 
 
@@ -51,7 +55,7 @@ func _ready() -> void:
 	_total = maxi(1, smash_total)
 	_update_smash_label()
 	if get_viewport() != null:
-		get_viewport().size_changed.connect(_relayout)
+		get_viewport().size_changed.connect(_on_viewport_resized)
 	_relayout()
 
 
@@ -59,11 +63,20 @@ func _process(_delta: float) -> void:
 	if _bike == null:
 		return
 	if _speed_label and _bike.has_method("speed_kmh"):
-		_speed_label.text = "%d km/h" % int(_bike.call("speed_kmh"))
+		var kmh := int(_bike.call("speed_kmh"))
+		if kmh != _last_speed:
+			_last_speed = kmh
+			_speed_label.text = "%d km/h" % kmh
 	if _turbo_label:
-		_turbo_label.visible = bool(_bike.get("turbo_active"))
+		var turbo := bool(_bike.get("turbo_active"))
+		if turbo != _last_turbo:
+			_last_turbo = turbo
+			_turbo_label.visible = turbo
 	if _cam_rig and _view_btn:
-		_view_btn.text = "View: FREE" if _cam_rig.get("mode") == "free" else "View: CHASE"
+		var mode := str(_cam_rig.get("mode"))
+		if mode != _last_view:
+			_last_view = mode
+			_view_btn.text = "View: FREE" if mode == "free" else "View: CHASE"
 
 func register_smash() -> void:
 	_smashed += 1
@@ -113,6 +126,17 @@ func _on_hit_confirmed() -> void:
 		return
 	_hit_tween = create_tween()
 	_hit_tween.tween_property(_hitmarker, "modulate:a", 0.0, 0.14)
+
+
+func _on_viewport_resized() -> void:
+	# Coalesce drag-resize storms into one relayout per 100 ms window.
+	if _relayout_pending:
+		return
+	_relayout_pending = true
+	var timer := get_tree().create_timer(0.1)
+	timer.timeout.connect(func() -> void:
+		_relayout_pending = false
+		_relayout())
 
 
 func _relayout() -> void:
