@@ -27,6 +27,7 @@ var _counts: Dictionary = {}  # Input action -> hold references (fingers + signa
 var _fingers: Dictionary = {}  # pointer index -> Input action
 var _signal_hold: Dictionary = {}  # Input action -> bool (held via button_down signal)
 var _analog: Dictionary = {}  # pointer index -> Vector2(x: -1..1 steer, y: -1..1 forward)
+var _analog_latest := -1  # newest active pad pointer; opposing vectors must not cancel drive
 var _analog_side := 0  # -1 = steer_left held by pad, +1 = steer_right, 0 = none
 var _analog_turbo := false  # true while analog forward deflection holds "turbo"
 var _analog_reverse := false  # true while analog back deflection holds "move_back" (brake/reverse)
@@ -140,6 +141,7 @@ func _analog_value(at: Vector2) -> Vector2:
 func _on_pointer_down(pointer: int, at: Vector2) -> void:
 	if _analog_rect().has_point(at):
 		_analog[pointer] = _analog_value(at)
+		_analog_latest = pointer
 		_sync_analog()
 		return
 	var action := _hit_action(at)
@@ -172,6 +174,9 @@ func _on_pointer_up(pointer: int, _at: Vector2) -> void:
 	# (e.g. gas latched forever after a canceled primary touch).
 	if _analog.has(pointer):
 		_analog.erase(pointer)
+		if _analog_latest == pointer:
+			# Fall back to another live finger (or none) when the owning one lifts.
+			_analog_latest = _analog.keys().back() if not _analog.is_empty() else -1
 		_sync_analog()
 	if not _fingers.has(pointer):
 		return
@@ -242,7 +247,16 @@ func _sync_analog() -> void:
 	var best := 0.0
 	var best_forward := -1.0
 	var best_backward := 1.0
-	for pointer in _analog:
+	# Priority arbitration: the newest pad finger owns steering/throttle. Two
+	# thumbs pushing opposite ends of the pad used to latch turbo AND move_back;
+	# with gas held that made Input.get_axis(move_back, move_forward) resolve to
+	# zero and stall the bike mid-maneuver (audit INP-3).
+	var sources: Array = []
+	if _analog_latest >= 0 and _analog.has(_analog_latest):
+		sources.append(_analog_latest)
+	else:
+		sources = _analog.keys()
+	for pointer in sources:
 		var v: Vector2 = _analog[pointer]
 		if absf(v.x) > best:
 			best = absf(v.x)
@@ -266,17 +280,17 @@ func _sync_analog() -> void:
 		_release_analog_side()
 
 	var want_turbo := false
-	if not _analog.is_empty():
+	if not sources.is_empty():
 		var threshold := TURBO_RELEASE if _analog_turbo else TURBO_ENGAGE
 		want_turbo = best_forward >= threshold
 	_set_analog_turbo(want_turbo)
 	var want_reverse := false
-	if not _analog.is_empty():
+	if not sources.is_empty():
 		var threshold := REVERSE_RELEASE if _analog_reverse else REVERSE_ENGAGE
 		want_reverse = -best_backward >= threshold
 	_set_analog_reverse(want_reverse)
-	var display_turbo := maxf(0.0, best_forward) if not _analog.is_empty() else 0.0
-	var display_reverse := maxf(0.0, -best_backward) if not _analog.is_empty() else 0.0
+	var display_turbo := maxf(0.0, best_forward) if not sources.is_empty() else 0.0
+	var display_reverse := maxf(0.0, -best_backward) if not sources.is_empty() else 0.0
 	_update_pad_knob(steer, display_turbo, _analog_turbo, display_reverse, _analog_reverse)
 
 func _set_analog_reverse(active: bool) -> void:

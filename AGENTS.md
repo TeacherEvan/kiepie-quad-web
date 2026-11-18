@@ -267,7 +267,8 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   the dodge pair above the steering cluster and `MenuBtn` (`Main Menu`) on `HUD` (`FOCUS_NONE`),
   paired with Android/Web Back (`NOTIFICATION_WM_GO_BACK_REQUEST` + `popstate`) + Esc handling.
   `verify_touch.gd` enforces >=44px targets and pairwise non-overlap, and
-  `verify_touch_multitouch.gd` (runs under xvfb) locks the multi-touch contract.
+  `verify_touch_multitouch.gd` (runs under xvfb) locks the multi-touch contract,
+  including newest-pointer arbitration for opposing analog vectors (no turbo+move_back lock).
   `controls/dodge_size` and `controls/touch_force` are live in Settings → Controls.
 - Headless physics proof: `godot-4.3 --headless --path godot --script tools/truth_test.gd`
   (0 → 9+ m/s, wheel contact). Feature checks: `verify_features.gd`, `diag2.gd`,

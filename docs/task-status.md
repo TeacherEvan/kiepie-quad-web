@@ -4,9 +4,10 @@ Concrete done-vs-pending ledger. Companion to [project-plan.md](project-plan.md)
 navigation in [index.md](index.md). Statuses are evidence-backed: commit hashes,
 gate names, or live checks — not assumptions.
 
-**Last verified:** 2026-11-19 01:52 +07 — `scene_sync OK (6 scenes match HEAD)`,
-live site HTTP 200 (age ≈ 4 min, matching the `f09c80e` auto-deploy), full gate suite
-green inside the `f09c80e` deploy run (`deploy_web.sh` aborts on any gate failure).
+**Last verified:** 2026-11-19 — `scene_sync OK (6 scenes match HEAD)`, full gate suite
+25/25 green after the INP-3 touch-arbitration fix (including three new assertions in
+`verify_touch_multitouch.gd`); live site HTTP 200 on the `f09c80e` auto-deploy. The
+INP-3 fix is code-fixed and gated locally; it ships in the next Web export.
 
 ## Audit remediation — 10 Principal Engineer (2026-11-18)
 
@@ -55,7 +56,7 @@ findings). Web re-export + deploy: **`f09c80e`**. Earlier surgical audit:
 | --- | --- | --- | --- |
 | INP-1 | Emulated `MOUSE_LEFT` on `MOUSE_FILTER_IGNORE` fires cannons / starves auto-fire (P0) | physical-key-only manual fire while auto-fire enabled | `1494b0d` · `CombatController.gd` |
 | INP-2 | Canceled touch leaks emulated pointer hold (P0) | `touch.canceled` releases paired pointer; `pointer_up` releases analog **and** button halves | `1494b0d` · `TouchCapture.gd` / `TouchControls.gd` |
-| INP-3 | Opposing dual-touch latches turbo + move_back (P1) | shared-pointer dual-map strand fixed | `1494b0d` · `TouchControls.gd` |
+| INP-3 | Opposing analog pad vectors latch turbo + move_back, cancelling drive (P1) | newest pad finger owns arbitration; stale opposing vector ignored; dual-touch regression assertions | `this commit` · `TouchControls.gd` + `verify_touch_multitouch.gd` |
 
 ### Fixed — HUD / UI / lifecycle
 
@@ -81,7 +82,7 @@ findings). Web re-export + deploy: **`f09c80e`**. Earlier surgical audit:
 | `verify_practice.gd` | real synthetic touch + mouse pairing; aim-away ⇒ 0 shots, re-aim ⇒ auto-fire | `1494b0d` |
 | `verify_settings.gd` | `reset_defaults` before default assertions | `1494b0d` |
 | `verify_smash_impact.gd` | `up_after > 0.80` now asserted, not just printed | `1494b0d` |
-| `verify_touch_multitouch.gd` | cancel tests include the paired emulated mouse | `1494b0d` |
+| `verify_touch_multitouch.gd` | cancel tests include the paired emulated mouse; opposing-vector arbitration assertions (INP-3) | `1494b0d` / `this commit` |
 | `check_scene_sync.py` | resource ids mapped to path/type identity, not collapsed to `X` | `1494b0d` |
 
 ### Verified not-applicable / historical
@@ -110,6 +111,6 @@ findings). Web re-export + deploy: **`f09c80e`**. Earlier surgical audit:
 - [x] Rollover immunity (lockout + righting spring), dodge Q/E, steering sensitivity — locked by `verify_rollover/dodge/controls`
 - [x] Talo backend cutover + `protocol_version` handshake — `8d94cbb`
 - [x] Surgical audit 2026-11-18 regressions locked — `verify_audit_regressions.gd`
-- [x] 10-Principal-Engineer audit remediation — `1494b0d` + `60a8b82`, 25/25 gates
+- [x] 10-Principal-Engineer audit remediation — `1494b0d` + `60a8b82` + INP-3 arbitration (`this commit`), 25/25 gates
 - [x] Web re-export + auto-deploy of remediated build — `f09c80e`, live HTTP 200
 - [x] Documentation sync (plan / index / task-status / README / AGENTS constants sweep) — this commit

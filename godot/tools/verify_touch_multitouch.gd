@@ -292,6 +292,24 @@ func _run() -> void:
 			and not Input.is_action_pressed("turbo") and not Input.is_action_pressed("dodge_right"),
 			"all simultaneous fingers released")
 
+	# ---- opposing analog vectors (audit INP-3): newest pad finger owns throttle.
+	# Two thumbs on opposite ends must never latch turbo AND move_back — with gas
+	# held that pair cancels Input.get_axis and stalls the bike mid-maneuver.
+	_touch(11, _pad_at_xy(layer, 0.0, 1.0), true)
+	await process_frame
+	_check(Input.is_action_pressed("turbo") and not Input.is_action_pressed("move_back"),
+			"full-forward pad holds turbo, not reverse")
+	_touch(12, _pad_at_xy(layer, 0.0, -1.0), true)
+	await process_frame
+	_check(Input.is_action_pressed("move_back") and not Input.is_action_pressed("turbo"),
+			"newest opposing pad vector wins (no turbo+reverse lock)")
+	_touch(12, _pad_at_xy(layer, 0.0, -1.0), false)
+	await process_frame
+	_check(Input.is_action_pressed("turbo") and not Input.is_action_pressed("move_back"),
+			"remaining finger resumes when newest lifts")
+	_touch(11, _pad_at_xy(layer, 0.0, 1.0), false)
+	await process_frame
+
 	# ---- OS interruption drops everything this layer holds
 	_touch(0, _centre(layer, "BtnGas"), true)
 	_touch(1, _pad_at(layer, 1.0), true)

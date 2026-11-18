@@ -16,8 +16,10 @@ Canonical project plan for the single repository `TeacherEvan/kiepie-quad-web`
   Backend: Talo 0.20.0 (vendored), host-authoritative scoring, wire `protocol_version = 1`.
 - The 2026-11-18 **10-Principal-Engineer audit**
   ([source report](audits/10%20Principal%20Engineer.txt)) was remediated in commits
-  `1494b0d` + `60a8b82`; the Web bundle was re-exported and auto-deployed in `f09c80e`
-  (live HTTP 200 verified 2026-11-19). Per-finding status: [task-status.md](task-status.md).
+  `1494b0d` + `60a8b82`; the final P1 (INP-3 opposing analog arbitration) was fixed and
+  gated in `this commit` and ships in the next Web export. The prior bundle was
+  re-exported and auto-deployed in `f09c80e` (live HTTP 200 verified 2026-11-19).
+  Per-finding status: [task-status.md](task-status.md).
 - Gate suite: **25 gates**, all green at the `f09c80e` deploy (deploy_web.sh runs the full
   suite before export and aborts on any failure).
 - **Blocked:** GitHub Actions CI cannot start — the GitHub account is locked for billing
