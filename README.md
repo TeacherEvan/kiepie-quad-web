@@ -15,6 +15,19 @@ the whole bike can be rebuilt from scratch with one script.
 
 ---
 
+## Gameplay
+
+Captured live from the practice track under the real renderer (WebGL2 via xvfb) with
+[`godot/tools/screenshot_gameplay.gd`](godot/tools/screenshot_gameplay.gd) — not a gate, not retouched:
+
+![Kiepie Quad cruising on the practice track, HUD live at 25 km/h](renders/game_practice_drive.png)
+
+![Turbo off RampBig, wheels unloaded mid-flight](renders/game_practice_jump.png)
+
+![Twin side cannons firing at 36 km/h — muzzle flash, impact sparks, ejected brass](renders/game_practice_cannons.png)
+
+---
+
 ## Quick facts
 
 | | |
@@ -321,8 +334,9 @@ deadline), prove that steering actually yaws the bike while keeping it upright, 
 Q/E dodge (direction, lift, cooldown, recovery). `godot/tools/deploy_web.sh` runs the gates, exports, checks the bundle,
 then (with `--apply`) commits, pushes and deploys to Vercel.
 `xvfb-run -a godot-4.3 --path godot --script tools/vfx_showcase.gd` re-renders five VFX/layout
-proof images into `renders/` under the real Web renderer (not a gate).
+proof images into `renders/` under the real Web renderer (not a gate), and
+`KIEPIE_MOCK_BACKEND=1 xvfb-run -a -s "-screen 0 1280x720x24" godot-4.3 --resolution 1280x720 --path godot --script tools/screenshot_gameplay.gd` re-renders the three gameplay shots above.
 
-Web export produces `web/index.pck` (~3.8 MB; the bundle check aborts above 4 MB) plus PWA
+Web export produces `web/index.pck` (~2.6 MB; the bundle check aborts above 4 MB) plus PWA
 manifest/service worker; deploy with the documented `vercel deploy --prod` command (pushes to
 `web/` do **not** auto-deploy).
