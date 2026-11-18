@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1794998357|5926805|0d16ec922dc1';
+const CACHE_VERSION = '1795027716|6543944|cf1dee531013';
 /** @type {string} */
 const CACHE_PREFIX = 'KiepieBike-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
@@ -20,11 +20,14 @@ const ENSURE_CROSSORIGIN_ISOLATION_HEADERS = true;
 const CACHED_FILES = ["index.html","index.js","index.offline.html","index.audio.worklet.js"];
 // Files that we might not want the user to preload, and will only be cached on first load.
 /** @type {string[]} */
-const CACHABLE_FILES = ["index.wasm","index.pck"];
+const CACHABLE_FILES = ["index.pck"];
 const FULL_CACHE = CACHED_FILES.concat(CACHABLE_FILES);
 
 self.addEventListener('install', (event) => {
-	event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(CACHED_FILES)).then(() => self.skipWaiting()));
+	event.waitUntil(Promise.all([
+		caches.open(CACHE_NAME).then((cache) => cache.addAll(CACHED_FILES)),
+		caches.open(ENGINE_CACHE).then((cache) => cache.match('index.wasm').then((hit) => hit ? undefined : cache.add('index.wasm'))),
+	]).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
