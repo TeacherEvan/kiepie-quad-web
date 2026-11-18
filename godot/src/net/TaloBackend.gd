@@ -144,8 +144,18 @@ func _on_socket_closed(_code: int, _reason: String) -> void:
 	await get_tree().create_timer(delay).timeout
 	_reconnecting = false
 	if is_ready:
-		Talo.socket.open_connection()
-		connection_state.emit("reconnecting")
+		await Talo.socket.open_connection()
+		# Prove identification before claiming "connected": the initial handshake
+		# does this with a 2500 ms wall-clock deadline, so a half-open socket
+		# can never masquerade as online while every send silently dies.
+		var sock_deadline := Time.get_ticks_msec() + 2500
+		while not bool(Talo.socket.get("_identified")) and Time.get_ticks_msec() < sock_deadline:
+			await get_tree().process_frame
+		if bool(Talo.socket.get("_identified")):
+			connection_state.emit("connected")
+		else:
+			is_ready = false
+			connection_state.emit("disconnected")
 
 
 # ------------------------------------------------------------------ RPC surface ---
@@ -348,16 +358,36 @@ func _join_by_code(args: Dictionary) -> Dictionary:
 	var res = await Talo.channels.get_channels(0)
 	var channels: Array = res[0] if res is Array and res.size() > 0 else []
 	var saw_protocol_mismatch := false
+	var saw_stale := false
+	var now_unix := Time.get_unix_time_from_system()
 	for channel in channels:
 		if str(channel.get_prop("code", "")).to_upper() != code:
 			continue
 		if not protocol_ok(channel):
 			saw_protocol_mismatch = true
 			continue
+		if not is_channel_joinable(channel, now_unix):
+			# Zombie room (dead host): never trap the guest inside — join_auto
+			# applies the same heartbeat freshness check.
+			saw_stale = true
+			continue
+		_host_ack = false
 		if await _try_join(channel, args):
-			return {"lobby": _lobby, "player": _roster.get(user_id, {})}
+			if _is_host():
+				return {"lobby": _lobby, "player": _roster.get(user_id, {})}
+			# Guests must prove the host is alive before committing, exactly like
+			# join_auto — otherwise every ready_request goes unanswered forever.
+			var deadline := Time.get_ticks_msec() + HOST_ACK_TIMEOUT_MS
+			while not _host_ack and Time.get_ticks_msec() < deadline:
+				await get_tree().process_frame
+			if _host_ack:
+				return {"lobby": _lobby, "player": _roster.get(user_id, {})}
+			leave_lobby_channel()
+			saw_stale = true
 	if saw_protocol_mismatch:
 		return {"message": "That room is on a different game version — update the game to join."}
+	if saw_stale:
+		return {"message": "That room appears to have expired — ask the host to start a new one."}
 	return {}
 
 
@@ -733,6 +763,13 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 					_roster[uid] = row
 				else:
 					_roster.erase(uid)
+					# The host is gone mid-match: void the game now instead of
+					# waiting up to ~105 s for the heartbeat poll to notice.
+					if not _host_lost_emitted and uid == str(_lobby.get("host_id", "")) \
+							and str(_lobby.get("status", "")) == "playing":
+						_host_lost_emitted = true
+						connection_state.emit("host_lost")
+						host_lost.emit()
 				_emit_roster()
 				if _is_host():
 					await _apply_props()

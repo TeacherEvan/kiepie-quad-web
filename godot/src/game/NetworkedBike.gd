@@ -12,6 +12,7 @@ var is_respawning := false
 
 var _target_pos := Vector3.ZERO
 var _target_basis := Basis.IDENTITY
+var _last_tick := -1
 var _initialised := false
 var _nameplate: Label3D
 var _ring: MeshInstance3D
@@ -81,6 +82,14 @@ func update_identity(name_text: String, color_hex: String) -> void:
 
 
 func apply_state(data: Dictionary) -> void:
+	# Monotonic relay sequence: out-of-order or replayed snapshots would otherwise
+	# snap a proxy backwards between 80–150 ms jitter windows. Peers without the
+	# "n" field (older builds) are accepted unconditionally.
+	var n := int(data.get("n", -1))
+	if n >= 0:
+		if n <= _last_tick:
+			return
+		_last_tick = n
 	var p: Variant = data.get("p", null)
 	if p is Array and (p as Array).size() >= 3:
 		var cand := Vector3(float(p[0]), float(p[1]), float(p[2]))

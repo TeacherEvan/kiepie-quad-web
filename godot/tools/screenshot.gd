@@ -5,8 +5,7 @@ extends SceneTree
 
 const CAMERA_POS := Vector3(-3.0, 1.3, 4.6)
 const LOOK_AT := Vector3(0.0, 0.4, 8.0)
-const RENDERS := "/home/leandi-duplessis/github/3D builds/Kiepie bike/renders"
-const OUT := RENDERS + "/kiepie_godot_left_flank.png"
+const OUT_NAME := "kiepie_godot_left_flank.png"
 
 func _initialize() -> void:
 	var inst: Node = load("res://scenes/TestRide.tscn").instantiate()
@@ -27,7 +26,10 @@ func _initialize() -> void:
 	for i in range(30):
 		await self.process_frame
 
+	var renders := ProjectSettings.globalize_path("res://").path_join("..").path_join("renders")
+	DirAccess.make_dir_recursive_absolute(renders)
+	var out_path := renders.path_join(OUT_NAME)
 	var image := root.get_viewport().get_texture().get_image()
-	image.save_png(OUT)
-	print("saved ", OUT, " size ", image.get_width(), "x", image.get_height())
+	image.save_png(out_path)
+	print("saved ", out_path, " size ", image.get_width(), "x", image.get_height())
 	quit()

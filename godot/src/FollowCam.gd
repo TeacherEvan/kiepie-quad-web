@@ -27,6 +27,10 @@ var _spectate_until := 0.0
 var _saved_mode := "follow"
 
 func add_shake(amount: float) -> void:
+	# Single reduced-motion sink: every caller (CombatController, SideCannons,
+	# DestructibleBuilding) funnels through here.
+	if Settings.reduced_motion():
+		return
 	_shake = maxf(_shake, amount)
 
 

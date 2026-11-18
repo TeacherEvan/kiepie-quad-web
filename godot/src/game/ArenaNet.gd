@@ -12,7 +12,8 @@ var _remote: Dictionary = {}
 var _send_accum := 0.0
 var _streak := 0
 var _hitstop := false
-var _shot_log: Dictionary = {}   # owner_id -> Array of msec timestamps (1 s, max 12)
+var _shot_log: Dictionary = {}   # owner_id -> Array of msec timestamps (1 s, max 24)
+var _state_tick := 0             # monotonic relay sequence for bike_state
 
 
 func _ready() -> void:
@@ -89,7 +90,9 @@ func _send_state() -> void:
 		"r": [q.x, q.y, q.z, q.w],
 		"t": bool(bike.get("turbo_active")),
 		"d": (combat == null or not bool(combat.get("alive"))),
+		"n": _state_tick,
 	})
+	_state_tick += 1
 
 
 func _on_broadcast(event: String, payload: Variant) -> void:

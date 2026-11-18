@@ -74,7 +74,10 @@ func _physics_process(delta: float) -> void:
 
 	if cannons != null:
 		cannons.call("set_rapid", now < _rapid_until)
-	var power := _base_power * (1.35 if now < _overdrive_until else 1.0)
+	var overdrive := now < _overdrive_until
+	if bike != null and "overdrive_active" in bike:
+		bike.set("overdrive_active", overdrive)
+	var power := _base_power * (1.35 if overdrive else 1.0)
 	bike.set("engine_power", power)
 
 	if _is_auto_fire_enabled():
@@ -120,8 +123,8 @@ func apply_pickup(kind: String) -> void:
 			health_changed.emit(health, MAX_HEALTH)
 		"overdrive":
 			_overdrive_until = now + 8.0
-			if _flames() != null:
-				_flames().set("emitting", true)
+			if bike != null and "overdrive_active" in bike:
+				bike.set("overdrive_active", true)
 	pickup_collected.emit(kind)
 	_play_sfx("pickup")
 

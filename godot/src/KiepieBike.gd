@@ -40,6 +40,10 @@ var _ground_coyote := 0.0   ## brief grace so suspension bounce can't eat a dodg
 var _was_grounded := false   ## visual-only landing detector
 var _roost_accum := 0.0
 var _pending_reset := false
+## Set by CombatController while an overdrive pickup is live: counts as boost
+## for the turbo blend/flames so the flame visual lasts the whole effect, not
+## one physics frame.
+var overdrive_active := false
 
 @onready var _flames: GPUParticles3D = get_node_or_null("ExhaustFlames")
 var _jet_plume: Node3D = null
@@ -232,7 +236,7 @@ func _physics_process(delta: float) -> void:
 	var steer_input := Input.get_axis("steer_right", "steer_left")
 
 	# --- turbo: hold Shift while throttling ---
-	var want_turbo := Input.is_action_pressed("turbo") and throttle > 0.1
+	var want_turbo := (Input.is_action_pressed("turbo") and throttle > 0.1) or overdrive_active
 	_turbo_blend = move_toward(_turbo_blend, 1.0 if want_turbo else 0.0, delta * 4.0)
 	turbo_active = _turbo_blend > 0.35
 	if _flames:

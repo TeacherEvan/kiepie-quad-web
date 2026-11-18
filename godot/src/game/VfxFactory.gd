@@ -115,10 +115,19 @@ static func _additive(color: Color, energy: float = 2.5) -> StandardMaterial3D:
 	return m
 
 
+static var _ramp_cache: Dictionary = {}
+
 static func _ramp(colors: Array) -> GradientTexture1D:
 	## A fresh Gradient has exactly two points; set_color/set_offset at index 2
 	## is an out-of-bounds write that silently drops the transparent fade stop.
 	## Seed the two endpoints, then add interior stops explicitly.
+	## Cached by content: every burst used to allocate identical ramps.
+	var cache_key := ""
+	for c in colors:
+		cache_key += (c as Color).to_html() + "|"
+	var cached: Variant = _ramp_cache.get(cache_key)
+	if cached != null:
+		return cached
 	var g := Gradient.new()
 	var n := colors.size()
 	if n == 0:
@@ -133,17 +142,28 @@ static func _ramp(colors: Array) -> GradientTexture1D:
 			g.add_point(float(i) / float(n - 1), colors[i])
 	var ramp := GradientTexture1D.new()
 	ramp.gradient = g
+	_ramp_cache[cache_key] = ramp
 	return ramp
 
 
+static var _curve_cache: Dictionary = {}
+
 static func _curve(keys: Array) -> CurveTexture:
 	## [offset, value] pairs describing a particle's size over its lifetime.
+	## Cached by content — identical per burst.
+	var cache_key := ""
+	for k in keys:
+		cache_key += str(k[0]) + ":" + str(k[1]) + "|"
+	var cached: Variant = _curve_cache.get(cache_key)
+	if cached != null:
+		return cached
 	var c := Curve.new()
 	c.clear_points()
 	for k in keys:
 		c.add_point(Vector2(float(k[0]), float(k[1])))
 	var t := CurveTexture.new()
 	t.curve = c
+	_curve_cache[cache_key] = t
 	return t
 
 
