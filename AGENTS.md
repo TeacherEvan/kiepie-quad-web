@@ -178,6 +178,10 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 - Scene builders: `build_bike.gd`, `build_testride.gd`, `build_menus.gd`, `build_arena.gd`.
   Groups only persist through `PackedScene.pack()` with `add_to_group(name, true)`, and a child
   added to an instanced sub-scene must be owned by the **outer** root or it is dropped on pack.
+  But do **not** re-own the nodes *inside* an imported GLB instance (`find_children` + `owner=`):
+  that serializes ~200 duplicate meshes + inline `ArrayMesh` data into the scene (was 2.87 MB of
+  ASCII in `KiepieBike.tscn`, double geometry at runtime). Runtime lookups (`Model/Wheel_*`)
+  resolve through the instance — see the NOTE in `tools/build_bike.gd`.
 - Control-UI skin lives in `src/ui/UiTheme.gd` (used by both `build_menus.gd` and `build_arena.gd`);
   add colours/styleboxes there, then rebuild the scenes. Godot 4.3 gotchas: `StyleBoxFlat` has no
   `detail_*` props, HSlider grabbers are ICONS not styleboxes, and a flat track needs content
