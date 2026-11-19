@@ -1,0 +1,974 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "surgical-audit-frontend",
+          "version": "2.4.0",
+          "informationUri": "https://github.com/TeacherEvan/surgical-audit",
+          "rules": [
+            {
+              "id": "F-P0-1",
+              "name": "HeavyWeaponSmashZeroArgCrash",
+              "shortDescription": {
+                "text": "Rocket & Meteor smash(Vector3) 0-arg runtime SCRIPT ERROR crash + double-smash"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P0",
+                "lens": "Lens 1"
+              }
+            },
+            {
+              "id": "F-P0-2",
+              "name": "DeathRaceHazardPitRampsBackwards",
+              "shortDescription": {
+                "text": "All 3 Death Race hazard-pit jump ramps rotated 180 deg backwards (dot=-1.00)"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P0",
+                "lens": "Lens 3"
+              }
+            },
+            {
+              "id": "F-P1-1",
+              "name": "DeathRaceRespawnOverwritesCheckpoint",
+              "shortDescription": {
+                "text": "CombatController._respawn() overwrites Death Race checkpoint spawn (78.99m setback)"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P1",
+                "lens": "Lens 1"
+              }
+            },
+            {
+              "id": "F-P1-2",
+              "name": "MatchHudRelayoutOverlaps",
+              "shortDescription": {
+                "text": "MatchHud._relayout() hard KillFeed overlaps on desktop, landscape & portrait mobile"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P1",
+                "lens": "Lens 9"
+              }
+            },
+            {
+              "id": "F-P1-3",
+              "name": "RaceTrackerGuestSplitBrainAndLeak",
+              "shortDescription": {
+                "text": "RaceTracker guest victory split-brain, post-await exit guard & solo Match.players leak"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P1",
+                "lens": "Lens 4"
+              }
+            },
+            {
+              "id": "F-P1-4",
+              "name": "VictorySplashMutedEscapeLeak",
+              "shortDescription": {
+                "text": "Victory Splash hardcoded muted, Escape exits match, zero tap grace & leaked keydown"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P1",
+                "lens": "Lens 7"
+              }
+            },
+            {
+              "id": "F-P1-5",
+              "name": "MeteorReticleNonDtAndProcessRaycast",
+              "shortDescription": {
+                "text": "SideCannons reticle non-dt spin (2.4x at 144Hz) & per-frame _process() physics raycast"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P1",
+                "lens": "Lens 3"
+              }
+            },
+            {
+              "id": "F-P1-6",
+              "name": "FollowCamLoopLookAtCollinearity",
+              "shortDescription": {
+                "text": "FollowCam.look_at(..., Vector3.UP) collinearity error & gimbal flip in 360 deg loops"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P1",
+                "lens": "Lens 3"
+              }
+            },
+            {
+              "id": "F-P1-7",
+              "name": "WebGL2OmniLightBudgetSaturation",
+              "shortDescription": {
+                "text": "WebGL2 OmniLight3D budget saturated before first shot (DeathRace=11, Arena=9 vs limit 8)"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P1",
+                "lens": "Lens 2"
+              }
+            },
+            {
+              "id": "F-P1-8",
+              "name": "LoopZoneIntrudesFlatStraightaway",
+              "shortDescription": {
+                "text": "TrackLoop0/TrackLoop1 LoopZone intrudes into flat straightaway center lane (z=+-44)"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P1",
+                "lens": "Lens 3"
+              }
+            },
+            {
+              "id": "F-P2-1",
+              "name": "SideCannonsPrematureFireAndPracticeBroadcast",
+              "shortDescription": {
+                "text": "SideCannons.fire() premature VFX/SFX/cooldown before await & practice broadcast leak"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "severity": "P2",
+                "lens": "Lens 4"
+              }
+            },
+            {
+              "id": "F-P2-2",
+              "name": "ResetLoopUpAndUiTeardownGaps",
+              "shortDescription": {
+                "text": "KiepieBike.reset_bike() stale loop_up, unhidden RespawnOverlay & partial signal cleanup"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "severity": "P2",
+                "lens": "Lens 5"
+              }
+            },
+            {
+              "id": "F-P2-3",
+              "name": "DeadOnHitAndParticleMaterialAlloc",
+              "shortDescription": {
+                "text": "Dead on_hit callables & per-shot ParticleProcessMaterial allocations"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "severity": "P2",
+                "lens": "Lens 1"
+              }
+            },
+            {
+              "id": "F-P2-4",
+              "name": "MobileTextInputIdlePolling",
+              "shortDescription": {
+                "text": "MobileTextInput._process() 60-120 Hz JS bridge polling while VK closed"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "severity": "P2",
+                "lens": "Lens 2"
+              }
+            },
+            {
+              "id": "F-P2-5",
+              "name": "DuplicateViewportMetaBlocksZoom",
+              "shortDescription": {
+                "text": "Duplicate <meta name='viewport'> with maximum-scale=1,user-scalable=no (WCAG 1.4.4)"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "severity": "P2",
+                "lens": "Lens 9"
+              }
+            },
+            {
+              "id": "F-P2-6",
+              "name": "RightAnalogDiagonalAmbiguity",
+              "shortDescription": {
+                "text": "Right-analog diagonal pull triggers weapon swap and dodge simultaneously"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "severity": "P2",
+                "lens": "Lens 9"
+              }
+            },
+            {
+              "id": "F-P2-7",
+              "name": "UnguardedColorHtmlAndFxHolderLeak",
+              "shortDescription": {
+                "text": "Unguarded Color.html() & detached _fx_holder root node leak"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "severity": "P2",
+                "lens": "Lens 5"
+              }
+            },
+            {
+              "id": "F-P2-8",
+              "name": "FrontendGodFilesAndTrackedRenders",
+              "shortDescription": {
+                "text": "Frontend God files (917/830/653 LOC), qb_core.py silent catches & 18+ MB tracked renders"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "severity": "P2",
+                "lens": "Lens 10"
+              }
+            },
+            {
+              "id": "F-P2-9",
+              "name": "AuthoredUnwiredEngagementAndFeedback",
+              "shortDescription": {
+                "text": "11th-Lens authored-but-unwired features (Sfx.play_3d, kill_feed toggle, PlayAgainBtn dead-end, 0 haptics/HC)"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "severity": "P2",
+                "lens": "Lens 11"
+              }
+            },
+            {
+              "id": "F-P3-1",
+              "name": "ProjectileNosePelletAtTail",
+              "shortDescription": {
+                "text": "Projectile.gd white-hot nose pellet mounted at tail (+Z instead of -Z)"
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "severity": "P3",
+                "lens": "Lens 3"
+              }
+            },
+            {
+              "id": "F-P3-2",
+              "name": "HazardPitPrivateMutationAndDeadTick",
+              "shortDescription": {
+                "text": "HazardPit mutates private _invuln_until & spawns explosion on dead bike"
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "severity": "P3",
+                "lens": "Lens 7"
+              }
+            },
+            {
+              "id": "F-P3-3",
+              "name": "LinearDeltaLerps",
+              "shortDescription": {
+                "text": "Non-exponential delta*k lerps in FollowCam & KiepieBike visual steer"
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "severity": "P3",
+                "lens": "Lens 3"
+              }
+            },
+            {
+              "id": "F-P3-4",
+              "name": "LoopZoneHardcodedWorldUp",
+              "shortDescription": {
+                "text": "LoopZone hardcodes world +Y center offset & omits _exit_tree bike cleanup"
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "severity": "P3",
+                "lens": "Lens 8"
+              }
+            }
+          ]
+        }
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "properties": {
+            "scope": "Frontend (Gameplay/Track/Weapons/UI/Touch/Web/Blender)",
+            "git_head": "0f3a053a0f70179971f20fe3b5fe2f4075d2f654",
+            "tree_integrity_sha256": "17033d6846568f335797b39dc2fd8eb0e431be3be9aac01a0914bd75def24a15",
+            "files_scanned": 75,
+            "effective_loc_total": 15573
+          }
+        }
+      ],
+      "results": [
+        {
+          "ruleId": "F-P0-1",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "[P0] Rocket & Meteor smash(Vector3) 0-arg runtime SCRIPT ERROR crash + double-smash \u2014 RocketProjectile:L242/L287 & MeteorStrike:L285 pass Vector3 to 0-arg smash(); live-reproduced SCRIPT ERROR and _intact==true."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/DestructibleBuilding.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 92,
+                  "endLine": 94
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P0",
+            "lens": "Lens 1",
+            "live_reproduced": true
+          }
+        },
+        {
+          "ruleId": "F-P0-2",
+          "ruleIndex": 1,
+          "level": "error",
+          "message": {
+            "text": "[P0] All 3 Death Race hazard-pit jump ramps rotated 180 deg backwards (dot=-1.00) \u2014 Ramp0/Ramp2/Ramp4 launch_dir.dot(travel_dir)==-1.00 (live-reproduced); vertical 0.9m support wall faces approaching racers before every lava pit."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_deathrace.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 135,
+                  "endLine": 143
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P0",
+            "lens": "Lens 3",
+            "live_reproduced": true
+          }
+        },
+        {
+          "ruleId": "F-P1-1",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "[P1] CombatController._respawn() overwrites Death Race checkpoint spawn (78.99m setback) \u2014 Dying after Checkpoint0 teleports racer 78.99m back to random starting-grid SpawnPoint with Basis.IDENTITY (live-reproduced)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/CombatController.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 204,
+                  "endLine": 220
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P1",
+            "lens": "Lens 1",
+            "live_reproduced": true
+          }
+        },
+        {
+          "ruleId": "F-P1-2",
+          "ruleIndex": 3,
+          "level": "error",
+          "message": {
+            "text": "[P1] MatchHud._relayout() hard KillFeed overlaps on desktop, landscape & portrait mobile \u2014 Live xvfb/desktop verified: 390x843 KF\u2229Radar=92x22px; 843x390 KF\u2229WeaponLbl=42x15px & KF\u2229Banner=26x18px; 1280x720 KF\u2229WeaponLbl=52x15px & KF\u2229Banner=36x18px."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MatchHud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 249,
+                  "endLine": 355
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P1",
+            "lens": "Lens 9",
+            "live_reproduced": true
+          }
+        },
+        {
+          "ruleId": "F-P1-3",
+          "ruleIndex": 4,
+          "level": "error",
+          "message": {
+            "text": "[P1] RaceTracker guest victory split-brain, post-await exit guard & solo Match.players leak \u2014 Guest triggers local Victory Splash on pending lap; missing is_inside_tree() after awaits; solo mode leaks Match.players after exit (live-reproduced)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/RaceTracker.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 44,
+                  "endLine": 136
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P1",
+            "lens": "Lens 4",
+            "live_reproduced": true
+          }
+        },
+        {
+          "ruleId": "F-P1-4",
+          "ruleIndex": 5,
+          "level": "error",
+          "message": {
+            "text": "[P1] Victory Splash hardcoded muted, Escape exits match, zero tap grace & leaked keydown \u2014 Node DOM probe confirmed victory_video_hardcoded_muted=true, escape_stopped_propagation=false, leaked_keydown_listeners=2."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "index.html",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 80,
+                  "endLine": 80
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P1",
+            "lens": "Lens 7",
+            "live_reproduced": true
+          }
+        },
+        {
+          "ruleId": "F-P1-5",
+          "ruleIndex": 6,
+          "level": "error",
+          "message": {
+            "text": "[P1] SideCannons reticle non-dt spin (2.4x at 144Hz) & per-frame _process() physics raycast \u2014 rotate_y(0.035) lacks delta; compute_meteor_target allocates PhysicsRayQueryParameters3D and calls intersect_ray in _process()."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/SideCannons.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 199,
+                  "endLine": 376
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P1",
+            "lens": "Lens 3",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "F-P1-6",
+          "ruleIndex": 7,
+          "level": "error",
+          "message": {
+            "text": "[P1] FollowCam.look_at(..., Vector3.UP) collinearity error & gimbal flip in 360 deg loops \u2014 Live Godot probe emitted: ERROR: Up vector and direction between node origin and target are aligned, look_at() failed."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/FollowCam.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 80,
+                  "endLine": 87
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P1",
+            "lens": "Lens 3",
+            "live_reproduced": true
+          }
+        },
+        {
+          "ruleId": "F-P1-7",
+          "ruleIndex": 8,
+          "level": "error",
+          "message": {
+            "text": "[P1] WebGL2 OmniLight3D budget saturated before first shot (DeathRace=11, Arena=9 vs limit 8) \u2014 Live scene count: DeathRace=11, Arena=9 idle OmniLight3Ds; uncapped lights on Projectile/Banana/Rocket/Meteor/VfxFactory.explosion exceed 8-light WebGL2 cap."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/Pickup.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 70,
+                  "endLine": 75
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P1",
+            "lens": "Lens 2",
+            "live_reproduced": true
+          }
+        },
+        {
+          "ruleId": "F-P1-8",
+          "ruleIndex": 9,
+          "level": "error",
+          "message": {
+            "text": "[P1] TrackLoop0/TrackLoop1 LoopZone intrudes into flat straightaway center lane (z=+-44) \u2014 Live probe: flat-lane bike at (20, 0.5, -44) enters LoopZone (z=[-51.7,-42.7]), tilting bike 36.9 deg with 24 m/s^2 centripetal pull; SupportPylon_L sits at z=-42."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_deathrace.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 125,
+                  "endLine": 701
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P1",
+            "lens": "Lens 3",
+            "live_reproduced": true
+          }
+        },
+        {
+          "ruleId": "F-P2-1",
+          "ruleIndex": 10,
+          "level": "warning",
+          "message": {
+            "text": "[P2] SideCannons.fire() premature VFX/SFX/cooldown before await & practice broadcast leak \u2014 Consumes 5-6s cooldown and accesses unvalidated _muzzles[i] before await issue_shot(); broadcasts 'shot' in practice mode."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/SideCannons.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 403,
+                  "endLine": 528
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P2",
+            "lens": "Lens 4",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "F-P2-2",
+          "ruleIndex": 11,
+          "level": "warning",
+          "message": {
+            "text": "[P2] KiepieBike.reset_bike() stale loop_up, unhidden RespawnOverlay & partial signal cleanup \u2014 reset_bike() retains loop_up; MatchHud._on_match_finished leaves RespawnOverlay visible; MatchHud/LobbyMenu omit autoload disconnects."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/KiepieBike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 89,
+                  "endLine": 465
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P2",
+            "lens": "Lens 5",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "F-P2-3",
+          "ruleIndex": 12,
+          "level": "warning",
+          "message": {
+            "text": "[P2] Dead on_hit callables & per-shot ParticleProcessMaterial allocations \u2014 RocketProjectile & MeteorStrike never invoke on_hit; all 4 projectiles allocate ParticleProcessMaterial per shot."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/RocketProjectile.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 18,
+                  "endLine": 183
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P2",
+            "lens": "Lens 1",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "F-P2-4",
+          "ruleIndex": 13,
+          "level": "warning",
+          "message": {
+            "text": "[P2] MobileTextInput._process() 60-120 Hz JS bridge polling while VK closed \u2014 Synchronous JavaScriptBridge.eval poll runs every frame on mobile menus even when overlay is closed."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MobileTextInput.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 66,
+                  "endLine": 76
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P2",
+            "lens": "Lens 2",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "F-P2-5",
+          "ruleIndex": 14,
+          "level": "warning",
+          "message": {
+            "text": "[P2] Duplicate <meta name='viewport'> with maximum-scale=1,user-scalable=no (WCAG 1.4.4) \u2014 Duplicate viewport meta blocks pinch-zoom accessibility on Web."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "index.html",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 5,
+                  "endLine": 80
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P2",
+            "lens": "Lens 9",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "F-P2-6",
+          "ruleIndex": 15,
+          "level": "warning",
+          "message": {
+            "text": "[P2] Right-analog diagonal pull triggers weapon swap and dodge simultaneously \u2014 No axis-dominance arbitration between downward swap and horizontal dodge."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/TouchControls.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 367,
+                  "endLine": 395
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P2",
+            "lens": "Lens 9",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "F-P2-7",
+          "ruleIndex": 16,
+          "level": "warning",
+          "message": {
+            "text": "[P2] Unguarded Color.html() & detached _fx_holder root node leak \u2014 CombatController & SideCannons never free fallback _fx_holder on root; Color.html() lacks validation."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/CombatController.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 47,
+                  "endLine": 325
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P2",
+            "lens": "Lens 5",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "F-P2-8",
+          "ruleIndex": 17,
+          "level": "warning",
+          "message": {
+            "text": "[P2] Frontend God files (917/830/653 LOC), qb_core.py silent catches & 18+ MB tracked renders \u2014 build_deathrace.gd (917 LOC), VfxFactory.gd (830 LOC), MatchHud.gd (653 LOC), qb_core.py (7 silent catches), >18 MB renders/*.png in git."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_deathrace.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1,
+                  "endLine": 1096
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P2",
+            "lens": "Lens 10",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "F-P2-9",
+          "ruleIndex": 18,
+          "level": "warning",
+          "message": {
+            "text": "[P2] 11th-Lens authored-but-unwired features (Sfx.play_3d, kill_feed toggle, PlayAgainBtn dead-end, 0 haptics/HC) \u2014 Sfx.play_3d() has 0 call sites; gameplay/kill_feed never checked; PlayAgainBtn exits to MainMenu; 0 haptics, 0 prefers-contrast/forced-colors, 0 persistent lap records."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MatchHud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 93,
+                  "endLine": 585
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P2",
+            "lens": "Lens 11",
+            "live_reproduced": true
+          }
+        },
+        {
+          "ruleId": "F-P3-1",
+          "ruleIndex": 19,
+          "level": "note",
+          "message": {
+            "text": "[P3] Projectile.gd white-hot nose pellet mounted at tail (+Z instead of -Z) \u2014 looking_at() aligns forward to -Z, placing nose.position.z=+0.22 at the rear."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/Projectile.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 142,
+                  "endLine": 146
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P3",
+            "lens": "Lens 3",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "F-P3-2",
+          "ruleIndex": 20,
+          "level": "note",
+          "message": {
+            "text": "[P3] HazardPit mutates private _invuln_until & spawns explosion on dead bike \u2014 Direct combat.set('_invuln_until', 0.0) breaks encapsulation; VFX.explosion runs even when alive==false."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/HazardPit.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 133,
+                  "endLine": 139
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P3",
+            "lens": "Lens 7",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "F-P3-3",
+          "ruleIndex": 21,
+          "level": "note",
+          "message": {
+            "text": "[P3] Non-exponential delta*k lerps in FollowCam & KiepieBike visual steer \u2014 clampf(delta * follow_speed, 0, 1) varies damping stiffness across 60Hz vs 144Hz."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/FollowCam.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 78,
+                  "endLine": 83
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P3",
+            "lens": "Lens 3",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "F-P3-4",
+          "ruleIndex": 22,
+          "level": "note",
+          "message": {
+            "text": "[P3] LoopZone hardcodes world +Y center offset & omits _exit_tree bike cleanup \u2014 Uses Vector3(0, loop_radius, 0) instead of basis.y * loop_radius."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/LoopZone.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 39,
+                  "endLine": 53
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P3",
+            "lens": "Lens 8",
+            "live_reproduced": false
+          }
+        }
+      ]
+    }
+  ]
+}

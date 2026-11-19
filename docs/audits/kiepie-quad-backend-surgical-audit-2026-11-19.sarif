@@ -1,0 +1,769 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "surgical-audit-backend",
+          "version": "2.4.0",
+          "informationUri": "https://github.com/TeacherEvan/surgical-audit",
+          "rules": [
+            {
+              "id": "B-P0-1",
+              "name": "CrossModeUnthrottledLapExploit",
+              "shortDescription": {
+                "text": "Cross-mode unthrottled lap_request instant-win exploit"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P0",
+                "lens": "Lens 6"
+              }
+            },
+            {
+              "id": "B-P0-2",
+              "name": "DeathRaceScoreColumnCollision",
+              "shortDescription": {
+                "text": "Split-brain score column collision between kills and laps in Death Race"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P0",
+                "lens": "Lens 1"
+              }
+            },
+            {
+              "id": "B-P1-1",
+              "name": "UnthrottledRemoteHeavyWeapons",
+              "shortDescription": {
+                "text": "Missing per-weapon cooldown gate on remote Rockets & Meteors"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P1",
+                "lens": "Lens 2"
+              }
+            },
+            {
+              "id": "B-P1-2",
+              "name": "UnbumpedProtocolVersion",
+              "shortDescription": {
+                "text": "Unbumped PROTOCOL_VERSION='1' across wire-breaking Death Race & weapon additions"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P1",
+                "lens": "Lens 1"
+              }
+            },
+            {
+              "id": "B-P1-3",
+              "name": "ConcurrentSocketReconnectRace",
+              "shortDescription": {
+                "text": "Premature _reconnecting=false allows concurrent reconnect races"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P1",
+                "lens": "Lens 4"
+              }
+            },
+            {
+              "id": "B-P1-4",
+              "name": "PrematureHandoffAndChannelResurrection",
+              "shortDescription": {
+                "text": "Premature host hand-off broadcast & stale _write_props channel resurrection"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P1",
+                "lens": "Lens 4"
+              }
+            },
+            {
+              "id": "B-P1-5",
+              "name": "SyncRespawnResetAndRogueProxy",
+              "shortDescription": {
+                "text": "Roster SYNC resets local respawn countdown & rogue 'state' spawns ghost proxy"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P1",
+                "lens": "Lens 4"
+              }
+            },
+            {
+              "id": "B-P1-6",
+              "name": "UnawaitedLeaveRaceAndVehicleDesync",
+              "shortDescription": {
+                "text": "Unawaited Lobby.leave() race & frozen NetworkedBike roster vehicle promotion"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P1",
+                "lens": "Lens 4"
+              }
+            },
+            {
+              "id": "B-P1-7",
+              "name": "VendoredTaloSocketSilentReconnectFailure",
+              "shortDescription": {
+                "text": "Vendored TaloSocket._poll() suppresses connection_closed on pre-auth reconnect failure"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "severity": "P1",
+                "lens": "Lens 7"
+              }
+            },
+            {
+              "id": "B-P2-1",
+              "name": "DeployLiveCheckStaticHtml",
+              "shortDescription": {
+                "text": "deploy_web.sh verifies static index.html MD5 instead of content-hashed SW"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "severity": "P2",
+                "lens": "Lens 7"
+              }
+            },
+            {
+              "id": "B-P2-2",
+              "name": "TaloBackendGodRouterAndMockDrift",
+              "shortDescription": {
+                "text": "TaloBackend.gd 804-LOC God router & MockBackend contract drift"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "severity": "P2",
+                "lens": "Lens 1"
+              }
+            },
+            {
+              "id": "B-P2-3",
+              "name": "SettingsWriteAmplificationAndTimer",
+              "shortDescription": {
+                "text": "Settings.apply_quality() 5x sync disk saves & unguarded resize timer"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "severity": "P2",
+                "lens": "Lens 2"
+              }
+            },
+            {
+              "id": "B-P2-4",
+              "name": "ServiceWorkerTimerLeakAnd206Wrap",
+              "shortDescription": {
+                "text": "SW uncancelled 2.5s setTimeout, uncaught media fetch & 206 Partial Content re-wrap"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "severity": "P2",
+                "lens": "Lens 5"
+              }
+            },
+            {
+              "id": "B-P2-5",
+              "name": "ScoreboardTieAndJoinAutoArgsMutation",
+              "shortDescription": {
+                "text": "Non-deterministic scoreboard() tie order & _join_auto in-place args mutation"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "severity": "P2",
+                "lens": "Lens 3"
+              }
+            },
+            {
+              "id": "B-P3-1",
+              "name": "InjectTaloKeyDoubleCloseFd",
+              "shortDescription": {
+                "text": "Double os.close(fd) after os.fdopen ownership handoff"
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "severity": "P3",
+                "lens": "Lens 5"
+              }
+            },
+            {
+              "id": "B-P3-2",
+              "name": "ServiceWorkerMessageWaitUntil",
+              "shortDescription": {
+                "text": "SW message listener omits event.waitUntil() & uses basename-only matching"
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "severity": "P3",
+                "lens": "Lens 7"
+              }
+            },
+            {
+              "id": "B-P3-3",
+              "name": "RetiredSupabaseAndPckHeadroom",
+              "shortDescription": {
+                "text": "Retired supabase/ README drift & index.pck at 80.6% of 4MB abort cap"
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "severity": "P3",
+                "lens": "Lens 10"
+              }
+            },
+            {
+              "id": "B-P3-4",
+              "name": "AuthoredUnwiredBackendSettings",
+              "shortDescription": {
+                "text": "Authored-but-unwired backend settings keys (network/auto_join, friendly_fire)"
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "severity": "P3",
+                "lens": "Lens 11"
+              }
+            }
+          ]
+        }
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "properties": {
+            "scope": "Backend (Net/Auth/Replication/SW/Deploy)",
+            "git_head": "0f3a053a0f70179971f20fe3b5fe2f4075d2f654",
+            "tree_integrity_sha256": "17033d6846568f335797b39dc2fd8eb0e431be3be9aac01a0914bd75def24a15",
+            "files_scanned": 20,
+            "effective_loc_total": 3454
+          }
+        }
+      ],
+      "results": [
+        {
+          "ruleId": "B-P0-1",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "[P0] Cross-mode unthrottled lap_request instant-win exploit \u2014 _register_lap() lacks game_mode=='death_race' check and minimum lap cooldown; live-reproduced 1ms Battle Royale instant win (status=finished, winner=2)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 699,
+                  "endLine": 737
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P0",
+            "lens": "Lens 6",
+            "live_reproduced": true
+          }
+        },
+        {
+          "ruleId": "B-P0-2",
+          "ruleIndex": 1,
+          "level": "error",
+          "message": {
+            "text": "[P0] Split-brain score column collision between kills and laps in Death Race \u2014 Both _register_kill and _register_lap mutate row['score']; 2 kills + 1 lap finishes a 3-lap Death Race on Lap 1 (live-reproduced)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 667,
+                  "endLine": 730
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P0",
+            "lens": "Lens 1",
+            "live_reproduced": true
+          }
+        },
+        {
+          "ruleId": "B-P1-1",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "[P1] Missing per-weapon cooldown gate on remote Rockets & Meteors \u2014 Global 24/s cap permits 24 remote meteors/sec (105 AOE dmg + OmniLight3D flood); live-reproduced 10 meteors spawned in 1 frame."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/ArenaNet.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 237,
+                  "endLine": 273
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P1",
+            "lens": "Lens 2",
+            "live_reproduced": true
+          }
+        },
+        {
+          "ruleId": "B-P1-2",
+          "ruleIndex": 3,
+          "level": "error",
+          "message": {
+            "text": "[P1] Unbumped PROTOCOL_VERSION='1' across wire-breaking Death Race & weapon additions \u2014 New wire kinds (lap_request), shot 'w' discriminator, and death_race mode mix incompatibly with v1 cached Web clients."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 11,
+                  "endLine": 15
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P1",
+            "lens": "Lens 1",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "B-P1-3",
+          "ruleIndex": 4,
+          "level": "error",
+          "message": {
+            "text": "[P1] Premature _reconnecting=false allows concurrent reconnect races \u2014 _reconnecting cleared at L146 before async identify/open_connection/2.5s handshake; single timeout bricks is_ready=false."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 138,
+                  "endLine": 166
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P1",
+            "lens": "Lens 4",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "B-P1-4",
+          "ruleIndex": 5,
+          "level": "error",
+          "message": {
+            "text": "[P1] Premature host hand-off broadcast & stale _write_props channel resurrection \u2014 Handoff broadcasts 'state' before ownerAliasId PUT returns 200; leave_lobby_channel() does not bump _prop_gen so in-flight PUT resurrects _channel."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 458,
+                  "endLine": 569
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P1",
+            "lens": "Lens 4",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "B-P1-5",
+          "ruleIndex": 6,
+          "level": "error",
+          "message": {
+            "text": "[P1] Roster SYNC resets local respawn countdown & rogue 'state' spawns ghost proxy \u2014 SYNC emits full respawn_delay() (2.5s) with 0.4s remaining; ArenaNet._on_broadcast('state') creates proxies for non-roster IDs (both live-reproduced)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/MatchState.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 349,
+                  "endLine": 368
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P1",
+            "lens": "Lens 4",
+            "live_reproduced": true
+          }
+        },
+        {
+          "ruleId": "B-P1-6",
+          "ruleIndex": 7,
+          "level": "error",
+          "message": {
+            "text": "[P1] Unawaited Lobby.leave() race & frozen NetworkedBike roster vehicle promotion \u2014 Fire-and-forget leave() can wipe a newly joined lobby; NetworkedBike never re-runs for_player_in_roster() on late join/leave."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/LobbyService.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 63,
+                  "endLine": 71
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P1",
+            "lens": "Lens 4",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "B-P1-7",
+          "ruleIndex": 8,
+          "level": "error",
+          "message": {
+            "text": "[P1] Vendored TaloSocket._poll() suppresses connection_closed on pre-auth reconnect failure \u2014 _poll() only emits connection_closed when _socket_authenticated==true; failed reconnects before v1.connected silently stall until TaloBackend sets is_ready=false permanently."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/talo_socket.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 96,
+                  "endLine": 106
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P1",
+            "lens": "Lens 7",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "B-P2-1",
+          "ruleIndex": 9,
+          "level": "warning",
+          "message": {
+            "text": "[P2] deploy_web.sh verifies static index.html MD5 instead of content-hashed SW \u2014 GDScript-only deploys leave index.html unchanged, causing immediate false DEPLOY OK before Vercel publishes new index.pck."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/deploy_web.sh",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 98,
+                  "endLine": 109
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P2",
+            "lens": "Lens 7",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "B-P2-2",
+          "ruleIndex": 10,
+          "level": "warning",
+          "message": {
+            "text": "[P2] TaloBackend.gd 804-LOC God router & MockBackend contract drift \u2014 147-LOC socket router; MockBackend omits time_up, no-ops leave_lobby, and diverges on token/lap checks."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 773,
+                  "endLine": 919
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P2",
+            "lens": "Lens 1",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "B-P2-3",
+          "ruleIndex": 11,
+          "level": "warning",
+          "message": {
+            "text": "[P2] Settings.apply_quality() 5x sync disk saves & unguarded resize timer \u2014 apply_quality calls set_value/save 5 times; _load saves unconditionally; _sync_mobile_scale timer lacks is_inside_tree guard."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/core/Settings.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 186,
+                  "endLine": 336
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P2",
+            "lens": "Lens 2",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "B-P2-4",
+          "ruleIndex": 12,
+          "level": "warning",
+          "message": {
+            "text": "[P2] SW uncancelled 2.5s setTimeout, uncaught media fetch & 206 Partial Content re-wrap \u2014 Node vm probe confirmed timers_created=1/timers_cleared=0 on fast nav and 206 mp4 responses re-wrapped with new Response()."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "index.service.worker.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 52,
+                  "endLine": 175
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P2",
+            "lens": "Lens 5",
+            "live_reproduced": true
+          }
+        },
+        {
+          "ruleId": "B-P2-5",
+          "ruleIndex": 13,
+          "level": "warning",
+          "message": {
+            "text": "[P2] Non-deterministic scoreboard() tie order & _join_auto in-place args mutation \u2014 scoreboard() lacks user_id tie-break; TaloBackend._join_auto mutates caller args with sparse settings."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/MatchState.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 177,
+                  "endLine": 192
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P2",
+            "lens": "Lens 3",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "B-P3-1",
+          "ruleIndex": 14,
+          "level": "note",
+          "message": {
+            "text": "[P3] Double os.close(fd) after os.fdopen ownership handoff \u2014 Exception inside with os.fdopen(fd) closes fd twice in except BaseException block."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/inject_talo_key.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 54,
+                  "endLine": 66
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P3",
+            "lens": "Lens 5",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "B-P3-2",
+          "ruleIndex": 15,
+          "level": "note",
+          "message": {
+            "text": "[P3] SW message listener omits event.waitUntil() & uses basename-only matching \u2014 Async client/cache ops inside message listener can be suspended before finishing."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "index.service.worker.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 120,
+                  "endLine": 199
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P3",
+            "lens": "Lens 7",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "B-P3-3",
+          "ruleIndex": 16,
+          "level": "note",
+          "message": {
+            "text": "[P3] Retired supabase/ README drift & index.pck at 80.6% of 4MB abort cap \u2014 index.pck is 3.38 MB vs AGENTS.md 2.7 MB note; supabase/README.md lacks RETIRED banner."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/deploy_web.sh",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 59,
+                  "endLine": 62
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P3",
+            "lens": "Lens 10",
+            "live_reproduced": false
+          }
+        },
+        {
+          "ruleId": "B-P3-4",
+          "ruleIndex": 17,
+          "level": "note",
+          "message": {
+            "text": "[P3] Authored-but-unwired backend settings keys (network/auto_join, friendly_fire) \u2014 Settings defines network/auto_join and LobbyMenu/MockBackend define friendly_fire with 0 runtime readers."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/core/Settings.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 40,
+                  "endLine": 44
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "P3",
+            "lens": "Lens 11",
+            "live_reproduced": true
+          }
+        }
+      ]
+    }
+  ]
+}
