@@ -161,7 +161,9 @@ func set_respawning(value: bool) -> void:
 	if fx_parent == null:
 		return
 	if value:
-		VFX.explosion(fx_parent, global_position, player_color, 1.1)
+		var pogo := VehicleRegistry.is_pogo(_assigned_vehicle)
+		VFX.dramatic_death_explosion(fx_parent, global_position, global_transform.basis,
+				player_color, pogo)
 	else:
 		VFX.shield_pulse(fx_parent, global_position, player_color)
 

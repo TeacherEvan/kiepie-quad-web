@@ -1,5 +1,5 @@
 extends Node3D
-## Heavy Rocket Launcher projectile: fires once every 5.0 seconds, deals 2x
+## Heavy Rocket Launcher projectile: fires once every 1.5 seconds, deals 2x
 ## machine-gun damage, and detonates on impact with a small blast radius (4.5 m).
 
 signal hit(target: Node, point: Vector3)
@@ -104,6 +104,19 @@ static func _ensure_meshes() -> void:
 			Color(1.0, 0.44, 0.10, 0.68),
 			Color(0.28, 0.24, 0.22, 0.0),
 		])
+
+
+func _arena_net() -> Node:
+	var tree := get_tree()
+	if tree == null or not (tree.current_scene is Node):
+		return null
+	return tree.current_scene.get_node_or_null("ArenaNet")
+
+
+func _note_local_damage_shown(target_id: String) -> void:
+	var net := _arena_net()
+	if net != null and net.has_method("note_local_damage_shown"):
+		net.call("note_local_damage_shown", target_id)
 
 
 func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
@@ -227,7 +240,7 @@ func _detonate(point: Vector3, direct_collider: Object) -> void:
 	var fx := get_parent() as Node3D
 	if fx == null and get_tree() != null:
 		fx = get_tree().current_scene as Node3D
-	VFX.explosion(fx, point, Color(1.0, 0.42, 0.10), 1.45)
+	VFX.particle_explosion(fx, point, Color(1.0, 0.42, 0.10), 1.55, false)
 	var sfx := get_node_or_null("/root/Sfx")
 	if sfx != null and sfx.has_method("play"):
 		sfx.call("play", "explosion")
@@ -268,6 +281,12 @@ func _detonate(point: Vector3, direct_collider: Object) -> void:
 		var controller := bike_node.get_node_or_null("CombatController")
 		if controller != null and controller.has_method("take_damage"):
 			controller.call("take_damage", applied_dmg, owner_id, bike_node.global_position, token)
+		elif owner_id != "" and owner_id == local_uid and target_id != local_uid:
+			# Remote proxy or practice dummy: no local CombatController exists to
+			# pop a number — give the shooter immediate zero-latency feedback.
+			VFX.damage_number(fx, bike_node.global_position + Vector3(0.0, 0.55, 0.0),
+					float(applied_dmg), Color(1.0, 0.85, 0.22))
+			_note_local_damage_shown(target_id)
 		if owner_id != "" and owner_id == local_uid and target_id != local_uid:
 			hit_any_enemy = true
 

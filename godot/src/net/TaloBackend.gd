@@ -32,6 +32,7 @@ var _starting := false
 var _used_tokens: Dictionary = {}     # shot token -> true, stops echoed kills scoring twice
 var _kill_cooldowns: Dictionary = {}  # killer -> msec timestamp of last scored kill (host only)
 var _kill_window: Dictionary = {}     # killer -> Array of msec timestamps (60 s, max 20)
+var _hurt_log: Dictionary = {}        # sender -> Array of sec timestamps (1 s, max 24)
 var _lap_timestamps: Dictionary = {}  # racer -> sec timestamp of last scored lap (host only)
 const HEARTBEAT_INTERVAL_S := 20.0
 const STALE_LOBBY_S := 90.0
@@ -238,6 +239,7 @@ func leave_lobby_channel() -> void:
 	_lap_timestamps.clear()
 	_kill_cooldowns.clear()
 	_kill_window.clear()
+	_hurt_log.clear()
 	_host_lost_emitted = false
 
 
@@ -941,6 +943,21 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 				if victim == "" or sender_id == "" or victim != sender_id:
 					return
 				broadcast_received.emit("kill", payload)
+		"hurt":
+			# Victim-authoritative damage telemetry for the damage-number UI.
+			# Backwards compatible with PROTOCOL_VERSION "2": peers on older
+			# builds simply ignore the unknown kind.
+			if payload is Dictionary:
+				var p := payload as Dictionary
+				var victim := str(p.get("victim", ""))
+				var dmg := int(p.get("dmg", 0))
+				if victim == "" or sender_id == "" or victim != sender_id:
+					return
+				if dmg < 1 or dmg > 500:
+					return
+				if not _hurt_rate_ok(sender_id):
+					return
+				broadcast_received.emit("hurt", payload)
 		"bike_state":
 			if payload is Dictionary:
 				var p := payload as Dictionary
@@ -962,6 +979,22 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 
 
 # ------------------------------------------------------------------ helpers ---
+
+func _hurt_rate_ok(sender_id: String) -> bool:
+	## Per-sender 24/s cap on damage telemetry. Twin-barrel rapid fire can
+	## legitimately produce bursts; this only stops a forged flood.
+	var now := Time.get_ticks_msec() / 1000.0
+	var window: Array = _hurt_log.get(sender_id, [])
+	var kept: Array = []
+	for t in window:
+		if now - float(t) < 1.0:
+			kept.append(t)
+	if kept.size() >= 24:
+		_hurt_log[sender_id] = kept
+		return false
+	kept.append(now)
+	_hurt_log[sender_id] = kept
+	return true
 
 func _parse_dict(text: String) -> Dictionary:
 	return _parse_dict_static(text)

@@ -16,7 +16,7 @@ extends VehicleBody3D
 @export var steer_speed := 5.0
 @export var brake_force := 2600.0
 @export var coast_brake := 0.01      ## rolling drag fraction of brake_force when coasting (no throttle/brake) — keeps the bike gliding instead of scrubbing speed
-@export var reverse_force := 180.0
+@export var reverse_force := 265.0
 @export var visual_steer_scale := 0.75
 @export var wheel_radius := 0.280
 ## Per-vehicle visual + weapon profile (Cars stay identical — see
@@ -394,7 +394,7 @@ func _physics_process(delta: float) -> void:
 			# Signed forward speed, not length(): reversing past 2 m/s must keep
 			# driving in reverse, not slam 2600 N of brake against the motion.
 			var forward_speed := linear_velocity.dot(global_transform.basis.z)
-			if forward_speed < 2.0:
+			if forward_speed < 2.5:
 				w.engine_force = -reverse_force * -throttle
 			else:
 				w.brake = brake_force

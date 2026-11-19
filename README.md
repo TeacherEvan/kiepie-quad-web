@@ -12,7 +12,7 @@ hosted on Vercel and installable as a PWA.
 - **Death Race** — high-speed closed-circuit combat racetrack (`DeathRace.tscn`) featuring sweeping banked turns, 2 full 360° vertical stunt loops, 3 molten hazard pits, a pit stop service lane, 8 jump ramps, pickups, 4 ordered checkpoints, and a checkered Start/Finish Line gantry tracking laps. First racer to complete the target laps triggers the **Victory Splash video** (`web-assets/kiepie-victory-splash.mp4`) and wins.
 - **Arsenal (Both Modes & Practice)** — cycle weapons by pulling the **right analog stick back** on mobile (or pressing `Tab` / `V` / `1–3` on desktop), with a live **HUD Reload Bar** showing reloading status:
   - **Machine Gun (Quad) / Dual Bananas (Nardus):** Rapid-fire primary (`0.20 s` / `0.40 s` cooldown, identical 150 DPS).
-  - **Rocket Launcher:** Fires once every **5.0 seconds**, deals **2× machine-gun damage** (`60` dmg) across a **4.5 m small blast radius**.
+  - **Rocket Launcher:** Fires once every **1.5 seconds**, deals **2× machine-gun damage** (`60` dmg) across a **4.5 m small blast radius**.
   - **Meteor Shower:** Fires once every **6.0 seconds** with practical forward ground-raycast aiming (and live 3D ground targeting reticle); drops a single flaming meteor from the sky with a **2.0-second fall delay** that detonates for **massive AOE damage** (`105` center damage across a `7.5 m` radius).
 
 ## Gameplay
@@ -36,9 +36,10 @@ no extra wire traffic:
 
 - **Kiepie QUAD** — the blast quad. Photo-anchored dimensions, 22-inch tyres, twin side
   cannons (30 damage, 0.20 s cooldown; rapid-fire pickup shaves it to 0.09 s).
-- **NARDUS** — a stocky pogo-stick brawler in a tight crimson-magenta athletic shirt (bold gold
-  **NARDUS** print across the back of his shirt, belly peeking out and sloshing with every hop)
-  and sporty shorts. Guaranteed to be assigned to **at least one player** in every match (`VehicleRegistry.for_player_in_roster`), and **flaps his arms like a bird** whenever turbo is active. He fires **bananas** (60 damage — twice the cannon — at 0.40 s / 0.18 s
+- **NARDUS** — a stocky pogo-stick brawler in a hot-pink Borat mankini (bold gold
+  **NARDUS** print across his bare back, belly peeking out and sloshing with every hop,
+  and cute, plump **slightly red butt cheeks** sticking out either side of the rear pink
+  thong strap). Guaranteed to be assigned to **at least one player** in every match (`VehicleRegistry.for_player_in_roster`), and **flaps his arms like a bird** whenever turbo is active. He fires **bananas** (60 damage — twice the cannon — at 0.40 s / 0.18 s
   rapid cooldown). Identical top speed, acceleration, handling, armour and cartwheel dodge stats to the
   QUAD — different attitude, same fight.
 

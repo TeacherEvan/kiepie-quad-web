@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""NARDUS — the pogo-stick menace: procedural stylized sculpt + export (v4.1).
+"""NARDUS — the pogo-stick menace: procedural stylized sculpt + export (v4.2).
 
 Blender source of truth for the Pogo_Nardus vehicle. Never edit the .blend
 or the GLB by hand; edit this script and rebuild:
@@ -7,17 +7,21 @@ or the GLB by hand; edit this script and rebuild:
     blender -b -noaudio -P src/build_pogo_nardus.py
     blender -b -noaudio -P src/build_pogo_nardus.py -- --previews /path/to/out
 
-v4.1 Plastic-Surgery + Surgical-Building upgrade:
-- Noticeably fuller, genuinely heavy caricature silhouette: broad barrel chest,
-  C2-smooth gravity-sagged pear-shaped gut with seamless love-handle wrap and
-  waistband overhang, rosy chubby jowls & double-chin roll, meatier arms & legs,
-  clean back tuck with bold gold NARDUS jersey print.
+v4.2 Surgical-Building + plastic-surgery upgrade: NARDUS IN A HOT-PINK BORAT
+MANKINI. Bare-skin torso/pelvis/arms, conformal MankiniPink straps (front
+pouch, twin hip V-slings climbing the flanks and chest, over-the-shoulder
+straps, Y-back framing the NardusDecal, rear thong strap diving the gluteal
+cleft), gold O-ring Y-junction, and two plump slightly-red ButtCheekRed
+cheeks sticking out either side of the thong strap.
+- Fuller, heavy caricature silhouette: broad barrel chest, C2-smooth
+  gravity-sagged pear-shaped gut, rosy jowls & double-chin roll, meaty arms &
+  legs, gold NARDUS back print framed by the mankini Y-back.
 - Modular articulated pivots for natural PogoVisual.gd motion:
-    Rider/RiderBody    (static legs/sandals/shorts/shirt torso)
+    Rider/RiderBody    (static bare legs/sandals/bare pelvis+torso + Borat mankini)
     Rider/Belly        (top-pivoted heavy gut + navel for 2-axis spring jiggle)
     Rider/Head         (neck-pivoted expressive head for turn-look & impact nod)
     Rider/Arm_L, Arm_R (shoulder-pivoted chubby arms for counterbalance & bird-flap)
-    Rider/NardusDecal  (conformal curved back-of-shirt print)
+    Rider/NardusDecal  (conformal curved back-print, framed by the mankini Y-back)
     Stick/StickLower   (rubber tip at z=0.0000 + telescoping chrome piston + lower seat)
     Stick/SpringCoil   (base-pivoted heavy helical spring at z=0.165 for live compression)
     Stick/StickUpper   (hydraulic barrel + foot-yoke/pegs under sandals + flank banana blasters)
@@ -271,9 +275,9 @@ def mat(name, base, rough=0.55, metal=0.0, subsurface=0.0, sheen=0.0, coat=0.0,
 # ---------------------------------------------------------------- PBR palette (14 + 1 decal = 15 <= 16 LOW budget)
 SKIN = mat("Skin", (0.81, 0.54, 0.37), rough=0.56, subsurface=0.12)
 SKIN_BLUSH = mat("SkinBlush", (0.86, 0.43, 0.33), rough=0.58, subsurface=0.14)
-SHIRT = mat("ShirtCrimson", (0.58, 0.032, 0.14), rough=0.76, sheen=0.22)
+MANKINI_PINK = mat("MankiniPink", (1.0, 0.10, 0.58), rough=0.34, sheen=0.28, coat=0.22)
+BUTT_BLUSH = mat("ButtCheekRed", (0.88, 0.37, 0.33), rough=0.52, subsurface=0.18)
 TRIM_GOLD = mat("TrimGold", (0.98, 0.78, 0.20), rough=0.34, metal=0.28, coat=0.24)
-SHORTS = mat("ShortsNavy", (0.08, 0.11, 0.19), rough=0.80, sheen=0.14)
 HAIR = mat("HairDark", (0.11, 0.065, 0.038), rough=0.74, sheen=0.08)
 SOCK = mat("SockWhite", (0.94, 0.94, 0.96), rough=0.80)
 SANDAL = mat("SandalBrown", (0.38, 0.21, 0.10), rough=0.68)
@@ -297,7 +301,7 @@ LEG_X = 0.164
 for side, sgn in [("L", -1), ("R", 1)]:
     x = sgn * LEG_X
     leg_stations = [
-        ((x * 0.96,  0.012, 0.855), 0.138, 0.140),  # full upper thigh into shorts
+        ((x * 0.96,  0.012, 0.895), 0.138, 0.140),  # full upper thigh, into the bare pelvis
         ((x * 0.99, -0.016, 0.675), 0.122, 0.124),  # mid thigh
         ((x,        -0.052, 0.505), 0.102, 0.106),  # bent athletic knee forward (-Y)
         ((x,        -0.022, 0.370), 0.104, 0.108),  # thick round calf
@@ -313,7 +317,7 @@ for side, sgn in [("L", -1), ("R", 1)]:
     ]
     rider_parts.append(loft_tube(f"Sock_{side}", sock_stations, seg=14, material=SOCK))
     rider_parts.append(torus(f"SockStripeA_{side}", (x, -0.007, 0.280), 0.087, 0.007,
-                             seg=16, sides=6, material=SHIRT))
+                             seg=16, sides=6, material=MANKINI_PINK))
     rider_parts.append(torus(f"SockStripeB_{side}", (x, -0.007, 0.262), 0.088, 0.005,
                              seg=16, sides=6, material=TRIM_GOLD))
 
@@ -330,31 +334,21 @@ for side, sgn in [("L", -1), ("R", 1)]:
                            (0.156, 0.046, 0.032), rot=(math.radians(-16), 0, 0),
                            material=SANDAL, smooth=True))
 
-# ---------------------------------------------------------------- hefty athletic shorts (smooth hips, clean tuck in back!)
-shorts_pelvis_stations = [
+# ---------------------------------------------------------------- bare athletic pelvis & torso (SKIN!) — Nardus is in a mankini, not a swimsuit!
+pelvis_stations = [
     ((0.0,  0.004, 0.780), 0.270, 0.220),
-    ((0.0,  0.014, 0.875), 0.312, 0.258),  # plump rounded hips & rear
+    ((0.0,  0.014, 0.875), 0.312, 0.258),  # plump rounded hips & rear, bare skin
     ((0.0,  0.018, 0.985), 0.320, 0.266),
-    ((0.0,  0.015, 1.095), 0.310, 0.258),  # meets the shirt cleanly on the back; belly overhangs in front!
+    ((0.0,  0.015, 1.095), 0.310, 0.258),  # meets the bare torso seamlessly; gut spills in front!
     ((0.0,  0.010, 1.165), 0.288, 0.240),
 ]
-rider_parts.append(loft_tube("ShortsPelvis", shorts_pelvis_stations, seg=20, material=SHORTS))
-for side, sgn in [("L", -1), ("R", 1)]:
-    x = sgn * LEG_X
-    cuff_stations = [
-        ((x * 0.94,  0.010, 0.895), 0.154, 0.156),
-        ((x * 0.98, -0.006, 0.760), 0.144, 0.146),
-        ((x * 0.99, -0.018, 0.680), 0.138, 0.140),
-    ]
-    rider_parts.append(loft_tube(f"ShortsLeg_{side}", cuff_stations, seg=14, material=SHORTS))
-    rider_parts.append(torus(f"ShortsCuff_{side}", (x * 0.99, -0.018, 0.684), 0.137, 0.009,
-                             seg=14, sides=6, material=SHIRT))
+rider_parts.append(loft_tube("BarePelvis", pelvis_stations, seg=20, material=SKIN))
 
-# ---------------------------------------------------------------- big jovial barrel T-shirt (stretched snug over gut!)
-# Profile function for the shirt torso so NardusDecal conforms to the exact wider surface!
-SHIRT_PROFILE = [
+# ---------------------------------------------------------------- big jovial barrel torso, bare chest (stretched snug over gut!)
+# Profile function for the torso so NardusDecal conforms to the exact wider surface!
+TORSO_PROFILE = [
     # (z, cy, rx, ry)
-    (1.135,  0.014, 0.318, 0.276),  # meets shorts waistband cleanly in back while belly spills out front!
+    (1.135,  0.014, 0.318, 0.276),  # meets the bare pelvis cleanly in back; belly spills out front!
     (1.185,  0.018, 0.352, 0.308),
     (1.260,  0.020, 0.370, 0.324),  # broad lower-mid chest/back
     (1.340,  0.018, 0.365, 0.316),  # broad upper chest
@@ -362,16 +356,12 @@ SHIRT_PROFILE = [
     (1.468,  0.002, 0.268, 0.228),
     (1.512, -0.008, 0.158, 0.142),  # thick athletic neckline
 ]
-shirt_stations = [((0.0, cy, z), rx, ry, (0.0, 0.0, 1.0)) for (z, cy, rx, ry) in SHIRT_PROFILE]
-rider_parts.append(loft_tube("ShirtTorso", shirt_stations, seg=22, material=SHIRT))
-rider_parts.append(torus("ShirtCollar", (0.0, -0.008, 1.515), 0.122, 0.022,
-                         seg=18, sides=8, material=TRIM_GOLD))
-rider_parts.append(torus("ShirtHemRoll", (0.0, 0.015, 1.138), 0.312, 0.013,
-                         seg=20, sides=6, material=SHIRT))
+torso_stations = [((0.0, cy, z), rx, ry, (0.0, 0.0, 1.0)) for (z, cy, rx, ry) in TORSO_PROFILE]
+rider_parts.append(loft_tube("BareTorso", torso_stations, seg=22, material=SKIN))
 
 # ---------------------------------------------------------------- GLORIOUS C2-SMOOTH FAT BELLY (Rider/Belly pivot!)
-# Round, heavy, gravity-sagged beer-belly spilling softly over his shorts waistband
-# in front and flanks, cleanly tucked inside the back of his shorts/shirt (+Y).
+# Round, heavy, gravity-sagged beer-belly spilling softly over his bare pelvis
+# in front and flanks; tucked cleanly at the back (+Y) under the mankini thong.
 BELLY_PIVOT = Vector((0.0, -0.040, 1.285))
 
 
@@ -411,12 +401,95 @@ navel = sph("Navel", (navel_surf.x, navel_surf.y + 0.008, navel_surf.z), (0.022,
 belly = join_objects("Belly", [belly, navel])
 repivot_object(belly, BELLY_PIVOT)
 
+# ---------------------------------------------------------------- HOT-PINK BORAT MANKINI (conformal +0.009m surface loft!)
+# Combined pelvis+bare-torso profile for conforming straps to the exact skin surface.
+_BODY_PROFILE = [
+    (0.780, 0.004, 0.270, 0.220),
+    (0.875, 0.014, 0.312, 0.258),
+    (0.985, 0.018, 0.320, 0.266),
+    (1.095, 0.015, 0.310, 0.258),
+    (1.135, 0.014, 0.318, 0.276),
+    (1.185, 0.018, 0.352, 0.308),
+    (1.260, 0.020, 0.370, 0.324),
+    (1.340, 0.018, 0.365, 0.316),
+    (1.410, 0.012, 0.338, 0.288),
+    (1.468, 0.002, 0.268, 0.228),
+    (1.512, -0.008, 0.158, 0.142),
+]
+
+
+def _body_surface(z, theta_deg, sgn, off=0.009):
+    """Point on the torso/pelvis elliptical cross-section at height z.
+
+    theta: 0 = dead front centre, 90 = side wall, 180 = dead back centre.
+    sgn: +1 right side, -1 left side.
+    """
+    for k in range(len(_BODY_PROFILE) - 1):
+        z0, cy0, rx0, ry0 = _BODY_PROFILE[k]
+        z1, cy1, rx1, ry1 = _BODY_PROFILE[k + 1]
+        if z0 <= z <= z1:
+            t = (z - z0) / max(1e-6, z1 - z0)
+            cy = cy0 + t * (cy1 - cy0)
+            rx = rx0 + t * (rx1 - rx0)
+            ry = ry0 + t * (ry1 - ry0)
+            th = math.radians(theta_deg)
+            return Vector((sgn * (rx + off) * math.sin(th),
+                           cy - (ry + off) * math.cos(th), z))
+    cy, rx, ry = _BODY_PROFILE[-1][1:]
+    th = math.radians(theta_deg)
+    return Vector((sgn * (rx + off) * math.sin(th), cy - (ry + off) * math.cos(th), z))
+
+
+# (a) Front pouch: sculpted cradle wrapping under the pelvis groin, below the gut
+pouch_stations = [
+    ((0.0, -0.222, 0.775), 0.128, 0.062),
+    ((0.0, -0.230, 0.815), 0.150, 0.072),
+    ((0.0, -0.235, 0.860), 0.158, 0.075),
+    ((0.0, -0.239, 0.905), 0.148, 0.070),
+    ((0.0, -0.233, 0.940), 0.120, 0.058),
+    ((0.0, -0.221, 0.958), 0.085, 0.045),
+]
+rider_parts.append(loft_tube("MankiniPouch", pouch_stations, seg=12, material=MANKINI_PINK))
+
+# (b) Twin straps: pouch -> high-cut hip V -> flank -> chest -> over the shoulder -> Y-back framing the decal
+_STRAP_PATH = [
+    (0.905, 16), (1.005, 32), (1.062, 43), (1.120, 48), (1.185, 45),
+    (1.232, 34), (1.258, 28), (1.316, 27), (1.386, 28), (1.438, 34),
+    (1.470, 45), (1.486, 54), (1.494, 80), (1.475, 118), (1.420, 120),
+    (1.300, 125), (1.212, 125), (1.140, 150), (1.100, 163), (1.036, 176),
+]
+for side, sgn in [("L", -1), ("R", 1)]:
+    strap_stations = [(_body_surface(z, theta, sgn), 0.024, 0.024) for z, theta in _STRAP_PATH]
+    rider_parts.append(loft_tube(f"MankiniStrap_{side}", strap_stations, seg=10, material=MANKINI_PINK))
+
+# (c) Rear thong strap diving straight down the gluteal cleft
+thong_stations = [
+    ((0.0, 0.270, 1.042), 0.016, 0.016),
+    ((0.0, 0.264, 1.000), 0.017, 0.017),
+    ((0.0, 0.258, 0.930), 0.017, 0.017),
+    ((0.0, 0.252, 0.860), 0.017, 0.017),
+    ((0.0, 0.246, 0.800), 0.016, 0.016),
+    ((0.0, 0.232, 0.768), 0.014, 0.014),
+]
+rider_parts.append(loft_tube("MankiniThongBack", thong_stations, seg=8, material=MANKINI_PINK))
+
+# (d) Gold O-ring Y-junction where the twin back straps meet the thong strap
+rider_parts.append(torus("MankiniRing", (0.0, 0.272, 1.038), 0.032, 0.009,
+                         rot=(math.radians(90), 0, 0), seg=18, sides=6, material=TRIM_GOLD))
+
+# (e) Two plump, cute, slightly-red butt cheeks flanking the thong strap
+for side, sgn in [("L", -1), ("R", 1)]:
+    rider_parts.append(sph(f"ButtCheek_{side}", (sgn * 0.118, 0.218, 0.895),
+                           (0.124, 0.118, 0.126), seg=16, ring=10,
+                           rot=(math.radians(8), 0.0, sgn * math.radians(6)),
+                           material=BUTT_BLUSH))
+
 # ---------------------------------------------------------------- shoulder-pivoted chubby arms (Arm_L / Arm_R)
 arm_objects = {}
 for side, sgn in [("L", -1), ("R", 1)]:
     pivot = Vector((sgn * 0.285, 0.008, 1.385))
     rider_parts.append(sph(f"ShoulderSocket_{side}", pivot,
-                           (0.118, 0.114, 0.118), seg=12, ring=8, material=SHIRT))
+                           (0.118, 0.114, 0.118), seg=12, ring=8, material=SKIN))
 
     limb_parts = []
     sleeve_stations = [
@@ -425,10 +498,13 @@ for side, sgn in [("L", -1), ("R", 1)]:
         ((sgn * 0.405,  0.000, 1.362), 0.112, 0.112),
         ((sgn * 0.478, -0.008, 1.330), 0.102, 0.102),
     ]
-    limb_parts.append(loft_tube(f"Sleeve_{side}", sleeve_stations, seg=14, material=SHIRT))
+    limb_parts.append(loft_tube(f"Sleeve_{side}", sleeve_stations, seg=14, material=SKIN))
     sleeve_dir = Vector((sgn * 0.213, -0.016, -0.058)).normalized()
     cuff_rot = sleeve_dir.to_track_quat('Z', 'Y').to_euler()
-    limb_parts.append(torus(f"SleeveTrim_{side}", (sgn * 0.476, -0.008, 1.331), 0.101, 0.011,
+    # Hot-pink & gold varsity sweatband (bicep) over the bare upper arm
+    limb_parts.append(torus(f"ArmBand_{side}", (sgn * 0.470, -0.008, 1.334), 0.101, 0.016,
+                            rot=cuff_rot, seg=16, sides=6, material=MANKINI_PINK))
+    limb_parts.append(torus(f"ArmBandGold_{side}", (sgn * 0.449, -0.007, 1.344), 0.093, 0.007,
                             rot=cuff_rot, seg=16, sides=6, material=TRIM_GOLD))
 
     arm_stations = [
@@ -517,7 +593,7 @@ for idx, (fx, fy, fz, fs, frot) in enumerate([
 head_obj = join_objects("Head", head_parts)
 repivot_object(head_obj, HEAD_PIVOT)
 
-# ---------------------------------------------------------------- curved conformal NARDUS decal (back of shirt)
+# ---------------------------------------------------------------- curved conformal NARDUS decal (back print)
 dec_path = os.path.join(REPO_ROOT, "assets", "decal_nardus.png")
 dec_img = bpy.data.images.load(dec_path)
 dec_mat = mat("DecalNardus", (1.0, 1.0, 1.0), rough=0.45)
@@ -536,14 +612,14 @@ if "Alpha" in tex.outputs and "Alpha" in bsdf.inputs:
 dec_mat.blend_method = 'CLIP'
 
 
-def _sample_shirt_profile(z_val):
-    for k in range(len(SHIRT_PROFILE) - 1):
-        z0, cy0, rx0, ry0 = SHIRT_PROFILE[k]
-        z1, cy1, rx1, ry1 = SHIRT_PROFILE[k + 1]
+def _sample_torso_profile(z_val):
+    for k in range(len(TORSO_PROFILE) - 1):
+        z0, cy0, rx0, ry0 = TORSO_PROFILE[k]
+        z1, cy1, rx1, ry1 = TORSO_PROFILE[k + 1]
         if z0 <= z_val <= z1:
             t = (z_val - z0) / max(1e-6, z1 - z0)
             return (cy0 + t * (cy1 - cy0), rx0 + t * (rx1 - rx0), ry0 + t * (ry1 - ry0))
-    return SHIRT_PROFILE[3][1:]
+    return TORSO_PROFILE[3][1:]
 
 
 bm_dec = bmesh.new()
@@ -557,7 +633,7 @@ grid = []
 for j in range(NV + 1):
     v_coord = j / float(NV)
     z_val = Z_BOT + v_coord * (Z_TOP - Z_BOT)
-    cy, rx, ry = _sample_shirt_profile(z_val)
+    cy, rx, ry = _sample_torso_profile(z_val)
     row = []
     for i in range(NU + 1):
         u_coord = i / float(NU)
@@ -758,7 +834,7 @@ if PREVIEWS:
         "side": ((3.05, 0.0, 1.20), 34, (0.0, -0.06, 1.02)),
         "back34": ((1.75, 2.75, 1.24), 32, (0.0, 0.0, 1.02)),
         "front": ((0.0, -3.15, 1.22), 34, (0.0, 0.0, 1.02)),
-        "back_closeup": ((0.0, 1.45, 1.32), 42, (0.0, 0.0, 1.32)),
+        "back_closeup": ((0.0, 1.45, 1.32), 40, (0.0, 0.0, 1.32)),
     }
     for name, (loc, lens, tgt_v) in views.items():
         cam.location = loc

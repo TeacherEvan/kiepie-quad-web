@@ -6,6 +6,7 @@ const PROJECTILE := preload("res://src/game/Projectile.gd")
 const BANANA := preload("res://src/game/BananaProjectile.gd")
 const ROCKET := preload("res://src/game/RocketProjectile.gd")
 const METEOR := preload("res://src/game/MeteorStrike.gd")
+const VFX := preload("res://src/game/VfxFactory.gd")
 const SEND_HZ := 15.0
 const SPAWN_ORDER := [0, 4, 2, 6, 1, 5, 3, 7]
 
@@ -18,10 +19,12 @@ var _hitstop := false
 var _shot_log: Dictionary = {}   # owner_id -> Array of msec timestamps (1 s, max 24)
 var _rocket_last: Dictionary = {} # owner_id -> sec timestamp of last remote rocket
 var _meteor_last: Dictionary = {} # owner_id -> sec timestamp of last remote meteor
-const REMOTE_ROCKET_MIN_S := 4.5
+const REMOTE_ROCKET_MIN_S := 1.15
 const REMOTE_METEOR_MIN_S := 5.5
 var _state_tick := 0             # monotonic relay sequence for bike_state
 var _death_gen: Dictionary = {}  # peer_id -> monotonic death generation for respawn timer
+var _local_dmg_shown_at: Dictionary = {}  # victim_id -> sec timestamp of our attacker-side damage number
+const LOCAL_DMG_DEDUP_S := 0.28
 
 
 func _ready() -> void:
@@ -107,6 +110,15 @@ func _send_state() -> void:
 	_state_tick += 1
 
 
+func note_local_damage_shown(victim_id: String) -> void:
+	## Called by local damage sources (projectiles, rockets, meteors, drums) the
+	## moment they pop an attacker-side damage number. The echoed "hurt"
+	## broadcast from the victim is then deduped for LOCAL_DMG_DEDUP_S.
+	if victim_id == "":
+		return
+	_local_dmg_shown_at[victim_id] = Time.get_ticks_msec() / 1000.0
+
+
 func _on_broadcast(event: String, payload: Variant) -> void:
 	if not (payload is Dictionary):
 		return
@@ -150,6 +162,26 @@ func _on_broadcast(event: String, payload: Variant) -> void:
 			var feed := get_tree().get_first_node_in_group("match_hud")
 			if feed != null and feed.has_method("add_kill"):
 				feed.call("add_kill", killer, victim)
+		"hurt":
+			# Victim-authoritative damage number. Exact post-mitigation damage,
+			# shown on the victim's proxy for every peer — deduplicated against
+			# our own attacker-side number when we were the shooter.
+			var victim := str(p.get("victim", ""))
+			var attacker := str(p.get("attacker", ""))
+			var dmg := int(p.get("dmg", 0))
+			if victim == "" or victim == Supabase.user_id or dmg < 1:
+				return
+			var rb: Node = _remote.get(victim)
+			if rb == null or not is_instance_valid(rb) or not bool(rb.get("visible")):
+				return
+			var now := Time.get_ticks_msec() / 1000.0
+			if now - float(_local_dmg_shown_at.get(victim, -10.0)) < LOCAL_DMG_DEDUP_S:
+				return
+			var col := Color(1.0, 0.88, 0.26) if attacker == Supabase.user_id else Color(1.0, 0.48, 0.22)
+			var rb3d := rb as Node3D
+			if rb3d == null:
+				return
+			VFX.damage_number(self, rb3d.global_position + Vector3(0.0, 0.65, 0.0), float(dmg), col)
 
 
 func _play_sfx(name: String) -> void:

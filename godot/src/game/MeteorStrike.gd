@@ -124,6 +124,19 @@ static func _ensure_meshes() -> void:
 		])
 
 
+func _arena_net() -> Node:
+	var tree := get_tree()
+	if tree == null or not (tree.current_scene is Node):
+		return null
+	return tree.current_scene.get_node_or_null("ArenaNet")
+
+
+func _note_local_damage_shown(target_id: String) -> void:
+	var net := _arena_net()
+	if net != null and net.has_method("note_local_damage_shown"):
+		net.call("note_local_damage_shown", target_id)
+
+
 func setup(p_owner_id: String, p_owner_node: Node, p_target_pos: Vector3,
 		p_damage: float, p_token: String, p_color: Color = Color(1.0, 0.28, 0.06),
 		p_fall_duration: float = FALL_DURATION, p_blast_radius: float = BLAST_RADIUS) -> void:
@@ -229,7 +242,7 @@ func _detonate() -> void:
 	var fx := get_parent() as Node3D
 	if fx == null and get_tree() != null:
 		fx = get_tree().current_scene as Node3D
-	VFX.explosion(fx, target_pos, Color(1.0, 0.26, 0.04), 2.45)
+	VFX.mushroom_cloud_explosion(fx, target_pos, Color(1.0, 0.26, 0.04), 2.65)
 	VFX.dust_ring(fx, Vector3(target_pos.x, 0.05, target_pos.z), 2.8, 11.0)
 	var sfx := get_node_or_null("/root/Sfx")
 	if sfx != null and sfx.has_method("play"):
@@ -266,6 +279,12 @@ func _detonate() -> void:
 		var controller := bike_node.get_node_or_null("CombatController")
 		if controller != null and controller.has_method("take_damage"):
 			controller.call("take_damage", applied_dmg, owner_id, bike_node.global_position, token)
+		elif owner_id != "" and owner_id == local_uid and target_id != local_uid:
+			# Remote proxy or practice dummy: no local CombatController exists to
+			# pop a number — give the shooter immediate zero-latency feedback.
+			VFX.damage_number(fx, bike_node.global_position + Vector3(0.0, 0.55, 0.0),
+					float(applied_dmg), Color(1.0, 0.85, 0.22))
+			_note_local_damage_shown(target_id)
 		if owner_id != "" and owner_id == local_uid and target_id != local_uid:
 			hit_any_enemy = true
 

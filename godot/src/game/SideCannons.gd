@@ -1,7 +1,7 @@
 extends Node3D
 ## Player weapon mount & 3-weapon arsenal manager:
 ## - "primary": Twin Machine Gun (Quad) / Dual Banana Cannon (Nardus)
-## - "rocket":  Rocket Launcher (5.0s cooldown, 2x MG damage, 4.5m small blast radius)
+## - "rocket":  Rocket Launcher (1.5s cooldown, 2x MG damage, 4.5m small blast radius)
 ## - "meteor":  Meteor Shower (6.0s cooldown, practical ground aim reticle, 2.0s sky-fall delay, massive 3.5x AOE damage)
 
 signal fired(token: String)
@@ -20,7 +20,7 @@ const ROCKET_SPEED := 38.0
 const SHOT_SPREAD := 0.055
 
 const WEAPON_ORDER := ["primary", "rocket", "meteor"]
-const ROCKET_COOLDOWN := 5.0
+const ROCKET_COOLDOWN := 1.5
 const ROCKET_DAMAGE_MULT := 2.0
 const ROCKET_BLAST_RADIUS := 4.5
 const METEOR_COOLDOWN := 6.0

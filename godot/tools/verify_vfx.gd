@@ -38,8 +38,9 @@ func _run() -> void:
 	vf = load("res://src/game/VfxFactory.gd") as GDScript
 	_textures()
 	_scaling()
-	_effects()
+	await _effects()
 	await _anchored()
+	_death_vfx()
 	await _bike_world_vfx()
 	_decal_caps()
 	await _layout()
@@ -102,12 +103,24 @@ func _effects() -> void:
 	vf.impact(holder, Vector3(2, 1, 1), Color(1, 0.6, 0.2), Vector3.FORWARD,
 			"concrete", Vector3.UP)  # parallel normal used to crash looking_at
 	vf.explosion(holder, Vector3(3, 1, 1), Color(1, 0.4, 0.1), 1.0)
+	vf.particle_explosion(holder, Vector3(3.5, 1, 1), Color(1.0, 0.42, 0.10), 1.55, false)
+	vf.mushroom_cloud_explosion(holder, Vector3(11, 1, 1), Color(1.0, 0.26, 0.04), 2.65)
 	vf.shield_block(holder, Vector3(4, 1, 1), Color(0.2, 0.8, 1))
 	vf.smash_burst(holder, Vector3(5, 1, 1), Vector3(5, 3, 4))
 	vf.pickup_burst(holder, Vector3(6, 1, 1), Color(0.2, 1, 0.4))
 	vf.dust_ring(holder, Vector3(7, 0, 1), 1.2, 4.0)
 	vf.roost(holder, Vector3(8, 0, 1), Vector3.FORWARD)
 	_check(holder.get_child_count() > 0, "all VFX entry points build without script errors")
+	# The delayed beats (Wilson ring t=0.10s, cap canopy t=0.14s & t=0.30s)
+	# must actually fire before the holder is released.
+	await create_timer(0.5).timeout
+	var tree := holder.get_tree()
+	var emitters := 0
+	if tree != null:
+		for c in holder.get_children():
+			if c is GPUParticles3D or c is MeshInstance3D or c is OmniLight3D or c is Node3D:
+				emitters += 1
+	_check(emitters >= 6, "mushroom cloud delayed stem/cap emitters spawn (got %d)" % emitters)
 	holder.free()
 
 
@@ -164,6 +177,34 @@ func _bike_world_vfx() -> void:
 				not_doubled += 1
 	_check(spawned >= 2 and not_doubled == spawned,
 			"F-09: dust_ring/roost at (20, 0, 20) stay at world pos, not doubled (%d/%d within 1 m)" % [not_doubled, spawned])
+	holder.free()
+
+
+func _death_vfx() -> void:
+	_set_setting("gameplay", "reduced_motion", false)
+	var holder := Node3D.new()
+	root.add_child(holder)
+	vf.dramatic_death_explosion(holder, Vector3(9, 1, 1), Basis.IDENTITY,
+			Color(1.0, 0.4, 0.1), false)
+	var wreck_ok := false
+	for w in get_nodes_in_group("death_wreck"):
+		if w is RigidBody3D and w.collision_layer == 0:
+			wreck_ok = true
+	_check(wreck_ok, "dramatic death spawns tumbling cosmetic wreck (collision_layer == 0)")
+	vf.dramatic_death_explosion(holder, Vector3(11, 1, 1), Basis.IDENTITY,
+			Color(1.0, 0.4, 0.1), true)
+	_check(holder.get_child_count() > 0, "dramatic death (pogo variant) builds without script errors")
+	# Reduced motion must suppress the tumbling wreck entirely
+	_set_setting("gameplay", "reduced_motion", true)
+	var before := get_nodes_in_group("death_wreck").size()
+	var holder2 := Node3D.new()
+	root.add_child(holder2)
+	vf.dramatic_death_explosion(holder2, Vector3(13, 1, 1), Basis.IDENTITY,
+			Color(1.0, 0.4, 0.1), false)
+	_check(get_nodes_in_group("death_wreck").size() == before,
+			"reduced motion suppresses the tumbling wreck")
+	_set_setting("gameplay", "reduced_motion", false)
+	holder2.free()
 	holder.free()
 
 

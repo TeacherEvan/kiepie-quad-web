@@ -143,6 +143,28 @@ func _run() -> void:
 			_check(rb2.visible and rb2.global_position.distance_to(Vector3(-24.0, 0.6, 14.0)) < 1.5,
 					"respawn state reveals and moves remote proxy")
 
+	# ---- victim-authored "hurt" telemetry: floating number on the proxy + attacker-echo dedup
+	if net != null and arena != null:
+		var mock2: Node = sb.get("mock") if sb != null else null
+		if mock2 == null:
+			_check(false, "mock backend available for 'hurt' telemetry test")
+		else:
+			mock2.call("broadcast", "hurt", {"victim": "peer-2", "attacker": "mock-host", "dmg": 42})
+			await process_frame
+			var hurt_labels := 0
+			for lbl in arena.find_children("*", "Label3D", true, false):
+				if str((lbl as Label3D).text) == "-42":
+					hurt_labels += 1
+			_check(hurt_labels >= 1, "victim-authored 'hurt' broadcast spawns a floating '-42' damage number above peer-2's proxy")
+			net.call("note_local_damage_shown", "peer-2")
+			mock2.call("broadcast", "hurt", {"victim": "peer-2", "attacker": "mock-host", "dmg": 17})
+			await process_frame
+			var dedup_labels := 0
+			for lbl in arena.find_children("*", "Label3D", true, false):
+				if str((lbl as Label3D).text) == "-17":
+					dedup_labels += 1
+			_check(dedup_labels == 0, "attacker-side note_local_damage_shown suppresses the echoed 'hurt' broadcast (dedup)")
+
 	# ---- Arena HUD minimalism: corner 50%-smaller armor, x/y counter, scoreboard dropdown, dual analog pads
 	var hud := arena.get_node_or_null("HUD") as CanvasLayer
 	var touch_hud := arena.get_node_or_null("TouchHUD") as CanvasLayer
@@ -240,6 +262,36 @@ func _run() -> void:
 		"message": spoof_bike,
 	})
 	_check(received.size() == 2, "TaloBackend drops bike_state whose id disagrees with sender alias")
+
+	# Victim-authoritative "hurt" relay: only the victim's own alias passes, dmg in 1..500
+	var hurt_ok := JSON.stringify({"k": "hurt", "p": {
+		"victim": "23456789", "attacker": "12345678", "dmg": 45}})
+	await tb.call("_on_socket_message", "v1.channels.message", {
+		"channel": {"id": 42.0},
+		"playerAlias": {"id": 23456789.0},
+		"message": hurt_ok,
+	})
+	_check(received.size() == 3 and str(received[2][0]) == "hurt"
+			and int((received[2][1] as Dictionary).get("dmg", 0)) == 45,
+			"TaloBackend relays authentic victim-authored 'hurt' telemetry")
+
+	var hurt_spoof := JSON.stringify({"k": "hurt", "p": {
+		"victim": "12345678", "attacker": "12345678", "dmg": 45}})
+	await tb.call("_on_socket_message", "v1.channels.message", {
+		"channel": {"id": 42.0},
+		"playerAlias": {"id": 23456789.0},
+		"message": hurt_spoof,
+	})
+	_check(received.size() == 3, "TaloBackend drops third-party 'hurt' whose victim disagrees with sender alias")
+
+	var hurt_bad_dmg := JSON.stringify({"k": "hurt", "p": {
+		"victim": "23456789", "attacker": "12345678", "dmg": 9999}})
+	await tb.call("_on_socket_message", "v1.channels.message", {
+		"channel": {"id": 42.0},
+		"playerAlias": {"id": 23456789.0},
+		"message": hurt_bad_dmg,
+	})
+	_check(received.size() == 3, "TaloBackend drops out-of-range 'hurt' damage (9999 > 500)")
 
 	tb.free()
 	match_node.set("lobby", prev_lobby)

@@ -127,7 +127,7 @@ func _run() -> void:
 		loop_zone.call("_on_body_exited", bike)
 		_check((bike.get("loop_up") as Vector3).length() < 0.01, "Exiting LoopZone clears bike.loop_up")
 
-	# ---- 4. Arsenal: Rocket Launcher (5s CD, 2x dmg, 4.5m blast) & Meteor Shower (6s CD, 2s fall, massive dmg)
+	# ---- 4. Arsenal: Rocket Launcher (1.5s CD, 2x dmg, 4.5m blast) & Meteor Shower (6s CD, 2s fall, massive dmg)
 	var reload_bar := hud.get_node_or_null("ReloadBar") as ProgressBar if hud != null else null
 	var weapon_lbl := hud.get_node_or_null("WeaponLabel") as Label if hud != null else null
 	_check(reload_bar != null and weapon_lbl != null, "HUD has ReloadBar and WeaponLabel for reloading status")
@@ -156,10 +156,10 @@ func _run() -> void:
 			touch_hud.call("_on_pointer_up", 0, centre)
 			await process_frame
 
-		# Fire Rocket Launcher: 5.0s cooldown, 2x damage (60.0), 4.5m blast radius
+		# Fire Rocket Launcher: 1.5s cooldown, 2x damage (60.0), 4.5m blast radius
 		cannons.call("select_weapon", "rocket")
-		_check(is_equal_approx(float(cannons.call("max_cooldown_for", "rocket")), 5.0),
-				"Rocket Launcher cooldown is 5.0 seconds")
+		_check(is_equal_approx(float(cannons.call("max_cooldown_for", "rocket")), 1.5),
+				"Rocket Launcher cooldown is 1.5 seconds")
 		# Spawn a dummy enemy bike 3.0m in front of muzzle (inside 4.5m blast radius)
 		var dummy_enemy := StaticBody3D.new()
 		dummy_enemy.name = "DummyEnemy"
@@ -177,13 +177,26 @@ func _run() -> void:
 		enemy_combat.set_script(stub)
 		dummy_enemy.add_child(enemy_combat)
 		dr.add_child(dummy_enemy)
+		# Second dummy WITHOUT a local CombatController (like a remote NetworkedBike
+		# proxy): AOE hits must pop a gold floating Label3D damage number for the shooter
+		var dummy_proxy := StaticBody3D.new()
+		dummy_proxy.name = "DummyEnemyProxy"
+		dummy_proxy.add_to_group("bike")
+		dummy_proxy.set("player_id", "dummy-proxy")
+		var dcol2 := CollisionShape3D.new()
+		var dbox2 := BoxShape3D.new()
+		dbox2.size = Vector3(1.5, 1.5, 1.5)
+		dcol2.shape = dbox2
+		dummy_proxy.add_child(dcol2)
+		dr.add_child(dummy_proxy)
 		var fwd := bike.global_transform.basis.z.normalized()
 		dummy_enemy.global_position = bike.global_position + fwd * 3.2 + Vector3(0.0, 0.6, 0.0)
+		dummy_proxy.global_position = bike.global_position + fwd * 3.6 + Vector3(0.9, 0.6, 0.0)
 		await physics_frame
 
 		cannons.call("fire")
-		_check(not bool(cannons.call("can_fire")) and float(cannons.call("remaining_cooldown", "rocket")) > 4.5,
-				"Rocket Launcher enters 5.0s reload lockout after firing")
+		_check(not bool(cannons.call("can_fire")) and float(cannons.call("remaining_cooldown", "rocket")) > 1.1,
+				"Rocket Launcher enters 1.5s reload lockout after firing")
 		_check(reload_bar != null and reload_bar.value < 20.0,
 				"ReloadBar drops to reloading status after firing Rocket Launcher (%.1f%%)" % (reload_bar.value if reload_bar else -1.0))
 		for _f in range(12):
@@ -191,6 +204,11 @@ func _run() -> void:
 			await process_frame
 		_check(is_equal_approx(float(enemy_combat.get("last_dmg")), 60.0),
 				"Rocket Launcher deals double MG damage (60.0) in 4.5m blast radius (got %.1f)" % float(enemy_combat.get("last_dmg")))
+		var rocket_number := false
+		for lbl in dr.find_children("*", "Label3D", true, false):
+			if str((lbl as Label3D).text).begins_with("-60"):
+				rocket_number = true
+		_check(rocket_number, "Rocket detonation spawns a floating Label3D damage number on the controller-less dummy")
 
 		# Switch to Meteor Shower: 6.0s cooldown, ground aim reticle, 2.0s sky-fall delay, massive 105.0 damage
 		cannons.call("select_weapon", "meteor")
@@ -202,6 +220,7 @@ func _run() -> void:
 		var aim_pt: Vector3 = cannons.call("compute_meteor_target")
 		enemy_combat.set("last_dmg", 0.0)
 		dummy_enemy.global_position = aim_pt + Vector3(1.5, 0.5, 0.0)  # inside 7.5m meteor blast radius
+		dummy_proxy.global_position = aim_pt + Vector3(-1.5, 0.5, 0.0)
 
 		cannons.call("fire")
 		_check(not bool(cannons.call("can_fire")) and float(cannons.call("remaining_cooldown", "meteor")) > 5.4,
@@ -212,7 +231,13 @@ func _run() -> void:
 		await create_timer(1.75).timeout
 		_check(float(enemy_combat.get("last_dmg")) >= 95.0,
 				"Meteor impacts after 2.0s sky fall dealing massive damage (%.1f >= 95.0)" % float(enemy_combat.get("last_dmg")))
+		var meteor_number := false
+		for lbl in dr.find_children("*", "Label3D", true, false):
+			if str((lbl as Label3D).text).begins_with("-105"):
+				meteor_number = true
+		_check(meteor_number, "Meteor detonation spawns a floating Label3D damage number on the controller-less dummy")
 		dummy_enemy.free()
+		dummy_proxy.free()
 
 	# ---- 5. Ordered Checkpoint + Finish Line Lap Tracking & Victory Splash Trigger
 	if tracker != null and bike != null and hud != null:

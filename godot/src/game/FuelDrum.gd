@@ -95,6 +95,16 @@ func ignite(attacker_id: String, token: String = "") -> void:
 						break
 			if controller != null and controller.has_method("take_damage"):
 				controller.call("take_damage", blast_damage, attacker_id, b.global_position, token)
+			else:
+				# Remote proxy: no local CombatController — pop an immediate gold
+				# number for the attacker instead of nothing.
+				var target_id := str(b.get("player_id")) if "player_id" in b else ""
+				var sb := tree.root.get_node_or_null("Supabase") if tree != null else null
+				var local_uid := str(sb.get("user_id")) if sb != null and "user_id" in sb else ""
+				if attacker_id != "" and attacker_id == local_uid and target_id != "" and target_id != local_uid:
+					VFX.damage_number(_fx_parent(), b.global_position + Vector3(0.0, 0.55, 0.0),
+							float(blast_damage), Color(1.0, 0.85, 0.22))
+					_note_local_damage_shown(target_id)
 
 		# Chain to other drums inside the blast radius, slightly staggered.
 		for other in tree.get_nodes_in_group("hazard"):
@@ -140,6 +150,19 @@ func _on_respawn_timer(t: Timer) -> void:
 	if c != null:
 		c.set_deferred("disabled", false)
 	VFX.shield_pulse(_fx_parent(), global_position, Color(1.0, 0.45, 0.12, 1.0))
+
+
+func _arena_net() -> Node:
+	var tree := get_tree()
+	if tree == null or not (tree.current_scene is Node):
+		return null
+	return tree.current_scene.get_node_or_null("ArenaNet")
+
+
+func _note_local_damage_shown(target_id: String) -> void:
+	var net := _arena_net()
+	if net != null and net.has_method("note_local_damage_shown"):
+		net.call("note_local_damage_shown", target_id)
 
 
 func _fx_parent() -> Node3D:

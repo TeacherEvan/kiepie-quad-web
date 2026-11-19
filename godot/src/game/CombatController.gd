@@ -165,6 +165,14 @@ func take_damage(amount: float, attacker_id: String, point: Vector3, token: Stri
 	health = maxf(0.0, health - amount)
 	health_changed.emit(health, MAX_HEALTH)
 	hurt.emit(amount, attacker_id)
+	# Victim-authoritative telemetry: peers render exact post-mitigation damage
+	# numbers on the victim's proxy (validated by alias in TaloBackend).
+	if not practice_mode:
+		Supabase.broadcast("hurt", {
+			"victim": Supabase.user_id,
+			"attacker": attacker_id,
+			"dmg": int(roundf(amount)),
+		})
 	VFX.impact(_fx_parent(), point, player_color, Vector3.ZERO, "bike")
 	VFX.damage_number(_fx_parent(), point, amount, Color(1.0, 0.35, 0.3))
 	_play_sfx("impact")
@@ -185,9 +193,23 @@ func _die(by: String) -> void:
 		attributable = ""
 	killer_id = attributable
 	died.emit(attributable)
-	VFX.explosion(_fx_parent(), bike.global_position, player_color, 1.3)
+	var is_pogo := "vehicle_profile" in bike and str(bike.get("vehicle_profile")) == "pogo"
+	VFX.dramatic_death_explosion(_fx_parent(), bike.global_position,
+			bike.global_transform.basis, player_color, is_pogo)
 	_play_sfx("explosion")
-	_shake(0.55)
+	var sfx := get_node_or_null("/root/Sfx")
+	if sfx != null and sfx.has_method("play"):
+		sfx.call("play", "explosion", 2.5, 0.58)
+	_shake(0.82)
+	if not Settings.reduced_motion():
+		# 55 ms local hitstop, timescale restored on a tree timer. Capture prev:
+		# ArenaNet's kill hitstop may own time_scale at the same moment.
+		var prev_scale := Engine.time_scale
+		Engine.time_scale = 0.25
+		var tree := get_tree()
+		if tree != null:
+			tree.create_timer(0.055, true, false, true).timeout.connect(func() -> void:
+				Engine.time_scale = prev_scale)
 	if not practice_mode:
 		Supabase.broadcast("kill", {
 			"killer": attributable,
@@ -342,6 +364,21 @@ func _fx_parent() -> Node3D:
 	return _fx_holder
 
 
+func _arena_net() -> Node:
+	var tree := get_tree()
+	if tree == null or not (tree.current_scene is Node):
+		return null
+	return tree.current_scene.get_node_or_null("ArenaNet")
+
+
+func _note_local_damage_shown(target_id: String) -> void:
+	## Tell ArenaNet we already popped a number for this victim locally so the
+	## echoed victim-authoritative "hurt" broadcast doesn't double-spawn one.
+	var net := _arena_net()
+	if net != null and net.has_method("note_local_damage_shown"):
+		net.call("note_local_damage_shown", target_id)
+
+
 func _on_projectile_hit(collider: Object, point: Vector3, projectile: Node) -> void:
 	if collider == null or projectile == null:
 		return
@@ -366,5 +403,8 @@ func _on_projectile_hit(collider: Object, point: Vector3, projectile: Node) -> v
 				if projectile.get("velocity") != null else Vector3.ZERO
 		VFX.impact(_fx_parent(), point, player_color, incoming, "metal")
 		hit_confirmed.emit()
+		VFX.damage_number(_fx_parent(), point + Vector3(0.0, 0.45, 0.0),
+				float(projectile.get("damage")), Color(1.0, 0.88, 0.26))
+		_note_local_damage_shown(target_id)
 	elif target_id == Supabase.user_id:
 		take_damage(float(projectile.get("damage")), owner_id, point, token)

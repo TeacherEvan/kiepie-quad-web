@@ -93,6 +93,21 @@ func _run() -> void:
 	_check(arm_l != null and arm_r != null, "shoulder-pivoted Arm_L and Arm_R present under Rider")
 	_check(stick_lower != null and spring_coil != null and stick_upper != null,
 			"telescoping StickLower / SpringCoil / StickUpper pivots present under Stick")
+	# Mankini outfit: RiderBody must carry the MankiniPink and ButtCheekRed materials
+	var rider_body := model.get_node_or_null("Rider/RiderBody") as MeshInstance3D
+	var has_mankini := false
+	var has_butt_blush := false
+	if rider_body != null and rider_body.mesh != null:
+		for s in range(rider_body.mesh.get_surface_count()):
+			var mat_s: Variant = rider_body.get_active_material(s)
+			if mat_s is Material:
+				var nm := str((mat_s as Material).resource_name)
+				if nm == "MankiniPink":
+					has_mankini = true
+				elif nm == "ButtCheekRed":
+					has_butt_blush = true
+	_check(has_mankini, "Rider/RiderBody carries the MankiniPink Borat-mankini material")
+	_check(has_butt_blush, "Rider/RiderBody carries the ButtCheekRed butt-cheek material")
 	# ground datum: pogo tip on z == 0 in Blender -> y == 0 in Godot (Y up)
 	# compute in model-local space so unparented model never triggers !is_inside_tree()
 	var min_y := 1.0e9
@@ -135,6 +150,8 @@ func _run() -> void:
 	_check(bike != null, "bike node exists after swap")
 	if bike != null:
 		_check(str(bike.get("vehicle_profile")) == "pogo", "vehicle_profile == pogo after swap")
+		_check(float(bike.get("reverse_force")) >= 250.0,
+				"reverse_force >= 250.0 (%.1f)" % float(bike.get("reverse_force")))
 		_check(bike.get_node_or_null("Model/Rider") != null, "Model swapped to pogo GLB (Rider present)")
 		var rider_node: Node = bike.get_node_or_null("Model/Rider") if bike != null else null
 		if rider_node != null:
