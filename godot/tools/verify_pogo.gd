@@ -80,12 +80,19 @@ func _run() -> void:
 	var decal := model.get_node_or_null("Rider/NardusDecal")
 	var arm_l := model.get_node_or_null("Rider/Arm_L") as Node3D
 	var arm_r := model.get_node_or_null("Rider/Arm_R") as Node3D
+	var head := model.get_node_or_null("Rider/Head") as Node3D
+	var stick_lower := model.get_node_or_null("Stick/StickLower") as Node3D
+	var spring_coil := model.get_node_or_null("Stick/SpringCoil") as Node3D
+	var stick_upper := model.get_node_or_null("Stick/StickUpper") as Node3D
 	_check(rider != null, "Rider pivot present")
 	_check(stick != null, "Stick (pogo) present")
 	_check(belly != null, "Belly present under Rider")
+	_check(head != null, "Head neck-pivot present under Rider")
 	_check(muzzle_l != null and muzzle_r != null, "banana muzzle anchors present")
 	_check(decal != null, "NARDUS decal present")
 	_check(arm_l != null and arm_r != null, "shoulder-pivoted Arm_L and Arm_R present under Rider")
+	_check(stick_lower != null and spring_coil != null and stick_upper != null,
+			"telescoping StickLower / SpringCoil / StickUpper pivots present under Stick")
 	# ground datum: pogo tip on z == 0 in Blender -> y == 0 in Godot (Y up)
 	# compute in model-local space so unparented model never triggers !is_inside_tree()
 	var min_y := 1.0e9
@@ -170,6 +177,26 @@ func _run() -> void:
 					live_arm_r.rotation.z if live_arm_r else 0.0])
 		if combat != null and combat.has_method("reset_state"):
 			combat.call("reset_state")
+
+		# Live ballistic pogo mechanics: SpringCoil compresses & telescopes, Head reacts to recoil!
+		var live_coil := bike.get_node_or_null("Model/Stick/SpringCoil") as Node3D
+		var live_head := bike.get_node_or_null("Model/Rider/Head") as Node3D
+		var min_coil_y := 10.0
+		var max_coil_y := 0.0
+		if rider_node != null and rider_node.has_method("trigger_recoil"):
+			rider_node.call("trigger_recoil", 1.0)
+		var head_moved := false
+		for _f in range(28):
+			await physics_frame
+			if live_coil != null:
+				min_coil_y = minf(min_coil_y, live_coil.scale.y)
+				max_coil_y = maxf(max_coil_y, live_coil.scale.y)
+			if live_head != null and absf(live_head.rotation.x) > 0.005:
+				head_moved = true
+		_check(live_coil != null and (max_coil_y - min_coil_y) > 0.015,
+				"SpringCoil compresses and rebounds live during pogo bounce (scale.y range %.3f..%.3f)" % [min_coil_y, max_coil_y])
+		_check(live_head != null and head_moved,
+				"Rider/Head follows through dynamically with pogo bounce & recoil")
 
 	# ---- 4. and a peer whose hash lands on the bike gets the bike (with identical physics stats!)
 	if sb != null:

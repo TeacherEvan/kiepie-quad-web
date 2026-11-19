@@ -34,6 +34,9 @@ static var _streak_tex: ImageTexture = null
 static var _flare_tex: ImageTexture = null
 static var _ring_tex: ImageTexture = null
 static var _smoke_tex: ImageTexture = null
+static var _fire_tex: ImageTexture = null
+static var _scorch_tex: ImageTexture = null
+static var _plasma_sphere: SphereMesh = null
 static var _noise: FastNoiseLite = null
 static var _sprite_mats: Dictionary = {}
 static var _sprite_quads: Dictionary = {}
@@ -53,13 +56,30 @@ static func _q() -> float:
 static func _ensure_rubble_pool() -> void:
 	if not _rubble_meshes.is_empty():
 		return
-	for s in [0.16, 0.24, 0.34]:
+	# Irregular elongated/faceted shrapnel slabs instead of identical toy cubes
+	for dims in [
+		Vector3(0.32, 0.08, 0.16),
+		Vector3(0.24, 0.14, 0.28),
+		Vector3(0.42, 0.07, 0.12),
+		Vector3(0.18, 0.15, 0.22),
+	]:
 		var bm := BoxMesh.new()
-		bm.size = Vector3.ONE * float(s)
+		bm.size = dims
 		_rubble_meshes.append(bm)
 		var bs := BoxShape3D.new()
-		bs.size = Vector3.ONE * float(s)
+		bs.size = dims
 		_rubble_shapes.append(bs)
+
+
+static func _ensure_plasma_sphere() -> SphereMesh:
+	if _plasma_sphere == null:
+		var sm := SphereMesh.new()
+		sm.radius = 0.65
+		sm.height = 1.30
+		sm.radial_segments = 12
+		sm.rings = 8
+		_plasma_sphere = sm
+	return _plasma_sphere
 
 
 static func _ensure_casing_pool() -> void:
@@ -91,9 +111,12 @@ static func prewarm(host: Node3D = null) -> void:
 	_flare_sprite()
 	_ring_sprite()
 	_smoke_sprite()
+	_fire_sprite()
+	_scorch_sprite()
 	_ensure_rubble_pool()
+	_ensure_plasma_sphere()
 	for additive in [false, true]:
-		for key in ["soft", "streak", "flare", "ring", "smoke"]:
+		for key in ["soft", "streak", "flare", "ring", "smoke", "fire"]:
 			_sprite_material(additive, key)
 	if host != null and not _shaders_warmed and DisplayServer.get_name() != "headless":
 		_shaders_warmed = true
@@ -194,13 +217,15 @@ static func _curve(keys: Array) -> CurveTexture:
 static func _soft_sprite() -> GradientTexture2D:
 	if _soft_tex == null:
 		var g := Gradient.new()
-		g.offsets = PackedFloat32Array([0.0, 0.35, 1.0])
+		g.offsets = PackedFloat32Array([0.0, 0.38, 1.0])
 		g.colors = PackedColorArray([
-			Color(1, 1, 1, 1), Color(0.62, 0.62, 0.62, 0.55), Color(0, 0, 0, 0)])
+			Color(1, 1, 1, 1), Color(0.68, 0.68, 0.68, 0.52), Color(0, 0, 0, 0)])
 		var t := GradientTexture2D.new()
 		t.fill = GradientTexture2D.FILL_RADIAL
 		t.fill_from = Vector2(0.5, 0.5)
-		t.fill_to = Vector2(1.0, 1.0)
+		# fill_to = (1.0, 0.5) puts gradient offset 1.0 strictly at the inscribed circle
+		# (r = 0.5), guaranteeing alpha == 0.0 before touching the quad border!
+		t.fill_to = Vector2(1.0, 0.5)
 		t.width = 96
 		t.height = 96
 		t.gradient = g
@@ -267,26 +292,88 @@ static func _ring_sprite() -> ImageTexture:
 
 
 static func _smoke_sprite() -> ImageTexture:
-	## Fractal-noise puff with a soft radial falloff: smoke no longer reads as
-	## a uniform circle.
+	## Multi-octave turbulent billow puff with strict zero-alpha border:
+	## reads as churning oil/diesel smoke instead of uniform round discs.
 	if _smoke_tex == null:
 		if _noise == null:
 			_noise = FastNoiseLite.new()
 			_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-			_noise.fractal_octaves = 2
-			_noise.frequency = 0.04
+			_noise.fractal_octaves = 3
+			_noise.frequency = 0.055
 		var s := 64
 		var img := Image.create(s, s, false, Image.FORMAT_RGBA8)
 		for y in range(s):
 			var v := float(y) / float(s - 1) * 2.0 - 1.0
 			for x in range(s):
 				var u := float(x) / float(s - 1) * 2.0 - 1.0
-				var radial: float = clampf(1.0 - sqrt(u * u + v * v), 0.0, 1.0)
+				var r := sqrt(u * u + v * v)
+				var radial: float = clampf(1.0 - r / 0.94, 0.0, 1.0)
 				var n: float = _noise.get_noise_2d(float(x), float(y)) * 0.5 + 0.5
-				var a: float = clampf((0.55 + n * 0.65) * pow(radial, 1.1), 0.0, 1.0)
-				img.set_pixel(x, y, Color(1, 1, 1, a))
+				var billow: float = clampf(pow(radial, 0.95) * (0.42 + n * 0.92), 0.0, 1.0)
+				# Subtle self-shaded puff luminance so thick smoke has internal volume
+				var shade: float = clampf(0.68 + n * 0.32 - v * 0.14, 0.45, 1.0)
+				img.set_pixel(x, y, Color(shade, shade, shade, billow))
 		_smoke_tex = _image_tex(img)
 	return _smoke_tex
+
+
+static func _fire_sprite() -> ImageTexture:
+	## High-contrast turbulent flame tongue sprite for rich daylight fireballs:
+	## dense white-hot ridges tapering into wispy jagged combustion edges.
+	if _fire_tex == null:
+		var fn := FastNoiseLite.new()
+		fn.seed = 4271
+		fn.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+		fn.fractal_octaves = 3
+		fn.frequency = 0.078
+		var s := 64
+		var img := Image.create(s, s, false, Image.FORMAT_RGBA8)
+		for y in range(s):
+			var v := float(y) / float(s - 1) * 2.0 - 1.0
+			for x in range(s):
+				var u := float(x) / float(s - 1) * 2.0 - 1.0
+				var r := sqrt(u * u + v * v)
+				var n: float = fn.get_noise_2d(float(x) + 17.0, float(y) - 9.0) * 0.5 + 0.5
+				var n2: float = fn.get_noise_2d(float(x) * 1.9 - 31.0, float(y) * 1.9 + 23.0) * 0.5 + 0.5
+				# Noise-warped radial boundary for torn flame tongues, zero-clamped inside quad
+				var edge_r := r - (n - 0.5) * 0.34
+				var mask: float = clampf(1.0 - edge_r / 0.88, 0.0, 1.0)
+				var hard_border: float = clampf((0.95 - r) * 10.0, 0.0, 1.0)
+				var a: float = clampf(pow(mask, 1.15) * (0.65 + n2 * 0.55) * hard_border, 0.0, 1.0)
+				# Bright core luminance fading slightly toward outer soot rim
+				var lum: float = clampf(0.75 + mask * 0.35 + (n2 - 0.4) * 0.25, 0.55, 1.0)
+				img.set_pixel(x, y, Color(lum, lum * (0.86 + mask * 0.14), lum * (0.72 + mask * 0.28), a))
+		_fire_tex = _image_tex(img)
+	return _fire_tex
+
+
+static func _scorch_sprite() -> ImageTexture:
+	## Organic radial blast crater soot mark with jagged ray streaks and a
+	## strict zero-alpha margin — never shows a rectangular quad border on asphalt.
+	if _scorch_tex == null:
+		var sn := FastNoiseLite.new()
+		sn.seed = 9013
+		sn.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+		sn.fractal_octaves = 3
+		sn.frequency = 0.075
+		var s := 96
+		var img := Image.create(s, s, false, Image.FORMAT_RGBA8)
+		for y in range(s):
+			var v := float(y) / float(s - 1) * 2.0 - 1.0
+			for x in range(s):
+				var u := float(x) / float(s - 1) * 2.0 - 1.0
+				var r := sqrt(u * u + v * v)
+				var ang := atan2(v, u)
+				# Radial blast rays + surface noise
+				var rays := sin(ang * 7.0 + 0.6) * 0.07 + cos(ang * 13.0 - 1.1) * 0.05
+				var n: float = sn.get_noise_2d(float(x), float(y)) * 0.5 + 0.5
+				var eff_r := r + rays + (n - 0.5) * 0.18
+				var core: float = clampf(1.0 - eff_r / 0.86, 0.0, 1.0)
+				var border: float = clampf((0.93 - r) * 12.0, 0.0, 1.0)
+				var a: float = clampf(pow(core, 1.45) * border, 0.0, 1.0)
+				img.set_pixel(x, y, Color(1, 1, 1, a))
+		_scorch_tex = _image_tex(img)
+	return _scorch_tex
 
 
 static func _sprite_material(additive: bool, key: String = "soft") -> StandardMaterial3D:
@@ -302,12 +389,20 @@ static func _sprite_material(additive: bool, key: String = "soft") -> StandardMa
 	match key:
 		"streak":
 			m.albedo_texture = _streak_sprite()
+			# BILLBOARD_ENABLED overrides particle_flag_align_y in Godot 4; disabling
+			# billboard lets sparks align along their velocity vector as true streaks!
+			m.billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
+			m.cull_mode = BaseMaterial3D.CULL_DISABLED
 		"flare":
 			m.albedo_texture = _flare_sprite()
 		"ring":
 			m.albedo_texture = _ring_sprite()
 		"smoke":
 			m.albedo_texture = _smoke_sprite()
+		"fire":
+			m.albedo_texture = _fire_sprite()
+		"scorch":
+			m.albedo_texture = _scorch_sprite()
 	if additive:
 		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	_sprite_mats[cache_key] = m
@@ -319,7 +414,7 @@ static func _sprite_quad(additive: bool, key: String, quad_size: float) -> QuadM
 	if _sprite_quads.has(qkey):
 		return _sprite_quads[qkey] as QuadMesh
 	var quad := QuadMesh.new()
-	quad.size = Vector2.ONE * quad_size
+	quad.size = Vector2(quad_size * 0.44, quad_size * 2.55) if key == "streak" else Vector2.ONE * quad_size
 	quad.material = _sprite_material(additive, key)
 	_sprite_quads[qkey] = quad
 	return quad
@@ -703,63 +798,114 @@ static func explosion(parent: Node3D, pos: Vector3, color: Color, scale: float =
 	holder.scale = Vector3.ONE * scale
 	parent.add_child(holder)
 
-	# light: fast attack, slow release (capped to stay within WebGL2's 8-light budget)
+	var reduced := Settings.reduced_motion()
+
+	# Stage 0: Dynamic flash light — fast attack, warm release; freed from vfx_light group
+	# as soon as it fades out so chained explosions never starve WebGL2's 8-light budget.
 	var light := OmniLight3D.new()
-	light.light_color = Color(1.0, 0.74, 0.34)
-	light.light_energy = 26.0
-	light.omni_range = 10.0
+	light.light_color = Color(1.0, 0.70, 0.28).lerp(color, 0.25)
+	light.light_energy = 32.0
+	light.omni_range = clampf(12.0 * scale, 9.0, 26.0)
 	light.add_to_group("vfx_light")
 	holder.add_child(light)
 	_cap_group(parent, "vfx_light", MAX_IMPACT_LIGHTS)
-	if Settings.reduced_motion():
-		light.light_energy = 7.0
+	if reduced:
+		light.light_energy = 7.5
+		var lrt := holder.create_tween()
+		lrt.tween_interval(0.35)
+		lrt.tween_callback(func() -> void:
+			if is_instance_valid(light):
+				light.remove_from_group("vfx_light")
+				light.queue_free())
 	else:
 		var lt := holder.create_tween()
-		lt.tween_property(light, "light_energy", 26.0, 0.05).from(0.0)
-		lt.tween_property(light, "light_energy", 0.0, 0.5)
+		lt.tween_property(light, "light_energy", 32.0, 0.04).from(0.0)
+		lt.tween_property(light, "light_energy", 0.0, 0.56)
+		lt.tween_callback(func() -> void:
+			if is_instance_valid(light):
+				light.remove_from_group("vfx_light")
+				light.queue_free())
 
-	var hot := [[0, 0.55], [0.35, 1.2], [1, 0.1]]
-	var smoke_curve := [[0, 0.5], [0.45, 1.05], [1, 1.7]]
+	# Stage 0b: Volumetric 3D expanding plasma core sphere (instant punch from every angle)
+	if not reduced:
+		var core_mat := _additive(Color(1.0, 0.94, 0.72, 0.92), 3.6)
+		var core_inst := MeshInstance3D.new()
+		core_inst.mesh = _ensure_plasma_sphere()
+		core_inst.material_override = core_mat
+		core_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		core_inst.position = Vector3(0.0, 0.35, 0.0)
+		core_inst.scale = Vector3.ONE * 0.35
+		holder.add_child(core_inst)
+		var ct := core_inst.create_tween()
+		ct.tween_property(core_inst, "scale", Vector3.ONE * 2.15, 0.19).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+		ct.parallel().tween_property(core_mat, "albedo_color", Color(1.0, 0.36, 0.04, 0.0), 0.19)
+		ct.tween_callback(core_inst.queue_free)
 
-	# fireball: compact white-hot core plus a wider amber/ember shell
-	_particle(holder, Vector3.ZERO, 40, 0.52, Vector3.UP, 50.0, 2.4, 6.2,
-			[Color(1, 0.98, 0.80, 1), Color(1, 0.80, 0.28, 0.85),
-			 Color(0.85, 0.22, 0.03, 0.0)], 0.86, Vector3(0, -1.0, 0), true,
-			{"curve": hot, "hue": 0.035, "damping": 1.6, "explosiveness": 1.0})
-	_particle(holder, Vector3.ZERO, 50, 0.68, Vector3.UP, 72.0, 3.4, 11.5,
-			[Color(1, 0.78, 0.30, 0.9), Color(1, 0.48, 0.08, 0.7),
-			 Color(0.72, 0.16, 0.02, 0.0)], 1.10, Vector3(0, -1.4, 0), true,
-			{"curve": [[0, 0.6], [0.4, 1.25], [1, 0.05]], "hue": 0.06, "damping": 1.2})
-	# heavy smoke column — rises and billows instead of hanging as a flat disc
-	_particle(holder, Vector3(0, 0.4, 0), 46, 2.4, Vector3.UP, 34.0, 0.5, 2.2,
-			[Color(0.30, 0.30, 0.33, 0.72), Color(0.20, 0.20, 0.22, 0.42), COL_SMOKE_DARK], 2.6,
-			Vector3(0, 0.45, 0), false,
-			{"tex": "smoke", "quad": 1.25, "curve": [[0, 0.75], [0.4, 1.2], [1, 2.1]], "angular": 1.6, "damping": 0.3})
-	# velocity-aligned embers
-	_particle(holder, Vector3(0, 0.3, 0), 40, 1.15, Vector3.UP, 85.0, 6.0, 14.0,
-			[Color(1, 0.84, 0.38, 0.85), Color(1, 0.46, 0.08, 0.6),
-			 Color(0.89, 0.24, 0.04, 0.0)], 0.12, Vector3(0, -7.5, 0), true,
-			{"tex": "streak", "align": true, "curve": [[0, 1], [0.65, 0.8], [1, 0.0]]})
+	# Stage 1a: Daylight-readable ALPHA-BLENDED turbulent fireball billows (deep saturated
+	# amber -> vermilion -> charred crimson -> soot, tightly cohesive around the blast core!)
+	_particle(holder, Vector3(0, 0.25, 0), 46, 0.88, Vector3.UP, 64.0, 1.8, 4.8,
+			[Color(1.0, 0.80, 0.22, 0.98), Color(1.0, 0.42, 0.06, 0.94),
+			 Color(0.68, 0.14, 0.04, 0.68), Color(0.10, 0.09, 0.10, 0.0)],
+			1.35, Vector3(0, 2.2, 0), false,
+			{"tex": "fire", "quad": 1.38, "curve": [[0, 0.48], [0.28, 1.38], [0.72, 1.12], [1, 0.32]],
+			 "hue": 0.04, "damping": 3.5, "angular": 2.6, "explosiveness": 0.96})
 
-	_flash_billboard(holder, Vector3(0, 0.4, 0), 2.4, COL_CORE, 0.16)
+	# Stage 1b: Tight incandescent ADDITIVE fire heart burning inside the fireball
+	_particle(holder, Vector3(0, 0.28, 0), 34, 0.54, Vector3.UP, 52.0, 1.6, 4.8,
+			[Color(1.0, 0.99, 0.85, 1.0), Color(1.0, 0.82, 0.28, 0.94),
+			 Color(1.0, 0.38, 0.05, 0.0)],
+			0.96, Vector3(0, 1.4, 0), true,
+			{"tex": "fire", "quad": 1.02, "curve": [[0, 0.50], [0.26, 1.35], [1, 0.08]],
+			 "hue": 0.03, "damping": 3.4, "angular": 3.2, "explosiveness": 1.0})
 
-	if not Settings.reduced_motion():
-		_ring_quad(holder, Vector3(0, 0.24, 0), 0.62, Color(1, 0.74, 0.32, 0.9), 6.0, 0.42, false)
-		_ring_quad(holder, Vector3(0, 0.18, 0), 1.10, Color(0.60, 0.53, 0.44, 0.7), 8.0, 0.72, true)
+	# Stage 2a: Heavy buoyant dark soot mushroom column rising and curling upward
+	_particle(holder, Vector3(0, 0.45, 0), 46, 2.55, Vector3.UP, 36.0, 1.2, 3.8,
+			[Color(0.24, 0.21, 0.20, 0.84), Color(0.16, 0.16, 0.18, 0.56), COL_SMOKE_DARK],
+			2.35, Vector3(0, 1.35, 0), false,
+			{"tex": "smoke", "quad": 1.40, "curve": [[0, 0.55], [0.35, 1.25], [1, 2.35]],
+			 "angular": 2.0, "damping": 0.72, "explosiveness": 0.82})
 
-	# debris: hot at first, cooling to char via 1 shared material + pooled shapes/meshes
+	# Stage 2b: Low ground-hugging blast soot/dust skirt anchoring the explosion to terrain
+	_particle(holder, Vector3(0, 0.22, 0), 22, 1.15, Vector3(0, 0.18, 1), 88.0, 4.2, 9.2,
+			[Color(0.42, 0.36, 0.30, 0.72), Color(0.24, 0.22, 0.20, 0.38), Color(0.18, 0.16, 0.15, 0.0)],
+			1.35, Vector3(0, 0.35, 0), false,
+			{"tex": "smoke", "quad": 1.15, "curve": [[0, 0.45], [0.35, 1.15], [1, 1.85]],
+			 "damping": 2.4, "angular": 1.8, "explosiveness": 0.96})
+
+	# Stage 3: High-velocity ballistic spark streaks + slow-drifting buoyant embers
+	_particle(holder, Vector3(0, 0.35, 0), 48, 1.15, Vector3.UP, 84.0, 8.5, 19.5,
+			[Color(1.0, 0.96, 0.72, 1.0), Color(1.0, 0.58, 0.14, 0.88),
+			 Color(0.89, 0.20, 0.03, 0.0)],
+			0.24, Vector3(0, -13.0, 0), true,
+			{"tex": "streak", "align": true, "curve": [[0, 1.0], [0.55, 0.85], [1, 0.0]],
+			 "explosiveness": 0.98})
+	_particle(holder, Vector3(0, 0.40, 0), 20, 1.65, Vector3.UP, 65.0, 1.2, 3.6,
+			[Color(1.0, 0.84, 0.34, 0.95), Color(1.0, 0.38, 0.06, 0.70), Color(0.75, 0.14, 0.02, 0.0)],
+			0.11, Vector3(0, 0.95, 0), true,
+			{"tex": "soft", "quad": 0.36, "curve": [[0, 0.8], [0.5, 1.0], [1, 0.0]],
+			 "damping": 0.55, "explosiveness": 0.78})
+
+	_flash_billboard(holder, Vector3(0, 0.42, 0), 3.1, COL_CORE, 0.17)
+
+	# Dual expanding ground shockwave rings: crisp thermal wave + matte dust wave
+	if not reduced:
+		_ring_quad(holder, Vector3(0, 0.24, 0), 0.56, Color(1.0, 0.80, 0.36, 0.95), 7.2, 0.36, false)
+		_ring_quad(holder, Vector3(0, 0.16, 0), 1.05, Color(0.54, 0.48, 0.41, 0.72), 9.0, 0.68, true)
+
+	# Stage 4: Irregular hot-to-char shrapnel shards (no harsh floating box shadows!)
 	_ensure_rubble_pool()
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
-	var pieces := 0 if Settings.reduced_motion() else int(12 * _q())
+	var pieces := 0 if reduced else int(11 * _q())
 	var debris_chunks: Array[RigidBody3D] = []
 	if pieces > 0:
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = COL_CHAR
 		mat.emission_enabled = true
 		mat.emission = COL_EMBER
-		mat.emission_energy_multiplier = 1.4
-		mat.roughness = 0.86
+		mat.emission_energy_multiplier = 2.2
+		mat.roughness = 0.82
+		mat.metallic = 0.25
 		for i in range(pieces):
 			var variant := i % _rubble_meshes.size()
 			var chunk := RigidBody3D.new()
@@ -772,29 +918,36 @@ static func explosion(parent: Node3D, pos: Vector3, color: Color, scale: float =
 			var mesh := MeshInstance3D.new()
 			mesh.mesh = _rubble_meshes[variant]
 			mesh.material_override = mat
+			mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			chunk.add_child(mesh)
-			# Parent RigidBody3D chunks to unscaled parent instead of scaled holder.
 			parent.add_child(chunk)
 			debris_chunks.append(chunk)
-			chunk.global_position = pos + Vector3(rng.randf_range(-0.5, 0.5),
-					rng.randf_range(0.2, 1.0), rng.randf_range(-0.5, 0.5))
-			chunk.linear_velocity = Vector3(rng.randf_range(-6, 6), rng.randf_range(3, 9),
-					rng.randf_range(-6, 6))
-			chunk.angular_velocity = Vector3(rng.randf_range(-8, 8), rng.randf_range(-8, 8),
-					rng.randf_range(-8, 8))
+			chunk.global_position = pos + Vector3(rng.randf_range(-0.45, 0.45),
+					rng.randf_range(0.25, 0.95), rng.randf_range(-0.45, 0.45)) * scale
+			var v_scale := clampf(scale, 0.85, 1.75)
+			chunk.linear_velocity = Vector3(rng.randf_range(-8.5, 8.5), rng.randf_range(4.5, 11.5),
+					rng.randf_range(-8.5, 8.5)) * v_scale
+			chunk.angular_velocity = Vector3(rng.randf_range(-11, 11), rng.randf_range(-11, 11),
+					rng.randf_range(-11, 11))
 		var cool := holder.create_tween()
-		cool.tween_property(mat, "emission_energy_multiplier", 0.0, 0.7)
+		cool.tween_property(mat, "emission_energy_multiplier", 0.0, 0.85)
 
-	# second beat: a small delayed detonation makes the blast feel physical
-	if not Settings.reduced_motion():
+	# Stage 5: Secondary internal detonation beat for visceral multi-stage punch
+	if not reduced:
 		var pop := holder.create_tween()
-		pop.tween_interval(0.16)
+		pop.tween_interval(0.14)
 		pop.tween_callback(func() -> void:
 			if is_instance_valid(holder):
-				_flash_billboard(holder, Vector3(rng.randf_range(-0.3, 0.3), 0.7,
-						rng.randf_range(-0.3, 0.3)), 0.9, COL_AMBER, 0.10))
+				var off := Vector3(rng.randf_range(-0.35, 0.35), 0.78, rng.randf_range(-0.35, 0.35))
+				_flash_billboard(holder, off, 1.35, COL_AMBER, 0.12)
+				_particle(holder, off, 14, 0.48, Vector3.UP, 60.0, 1.8, 5.2,
+						[Color(1.0, 0.86, 0.36, 0.95), Color(0.95, 0.36, 0.05, 0.78),
+						 Color(0.22, 0.10, 0.06, 0.0)],
+						0.85, Vector3(0, 1.8, 0), false,
+						{"tex": "fire", "quad": 1.05, "curve": [[0, 0.5], [0.35, 1.2], [1, 0.2]],
+						 "damping": 2.4, "explosiveness": 1.0}))
 
-	scorch(parent, pos)
+	scorch(parent, pos, scale)
 
 	var cleanup := holder.create_tween()
 	cleanup.tween_interval(3.4)
@@ -849,24 +1002,25 @@ static func tire_smoke(parent: Node3D, pos: Vector3) -> void:
 			Vector3(0, 0.25, 0), false, {"tex": "smoke", "quad": 0.9})
 
 
-static func scorch(parent: Node3D, pos: Vector3) -> void:
+static func scorch(parent: Node3D, pos: Vector3, blast_scale: float = 1.0) -> void:
 	if parent == null:
 		return
 	var quad := QuadMesh.new()
-	quad.size = Vector2(2.0, 2.0)
+	var s := 2.75 * clampf(blast_scale, 0.80, 2.65)
+	quad.size = Vector2(s, s)
 	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(0.05, 0.04, 0.04, 0.62)
+	m.albedo_color = Color(0.05, 0.04, 0.04, 0.78)
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.albedo_texture = _soft_sprite()
+	m.albedo_texture = _scorch_sprite()
 	m.billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	quad.material = m
 	var disc := MeshInstance3D.new()
 	disc.mesh = quad
-	disc.position = Vector3(pos.x, 0.022, pos.z)
+	disc.position = Vector3(pos.x, 0.024, pos.z)
 	disc.rotation_degrees.x = -90.0
-	disc.rotation_degrees.z = randf_range(0.0, 180.0)
+	disc.rotation_degrees.z = randf_range(0.0, 360.0)
 	disc.add_to_group("vfx_scorch")
 	parent.add_child(disc)
 	_cap_group(parent, "vfx_scorch", MAX_SCORCH)

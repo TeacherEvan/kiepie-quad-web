@@ -435,6 +435,9 @@ func fire() -> void:
 	var cam := get_tree().get_first_node_in_group("camera_rig") if get_tree() != null else null
 	if cam != null and cam.has_method("add_shake"):
 		cam.call("add_shake", 0.22 if active_weapon != "primary" else 0.10)
+	var pogo_rider := owner_node.get_node_or_null("Model/Rider") if owner_node != null else null
+	if pogo_rider != null and pogo_rider.has_method("trigger_recoil"):
+		pogo_rider.call("trigger_recoil", 1.35 if active_weapon != "primary" else 0.75)
 
 	var fx_parent := _resolve_fx_parent()
 	var right_vec := owner_node.global_transform.basis.x.normalized()

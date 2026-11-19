@@ -54,6 +54,16 @@ func _textures() -> void:
 	_check(vf._flare_sprite() != null and vf._ring_sprite() != null,
 			"flare star + ground ring generated")
 	_check(vf._smoke_sprite() != null, "noise smoke sprite generated")
+	var fire_tex: ImageTexture = vf._fire_sprite()
+	var scorch_tex: ImageTexture = vf._scorch_sprite()
+	_check(fire_tex != null and scorch_tex != null, "turbulent fire + organic scorch sprites generated")
+	if fire_tex != null and scorch_tex != null:
+		var fimg := fire_tex.get_image()
+		var simg := scorch_tex.get_image()
+		_check(fimg.get_pixel(0, 0).a <= 0.01 and fimg.get_pixel(fimg.get_width() / 2, 0).a <= 0.01,
+				"fire sprite hits zero alpha inside quad border (no square edge)")
+		_check(simg.get_pixel(0, 0).a <= 0.01 and simg.get_pixel(simg.get_width() / 2, 0).a <= 0.01,
+				"scorch sprite hits zero alpha inside quad border (no square scorch artifact)")
 	var ramp: GradientTexture1D = vf._ramp([
 			Color(1, 1, 1, 1), Color(1, 0.5, 0.1, 0.7), Color(1, 0.2, 0, 0)])
 	_check(ramp.gradient.get_point_count() == 3 and

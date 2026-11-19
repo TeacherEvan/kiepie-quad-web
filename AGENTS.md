@@ -120,8 +120,8 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 - VFX live in `src/game/VfxFactory.gd` and are used broadly: `CombatController`, `SideCannons`
   (muzzle flash/casings), `Projectile` (scenery impacts only — bikes/hazards already emit their
   own), `Pickup`, `DestructibleBuilding`, `FuelDrum`, `NetworkedBike` and `KiepieBike.gd`
-  (landing/roost dust hooks). The five sprite textures are generated at runtime by `prewarm()` —
-  do not add image assets for
+  (landing/roost dust hooks). The seven sprite textures (`soft`, `streak`, `flare`, `ring`,
+  `smoke`, `fire`, `scorch`) are generated at runtime by `prewarm()` — do not add image assets for
   effects; keep bursts inside `_q()` and reduced-motion guards. Scorch (`MAX_SCORCH = 12`) and
   bullet scars (`MAX_SCAR = 24`) leave their groups before `queue_free()` or the next frame
   still counts them against the cap. `-s` tool scripts must `load()` VfxFactory at runtime
@@ -241,13 +241,17 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   are identical to the bike.
   - `Pogo_Nardus.blend` → `src/build_pogo_nardus.py` → `godot/assets/Pogo_Nardus.glb`
     (never hand-edit; back-of-shirt decal generated via `src/gen_decal_nardus.py` →
-    `assets/decal_nardus.png`). GLB layout is one level flat: `Rider/` (bobs via
-    `src/game/PogoVisual.gd` — cosmetic spring, belly slosh + landing squash) and `Stick/`
-    (the pogo). Weapon is bananas (`BananaProjectile.gd`, procedural crescent; 60 dmg,
-    0.40 s / 0.18 s rapid, `pop` SFX) — twice the cannon damage at half the rate.
+    `assets/decal_nardus.png`). GLB layout uses modular articulated pivots: `Rider/` (`RiderBody`,
+    `Belly`, `Head`, `Arm_L`, `Arm_R`, `NardusDecal`) and `Stick/` (`StickLower`, `SpringCoil`,
+    `StickUpper`, `BananaMuzzle_L`, `BananaMuzzle_R`). `src/game/PogoVisual.gd` drives 4 procedural
+    animations (`Idle_Breathe`, two-phase ballistic `Locomotion_Hop` with live spring compression &
+    telescoping upper stick, airborne `Jump_Arc` + heavy touchdown slam, and `Action_TurboFlap`
+    symmetric wing-flap + banana recoil) using sub-stepped secondary springs (`MAX_FRAME_DT = 0.1`,
+    `MAX_SUB_DT = 0.00833`) and `expDecay`. Weapon is bananas (`BananaProjectile.gd`, procedural
+    crescent; 60 dmg, 0.40 s / 0.18 s rapid, `pop` SFX) — twice the cannon damage at half the rate.
     `vehicle_profile` on `KiepieBike.gd` carries `bike|pogo`; `SideCannons` PROFILES is
     keyed `bike`/`pogo` only.
-  - `verify_pogo.gd` locks assignment determinism, roster-level guaranteed Nardus assignment (`VehicleRegistry.for_player_in_roster`), identical vehicle stats, the runtime swap, shoulder-pivoted `Rider/Arm_L` & `Rider/Arm_R` bird-wing flapping during turbo, weapon profile and the pogo ground datum (minZ = 0.000).
+  - `verify_pogo.gd` locks assignment determinism, roster-level guaranteed Nardus assignment (`VehicleRegistry.for_player_in_roster`), identical vehicle stats, the runtime swap, modular pivots (`Rider/Head`, `Stick/StickLower|SpringCoil|StickUpper`), live `SpringCoil` compression & `Head` follow-through, shoulder-pivoted `Rider/Arm_L` & `Rider/Arm_R` bird-wing flapping during turbo, weapon profile and the pogo ground datum (minZ = 0.000).
   - `verify_deathrace.gd` locks Dashboard Battle Royale (default) & Death Race mode selection, `DeathRace.tscn` circuit (4 kerbed turns, 2 360° stunt loops with `LoopZone` centripetal adhesion, 3 molten hazard pits, pit stop lane, 8 jump ramps, pickups, 4 ordered checkpoints, checkered `FinishLine`, `RaceTracker` lap counter, and `web-assets/kiepie-victory-splash.mp4` victory splash), plus Rocket Launcher (5.0s cooldown, 2× MG damage, 4.5m small blast radius), Meteor Shower (6.0s cooldown, 3D ground aiming reticle, 2.0s sky-fall delay, massive 3.5× AOE damage), `HUD/ReloadBar` & `HUD/WeaponLabel` reload status, and mobile right-analog-back weapon switching.
 - Forward axis is local **+Z** (positive `engine_force` drives +Z; GLB import already flips the
   Blender nose to +Z). FL/FR wheels at z = +0.68, rear at -0.66; chase camera is at
