@@ -96,6 +96,8 @@ func _exit_tree() -> void:
 	var vp := get_viewport()
 	if vp != null and vp.size_changed.is_connected(_on_viewport_resized):
 		vp.size_changed.disconnect(_on_viewport_resized)
+	if Settings.changed.is_connected(_on_setting_changed):
+		Settings.changed.disconnect(_on_setting_changed)
 	_flush_writes()
 
 
@@ -224,13 +226,15 @@ func _refresh_all() -> void:
 
 func _on_setting_changed(_section: String, _key: String, _value: Variant) -> void:
 	## A slider burst emits one signal per tick; repaint all widgets once, at the end.
+	if not is_inside_tree() or get_tree() == null:
+		return
 	if _refreshing or _refresh_pending:
 		return
 	_refresh_pending = true
 	var timer := get_tree().create_timer(0.15)
 	timer.timeout.connect(func() -> void:
 		_refresh_pending = false
-		if is_instance_valid(self):
+		if is_instance_valid(self) and is_inside_tree():
 			_refresh_all())
 
 
@@ -270,11 +274,15 @@ func _apply_safe_area(margin: MarginContainer) -> void:
 	var sa := DisplayServer.get_display_safe_area()
 	var sx := vp.x / float(win.x)
 	var sy := vp.y / float(win.y)
-	var l := int(maxf(24.0, float(sa.position.x) * sx))
-	var t := int(maxf(20.0, float(sa.position.y) * sy))
-	var r := int(maxf(24.0, float(win.x - sa.end.x) * sx))
-	# The Web shell paints a fixed hint strip along the bottom; keep clear of it.
-	var b := int(maxf(56.0, float(win.y - sa.end.y) * sy))
+	var short := vp.y <= 480.0
+	var min_lr := 12.0 if vp.x <= 480.0 else 24.0
+	var min_t := 6.0 if short else 20.0
+	var min_b := 6.0 if short else (16.0 if vp.x < 720.0 else 56.0)
+	var l := int(maxf(min_lr, float(sa.position.x) * sx))
+	var t := int(maxf(min_t, float(sa.position.y) * sy))
+	var r := int(maxf(min_lr, float(win.x - sa.end.x) * sx))
+	# The Web shell paints a fixed hint strip along the bottom on wide desktop; keep clear of it.
+	var b := int(maxf(min_b, float(win.y - sa.end.y) * sy))
 	margin.set("theme_override_constants/margin_left", l)
 	margin.set("theme_override_constants/margin_top", t)
 	margin.set("theme_override_constants/margin_right", r)

@@ -45,6 +45,7 @@ static func attach(line_edit: LineEdit, opts: Dictionary = {}) -> Node:
 
 
 func _ready() -> void:
+	set_process(false)
 	if _le == null:
 		return
 	_next_id += 1
@@ -52,13 +53,14 @@ func _ready() -> void:
 	_last_text = _le.text
 	if OS.has_feature("web") and Engine.has_singleton("JavaScriptBridge"):
 		_install_js_bridge()
-		_web_active = true
 		_mobile_like = bool(JavaScriptBridge.eval("!!(window.__kiepieVk && window.__kiepieVk.isMobileLike())", true))
 		if _mobile_like:
+			_web_active = true
+			set_process(true)
 			# Prevent Godot's hidden zIndex:-1 input from stealing focus inside rAF.
 			_le.virtual_keyboard_enabled = false
-		_le.gui_input.connect(_on_le_gui_input)
-		_sync_field(true)
+			_le.gui_input.connect(_on_le_gui_input)
+			_sync_field(true)
 
 
 func _process(_delta: float) -> void:

@@ -249,7 +249,7 @@ func _check_auto_start() -> void:
 
 func _schedule_auto_start(gen: int) -> void:
 	await get_tree().create_timer(1.0).timeout
-	if not is_instance_valid(self) or gen != _auto_start_gen:
+	if not is_instance_valid(self) or not is_inside_tree() or gen != _auto_start_gen:
 		return
 	if _is_host() and not _transitioning and not _btn_start.disabled and not Match.is_playing() and Match.all_ready():
 		_on_start()
@@ -379,11 +379,15 @@ func _apply_safe_area(margin: MarginContainer) -> void:
 	var sa := DisplayServer.get_display_safe_area()
 	var sx := vp.x / float(win.x)
 	var sy := vp.y / float(win.y)
-	var l := int(maxf(24.0, float(sa.position.x) * sx))
-	var t := int(maxf(20.0, float(sa.position.y) * sy))
-	var r := int(maxf(24.0, float(win.x - sa.end.x) * sx))
-	# The Web shell paints a fixed hint strip along the bottom; keep clear of it.
-	var b := int(maxf(56.0, float(win.y - sa.end.y) * sy))
+	var short := vp.y <= 480.0
+	var min_lr := 12.0 if vp.x <= 480.0 else 24.0
+	var min_t := 6.0 if short else 20.0
+	var min_b := 6.0 if short else (16.0 if vp.x < 720.0 else 56.0)
+	var l := int(maxf(min_lr, float(sa.position.x) * sx))
+	var t := int(maxf(min_t, float(sa.position.y) * sy))
+	var r := int(maxf(min_lr, float(win.x - sa.end.x) * sx))
+	# The Web shell paints a fixed hint strip along the bottom on wide desktop; keep clear of it.
+	var b := int(maxf(min_b, float(win.y - sa.end.y) * sy))
 	margin.set("theme_override_constants/margin_left", l)
 	margin.set("theme_override_constants/margin_top", t)
 	margin.set("theme_override_constants/margin_right", r)

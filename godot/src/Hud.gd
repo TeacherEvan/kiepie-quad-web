@@ -12,6 +12,7 @@ var _speed_label: Label
 var _smash_label: Label
 var _hitmarker: Label
 var _hit_tween: Tween
+var _hit_gen := 0
 var _help_label: Label
 var _restart_btn: Button
 var _view_btn: Button
@@ -108,11 +109,16 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func _on_hit_confirmed() -> void:
 	if _hitmarker == null:
 		return
+	_hit_gen += 1
+	var gen := _hit_gen
 	if _hit_tween != null and _hit_tween.is_valid():
 		_hit_tween.kill()
+	_hit_tween = null
 	_hitmarker.modulate.a = 1.0
 	if Settings.reduced_motion():
 		await get_tree().create_timer(0.12).timeout
+		if not is_inside_tree() or gen != _hit_gen:
+			return
 		if is_instance_valid(_hitmarker):
 			_hitmarker.modulate.a = 0.0
 		return
@@ -128,7 +134,8 @@ func _on_viewport_resized() -> void:
 	var timer := get_tree().create_timer(0.1)
 	timer.timeout.connect(func() -> void:
 		_relayout_pending = false
-		_relayout())
+		if is_instance_valid(self) and is_inside_tree():
+			_relayout())
 
 
 func _relayout() -> void:

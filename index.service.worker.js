@@ -50,6 +50,10 @@ self.addEventListener('activate', (event) => {
  * @returns {Response}
  */
 function ensureCrossOriginIsolationHeaders(response) {
+	if (!response || response.status === 0 || response.type === 'opaque'
+		|| [204, 205, 304].includes(response.status)) {
+		return response;
+	}
 	if (response.headers.get('Cross-Origin-Embedder-Policy') === 'require-corp'
 		&& response.headers.get('Cross-Origin-Opener-Policy') === 'same-origin') {
 		return response;
@@ -102,15 +106,21 @@ self.addEventListener(
 	 * @param {FetchEvent} event
 	 */
 	(event) => {
+		if (event.request.method !== 'GET') {
+			return;
+		}
 		const isNavigate = event.request.mode === 'navigate';
 		const url = event.request.url || '';
 		let local = '';
 		try {
 			const u = new URL(url, self.location.href);
-			if (u.origin === self.location.origin) {
-				local = u.pathname.slice(u.pathname.lastIndexOf('/') + 1);
+			if (u.origin !== self.location.origin) {
+				return;
 			}
-		} catch (_) {}
+			local = u.pathname.slice(u.pathname.lastIndexOf('/') + 1);
+		} catch (_) {
+			return;
+		}
 		const isEngine = ENGINE_FILES.includes(local);
 		const isCachable = FULL_CACHE.some((v) => v === local) || (isNavigate && local === '');
 		const networkFirst = isNavigate || local === '' || local === 'index.html' || local === 'index.js' || local === 'index.manifest.json';
@@ -119,20 +129,31 @@ self.addEventListener(
 				const targetCacheName = isEngine ? ENGINE_CACHE : CACHE_NAME;
 				const cache = await caches.open(targetCacheName);
 				if (networkFirst) {
+					const netPromise = fetchAndCache(event, cache, isCachable);
+					netPromise.catch(() => {});
 					try {
 						return await Promise.race([
-							fetchAndCache(event, cache, isCachable),
+							netPromise,
 							new Promise((_, rej) => setTimeout(() => rej(new Error('sw-timeout')), 2500)),
 						]);
 					} catch (e) {
 						let cached = await cache.match(event.request);
+						if (cached == null && isNavigate) {
+							cached = await cache.match('index.html');
+						}
 						if (cached != null) {
 							return ENSURE_CROSSORIGIN_ISOLATION_HEADERS ? ensureCrossOriginIsolationHeaders(cached) : cached;
 						}
-						if (isNavigate) {
-							return caches.match(OFFLINE_URL);
+						if (e && e.message === 'sw-timeout') {
+							return await netPromise;
 						}
-						return await fetchAndCache(event, cache, isCachable);
+						if (isNavigate) {
+							const off = await caches.match(OFFLINE_URL);
+							if (off != null) {
+								return off;
+							}
+						}
+						throw e;
 					}
 				}
 				// Cache-First for immutable ENGINE_CACHE (index.wasm) and content-hashed CACHE_NAME (index.pck)

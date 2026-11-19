@@ -81,21 +81,26 @@ echo "== sync web/ -> repo root"
 	exit 1
 }
 cp -f "$ROOT/web/"* "$ROOT/" || { echo "DEPLOY ABORTED: sync failed"; exit 1; }
-# --only commits exactly these paths even if unrelated files are staged already.
-git commit --only -m "Kiepie Quad: web export refresh $(date -u +%Y-%m-%dT%H:%M:%SZ)" -- \
-	  index.html index.js index.wasm index.pck index.manifest.json index.service.worker.js \
-	  index.audio.worklet.js index.offline.html index.png favicon.ico index.144x144.png \
-	  index.180x180.png index.512x512.png || {
+BUNDLE_FILES=(
+	index.html index.js index.wasm index.pck index.manifest.json index.service.worker.js
+	index.audio.worklet.js index.offline.html index.png favicon.ico index.144x144.png
+	index.180x180.png index.512x512.png
+)
+if git diff --quiet -- "${BUNDLE_FILES[@]}" && git diff --cached --quiet -- "${BUNDLE_FILES[@]}"; then
 	echo "   (nothing to commit — bundle identical)"
-}
+else
+	# --only commits exactly these paths even if unrelated files are staged already.
+	git commit --only -m "Kiepie Quad: web export refresh $(date -u +%Y-%m-%dT%H:%M:%SZ)" -- \
+		"${BUNDLE_FILES[@]}" || { echo "DEPLOY ABORTED: commit failed"; exit 1; }
+fi
 git push origin main || { echo "DEPLOY ABORTED: push failed"; exit 1; }
 
 echo "== verify Vercel auto-deploy (live alias)"
 LOCAL_MD5=$(md5sum "$ROOT/index.html" | awk '{print $1}')
 for i in $(seq 1 24); do
 	sleep 5
-	LIVE_MD5=$(curl -s https://kiepie-quad-web.vercel.app/index.html | md5sum | awk '{print $1}')
-	if [ "$LIVE_MD5" = "$LOCAL_MD5" ]; then
+	LIVE_MD5=$(curl --fail --max-time 10 -s https://kiepie-quad-web.vercel.app/index.html | md5sum | awk '{print $1}') || LIVE_MD5=""
+	if [ -n "$LIVE_MD5" ] && [ "$LIVE_MD5" = "$LOCAL_MD5" ]; then
 		echo "DEPLOY OK — live alias serves the pushed build ($LIVE_MD5)"
 		exit 0
 	fi

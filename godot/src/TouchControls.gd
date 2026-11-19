@@ -245,8 +245,10 @@ static func _curve(t: float) -> float:
 	return signf(t) * a * a * (3.0 - 2.0 * a)
 
 func _process(_delta: float) -> void:
-	_sync_analog()
-	_sync_drive()
+	if not _analog.is_empty() or _analog_side != 0 or _analog_turbo or _analog_reverse:
+		_sync_analog()
+	if not _drive.is_empty() or _drive_gas or _drive_fire or _drive_dodge != 0:
+		_sync_drive()
 
 func _sync_analog() -> void:
 	# Analog steering + push-forward turbo + pull-back reverse: strongest
@@ -372,15 +374,24 @@ func _update_drive_pad(steer: float, fire_val: float, fire_on: bool,
 	if _drive_pad == null:
 		return
 	var changed := false
-	for spec in [["value", steer], ["fire_value", fire_val]]:
-		if not is_equal_approx(float(_drive_pad.get(spec[0])), float(spec[1])):
-			_drive_pad.set(spec[0], spec[1])
-			changed = true
-	for spec in [["fire_active", fire_on], ["dodge_left_active", left_on],
-			["dodge_right_active", right_on], ["gas_active", gas_on]]:
-		if bool(_drive_pad.get(spec[0])) != bool(spec[1]):
-			_drive_pad.set(spec[0], spec[1])
-			changed = true
+	if not is_equal_approx(float(_drive_pad.get("value")), steer):
+		_drive_pad.set("value", steer)
+		changed = true
+	if not is_equal_approx(float(_drive_pad.get("fire_value")), fire_val):
+		_drive_pad.set("fire_value", fire_val)
+		changed = true
+	if bool(_drive_pad.get("fire_active")) != fire_on:
+		_drive_pad.set("fire_active", fire_on)
+		changed = true
+	if bool(_drive_pad.get("dodge_left_active")) != left_on:
+		_drive_pad.set("dodge_left_active", left_on)
+		changed = true
+	if bool(_drive_pad.get("dodge_right_active")) != right_on:
+		_drive_pad.set("dodge_right_active", right_on)
+		changed = true
+	if bool(_drive_pad.get("gas_active")) != gas_on:
+		_drive_pad.set("gas_active", gas_on)
+		changed = true
 	if changed:
 		_drive_pad.queue_redraw()
 
@@ -537,7 +548,8 @@ func _relayout() -> void:
 		# Narrow / Portrait (e.g. 390x844): left steer pad, right drive pad.
 		var pad_w := clampf(vp.x * 0.44, 168.0, 250.0)
 		_set_rect(_analog_pad, 10.0, -140.0, 10.0 + pad_w, -20.0, 0.0)
-		var rw := clampf(148.0 * pad_scale, 110.0, 210.0)
+		var max_rw := maxf(110.0, vp.x - 10.0 - pad_w - 16.0 - 14.0)
+		var rw := clampf(148.0 * pad_scale, 110.0, minf(210.0, max_rw))
 		var rh := clampf(148.0 * pad_scale, 110.0, 210.0)
 		_set_rect(_drive_pad, -14.0 - rw, -16.0 - rh, -14.0, -16.0, 1.0)
 	elif vp.y < 520.0:

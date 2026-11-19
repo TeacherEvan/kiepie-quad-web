@@ -21,7 +21,11 @@ var _last_respawn_text := ""
 var _hp_fill: StyleBoxFlat
 var _hitmarker: Label = null
 var _hit_tween: Tween = null
+var _hurt_tween: Tween = null
 var _announce_tween: Tween = null
+var _hurt_gen := 0
+var _hit_gen := 0
+var _announce_gen := 0
 var _scores_open := false
 
 
@@ -185,7 +189,8 @@ func _on_viewport_resized() -> void:
 	var timer := get_tree().create_timer(0.1)
 	timer.timeout.connect(func() -> void:
 		_relayout_pending = false
-		_relayout())
+		if is_instance_valid(self) and is_inside_tree():
+			_relayout())
 
 
 func _relayout() -> void:
@@ -325,16 +330,23 @@ func _reduced_motion() -> bool:
 func _on_hurt(amount: float, _attacker_id: String) -> void:
 	if _vignette == null:
 		return
+	_hurt_gen += 1
+	var gen := _hurt_gen
+	if _hurt_tween != null and _hurt_tween.is_valid():
+		_hurt_tween.kill()
+	_hurt_tween = null
 	var strength := clampf(amount / 100.0, 0.12, 0.5)
 	_vignette.color.a = strength
 	if _reduced_motion():
 		# Static flash - no animated opacity ramp.
 		await get_tree().create_timer(0.15).timeout
+		if not is_inside_tree() or gen != _hurt_gen:
+			return
 		if is_instance_valid(_vignette):
 			_vignette.color.a = 0.0
 		return
-	var t := create_tween()
-	t.tween_property(_vignette, "color:a", 0.0, 0.45)
+	_hurt_tween = create_tween()
+	_hurt_tween.tween_property(_vignette, "color:a", 0.0, 0.45)
 
 
 func _on_pickup(kind: String) -> void:
@@ -344,14 +356,19 @@ func _on_pickup(kind: String) -> void:
 func _on_hit_confirmed() -> void:
 	if _hitmarker == null:
 		return
+	_hit_gen += 1
+	var gen := _hit_gen
 	# Rapid consecutive hits would otherwise race overlapping tweens and can
 	# strand the marker at 1.6x scale. Restart cleanly from a known state.
 	if _hit_tween != null and _hit_tween.is_valid():
 		_hit_tween.kill()
+	_hit_tween = null
 	_hitmarker.scale = Vector2.ONE
 	_hitmarker.modulate.a = 1.0
 	if _reduced_motion():
 		await get_tree().create_timer(0.12).timeout
+		if not is_inside_tree() or gen != _hit_gen:
+			return
 		if is_instance_valid(_hitmarker):
 			_hitmarker.modulate.a = 0.0
 		return
@@ -366,6 +383,8 @@ func _on_hit_confirmed() -> void:
 func announce(text: String) -> void:
 	if _announce_label == null:
 		return
+	_announce_gen += 1
+	var gen := _announce_gen
 	# Overlapping announcements kill the previous banner instead of stacking
 	# tweens on the same label.
 	if _announce_tween != null and _announce_tween.is_valid():
@@ -377,6 +396,8 @@ func announce(text: String) -> void:
 	if _reduced_motion():
 		_announce_label.modulate.a = 1.0
 		await get_tree().create_timer(1.4).timeout
+		if not is_inside_tree() or gen != _announce_gen:
+			return
 		if is_instance_valid(_announce_label):
 			_announce_label.modulate.a = 0.0
 			_announce_label.text = ""
@@ -494,7 +515,7 @@ func add_kill(killer_id: String, victim_id: String) -> void:
 	var line_ref = line
 	var timer := get_tree().create_timer(4.0)
 	timer.timeout.connect(func() -> void:
-		if not is_instance_valid(line_ref):
+		if not is_instance_valid(self) or not is_inside_tree() or not is_instance_valid(line_ref):
 			return
 		if _reduced_motion():
 			(line_ref as Node).queue_free()

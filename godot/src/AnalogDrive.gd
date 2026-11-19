@@ -120,22 +120,24 @@ func _draw() -> void:
 	draw_line(Vector2(cx - cw, cy2 + 5.0), Vector2(cx, cy2), cue, 2.2, true)
 	draw_line(Vector2(cx + cw, cy2 + 5.0), Vector2(cx, cy2), cue, 2.2, true)
 
-	# Dodge chevrons left/right.
+	# Dodge chevrons left/right (pointing outward: < on left, > on right).
 	var lcue := DODGE_LIT if dodge_left_active else DODGE_GUIDE
 	var rcue := DODGE_LIT if dodge_right_active else DODGE_GUIDE
-	draw_line(Vector2(w * 0.10 - 4.0, cy - 6.0), Vector2(w * 0.10 + 2.0, cy), lcue, 2.2, true)
-	draw_line(Vector2(w * 0.10 - 4.0, cy + 6.0), Vector2(w * 0.10 + 2.0, cy), lcue, 2.2, true)
-	draw_line(Vector2(w * 0.90 + 4.0, cy - 6.0), Vector2(w * 0.90 - 2.0, cy), rcue, 2.2, true)
-	draw_line(Vector2(w * 0.90 + 4.0, cy + 6.0), Vector2(w * 0.90 - 2.0, cy), rcue, 2.2, true)
+	draw_line(Vector2(w * 0.10 + 2.0, cy - 6.0), Vector2(w * 0.10 - 4.0, cy), lcue, 2.2, true)
+	draw_line(Vector2(w * 0.10 + 2.0, cy + 6.0), Vector2(w * 0.10 - 4.0, cy), lcue, 2.2, true)
+	draw_line(Vector2(w * 0.90 - 2.0, cy - 6.0), Vector2(w * 0.90 + 4.0, cy), rcue, 2.2, true)
+	draw_line(Vector2(w * 0.90 - 2.0, cy + 6.0), Vector2(w * 0.90 + 4.0, cy), rcue, 2.2, true)
 
-	# Specular top edge + outline.
+	# Specular top edge + outline (four 90° quarter-arcs + 4 straight borders).
 	draw_line(Vector2(rad, 2.0), Vector2(w - rad, 2.0), TRACK_SPECULAR, 1.5)
-	draw_arc(Vector2(rad, rad), rad, PI * 0.5, PI * 1.5, 20, TRACK_EDGE, 2.0, true)
-	draw_arc(Vector2(w - rad, rad), rad, -PI * 0.5, PI * 0.5, 20, TRACK_EDGE, 2.0, true)
-	draw_arc(Vector2(rad, h - rad), rad, PI * 0.5, PI * 1.5, 20, TRACK_EDGE, 2.0, true)
-	draw_arc(Vector2(w - rad, h - rad), rad, -PI * 0.5, PI * 0.5, 20, TRACK_EDGE, 2.0, true)
+	draw_arc(Vector2(rad, rad), rad, PI, PI * 1.5, 12, TRACK_EDGE, 2.0, true)
+	draw_arc(Vector2(w - rad, rad), rad, -PI * 0.5, 0.0, 12, TRACK_EDGE, 2.0, true)
+	draw_arc(Vector2(rad, h - rad), rad, PI * 0.5, PI, 12, TRACK_EDGE, 2.0, true)
+	draw_arc(Vector2(w - rad, h - rad), rad, 0.0, PI * 0.5, 12, TRACK_EDGE, 2.0, true)
 	draw_line(Vector2(rad, 1.0), Vector2(w - rad, 1.0), TRACK_EDGE, 2.0)
 	draw_line(Vector2(rad, h - 1.0), Vector2(w - rad, h - 1.0), TRACK_EDGE, 2.0)
+	draw_line(Vector2(1.0, rad), Vector2(1.0, h - rad), TRACK_EDGE, 2.0)
+	draw_line(Vector2(w - 1.0, rad), Vector2(w - 1.0, h - rad), TRACK_EDGE, 2.0)
 
 	# Text cues (only on pads tall enough to read them).
 	if ThemeDB.fallback_font != null and h >= 72.0:

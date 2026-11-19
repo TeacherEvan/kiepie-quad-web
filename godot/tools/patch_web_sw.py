@@ -8,9 +8,11 @@ Godot 4.3's template SW has three issues on mobile PWAs/browsers:
 3. Computes relative paths from `event.request.referrer`, which is empty on some reloads.
 """
 import hashlib
+import os
 from pathlib import Path
 import re
 import sys
+import tempfile
 
 
 def _sha12(path: Path) -> str:
@@ -90,6 +92,21 @@ def patch_service_worker(src: str, wasm_hash: str = "dev", pck_hash: str = "dev"
     if old_activate in out:
         out = out.replace(old_activate, new_activate, 1)
 
+    old_coep_fn = (
+        "function ensureCrossOriginIsolationHeaders(response) {\n"
+        "\tif (response.headers.get('Cross-Origin-Embedder-Policy') === 'require-corp'"
+    )
+    new_coep_fn = (
+        "function ensureCrossOriginIsolationHeaders(response) {\n"
+        "\tif (!response || response.status === 0 || response.type === 'opaque'\n"
+        "\t\t|| [204, 205, 304].includes(response.status)) {\n"
+        "\t\treturn response;\n"
+        "\t}\n"
+        "\tif (response.headers.get('Cross-Origin-Embedder-Policy') === 'require-corp'"
+    )
+    if old_coep_fn in out:
+        out = out.replace(old_coep_fn, new_coep_fn, 1)
+
     old_fetch_fn = (
         "\tif (isCacheable) {\n"
         "\t\t// And update the cache\n"
@@ -146,15 +163,21 @@ def patch_service_worker(src: str, wasm_hash: str = "dev", pck_hash: str = "dev"
         "\t\t\t})());"
     )
     new_fetch_block = (
+        "\t\tif (event.request.method !== 'GET') {\n"
+        "\t\t\treturn;\n"
+        "\t\t}\n"
         "\t\tconst isNavigate = event.request.mode === 'navigate';\n"
         "\t\tconst url = event.request.url || '';\n"
         "\t\tlet local = '';\n"
         "\t\ttry {\n"
         "\t\t\tconst u = new URL(url, self.location.href);\n"
-        "\t\t\tif (u.origin === self.location.origin) {\n"
-        "\t\t\t\tlocal = u.pathname.slice(u.pathname.lastIndexOf('/') + 1);\n"
+        "\t\t\tif (u.origin !== self.location.origin) {\n"
+        "\t\t\t\treturn;\n"
         "\t\t\t}\n"
-        "\t\t} catch (_) {}\n"
+        "\t\t\tlocal = u.pathname.slice(u.pathname.lastIndexOf('/') + 1);\n"
+        "\t\t} catch (_) {\n"
+        "\t\t\treturn;\n"
+        "\t\t}\n"
         "\t\tconst isEngine = ENGINE_FILES.includes(local);\n"
         "\t\tconst isCachable = FULL_CACHE.some((v) => v === local) || (isNavigate && local === '');\n"
         "\t\tconst networkFirst = isNavigate || local === '' || local === 'index.html' || local === 'index.js' || local === 'index.manifest.json';\n"
@@ -163,20 +186,31 @@ def patch_service_worker(src: str, wasm_hash: str = "dev", pck_hash: str = "dev"
         "\t\t\t\tconst targetCacheName = isEngine ? ENGINE_CACHE : CACHE_NAME;\n"
         "\t\t\t\tconst cache = await caches.open(targetCacheName);\n"
         "\t\t\t\tif (networkFirst) {\n"
+        "\t\t\t\t\tconst netPromise = fetchAndCache(event, cache, isCachable);\n"
+        "\t\t\t\t\tnetPromise.catch(() => {});\n"
         "\t\t\t\t\ttry {\n"
         "\t\t\t\t\t\treturn await Promise.race([\n"
-        "\t\t\t\t\t\t\tfetchAndCache(event, cache, isCachable),\n"
+        "\t\t\t\t\t\t\tnetPromise,\n"
         "\t\t\t\t\t\t\tnew Promise((_, rej) => setTimeout(() => rej(new Error('sw-timeout')), 2500)),\n"
         "\t\t\t\t\t\t]);\n"
         "\t\t\t\t\t} catch (e) {\n"
         "\t\t\t\t\t\tlet cached = await cache.match(event.request);\n"
+        "\t\t\t\t\t\tif (cached == null && isNavigate) {\n"
+        "\t\t\t\t\t\t\tcached = await cache.match('index.html');\n"
+        "\t\t\t\t\t\t}\n"
         "\t\t\t\t\t\tif (cached != null) {\n"
         "\t\t\t\t\t\t\treturn ENSURE_CROSSORIGIN_ISOLATION_HEADERS ? ensureCrossOriginIsolationHeaders(cached) : cached;\n"
         "\t\t\t\t\t\t}\n"
-        "\t\t\t\t\t\tif (isNavigate) {\n"
-        "\t\t\t\t\t\t\treturn caches.match(OFFLINE_URL);\n"
+        "\t\t\t\t\t\tif (e && e.message === 'sw-timeout') {\n"
+        "\t\t\t\t\t\t\treturn await netPromise;\n"
         "\t\t\t\t\t\t}\n"
-        "\t\t\t\t\t\treturn await fetchAndCache(event, cache, isCachable);\n"
+        "\t\t\t\t\t\tif (isNavigate) {\n"
+        "\t\t\t\t\t\t\tconst off = await caches.match(OFFLINE_URL);\n"
+        "\t\t\t\t\t\t\tif (off != null) {\n"
+        "\t\t\t\t\t\t\t\treturn off;\n"
+        "\t\t\t\t\t\t\t}\n"
+        "\t\t\t\t\t\t}\n"
+        "\t\t\t\t\t\tthrow e;\n"
         "\t\t\t\t\t}\n"
         "\t\t\t\t}\n"
         "\t\t\t\t// Cache-First for immutable ENGINE_CACHE (index.wasm) and content-hashed CACHE_NAME (index.pck)\n"
@@ -196,6 +230,22 @@ def patch_service_worker(src: str, wasm_hash: str = "dev", pck_hash: str = "dev"
     return out
 
 
+def _write_atomic(path: Path, text: str) -> None:
+    fd, tmp_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_name, path)
+    except BaseException:
+        try:
+            os.unlink(tmp_name)
+        except OSError:
+            pass
+        raise
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         print("usage: patch_web_sw.py <path/to/index.service.worker.js>", file=sys.stderr)
@@ -204,7 +254,7 @@ def main() -> int:
     wasm_hash = _sha12(path.parent / "index.wasm")
     pck_hash = _sha12(path.parent / "index.pck")
     patched = patch_service_worker(path.read_text(encoding="utf-8"), wasm_hash, pck_hash)
-    path.write_text(patched, encoding="utf-8")
+    _write_atomic(path, patched)
     print(f"patch_web_sw: patched {path} (wasm={wasm_hash} pck={pck_hash})")
     return 0
 

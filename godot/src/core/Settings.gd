@@ -273,15 +273,11 @@ func _ensure_audio_buses() -> void:
 	## Godot ships only "Master"; create the buses the audio sliders control.
 	var wanted := ["Master", "SFX", "Engine", "UI"]
 	for i in range(1, wanted.size()):
-		var found := false
-		for b in range(AudioServer.bus_count):
-			if AudioServer.get_bus_name(b) == wanted[i]:
-				found = true
-				break
-		if not found:
+		if AudioServer.get_bus_index(wanted[i]) == -1:
 			AudioServer.add_bus()
-			AudioServer.set_bus_name(i, wanted[i])
-			AudioServer.set_bus_send(i, "Master")
+			var idx := AudioServer.bus_count - 1
+			AudioServer.set_bus_name(idx, wanted[i])
+			AudioServer.set_bus_send(idx, "Master")
 
 
 func _load() -> void:
@@ -366,14 +362,18 @@ func apply_all() -> void:
 func _apply(section: String, key: String, value: Variant) -> void:
 	match section:
 		"audio":
-			var bus_index: int = {
-				"master": 0, "sfx": 1, "engine": 2, "ui": 3,
-			}.get(key, -1)
-			if bus_index != -1 and bus_index < AudioServer.bus_count:
-				var linear := maxf(0.0001, float(value))
-				AudioServer.set_bus_volume_db(bus_index, linear_to_db(linear))
+			var bus_name: String = {
+				"master": "Master", "sfx": "SFX", "engine": "Engine", "ui": "UI",
+			}.get(key, "")
+			if bus_name != "":
+				var bus_index := AudioServer.get_bus_index(bus_name)
+				if bus_index != -1:
+					var linear := maxf(0.0001, float(value))
+					AudioServer.set_bus_volume_db(bus_index, linear_to_db(linear))
 			elif key == "muted":
-				AudioServer.set_bus_mute(0, bool(value))
+				var master_idx := AudioServer.get_bus_index("Master")
+				if master_idx != -1:
+					AudioServer.set_bus_mute(master_idx, bool(value))
 		"video":
 			if key == "fullscreen":
 				if DisplayServer.get_name() == "headless" or OS.get_environment("KIEPIE_MOCK_BACKEND") == "1":
