@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1795090477|7018633|f010b91d8eb7';
+const CACHE_VERSION = '1795096918|6634088|a9a69092f60e';
 /** @type {string} */
 const CACHE_PREFIX = 'KiepieBike-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
@@ -51,7 +51,7 @@ self.addEventListener('activate', (event) => {
  */
 function ensureCrossOriginIsolationHeaders(response) {
 	if (!response || response.status === 0 || response.type === 'opaque'
-		|| [204, 205, 304].includes(response.status)) {
+		|| [204, 205, 206, 304].includes(response.status)) {
 		return response;
 	}
 	if (response.headers.get('Cross-Origin-Embedder-Policy') === 'require-corp'
@@ -131,10 +131,11 @@ self.addEventListener(
 				if (networkFirst) {
 					const netPromise = fetchAndCache(event, cache, isCachable);
 					netPromise.catch(() => {});
+					let tid = null;
 					try {
 						return await Promise.race([
 							netPromise,
-							new Promise((_, rej) => setTimeout(() => rej(new Error('sw-timeout')), 2500)),
+							new Promise((_, rej) => { tid = setTimeout(() => rej(new Error('sw-timeout')), 2500); }),
 						]);
 					} catch (e) {
 						let cached = await cache.match(event.request);
@@ -154,6 +155,8 @@ self.addEventListener(
 							}
 						}
 						throw e;
+					} finally {
+						if (tid !== null) clearTimeout(tid);
 					}
 				}
 				// Cache-First for immutable ENGINE_CACHE (index.wasm) and content-hashed CACHE_NAME (index.pck)
