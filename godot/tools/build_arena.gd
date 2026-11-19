@@ -265,7 +265,7 @@ func _add_match_hud(root: Node) -> void:
 
 	var score_toggle := Button.new()
 	score_toggle.name = "ScoreToggle"
-	score_toggle.text = "SCORES ▾"
+	score_toggle.text = "SCORES v"
 	score_toggle.anchor_left = 1.0
 	score_toggle.anchor_right = 1.0
 	score_toggle.anchor_top = 0.0

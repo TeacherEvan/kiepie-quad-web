@@ -9,6 +9,7 @@ Conventions (Blender native, +Z up, -Y forward, +X right):
 import bpy
 import bmesh
 import math
+import warnings
 from mathutils import Vector, Matrix, Euler
 
 TAU = math.pi * 2.0
@@ -38,8 +39,8 @@ def collection(name, parent=None):
     if c.name not in [ch.name for ch in tgt.children]:
         try:
             tgt.children.link(c)
-        except RuntimeError:
-            pass
+        except RuntimeError as exc:
+            warnings.warn(f"qb_core.collection: could not link {name!r}: {exc}")
     return c
 
 
@@ -75,8 +76,8 @@ def make_material(name, color=(0.5, 0.5, 0.5), metallic=0.0, roughness=0.5,
         if key in b.inputs:
             try:
                 b.inputs[key].default_value = val
-            except (TypeError, ValueError):
-                pass
+            except (TypeError, ValueError) as exc:
+                warnings.warn(f"qb_core.make_material({name!r}): input {key!r} rejected {val!r}: {exc}")
 
     setv('Base Color', (color[0], color[1], color[2], 1.0))
     setv('Metallic', metallic)
@@ -95,8 +96,8 @@ def make_material(name, color=(0.5, 0.5, 0.5), metallic=0.0, roughness=0.5,
         if hasattr(mat, 'blend_method'):
             try:
                 mat.blend_method = 'BLEND'
-            except Exception:
-                pass
+            except (AttributeError, TypeError, ValueError) as exc:
+                warnings.warn(f"qb_core.make_material({name!r}): blend_method unsupported: {exc}")
     return mat
 
 
@@ -452,8 +453,8 @@ def _cap_holes(ob):
             if len(loop_verts) >= 3 and current_vert == start_vert:
                 try:
                     bm.faces.new(loop_verts)
-                except Exception:
-                    pass
+                except ValueError as exc:
+                    warnings.warn(f"qb_core.cap_open_loops: skipped degenerate face: {exc}")
     bm.to_mesh(me)
     bm.free()
     me.update()
@@ -465,8 +466,8 @@ def smooth_by_angle(ob, angle=35):
     bpy.context.view_layer.objects.active = ob
     try:
         bpy.ops.object.shade_auto_smooth(angle=R(angle))
-    except Exception:
-        pass
+    except (AttributeError, RuntimeError) as exc:
+        warnings.warn(f"qb_core.smooth_by_angle({ob.name!r}): shade_auto_smooth failed: {exc}")
 
 
 def mirror_x(ob, new_name=None):
@@ -545,13 +546,13 @@ def make_image_material(name, image_path, emission_strength=0.6):
     if hasattr(mat, 'surface_render_method'):
         try:
             mat.surface_render_method = 'DITHERED'
-        except Exception:
-            pass
+        except (AttributeError, TypeError, ValueError) as exc:
+            warnings.warn(f"qb_core.make_decal_material({name!r}): surface_render_method failed: {exc}")
     if hasattr(mat, 'blend_method'):
         try:
             mat.blend_method = 'BLEND'
-        except Exception:
-            pass
+        except (AttributeError, TypeError, ValueError) as exc:
+            warnings.warn(f"qb_core.make_decal_material({name!r}): blend_method failed: {exc}")
     return mat
 
 

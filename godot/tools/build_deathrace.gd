@@ -533,7 +533,7 @@ func _add_finish_line(root: Node, pos: Vector3, rot_y_deg: float) -> void:
 	for side_i in range(2):
 		var lbl := Label3D.new()
 		lbl.name = "FinishLabel" if side_i == 0 else "FinishLabelBack"
-		lbl.text = "🏁 FINISH LINE 🏁"
+		lbl.text = "FINISH LINE"
 		lbl.font_size = 58
 		lbl.outline_size = 14
 		lbl.modulate = Color(1.0, 0.88, 0.32)
@@ -892,7 +892,7 @@ func _add_match_hud(root: Node) -> void:
 
 	var score_toggle := Button.new()
 	score_toggle.name = "ScoreToggle"
-	score_toggle.text = "SCORES ▾"
+	score_toggle.text = "SCORES v"
 	score_toggle.anchor_left = 1.0
 	score_toggle.anchor_right = 1.0
 	score_toggle.anchor_top = 0.0

@@ -226,7 +226,8 @@ func _die(by: String) -> void:
 	bike.collision_layer = 0
 	bike.collision_mask = 0
 	_respawn_at = Time.get_ticks_msec() / 1000.0 + Match.respawn_delay()
-	Match.self_respawn_at.connect(_on_server_respawn, CONNECT_ONE_SHOT)
+	if not Match.self_respawn_at.is_connected(_on_server_respawn):
+		Match.self_respawn_at.connect(_on_server_respawn, CONNECT_ONE_SHOT)
 
 
 func _on_server_respawn(_seconds: float) -> void:

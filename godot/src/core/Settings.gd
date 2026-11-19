@@ -300,7 +300,8 @@ func _load() -> void:
 			(data["video"] as Dictionary)["fullscreen"] = true
 			needs_save = true
 	else:
-		push_warning("Settings: no readable settings.cfg at %s — using defaults" % PATH)
+		if FileAccess.file_exists(PATH):
+			push_warning("Settings: unreadable settings.cfg at %s — using defaults" % PATH)
 		# On first Web visit with no saved config, honour OS prefers-reduced-motion.
 		if OS.has_feature("web") and Engine.has_singleton("JavaScriptBridge"):
 			var prefers_rm := bool(JavaScriptBridge.eval(

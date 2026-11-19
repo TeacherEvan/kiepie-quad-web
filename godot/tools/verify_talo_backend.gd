@@ -72,11 +72,16 @@ func _initialize() -> void:
 	_check(not bool(reused.get("ok", true)) and str(reused.get("reason", "")) == "token_consumed",
 			"host rejects a reused token with token_consumed")
 
-	# Host: kill claims inside the per-killer cooldown are rate-limited.
+	# Host: unrelated kill claims inside the per-killer cooldown are rate-limited,
+	# while same-blast chained drum tokens ("tok-1:c101") are allowed (P3-3).
 	var rapid: Dictionary = await backend.call_rpc("register_kill",
 			{"p_target": "2", "p_token": "tok-5", "p_killer": "1"})
 	_check(not bool(rapid.get("ok", true)) and str(rapid.get("reason", "")) == "rate_limited",
-			"host rate-limits a second kill within 1 s")
+			"host rate-limits an unrelated second kill within 1 s")
+	var chain_kill: Dictionary = await backend.call_rpc("register_kill",
+			{"p_target": "2", "p_token": "tok-1:c101", "p_killer": "1"})
+	_check(bool(chain_kill.get("ok", false)) and int(chain_kill.get("score", 0)) == 2,
+			"P3-3: host accepts same-blast chained drum kill within 0.6 s")
 
 	# Host: self-kill and non-playing lobby are refused.
 	var self_kill: Dictionary = await backend.call_rpc("register_kill",
@@ -200,5 +205,5 @@ func _initialize() -> void:
 			"P1-3: shot/hurt/kill/leave frames are all dropped after leave_lobby_channel")
 	dr_backend.free()
 
-	print("talo backend contract: %d checks, %d failure(s)" % [25, _failures])
+	print("talo backend contract: %d checks, %d failure(s)" % [26, _failures])
 	quit(1 if _failures > 0 else 0)

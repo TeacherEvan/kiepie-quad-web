@@ -30,8 +30,9 @@ var _lobby: Dictionary = {}
 var _roster: Dictionary = {}          # user_id -> player row
 var _starting := false
 var _used_tokens: Dictionary = {}     # shot token -> true, stops echoed kills scoring twice
-var _kill_cooldowns: Dictionary = {}  # killer -> msec timestamp of last scored kill (host only)
-var _kill_window: Dictionary = {}     # killer -> Array of msec timestamps (60 s, max 20)
+var _kill_cooldowns: Dictionary = {}  # killer -> sec timestamp of last scored kill (host only)
+var _kill_last_base: Dictionary = {}  # killer -> {"base": String, "count": int, "at": float}
+var _kill_window: Dictionary = {}     # killer -> Array of sec timestamps (60 s, max 20)
 var _hurt_log: Dictionary = {}        # sender -> Array of sec timestamps (1 s, max 24)
 var _lap_timestamps: Dictionary = {}  # racer -> sec timestamp of last scored lap (host only)
 const HEARTBEAT_INTERVAL_S := 20.0
@@ -248,6 +249,7 @@ func leave_lobby_channel() -> void:
 	_roster.clear()
 	_lap_timestamps.clear()
 	_kill_cooldowns.clear()
+	_kill_last_base.clear()
 	_kill_window.clear()
 	_hurt_log.clear()
 	_host_lost_emitted = false
@@ -692,7 +694,16 @@ func _register_kill(args: Dictionary) -> Dictionary:
 	# server-side lever we actually have.
 	var now_s := Time.get_ticks_msec() / 1000.0
 	var last := float(_kill_cooldowns.get(killer, -10.0))
-	if now_s - last < 1.0:
+	var base_tok := token.split(":c", false, 1)[0]
+	var is_chain := token.find(":c") > 0
+	var burst_ok := false
+	if is_chain and _kill_last_base.has(killer):
+		var prev_b: Dictionary = _kill_last_base[killer] as Dictionary
+		# Same-blast chained FuelDrum multi-kills (derived "<base>:c<id>") may score
+		# up to 3 victims within 0.6 s while still consuming unique tokens & 20/min cap.
+		if str(prev_b.get("base", "")) == base_tok and (now_s - float(prev_b.get("at", -10.0))) < 0.6 and int(prev_b.get("count", 0)) < 3:
+			burst_ok = true
+	if now_s - last < 1.0 and not burst_ok:
 		return {"ok": false, "reason": "rate_limited"}
 	var arr: Array = _kill_window.get(killer, [])
 	var kept: Array = []
@@ -703,6 +714,12 @@ func _register_kill(args: Dictionary) -> Dictionary:
 		return {"ok": false, "reason": "rate_limited"}
 	kept.append(now_s)
 	_kill_cooldowns[killer] = now_s
+	if burst_ok:
+		var pb: Dictionary = _kill_last_base[killer] as Dictionary
+		pb["count"] = int(pb.get("count", 1)) + 1
+		_kill_last_base[killer] = pb
+	else:
+		_kill_last_base[killer] = {"base": base_tok, "count": 1, "at": now_s}
 	_kill_window[killer] = kept
 	_used_tokens[token] = true
 	while _used_tokens.size() > MAX_USED_TOKENS:

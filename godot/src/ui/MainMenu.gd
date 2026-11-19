@@ -180,10 +180,10 @@ func _sync_mode_ui() -> void:
 	var is_race := selected_game_mode == "death_race"
 	if _btn_mode_br != null:
 		_apply_mode_pill_style(_btn_mode_br, not is_race, UI.ACCENT)
-		_btn_mode_br.text = "⚔ BATTLE ROYALE" if is_race else "⚔ BATTLE ROYALE ✓"
+		_btn_mode_br.text = "BATTLE ROYALE" if is_race else "• BATTLE ROYALE •"
 	if _btn_mode_dr != null:
 		_apply_mode_pill_style(_btn_mode_dr, is_race, UI.GOLD)
-		_btn_mode_dr.text = "🏁 DEATH RACE ✓" if is_race else "🏁 DEATH RACE"
+		_btn_mode_dr.text = "• DEATH RACE •" if is_race else "DEATH RACE"
 	var subtitle := get_node_or_null("SafeMargin/Card/VBox/Subtitle") as Label
 	if subtitle != null:
 		subtitle.text = "DEATH RACE  ·  3 LAPS · LOOPS, PITS & FULL ARSENAL" if is_race else "BATTLE ROYALE  ·  ARENA COMBAT · ROCKETS & METEORS"

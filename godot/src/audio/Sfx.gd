@@ -27,10 +27,14 @@ const SAMPLES := {
 }
 
 const MAX_VOICES := 24
+const POOL_2D := 16
+const POOL_3D := 8
 const PITCH_JITTER := 0.05  # +-5 % on repeated impact/fire sounds
 const JITTERED := {"fire": true, "impact": true, "explosion": true, "pop": true}
 
 var _streams: Dictionary = {}
+var _pool2d: Array[AudioStreamPlayer] = []
+var _pool3d: Array[AudioStreamPlayer3D] = []
 var _voices: Array[AudioStreamPlayer] = []
 var _voices3d: Array[AudioStreamPlayer3D] = []
 var _engines: Dictionary = {}  # instance id -> engine player
@@ -45,11 +49,38 @@ func _ready() -> void:
 			_streams[name] = res
 		else:
 			push_warning("Sfx: sample missing or not imported: %s (%s)" % [name, SAMPLES[name]])
+	# Pre-allocate reusable one-shot voice pools so rapid fire never mutates the scene tree.
+	for i in range(POOL_2D):
+		var p := AudioStreamPlayer.new()
+		p.name = "Voice2D_%d" % i
+		add_child(p)
+		_pool2d.append(p)
+		_voices.append(p)
+	for i in range(POOL_3D):
+		var p3 := AudioStreamPlayer3D.new()
+		p3.name = "Voice3D_%d" % i
+		add_child(p3)
+		_pool3d.append(p3)
+		_voices3d.append(p3)
 
 
 # ---------------------------------------------------------------------------
 # public API
 # ---------------------------------------------------------------------------
+func _acquire_2d() -> AudioStreamPlayer:
+	for p in _pool2d:
+		if is_instance_valid(p) and not p.playing:
+			return p
+	return null
+
+
+func _acquire_3d() -> AudioStreamPlayer3D:
+	for p in _pool3d:
+		if is_instance_valid(p) and not p.playing:
+			return p
+	return null
+
+
 func play(name: String, volume_db: float = 0.0, pitch: float = 1.0) -> void:
 	## Play a non-positional one-shot on the SFX bus.
 	if not _has_voice_slot():
@@ -57,14 +88,13 @@ func play(name: String, volume_db: float = 0.0, pitch: float = 1.0) -> void:
 	var stream := _streams.get(name) as AudioStream
 	if stream == null:
 		return
-	var p := AudioStreamPlayer.new()
+	var p := _acquire_2d()
+	if p == null:
+		return
 	p.stream = stream
 	p.bus = _bus("SFX")
 	p.volume_db = volume_db
 	p.pitch_scale = _pitch(name, pitch)
-	add_child(p)
-	_voices.append(p)
-	p.finished.connect(p.queue_free)
 	p.play()
 
 
@@ -76,15 +106,14 @@ func play_3d(name: String, position: Vector3, volume_db: float = 0.0,
 	var stream := _streams.get(name) as AudioStream
 	if stream == null:
 		return
-	var p := AudioStreamPlayer3D.new()
+	var p := _acquire_3d()
+	if p == null:
+		return
 	p.stream = stream
 	p.bus = _bus("SFX")
 	p.volume_db = volume_db
 	p.pitch_scale = _pitch(name, pitch)
-	add_child(p)
 	p.global_position = position
-	_voices3d.append(p)
-	p.finished.connect(p.queue_free)
 	p.play()
 
 
@@ -95,13 +124,13 @@ func play_ui(name: String) -> void:
 	var stream := _streams.get(name) as AudioStream
 	if stream == null:
 		return
-	var p := AudioStreamPlayer.new()
+	var p := _acquire_2d()
+	if p == null:
+		return
 	p.stream = stream
 	p.bus = _bus("UI")
 	p.volume_db = -3.0
-	add_child(p)
-	_voices.append(p)
-	p.finished.connect(p.queue_free)
+	p.pitch_scale = 1.0
 	p.play()
 
 

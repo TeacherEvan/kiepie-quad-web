@@ -107,4 +107,31 @@ func _initialize() -> void:
 		if inst != null:
 			inst.free()
 
+	# Glyph coverage guard: every shipped scene label/button/Label3D must render
+	# with Godot's bundled fallback font (no hexadecimal tofu boxes on WebGL2).
+	var font := ThemeDB.fallback_font
+	for scene_path in [
+		"res://scenes/MainMenu.tscn",
+		"res://scenes/LobbyMenu.tscn",
+		"res://scenes/SettingsMenu.tscn",
+		"res://scenes/Arena.tscn",
+		"res://scenes/DeathRace.tscn",
+		"res://scenes/TestRide.tscn",
+	]:
+		var ps := load(scene_path) as PackedScene
+		if ps == null:
+			continue
+		var s_inst := ps.instantiate()
+		var missing: Array[String] = []
+		for n in s_inst.find_children("*", "", true, false):
+			if n is Button or n is Label or n is Label3D:
+				var txt := str(n.get("text"))
+				for idx in range(txt.length()):
+					var code := txt.unicode_at(idx)
+					if code >= 32 and not font.has_char(code):
+						missing.append("%s:U+%04X" % [n.name, code])
+		_check(missing.is_empty(),
+				"%s has zero unsupported tofu glyphs (%s)" % [scene_path.get_file(), ", ".join(missing)])
+		s_inst.free()
+
 	quit(1 if _fail > 0 else 0)

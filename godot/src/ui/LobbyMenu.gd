@@ -266,7 +266,7 @@ func _refresh_players() -> void:
 		var is_r := bool(data.get("is_ready", false))
 		var sc := Label.new()
 		sc.name = "Score"
-		sc.text = "READY ✓" if is_r else "WAITING"
+		sc.text = "READY •" if is_r else "WAITING"
 		sc.add_theme_font_size_override("font_size", 13)
 		sc.add_theme_color_override("font_color", COL_OK if is_r else UI.MUTED)
 		row.add_child(sc)
@@ -355,7 +355,7 @@ func _push_settings() -> void:
 
 func _on_ready_toggled() -> void:
 	_ready_state = not _ready_state
-	_btn_ready.text = "READY ✓" if _ready_state else "NOT READY"
+	_btn_ready.text = "READY •" if _ready_state else "NOT READY"
 	_btn_ready.add_theme_color_override(
 		"font_color", COL_OK if _ready_state else Color(1.0, 0.82, 0.45))
 	# Readiness is now sent to the backend so the host's authoritative roster

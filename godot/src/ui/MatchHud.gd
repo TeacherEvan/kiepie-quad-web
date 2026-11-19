@@ -133,7 +133,7 @@ func _ready() -> void:
 	if res_panel != null and res_panel.get_node_or_null("VictorySplashBanner") == null:
 		_victory_banner = Label.new()
 		_victory_banner.name = "VictorySplashBanner"
-		_victory_banner.text = "🏁 VICTORY SPLASH · CHAMPION 🏁"
+		_victory_banner.text = "VICTORY SPLASH · CHAMPION"
 		_victory_banner.anchor_left = 0.0
 		_victory_banner.anchor_right = 1.0
 		_victory_banner.offset_top = 8.0
@@ -206,7 +206,7 @@ func _on_toggle_scores() -> void:
 func _sync_score_toggle() -> void:
 	var btn := get_node_or_null("ScoreToggle") as Button
 	if btn != null:
-		btn.text = "SCORES ▴" if _scores_open else "SCORES ▾"
+		btn.text = "SCORES ^" if _scores_open else "SCORES v"
 	var score := get_node_or_null("Scoreboard") as Control
 	if score != null:
 		score.visible = _scores_open
@@ -585,7 +585,7 @@ func _play_victory_splash(winner_name: String) -> void:
 	victory_splash_shown = true
 	if _victory_banner != null:
 		var mode_str := "DEATH RACE" if (Match != null and Match.has_method("game_mode") and str(Match.call("game_mode")) == "death_race") else "BATTLE ROYALE"
-		_victory_banner.text = "🏁 %s CHAMPION · %s 🏁" % [mode_str, winner_name]
+		_victory_banner.text = "%s CHAMPION · %s" % [mode_str, winner_name]
 		_victory_banner.visible = true
 	if OS.has_feature("web") and Engine.has_singleton("JavaScriptBridge") and not _reduced_motion():
 		var safe_winner := JSON.stringify(winner_name + " WINS!")
@@ -618,7 +618,7 @@ func add_kill(killer_id: String, victim_id: String) -> void:
 	if feed == null:
 		return
 	var line := Label.new()
-	line.text = "%s   ⚔   %s" % [_name_for(killer_id), _name_for(victim_id)]
+	line.text = "%s   ×   %s" % [_name_for(killer_id), _name_for(victim_id)]
 	line.add_theme_font_size_override("font_size", 16)
 	line.add_theme_color_override("font_color", Color(1.0, 0.90, 0.66, 1.0))
 	line.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.95))
@@ -693,7 +693,7 @@ func _refresh_scoreboard() -> void:
 			var nm := str(d.get("name", "RIDER"))
 			var score := int(d.get("score", 0))
 			rtl.push_color(col)
-			rtl.add_text("■ ")
+			rtl.add_text("• ")
 			rtl.pop()
 			rtl.push_color(Color(1.0, 0.85, 0.42, 1.0) if mine else Color(0.94, 0.96, 1.0, 1.0))
 			rtl.add_text(("* " if mine else "  ") + nm)
@@ -710,7 +710,7 @@ func _refresh_scoreboard() -> void:
 			if d == null:
 				continue
 			var lbl := Label.new()
-			lbl.text = "%s  %s  %d" % ["■", str(d.get("name", "RIDER")), int(d.get("score", 0))]
+			lbl.text = "%s  %s  %d" % ["•", str(d.get("name", "RIDER")), int(d.get("score", 0))]
 			var hex := str(d.get("color", "#ffffff"))
 			lbl.add_theme_color_override("font_color", Color.html(hex) if hex.is_valid_html_color() else Color.WHITE)
 			lbl.add_theme_constant_override("outline_size", 5)

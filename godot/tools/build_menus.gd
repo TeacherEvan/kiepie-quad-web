@@ -243,6 +243,7 @@ func _build_main() -> void:
 	card_style.content_margin_bottom = 22.0
 	card.add_theme_stylebox_override("panel", card_style)
 	card.custom_minimum_size = Vector2(0.0, 0.0)
+	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	margin.add_child(card)
 
 	var vbox := _vbox("VBox")
@@ -268,10 +269,10 @@ func _build_main() -> void:
 	vbox.add_child(sep)
 
 	var mode_row := _hbox("ModeRow")
-	var btn_br := _button("BtnModeBattleRoyale", "⚔ BATTLE ROYALE", ACCENT)
+	var btn_br := _button("BtnModeBattleRoyale", "BATTLE ROYALE", ACCENT)
 	btn_br.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mode_row.add_child(btn_br)
-	var btn_dr := _button("BtnModeDeathRace", "🏁 DEATH RACE", Color(0.36, 0.44, 0.56))
+	var btn_dr := _button("BtnModeDeathRace", "DEATH RACE", Color(0.36, 0.44, 0.56))
 	btn_dr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mode_row.add_child(btn_dr)
 	vbox.add_child(mode_row)

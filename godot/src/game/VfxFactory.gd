@@ -138,9 +138,11 @@ static func prewarm(host: Node3D = null) -> void:
 		rack.add_child(r)
 		var tree := host.get_tree()
 		if tree != null:
+			var w_rack: WeakRef = weakref(rack)
 			tree.create_timer(0.25).timeout.connect(func() -> void:
-				if is_instance_valid(rack):
-					rack.queue_free())
+				var node := w_rack.get_ref() as Node
+				if node != null:
+					node.queue_free())
 
 
 # ------------------------------------------------------------------ palette --
@@ -548,10 +550,12 @@ static func _static_cue(parent: Node3D, pos: Vector3, color: Color,
 	parent.add_child(inst)
 	var tree := parent.get_tree()
 	if tree != null:
+		var w_inst: WeakRef = weakref(inst)
 		var timer := tree.create_timer(duration)
 		timer.timeout.connect(func() -> void:
-			if is_instance_valid(inst):
-				inst.queue_free())
+			var node := w_inst.get_ref() as Node
+			if node != null:
+				node.queue_free())
 
 
 static func _cap_group(parent: Node, group: String, cap: int) -> void:
@@ -637,9 +641,11 @@ static func muzzle_flash(parent: Node3D, pos: Vector3, dir: Vector3, color: Colo
 	# holder with the light chopped the smoke short on every shot. The holder
 	# goes after the slowest child, not with the light.
 	if smoke_tree != null:
+		var w_holder: WeakRef = weakref(holder)
 		smoke_tree.create_timer(0.9).timeout.connect(func() -> void:
-			if is_instance_valid(holder):
-				holder.queue_free())
+			var node := w_holder.get_ref() as Node
+			if node != null:
+				node.queue_free())
 	else:
 		var ht := holder.create_tween()
 		ht.tween_interval(0.14)
@@ -674,11 +680,13 @@ static func casing(parent: Node3D, pos: Vector3, eject_dir: Vector3) -> void:
 	# Timer lives on the tree (not the body), so teardown still releases the slot.
 	var tree := parent.get_tree()
 	if tree != null:
+		var w_body: WeakRef = weakref(body)
 		var timer := tree.create_timer(2.4)
 		timer.timeout.connect(func() -> void:
 			_casing_count = maxi(0, _casing_count - 1)
-			if is_instance_valid(body):
-				body.queue_free())
+			var node := w_body.get_ref() as Node
+			if node != null:
+				node.queue_free())
 	else:
 		_casing_count = maxi(0, _casing_count - 1)
 		body.queue_free()
@@ -1285,16 +1293,18 @@ static func smash_burst(parent: Node3D, pos: Vector3, size: Vector3) -> void:
 		{"d": 0.12, "h": 1.5, "o": Vector3(size.x * 0.2, 0, -size.z * 0.15)},
 		{"d": 0.28, "h": 2.3, "o": Vector3(-size.x * 0.18, 0, size.z * 0.18)},
 	]
+	var w_parent: WeakRef = weakref(parent)
 	for spec in puffs:
 		var delay: float = spec["d"]
 		var local: Vector3 = spec["o"]
 		var height: float = spec["h"]
 		var timer := tree.create_timer(delay)
 		timer.timeout.connect(func() -> void:
-			if is_instance_valid(parent):
+			var p_node := w_parent.get_ref() as Node3D
+			if p_node != null and p_node.is_inside_tree():
 				# Anchor to the collapse site: `local` is a relative offset,
 				# not a world-space position.
-				dust_puff(parent, pos + local + Vector3(0, height, 0), 22))
+				dust_puff(p_node, pos + local + Vector3(0, height, 0), 22))
 
 
 # --------------------------------------------------------------- pickups -----
