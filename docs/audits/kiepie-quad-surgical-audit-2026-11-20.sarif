@@ -1,0 +1,5478 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "surgical-audit-preflight",
+          "version": "2.4.0",
+          "informationUri": "https://github.com/TeacherEvan/surgical-audit",
+          "rules": [
+            {
+              "id": "SA-GOD-FILE",
+              "name": "GodFileThresholdExceeded",
+              "shortDescription": {
+                "text": "File exceeds 400 effective lines of code"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "SA-HIGH-COMPLEXITY",
+              "name": "HighComplexityHotspot",
+              "shortDescription": {
+                "text": "Function or file exceeds complexity (CC >= 10), nesting (> 5), or span LOC (>= 60)"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "SA-SILENT-CATCH",
+              "name": "SilentExceptionHandler",
+              "shortDescription": {
+                "text": "Empty or pass-only exception catch handler swallows errors"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "SA-HOT-LOOP",
+              "name": "HotLoopAllocationMarker",
+              "shortDescription": {
+                "text": "Per-frame or hot-loop allocation/callback marker detected"
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              }
+            },
+            {
+              "id": "SA-PARSE-ERROR",
+              "name": "SyntaxParseError",
+              "shortDescription": {
+                "text": "Syntax error prevented full AST inspection"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            }
+          ]
+        }
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "properties": {
+            "tree_integrity_sha256": "768713865c57eba2748562e37f9c22faa646eee0e4f8e25e91072cc35afb89fa",
+            "skipped_dirs_count": 2,
+            "files_scanned": 345,
+            "effective_loc_total": 40114
+          }
+        }
+      ],
+      "results": [
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "index.js has 473 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "index.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 473
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "index.js flagged for complexity (CC=2106, nesting=13, max_function_loc=196)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "index.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 2
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 2106,
+            "nesting_depth": 13,
+            "max_function_loc": 196
+          }
+        },
+        {
+          "ruleId": "SA-SILENT-CATCH",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "index.js contains 15 silent catch handler(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "index.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "silent_catches": 15
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "index.js contains 64 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "index.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 64
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "web/index.js has 473 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "web/index.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 473
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "web/index.js flagged for complexity (CC=2106, nesting=13, max_function_loc=196)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "web/index.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 2
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 2106,
+            "nesting_depth": 13,
+            "max_function_loc": 196
+          }
+        },
+        {
+          "ruleId": "SA-SILENT-CATCH",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "web/index.js contains 15 silent catch handler(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "web/index.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "silent_catches": 15
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "web/index.js contains 64 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "web/index.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 64
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/VfxFactory.gd has 1149 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/VfxFactory.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 1149
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/VfxFactory.gd flagged for complexity (CC=19, nesting=1, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/VfxFactory.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 696
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 19,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_deathrace.gd has 917 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_deathrace.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 917
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_deathrace.gd flagged for complexity (CC=11, nesting=0, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_deathrace.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 468
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 11,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/TaloBackend.gd has 869 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 869
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/TaloBackend.gd flagged for complexity (CC=52, nesting=1, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 818
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 52,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/net/TaloBackend.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/ui/parts/InspectorTreeMainPanel.gd has 894 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/ui/parts/InspectorTreeMainPanel.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 894
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/ui/parts/InspectorTreeMainPanel.gd flagged for complexity (CC=24, nesting=1, max_function_loc=44)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/ui/parts/InspectorTreeMainPanel.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 929
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 24,
+            "nesting_depth": 1,
+            "max_function_loc": 44
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/ui/parts/InspectorTreeMainPanel.gd contains 2 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/ui/parts/InspectorTreeMainPanel.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 2
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_core.py has 487 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_core.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 487
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_core.py flagged for complexity (CC=18, nesting=5, max_function_loc=54)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_core.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 410
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 18,
+            "nesting_depth": 5,
+            "max_function_loc": 54
+          }
+        },
+        {
+          "ruleId": "SA-SILENT-CATCH",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "src/qb_core.py contains 7 silent catch handler(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_core.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "silent_catches": 7
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/qb_core.py contains 4 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_core.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 4
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/MatchHud.gd has 680 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MatchHud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 680
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/MatchHud.gd flagged for complexity (CC=51, nesting=0, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MatchHud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 226
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 51,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/ui/MatchHud.gd contains 2 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MatchHud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 2
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "src/build_pogo_nardus.py has 697 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_pogo_nardus.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 697
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/build_pogo_nardus.py flagged for complexity (CC=21, nesting=3, max_function_loc=82)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_pogo_nardus.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 79
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 21,
+            "nesting_depth": 3,
+            "max_function_loc": 82
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_pogo_nardus.py contains 4 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_pogo_nardus.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 4
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_arena.gd has 702 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_arena.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 702
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_arena.gd flagged for complexity (CC=5, nesting=0, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_arena.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 545
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 5,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/GdObjects.gd has 577 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/GdObjects.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 577
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/GdObjects.gd flagged for complexity (CC=31, nesting=2, max_function_loc=83)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/GdObjects.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 213
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 31,
+            "nesting_depth": 2,
+            "max_function_loc": 83
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/GdObjects.gd contains 2 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/GdObjects.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 2
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/parse/GdScriptParser.gd has 539 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/parse/GdScriptParser.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 539
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/parse/GdScriptParser.gd flagged for complexity (CC=20, nesting=0, max_function_loc=99)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/parse/GdScriptParser.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 492
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 20,
+            "nesting_depth": 0,
+            "max_function_loc": 99
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/parse/GdScriptParser.gd contains 2 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/parse/GdScriptParser.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 2
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/MobileTextInput.gd flagged for complexity (CC=14, nesting=1, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MobileTextInput.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 153
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 14,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-SILENT-CATCH",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "godot/src/ui/MobileTextInput.gd contains 3 silent catch handler(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MobileTextInput.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "silent_catches": 3
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/ui/MobileTextInput.gd contains 3 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MobileTextInput.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 3
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/SideCannons.gd has 479 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/SideCannons.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 479
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/SideCannons.gd flagged for complexity (CC=50, nesting=2, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/SideCannons.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 417
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 50,
+            "nesting_depth": 2,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/game/SideCannons.gd contains 2 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/SideCannons.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 2
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/TouchControls.gd has 482 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/TouchControls.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 482
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/TouchControls.gd flagged for complexity (CC=38, nesting=0, max_function_loc=83)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/TouchControls.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 323
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 38,
+            "nesting_depth": 0,
+            "max_function_loc": 83
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/TouchControls.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/TouchControls.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_body.py has 497 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_body.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 497
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_body.py flagged for complexity (CC=15, nesting=3, max_function_loc=148)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_body.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 211
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 15,
+            "nesting_depth": 3,
+            "max_function_loc": 148
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/asserts/GdAssertMessages.gd has 498 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/asserts/GdAssertMessages.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 498
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/KiepieBike.gd has 450 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/KiepieBike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 450
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/KiepieBike.gd flagged for complexity (CC=52, nesting=1, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/KiepieBike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 309
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 52,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/KiepieBike.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/KiepieBike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/GdUnitSceneRunnerImpl.gd has 485 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/GdUnitSceneRunnerImpl.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 485
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/GdUnitSceneRunnerImpl.gd flagged for complexity (CC=13, nesting=1, max_function_loc=38)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/GdUnitSceneRunnerImpl.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 43
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 13,
+            "nesting_depth": 1,
+            "max_function_loc": 38
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_testride.gd has 485 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_testride.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 485
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_testride.gd flagged for complexity (CC=3, nesting=0, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_testride.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 498
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 3,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_menus.gd has 429 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_menus.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 429
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_menus.gd flagged for complexity (CC=10, nesting=1, max_function_loc=98)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_menus.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 450
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 10,
+            "nesting_depth": 1,
+            "max_function_loc": 98
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/core/Settings.gd flagged for complexity (CC=20, nesting=2, max_function_loc=39)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/core/Settings.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 385
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 20,
+            "nesting_depth": 2,
+            "max_function_loc": 39
+          }
+        },
+        {
+          "ruleId": "SA-SILENT-CATCH",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "godot/src/core/Settings.gd contains 1 silent catch handler(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/core/Settings.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "silent_catches": 1
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/core/Settings.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/core/Settings.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/LobbyMenu.gd flagged for complexity (CC=12, nesting=1, max_function_loc=46)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/LobbyMenu.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 199
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 12,
+            "nesting_depth": 1,
+            "max_function_loc": 46
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_touch_multitouch.gd flagged for complexity (CC=14, nesting=1, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_touch_multitouch.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 85
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 14,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/CombatController.gd flagged for complexity (CC=31, nesting=1, max_function_loc=51)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/CombatController.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 64
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 31,
+            "nesting_depth": 1,
+            "max_function_loc": 51
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/game/CombatController.gd contains 4 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/CombatController.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 4
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/PogoVisual.gd flagged for complexity (CC=28, nesting=0, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/PogoVisual.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 159
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 28,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/game/PogoVisual.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/PogoVisual.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/build_quad.py flagged for complexity (CC=19, nesting=4, max_function_loc=100)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_quad.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 33
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 19,
+            "nesting_depth": 4,
+            "max_function_loc": 100
+          }
+        },
+        {
+          "ruleId": "SA-SILENT-CATCH",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "src/build_quad.py contains 1 silent catch handler(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_quad.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "silent_catches": 1
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_quad.py contains 6 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_quad.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 6
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_deathrace.gd flagged for complexity (CC=37, nesting=1, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_deathrace.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 23
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 37,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/ArenaNet.gd flagged for complexity (CC=43, nesting=1, max_function_loc=92)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/ArenaNet.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 243
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 43,
+            "nesting_depth": 1,
+            "max_function_loc": 92
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/game/ArenaNet.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/ArenaNet.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/runners/GdUnitTestCIRunner.gd flagged for complexity (CC=8, nesting=0, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/runners/GdUnitTestCIRunner.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 313
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/RocketProjectile.gd flagged for complexity (CC=47, nesting=0, max_function_loc=74)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/RocketProjectile.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 239
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 47,
+            "nesting_depth": 0,
+            "max_function_loc": 74
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/game/RocketProjectile.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/RocketProjectile.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/MatchState.gd flagged for complexity (CC=20, nesting=1, max_function_loc=56)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/MatchState.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 321
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 20,
+            "nesting_depth": 1,
+            "max_function_loc": 56
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/net/MatchState.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/MatchState.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/MeteorStrike.gd flagged for complexity (CC=45, nesting=0, max_function_loc=87)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/MeteorStrike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 238
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 45,
+            "nesting_depth": 0,
+            "max_function_loc": 87
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/game/MeteorStrike.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/MeteorStrike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/command/GdUnitCommandHandler.gd contains 2 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/command/GdUnitCommandHandler.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 2
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/GdUnitTestSuiteScanner.gd flagged for complexity (CC=10, nesting=0, max_function_loc=40)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/GdUnitTestSuiteScanner.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 72
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 10,
+            "nesting_depth": 0,
+            "max_function_loc": 40
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/patch_web_sw.py flagged for complexity (CC=8, nesting=2, max_function_loc=206)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/patch_web_sw.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 28
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 2,
+            "max_function_loc": 206
+          }
+        },
+        {
+          "ruleId": "SA-SILENT-CATCH",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "godot/tools/patch_web_sw.py contains 1 silent catch handler(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/patch_web_sw.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "silent_catches": 1
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/tools/patch_web_sw.py contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/patch_web_sw.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/ui/settings/GdUnitSettingsDialog.gd flagged for complexity (CC=8, nesting=0, max_function_loc=66)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/ui/settings/GdUnitSettingsDialog.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 47
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 0,
+            "max_function_loc": 66
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/ui/settings/GdUnitSettingsDialog.gd contains 3 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/ui/settings/GdUnitSettingsDialog.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 3
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_multiplayer.gd flagged for complexity (CC=17, nesting=2, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_multiplayer.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 27
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 17,
+            "nesting_depth": 2,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/update/GdUnitUpdate.gd flagged for complexity (CC=12, nesting=0, max_function_loc=45)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/update/GdUnitUpdate.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 223
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 12,
+            "nesting_depth": 0,
+            "max_function_loc": 45
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/update/GdUnitUpdate.gd contains 4 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/update/GdUnitUpdate.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 4
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_vfx.gd flagged for complexity (CC=12, nesting=0, max_function_loc=52)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_vfx.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 243
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 12,
+            "nesting_depth": 0,
+            "max_function_loc": 52
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_pogo.gd flagged for complexity (CC=31, nesting=0, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_pogo.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 20
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 31,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/parse/GdDefaultValueDecoder.gd flagged for complexity (CC=14, nesting=1, max_function_loc=65)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/parse/GdDefaultValueDecoder.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 97
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 14,
+            "nesting_depth": 1,
+            "max_function_loc": 65
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/MainMenu.gd flagged for complexity (CC=37, nesting=1, max_function_loc=52)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MainMenu.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 90
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 37,
+            "nesting_depth": 1,
+            "max_function_loc": 52
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/MockBackend.gd flagged for complexity (CC=12, nesting=1, max_function_loc=66)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/MockBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 67
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 12,
+            "nesting_depth": 1,
+            "max_function_loc": 66
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/net/MockBackend.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/MockBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_engine.py flagged for complexity (CC=8, nesting=2, max_function_loc=121)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_engine.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 138
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 2,
+            "max_function_loc": 121
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/qb_engine.py contains 3 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_engine.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 3
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/SettingsMenu.gd flagged for complexity (CC=12, nesting=1, max_function_loc=50)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/SettingsMenu.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 267
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 12,
+            "nesting_depth": 1,
+            "max_function_loc": 50
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/BananaProjectile.gd flagged for complexity (CC=16, nesting=0, max_function_loc=54)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/BananaProjectile.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 206
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 16,
+            "nesting_depth": 0,
+            "max_function_loc": 54
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/game/BananaProjectile.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/BananaProjectile.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/run_gates.sh flagged for complexity (CC=43, nesting=1, max_function_loc=0)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/run_gates.sh",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 43,
+            "nesting_depth": 1,
+            "max_function_loc": 0
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_wheels.py flagged for complexity (CC=8, nesting=2, max_function_loc=72)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_wheels.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 17
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 2,
+            "max_function_loc": 72
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/parse/GdFunctionDescriptor.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/parse/GdFunctionDescriptor.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/AnalogDrive.gd flagged for complexity (CC=46, nesting=0, max_function_loc=110)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/AnalogDrive.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 84
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 46,
+            "nesting_depth": 0,
+            "max_function_loc": 110
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/AnalogDrive.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/AnalogDrive.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/UiTheme.gd flagged for complexity (CC=16, nesting=0, max_function_loc=37)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/UiTheme.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 152
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 16,
+            "nesting_depth": 0,
+            "max_function_loc": 37
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_practice.gd flagged for complexity (CC=35, nesting=0, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_practice.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 67
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 35,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "index.audio.worklet.js flagged for complexity (CC=39, nesting=5, max_function_loc=0)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "index.audio.worklet.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 39,
+            "nesting_depth": 5,
+            "max_function_loc": 0
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "web/index.audio.worklet.js flagged for complexity (CC=39, nesting=5, max_function_loc=0)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "web/index.audio.worklet.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 39,
+            "nesting_depth": 5,
+            "max_function_loc": 0
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/Hud.gd flagged for complexity (CC=29, nesting=0, max_function_loc=39)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/Hud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 167
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 29,
+            "nesting_depth": 0,
+            "max_function_loc": 39
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/Hud.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/Hud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/Projectile.gd flagged for complexity (CC=16, nesting=0, max_function_loc=56)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/Projectile.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 180
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 16,
+            "nesting_depth": 0,
+            "max_function_loc": 56
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/game/Projectile.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/Projectile.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/GdUnitFileAccess.gd flagged for complexity (CC=13, nesting=0, max_function_loc=41)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/GdUnitFileAccess.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 51
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 13,
+            "nesting_depth": 0,
+            "max_function_loc": 41
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_audit_regressions.gd flagged for complexity (CC=8, nesting=2, max_function_loc=98)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_audit_regressions.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 70
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 2,
+            "max_function_loc": 98
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/AnalogSteer.gd flagged for complexity (CC=37, nesting=0, max_function_loc=119)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/AnalogSteer.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 71
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 37,
+            "nesting_depth": 0,
+            "max_function_loc": 119
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/AnalogSteer.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/AnalogSteer.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/reporters/console/GdUnitConsoleTestReporter.gd flagged for complexity (CC=10, nesting=0, max_function_loc=48)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/reporters/console/GdUnitConsoleTestReporter.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 108
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 10,
+            "nesting_depth": 0,
+            "max_function_loc": 48
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/DestructibleBuilding.gd flagged for complexity (CC=22, nesting=0, max_function_loc=79)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/DestructibleBuilding.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 92
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 22,
+            "nesting_depth": 0,
+            "max_function_loc": 79
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/DestructibleBuilding.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/DestructibleBuilding.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_victory_splash.py contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_victory_splash.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/FuelDrum.gd flagged for complexity (CC=37, nesting=0, max_function_loc=73)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/FuelDrum.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 69
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 37,
+            "nesting_depth": 0,
+            "max_function_loc": 73
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/RaceTracker.gd flagged for complexity (CC=36, nesting=1, max_function_loc=58)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/RaceTracker.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 113
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 36,
+            "nesting_depth": 1,
+            "max_function_loc": 58
+          }
+        },
+        {
+          "ruleId": "SA-SILENT-CATCH",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "godot/tools/inject_talo_key.py contains 2 silent catch handler(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/inject_talo_key.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "silent_catches": 2
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_talo_backend.gd flagged for complexity (CC=13, nesting=1, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_talo_backend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 52
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 13,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_touch.gd flagged for complexity (CC=16, nesting=0, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_touch.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 57
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 16,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/mocking/GdUnitMockBuilder.gd flagged for complexity (CC=22, nesting=1, max_function_loc=55)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/mocking/GdUnitMockBuilder.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 126
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 22,
+            "nesting_depth": 1,
+            "max_function_loc": 55
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/NetworkedBike.gd flagged for complexity (CC=20, nesting=0, max_function_loc=44)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/NetworkedBike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 54
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 20,
+            "nesting_depth": 0,
+            "max_function_loc": 44
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/game/NetworkedBike.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/NetworkedBike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/parse/GdFunctionArgument.gd flagged for complexity (CC=5, nesting=0, max_function_loc=120)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/parse/GdFunctionArgument.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 20
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 5,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/writers/GdUnitCSIMessageWriter.gd flagged for complexity (CC=22, nesting=1, max_function_loc=69)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/writers/GdUnitCSIMessageWriter.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 80
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 22,
+            "nesting_depth": 1,
+            "max_function_loc": 69
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/update/GdUnitUpdateNotify.gd contains 3 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/update/GdUnitUpdateNotify.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 3
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "index.service.worker.js flagged for complexity (CC=7, nesting=7, max_function_loc=21)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "index.service.worker.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 52
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 7,
+            "nesting_depth": 7,
+            "max_function_loc": 21
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "index.service.worker.js contains 3 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "index.service.worker.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 3
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "web/index.service.worker.js flagged for complexity (CC=7, nesting=7, max_function_loc=21)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "web/index.service.worker.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 52
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 7,
+            "nesting_depth": 7,
+            "max_function_loc": 21
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "web/index.service.worker.js contains 3 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "web/index.service.worker.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 3
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/asserts/GdUnitVectorAssertImpl.gd flagged for complexity (CC=17, nesting=0, max_function_loc=16)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/asserts/GdUnitVectorAssertImpl.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 118
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 17,
+            "nesting_depth": 0,
+            "max_function_loc": 16
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/Pickup.gd flagged for complexity (CC=10, nesting=0, max_function_loc=47)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/Pickup.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 115
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 10,
+            "nesting_depth": 0,
+            "max_function_loc": 47
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/game/Pickup.gd contains 3 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/Pickup.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 3
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/dotnet/GdUnit4CSharpApi.cs flagged for complexity (CC=10, nesting=4, max_function_loc=0)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/dotnet/GdUnit4CSharpApi.cs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 10,
+            "nesting_depth": 4,
+            "max_function_loc": 0
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/discovery/GdUnitTestDiscoverGuard.gd contains 2 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/discovery/GdUnitTestDiscoverGuard.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 2
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/GdDiffTool.gd flagged for complexity (CC=18, nesting=0, max_function_loc=38)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/GdDiffTool.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 121
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 18,
+            "nesting_depth": 0,
+            "max_function_loc": 38
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/parse/GdFunctionParameterSetResolver.gd flagged for complexity (CC=10, nesting=0, max_function_loc=23)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/parse/GdFunctionParameterSetResolver.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 65
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 10,
+            "nesting_depth": 0,
+            "max_function_loc": 23
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/parse/GdFunctionParameterSetResolver.gd contains 2 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/parse/GdFunctionParameterSetResolver.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 2
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/FollowCam.gd flagged for complexity (CC=25, nesting=0, max_function_loc=56)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/FollowCam.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 63
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 25,
+            "nesting_depth": 0,
+            "max_function_loc": 56
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/FollowCam.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/FollowCam.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/asserts/GdUnitDictionaryAssertImpl.gd contains 3 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/asserts/GdUnitDictionaryAssertImpl.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 3
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/doubler/CallableDoubler.gd contains 4 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/doubler/CallableDoubler.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 4
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/bin/GdUnitCopyLog.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/bin/GdUnitCopyLog.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/asserts/GdUnitObjectAssertImpl.gd flagged for complexity (CC=10, nesting=0, max_function_loc=20)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/asserts/GdUnitObjectAssertImpl.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 138
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 10,
+            "nesting_depth": 0,
+            "max_function_loc": 20
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/GdUnitTools.gd flagged for complexity (CC=21, nesting=0, max_function_loc=59)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/GdUnitTools.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 30
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 21,
+            "nesting_depth": 0,
+            "max_function_loc": 59
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/parse/GdUnitTestParameterSetResolver.gd flagged for complexity (CC=10, nesting=0, max_function_loc=28)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/parse/GdUnitTestParameterSetResolver.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 67
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 10,
+            "nesting_depth": 0,
+            "max_function_loc": 28
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/parse/GdUnitTestParameterSetResolver.gd contains 4 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/parse/GdUnitTestParameterSetResolver.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 4
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/game/HazardPit.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/HazardPit.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/mocking/GdUnitMockImpl.gd flagged for complexity (CC=11, nesting=0, max_function_loc=22)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/mocking/GdUnitMockImpl.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 106
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 11,
+            "nesting_depth": 0,
+            "max_function_loc": 22
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/hooks/GdUnitTestSessionHookService.gd contains 3 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/hooks/GdUnitTestSessionHookService.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 3
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/deploy_web.sh flagged for complexity (CC=29, nesting=1, max_function_loc=0)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/deploy_web.sh",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 29,
+            "nesting_depth": 1,
+            "max_function_loc": 0
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/talo/utils/saves_manager.gd contains 6 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/utils/saves_manager.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 6
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/repair_and_verify.py flagged for complexity (CC=21, nesting=3, max_function_loc=90)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/repair_and_verify.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 35
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 21,
+            "nesting_depth": 3,
+            "max_function_loc": 90
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/repair_and_verify.py contains 3 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/repair_and_verify.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 3
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/cmd/CmdCommandHandler.gd flagged for complexity (CC=11, nesting=0, max_function_loc=29)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/cmd/CmdCommandHandler.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 60
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 11,
+            "nesting_depth": 0,
+            "max_function_loc": 29
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/talo/apis/saves_api.gd contains 2 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/apis/saves_api.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 2
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/talo/talo_client.gd flagged for complexity (CC=19, nesting=1, max_function_loc=52)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/talo_client.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 25
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 19,
+            "nesting_depth": 1,
+            "max_function_loc": 52
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/vfx_showcase.gd flagged for complexity (CC=14, nesting=0, max_function_loc=73)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/vfx_showcase.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 47
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 14,
+            "nesting_depth": 0,
+            "max_function_loc": 73
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/discovery/GdUnitTestDiscoverer.gd contains 2 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/discovery/GdUnitTestDiscoverer.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 2
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/runners/GdUnitTestSessionRunner.gd contains 3 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/runners/GdUnitTestSessionRunner.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 3
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/VehicleRegistry.gd flagged for complexity (CC=15, nesting=0, max_function_loc=26)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/VehicleRegistry.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 38
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 15,
+            "nesting_depth": 0,
+            "max_function_loc": 26
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/screenshot_gameplay.gd flagged for complexity (CC=15, nesting=0, max_function_loc=73)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/screenshot_gameplay.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 55
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 15,
+            "nesting_depth": 0,
+            "max_function_loc": 73
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/asserts/GdUnitSignalAssertImpl.gd flagged for complexity (CC=10, nesting=0, max_function_loc=18)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/asserts/GdUnitSignalAssertImpl.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 106
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 10,
+            "nesting_depth": 0,
+            "max_function_loc": 18
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/doubler/GdUnitClassDoubler.gd flagged for complexity (CC=15, nesting=0, max_function_loc=45)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/doubler/GdUnitClassDoubler.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 64
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 15,
+            "nesting_depth": 0,
+            "max_function_loc": 45
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/network/GdUnitTcpClient.gd contains 6 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/network/GdUnitTcpClient.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 6
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/talo/apis/channels_api.gd contains 4 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/apis/channels_api.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 4
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/network/GdUnitTcpServer.gd contains 2 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/network/GdUnitTcpServer.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 2
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/spy/GdUnitSpyFunctionDoubler.gd flagged for complexity (CC=10, nesting=0, max_function_loc=9)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/spy/GdUnitSpyFunctionDoubler.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 106
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 10,
+            "nesting_depth": 0,
+            "max_function_loc": 9
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/GdArrayTools.gd flagged for complexity (CC=11, nesting=0, max_function_loc=23)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/GdArrayTools.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 93
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 11,
+            "nesting_depth": 0,
+            "max_function_loc": 23
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/GdUnitRunnerConfig.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/GdUnitRunnerConfig.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_accessibility.gd flagged for complexity (CC=15, nesting=0, max_function_loc=56)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_accessibility.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 42
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 15,
+            "nesting_depth": 0,
+            "max_function_loc": 56
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/GdUnitSignalCollector.gd flagged for complexity (CC=10, nesting=0, max_function_loc=25)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/GdUnitSignalCollector.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 26
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 10,
+            "nesting_depth": 0,
+            "max_function_loc": 25
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/talo/talo_socket.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/talo_socket.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/monitor/GodotGdErrorMonitor.gd contains 2 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/monitor/GodotGdErrorMonitor.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 2
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_combat.gd flagged for complexity (CC=9, nesting=0, max_function_loc=69)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_combat.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 19
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 9,
+            "nesting_depth": 0,
+            "max_function_loc": 69
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_weapons.py flagged for complexity (CC=6, nesting=2, max_function_loc=93)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_weapons.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 24
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 6,
+            "nesting_depth": 2,
+            "max_function_loc": 93
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/gen_decal_nardus.py flagged for complexity (CC=3, nesting=2, max_function_loc=71)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/gen_decal_nardus.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 21
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 3,
+            "nesting_depth": 2,
+            "max_function_loc": 71
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/gen_decal_nardus.py contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/gen_decal_nardus.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/network/GdUnitTcpNode.gd flagged for complexity (CC=11, nesting=0, max_function_loc=55)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/network/GdUnitTcpNode.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 17
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 11,
+            "nesting_depth": 0,
+            "max_function_loc": 55
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_bike.gd flagged for complexity (CC=5, nesting=1, max_function_loc=85)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_bike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 8
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 5,
+            "nesting_depth": 1,
+            "max_function_loc": 85
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_features.gd flagged for complexity (CC=14, nesting=0, max_function_loc=60)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_features.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 10
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 14,
+            "nesting_depth": 0,
+            "max_function_loc": 60
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/reporters/GdUnitTestSuiteReport.gd contains 2 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/reporters/GdUnitTestSuiteReport.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 2
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/_check_scripts.gd flagged for complexity (CC=10, nesting=0, max_function_loc=26)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/_check_scripts.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 42
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 10,
+            "nesting_depth": 0,
+            "max_function_loc": 26
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_appeal.gd flagged for complexity (CC=15, nesting=0, max_function_loc=49)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_appeal.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 19
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 15,
+            "nesting_depth": 0,
+            "max_function_loc": 49
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/tools/verify_appeal.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_appeal.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/dotnet/GdUnit4CSharpApiLoader.gd contains 2 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/dotnet/GdUnit4CSharpApiLoader.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 2
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/asserts/GdUnitAssertions.gd flagged for complexity (CC=16, nesting=0, max_function_loc=26)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/asserts/GdUnitAssertions.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 41
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 16,
+            "nesting_depth": 0,
+            "max_function_loc": 26
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/talo/utils/continuity_manager.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/utils/continuity_manager.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/parse/GdUnitExpressionRunner.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/parse/GdUnitExpressionRunner.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/extractors/GdUnitFuncValueExtractor.gd flagged for complexity (CC=11, nesting=0, max_function_loc=23)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/extractors/GdUnitFuncValueExtractor.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 51
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 11,
+            "nesting_depth": 0,
+            "max_function_loc": 23
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/addons/gdUnit4/runtest.sh flagged for complexity (CC=12, nesting=0, max_function_loc=0)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/runtest.sh",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 12,
+            "nesting_depth": 0,
+            "max_function_loc": 0
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/TouchCapture.gd flagged for complexity (CC=14, nesting=0, max_function_loc=35)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/TouchCapture.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 35
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 14,
+            "nesting_depth": 0,
+            "max_function_loc": 35
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/talo/apis/events_api.gd contains 2 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/apis/events_api.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 2
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/talo/apis/leaderboards_api.gd contains 3 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/apis/leaderboards_api.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 3
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/game/LoopZone.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/LoopZone.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_cannons.gd flagged for complexity (CC=10, nesting=0, max_function_loc=23)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_cannons.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 25
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 10,
+            "nesting_depth": 0,
+            "max_function_loc": 23
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_smash_impact.gd flagged for complexity (CC=11, nesting=0, max_function_loc=41)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_smash_impact.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 5
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 11,
+            "nesting_depth": 0,
+            "max_function_loc": 41
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/talo/apis/players_api.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/apis/players_api.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/talo/entities/loadable.gd contains 2 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/entities/loadable.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 2
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_stability.gd flagged for complexity (CC=11, nesting=0, max_function_loc=29)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_stability.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 11,
+            "nesting_depth": 0,
+            "max_function_loc": 29
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/core/execution/GdUnitTestReportCollector.gd contains 4 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/core/execution/GdUnitTestReportCollector.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 4
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/talo/entities/entity_with_props.gd contains 4 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/entities/entity_with_props.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 4
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/talo/entities/player_group.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/entities/player_group.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/gdUnit4/src/ui/GdUnitInspector.gd contains 2 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/gdUnit4/src/ui/GdUnitInspector.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 2
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/talo/utils/leaderboard_entries_manager.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/utils/leaderboard_entries_manager.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/talo/entities/player.gd contains 6 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/entities/player.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 6
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/talo/apis/feedback_api.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/apis/feedback_api.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/talo/entities/channel.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/entities/channel.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/talo/entities/leaderboard_entry.gd contains 1 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/entities/leaderboard_entry.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 1
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/addons/talo/entities/live_config.gd contains 2 hot-loop marker(s)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/addons/talo/entities/live_config.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "hot_loop_markers": 2
+          }
+        }
+      ]
+    }
+  ]
+}
