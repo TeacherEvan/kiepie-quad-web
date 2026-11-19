@@ -256,6 +256,7 @@ func _build_main() -> void:
 
 	var subtitle := _label("Subtitle", "BATTLE ROYALE  ·  DEATH RACE", 14, MUTED)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(subtitle)
 
 	var status := _label("Status", "Connecting…", 15, INFO)
@@ -271,9 +272,11 @@ func _build_main() -> void:
 	var mode_row := _hbox("ModeRow")
 	var btn_br := _button("BtnModeBattleRoyale", "BATTLE ROYALE", ACCENT)
 	btn_br.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_br.clip_text = true
 	mode_row.add_child(btn_br)
 	var btn_dr := _button("BtnModeDeathRace", "DEATH RACE", Color(0.36, 0.44, 0.56))
 	btn_dr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_dr.clip_text = true
 	mode_row.add_child(btn_dr)
 	vbox.add_child(mode_row)
 

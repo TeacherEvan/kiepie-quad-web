@@ -110,7 +110,8 @@ func _apply_safe_area(margin: MarginContainer) -> void:
 	var sx := vp.x / float(win.x)
 	var sy := vp.y / float(win.y)
 	var short := vp.y <= 480.0
-	var min_lr := 12.0 if vp.x <= 480.0 else 24.0
+	var narrow := vp.x <= 480.0
+	var min_lr := 12.0 if narrow else 24.0
 	var min_t := 6.0 if short else 14.0
 	var min_b := 6.0 if short else (16.0 if vp.x < 720.0 else 56.0)
 	var l := int(maxf(min_lr, float(sa.position.x) * sx))
@@ -127,6 +128,8 @@ func _apply_safe_area(margin: MarginContainer) -> void:
 	if card != null:
 		var ps := card.get_theme_stylebox("panel")
 		if ps != null:
+			ps.content_margin_left = 14.0 if narrow else 28.0
+			ps.content_margin_right = 14.0 if narrow else 28.0
 			ps.content_margin_top = 10.0 if short else 22.0
 			ps.content_margin_bottom = 10.0 if short else 22.0
 	var vbox := get_node_or_null("SafeMargin/Card/VBox") as VBoxContainer
@@ -140,15 +143,18 @@ func _apply_safe_area(margin: MarginContainer) -> void:
 		footer.visible = not short
 	var title := get_node_or_null("SafeMargin/Card/VBox/Title") as Label
 	if title != null and title.label_settings != null:
-		title.label_settings.font_size = 26 if short else 38
+		title.label_settings.font_size = 26 if short else (30 if narrow else 38)
 	if _status != null:
 		_status.custom_minimum_size.y = 24.0 if short else 44.0
 	var btn_h := 44.0 if short else 52.0
 	for btn in [_btn_mode_br, _btn_mode_dr, _btn_practice, _btn_create, _btn_join_auto, _btn_join_code, _btn_settings]:
 		if btn != null:
 			btn.custom_minimum_size.y = btn_h
+	if _btn_join_code != null:
+		_btn_join_code.custom_minimum_size.x = 84.0 if narrow else 120.0
 	if _code != null:
 		_code.custom_minimum_size.y = 44.0 if short else 48.0
+	_sync_mode_ui()
 
 
 func select_game_mode(mode: String) -> void:
@@ -159,7 +165,8 @@ func select_game_mode(mode: String) -> void:
 func _apply_mode_pill_style(btn: Button, active: bool, accent: Color) -> void:
 	if btn == null:
 		return
-	UI.style_button(btn, accent if active else Color(0.32, 0.38, 0.48), 16, btn.custom_minimum_size.y)
+	var narrow := get_viewport_rect().size.x <= 480.0
+	UI.style_button(btn, accent if active else Color(0.32, 0.38, 0.48), 13 if narrow else 16, btn.custom_minimum_size.y)
 	for st in ["normal", "hover", "focus"]:
 		var sb := btn.get_theme_stylebox(st)
 		if sb is StyleBoxFlat:

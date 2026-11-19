@@ -158,8 +158,12 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   (fullscreen is now default-on; `Settings` schema v2 migrates v1 configs) — don't clobber it
   when editing the preset. Expect root `index.pck` ≈ **3.4 MB**; `deploy_web.sh` aborts above **4 MB**,
   so check the printed size after adding assets (and update the script's expected-size note if it changes).
-  Root `.vercelignore` uses a strict allowlist (`*`, `!index.*`, `!favicon.ico`, `!web-assets/**`) so
-  only Web runtime assets ship to Vercel (never `docs/`, `src/`, `godot/`, `renders/`, `.blend`/`.stl`).
+  Root `.vercelignore` uses a strict allowlist (`*`, `!index.*`, `!favicon.ico`, `!web-assets/`,
+  `!web-assets/**`) so only Web runtime assets ship to Vercel (never `docs/`, `src/`, `godot/`,
+  `renders/`, `.blend`/`.stl`, or `vercel.json`). Root `vercel.json` supplies edge security +
+  native `COOP`/`COEP`/`CORP` headers (`same-origin` / `require-corp`) and immutable `/web-assets/*`
+  caching; `patch_web_html.py` consolidates exported `index.html` to a single accessible viewport
+  meta (no `user-scalable=no`); `check_web_hygiene.py` locks all three in CI.
 - The Talo **game** key (JWT, `eyJ…`) is injected from root `.env` `TALO_API_GAME` and ships in the
   public pck by design. `TALO_API_ADMIN` (`ta_…`) is rejected by the v1 API — never use it here.
 - Vercel project `kiepie-quad-web` (team `teacher-evans-projects`, Hobby). Auth/password

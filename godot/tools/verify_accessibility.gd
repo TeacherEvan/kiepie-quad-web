@@ -134,4 +134,21 @@ func _initialize() -> void:
 				"%s has zero unsupported tofu glyphs (%s)" % [scene_path.get_file(), ", ".join(missing)])
 		s_inst.free()
 
+	# Mobile portrait (390px) horizontal-fit guard for MainMenu: Subtitle must
+	# wrap and the mode pills must clip cleanly so the card never overflows 390px.
+	var mm_ps := load("res://scenes/MainMenu.tscn") as PackedScene
+	if mm_ps != null:
+		var mm := mm_ps.instantiate() as Control
+		var sub := mm.get_node_or_null("SafeMargin/Card/VBox/Subtitle") as Label
+		var br := mm.get_node_or_null("SafeMargin/Card/VBox/ModeRow/BtnModeBattleRoyale") as Button
+		var dr := mm.get_node_or_null("SafeMargin/Card/VBox/ModeRow/BtnModeDeathRace") as Button
+		var card := mm.get_node_or_null("SafeMargin/Card") as Control
+		_check(sub != null and sub.autowrap_mode != TextServer.AUTOWRAP_OFF,
+				"MainMenu.Subtitle wraps on narrow mobile screens")
+		_check(br != null and br.clip_text and dr != null and dr.clip_text,
+				"MainMenu mode pills clip text cleanly on narrow mobile screens")
+		_check(card != null and card.get_combined_minimum_size().x <= 366.0,
+				"MainMenu Card fits 390px mobile portrait without overflow (min_x=%.1f <= 366)" % (card.get_combined_minimum_size().x if card else 999.0))
+		mm.free()
+
 	quit(1 if _fail > 0 else 0)

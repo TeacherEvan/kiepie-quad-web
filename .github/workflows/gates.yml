@@ -31,3 +31,6 @@ jobs:
         run: bash godot/tools/run_gates.sh
         env:
           KIEPIE_MOCK_BACKEND: "1"
+
+      - name: Check Web deploy hygiene (.vercelignore, vercel.json, viewport)
+        run: python3 godot/tools/check_web_hygiene.py
