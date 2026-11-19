@@ -19,7 +19,11 @@ var _announce_label: Label
 var _last_respawn_text := ""
 # Cached bar fill: mutate one StyleBox instead of allocating per damage tick.
 var _hp_fill: StyleBoxFlat
+var _reload_fill: StyleBoxFlat
 var _hitmarker: Label = null
+var _victory_banner: Label = null
+var victory_splash_shown := false
+var _race_banner_override := ""
 var _hit_tween: Tween = null
 var _hurt_tween: Tween = null
 var _announce_tween: Tween = null
@@ -55,6 +59,14 @@ func _ready() -> void:
 			_combat.pickup_collected.connect(_on_pickup)
 		if _combat.has_signal("hit_confirmed"):
 			_combat.hit_confirmed.connect(_on_hit_confirmed)
+		var cannons: Node = _combat.get("cannons") if "cannons" in _combat else _combat.get_node_or_null("SideCannons")
+		if cannons != null:
+			if cannons.has_signal("reload_changed"):
+				cannons.connect("reload_changed", _on_reload_changed)
+			if cannons.has_signal("weapon_changed"):
+				cannons.connect("weapon_changed", _on_weapon_changed)
+			if cannons.has_method("weapon_display_name"):
+				_on_reload_changed(1.0, 0.0, true, str(cannons.call("weapon_display_name")))
 
 	# --- authoritative match state (autoload). Guarded for headless gates.
 	if Match != null:
@@ -109,6 +121,24 @@ func _ready() -> void:
 	if health_bar != null:
 		_hp_fill = UI.bar_fill(UI.OK)
 		health_bar.add_theme_stylebox_override("fill", _hp_fill)
+	var reload_bar := get_node_or_null("ReloadBar") as ProgressBar
+	if reload_bar != null:
+		_reload_fill = UI.bar_fill(UI.OK)
+		reload_bar.add_theme_stylebox_override("fill", _reload_fill)
+	var res_panel := get_node_or_null("ResultPanel") as Control
+	if res_panel != null and res_panel.get_node_or_null("VictorySplashBanner") == null:
+		_victory_banner = Label.new()
+		_victory_banner.name = "VictorySplashBanner"
+		_victory_banner.text = "🏁 VICTORY SPLASH · CHAMPION 🏁"
+		_victory_banner.anchor_left = 0.0
+		_victory_banner.anchor_right = 1.0
+		_victory_banner.offset_top = 8.0
+		_victory_banner.offset_bottom = 34.0
+		_victory_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_victory_banner.add_theme_font_size_override("font_size", 15)
+		_victory_banner.add_theme_color_override("font_color", UI.GOLD)
+		_victory_banner.visible = false
+		res_panel.add_child(_victory_banner)
 
 	# --- hit feedback overlay + streak announcement (runtime-created)
 	_vignette = ColorRect.new()
@@ -223,10 +253,26 @@ func _relayout() -> void:
 		banner.anchor_top = 0.0
 		banner.anchor_bottom = 0.0
 		banner.offset_left = 12.0
-		banner.offset_right = 12.0 + corner_w
+		banner.offset_right = 12.0 + corner_w + 48.0
 		banner.offset_top = 40.0 if (narrow or short) else 42.0
 		banner.offset_bottom = banner.offset_top + 18.0
 		banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+
+	var wl := get_node_or_null("WeaponLabel") as Control
+	var rb := get_node_or_null("ReloadBar") as Control
+	if wl != null and rb != null:
+		for c in [wl, rb]:
+			c.anchor_left = 0.0
+			c.anchor_right = 0.0
+			c.anchor_top = 0.0
+			c.anchor_bottom = 0.0
+			c.offset_left = 12.0
+		wl.offset_right = 12.0 + corner_w + 64.0
+		rb.offset_right = 12.0 + corner_w
+		wl.offset_top = 58.0 if (narrow or short) else 60.0
+		wl.offset_bottom = wl.offset_top + 15.0
+		rb.offset_top = wl.offset_bottom + 1.0
+		rb.offset_bottom = rb.offset_top + 10.0
 
 	var menu_btn := get_node_or_null("MenuBtn") as Button
 	if menu_btn != null:
@@ -290,7 +336,7 @@ func _relayout() -> void:
 		radar.visible = vp.y >= 260.0
 		var rsize := 92.0 if narrow else (80.0 if short else 128.0)
 		radar.offset_left = 12.0
-		radar.offset_top = 62.0 if (narrow or short) else 66.0
+		radar.offset_top = 90.0 if (narrow or short) else 94.0
 		radar.offset_right = 12.0 + rsize
 		radar.offset_bottom = radar.offset_top + rsize
 
@@ -351,6 +397,24 @@ func _on_hurt(amount: float, _attacker_id: String) -> void:
 
 func _on_pickup(kind: String) -> void:
 	announce("PICKUP: " + kind.to_upper())
+
+
+func _on_weapon_changed(_weapon_id: String, label: String) -> void:
+	announce("WEAPON: " + label)
+
+
+func _on_reload_changed(progress: float, remaining: float, is_ready: bool, label: String) -> void:
+	var rb := get_node_or_null("ReloadBar") as ProgressBar
+	if rb != null:
+		rb.value = clampf(progress * 100.0, 0.0, 100.0)
+	if _reload_fill != null:
+		_reload_fill.bg_color = UI.OK if is_ready else UI.GOLD.lerp(UI.ACCENT, 1.0 - clampf(progress, 0.0, 1.0))
+	var wl := get_node_or_null("WeaponLabel") as Label
+	if wl != null:
+		if is_ready:
+			wl.text = "%s · READY" % label
+		else:
+			wl.text = "%s · %.1fs" % [label, remaining]
 
 
 func _on_hit_confirmed() -> void:
@@ -470,16 +534,35 @@ func _on_match_started() -> void:
 
 
 func _on_match_finished(winner_id: String) -> void:
+	var winner_name := _name_for(winner_id).to_upper() if winner_id != "" else ""
 	var winner_label := get_node_or_null("ResultPanel/WinnerLabel") as Label
 	if winner_label != null:
 		if winner_id == "":
 			winner_label.text = "HOST LOST — MATCH VOID"
 		else:
-			winner_label.text = "%s WINS" % _name_for(winner_id).to_upper()
+			winner_label.text = "%s WINS" % winner_name
 	var result := get_node_or_null("ResultPanel")
 	if result != null:
 		result.visible = true
+	if winner_id != "":
+		_play_victory_splash(winner_name)
 	_refresh_scoreboard()
+
+
+func _play_victory_splash(winner_name: String) -> void:
+	victory_splash_shown = true
+	if _victory_banner != null:
+		var mode_str := "DEATH RACE" if (Match != null and Match.has_method("game_mode") and str(Match.call("game_mode")) == "death_race") else "BATTLE ROYALE"
+		_victory_banner.text = "🏁 %s CHAMPION · %s 🏁" % [mode_str, winner_name]
+		_victory_banner.visible = true
+	if OS.has_feature("web") and not _reduced_motion():
+		var safe_winner := JSON.stringify(winner_name + " WINS!")
+		JavaScriptBridge.eval("window.__kiepiePlayVictorySplash && window.__kiepiePlayVictorySplash(%s);" % safe_winner, true)
+
+
+func set_race_status(current_lap: int, total_laps: int, cp_cleared: int, cp_total: int) -> void:
+	_race_banner_override = "LAP %d/%d · CP %d/%d" % [current_lap, total_laps, cp_cleared, cp_total]
+	_refresh_banner()
 
 
 func _on_lobby_changed() -> void:
@@ -545,7 +628,13 @@ func _refresh_banner() -> void:
 	var banner := get_node_or_null("Banner") as Label
 	if banner == null or Match == null:
 		return
-	banner.text = "%d/%d" % [Match.my_score(), Match.kill_target()]
+	if _race_banner_override != "":
+		banner.text = _race_banner_override
+	elif Match.has_method("game_mode") and str(Match.call("game_mode")) == "death_race":
+		var target_laps := int(Match.call("lap_target")) if Match.has_method("lap_target") else 3
+		banner.text = "LAP %d/%d" % [mini(target_laps, Match.my_score() + 1), target_laps]
+	else:
+		banner.text = "%d/%d" % [Match.my_score(), Match.kill_target()]
 
 
 func _refresh_scoreboard() -> void:

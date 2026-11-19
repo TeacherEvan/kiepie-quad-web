@@ -33,6 +33,7 @@ var _shield_until := 0.0
 var _smoke_accum := 0.0
 var _base_power := 210.0
 var _touch_ctrl: Node = null
+var _touch_switch_connected := false
 
 
 func _ready() -> void:
@@ -80,6 +81,9 @@ func _physics_process(delta: float) -> void:
 	bike.set("engine_power", power)
 
 	var touch := _touch_overlay()
+	if touch != null and not _touch_switch_connected and touch.has_signal("weapon_switch_requested"):
+		touch.connect("weapon_switch_requested", _on_weapon_switch_requested)
+		_touch_switch_connected = true
 	var touch_active := touch != null and touch.has_method("is_overlay_active") \
 			and bool(touch.call("is_overlay_active"))
 	if touch_active:
@@ -268,7 +272,39 @@ func _touch_overlay() -> Node:
 		return null
 	if _touch_ctrl == null or not is_instance_valid(_touch_ctrl):
 		_touch_ctrl = tree.get_first_node_in_group("touch_controls")
+		_touch_switch_connected = false
 	return _touch_ctrl
+
+
+func _on_weapon_switch_requested() -> void:
+	if not alive or cannons == null:
+		return
+	if cannons.has_method("cycle_weapon"):
+		cannons.call("cycle_weapon", 1)
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not alive or cannons == null:
+		return
+	if not practice_mode and not Match.is_playing():
+		return
+	if event is InputEventKey:
+		var k := event as InputEventKey
+		if not k.pressed or k.echo:
+			return
+		match k.physical_keycode:
+			KEY_TAB, KEY_V:
+				if cannons.has_method("cycle_weapon"):
+					cannons.call("cycle_weapon", 1)
+			KEY_1:
+				if cannons.has_method("select_weapon"):
+					cannons.call("select_weapon", "primary")
+			KEY_2:
+				if cannons.has_method("select_weapon"):
+					cannons.call("select_weapon", "rocket")
+			KEY_3:
+				if cannons.has_method("select_weapon"):
+					cannons.call("select_weapon", "meteor")
 
 
 func _shake(amount: float) -> void:

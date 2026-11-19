@@ -5,11 +5,15 @@ extends Control
 
 static var pending_mode: String = ""   # "" | "create" | "join_auto" | "join_code"
 static var pending_code: String = ""
+static var pending_game_mode: String = "battle_royale"
 
 const SCENE_MAIN := "res://scenes/MainMenu.tscn"
 const SCENE_ARENA := "res://scenes/Arena.tscn"
+const SCENE_DEATH_RACE := "res://scenes/DeathRace.tscn"
 const UI := preload("res://src/ui/UiTheme.gd")
 
+const GAME_MODES := ["battle_royale", "death_race"]
+const LAP_TARGETS := [2, 3, 5]
 const KILL_TARGETS := [3, 5, 10, 15, 20]
 const MAX_PLAYERS := [2, 3, 4, 5, 6, 7, 8]
 const RESPAWNS := [1.0, 2.0, 2.5, 3.0, 4.0, 5.0]
@@ -17,6 +21,8 @@ const MATCH_SECONDS := [0, 180, 300, 600]
 const DAMAGES := [20, 30, 40, 50]
 
 const DEFAULT_SETTINGS := {
+	"game_mode": "battle_royale",
+	"lap_target": 3,
 	"kill_target": 10,
 	"max_players": 8,
 	"respawn_delay": 2.5,
@@ -39,6 +45,8 @@ const COL_INFO := UI.INFO
 @onready var _btn_ready: Button = $SafeMargin/Scroll/VBox/BtnReady
 @onready var _btn_start: Button = $SafeMargin/Scroll/VBox/HostPanel/BtnStart
 @onready var _btn_leave: Button = $SafeMargin/Scroll/VBox/TopBar/BtnLeave
+@onready var _game_mode: OptionButton = get_node_or_null("SafeMargin/Scroll/VBox/HostPanel/GameModeRow/GameMode")
+@onready var _lap_target: OptionButton = get_node_or_null("SafeMargin/Scroll/VBox/HostPanel/LapTargetRow/LapTarget")
 @onready var _kill_target: OptionButton = $SafeMargin/Scroll/VBox/HostPanel/KillTargetRow/KillTarget
 @onready var _max_players: OptionButton = $SafeMargin/Scroll/VBox/HostPanel/MaxPlayersRow/MaxPlayers
 @onready var _respawn: OptionButton = $SafeMargin/Scroll/VBox/HostPanel/RespawnRow/RespawnDelay
@@ -60,17 +68,19 @@ func _ready() -> void:
 	_connect_signals()
 	var mode := pending_mode
 	var code := pending_code
+	var gmode := pending_game_mode if pending_game_mode != "" else "battle_royale"
 	pending_mode = ""
 	pending_code = ""
+	pending_game_mode = "battle_royale"
 
 	if Match.lobby.is_empty():
 		match mode:
 			"create":
-				await _create_lobby()
+				await _create_lobby(gmode)
 			"join_code":
 				await _join_code(code)
 			"join_auto", "":
-				await _join_auto()
+				await _join_auto(gmode)
 	_refresh_all()
 
 
@@ -82,6 +92,10 @@ func _connect_signals() -> void:
 	_btn_ready.pressed.connect(_on_ready_toggled)
 	_btn_start.pressed.connect(_on_start)
 
+	if _game_mode != null:
+		_game_mode.item_selected.connect(func(_i): _push_settings())
+	if _lap_target != null:
+		_lap_target.item_selected.connect(func(_i): _push_settings())
 	_kill_target.item_selected.connect(func(_i): _push_settings())
 	_max_players.item_selected.connect(func(_i): _push_settings())
 	_respawn.item_selected.connect(func(_i): _push_settings())
@@ -100,16 +114,18 @@ func _connect_signals() -> void:
 
 # ------------------------------------------------------------- lobby entry ---
 
-func _create_lobby() -> void:
+func _create_lobby(gmode: String = "battle_royale") -> void:
 	_set_status("Creating lobby…", COL_INFO)
-	var ok: bool = await Lobby.create_lobby(Settings.display_name() + "'s Lobby", DEFAULT_SETTINGS)
+	var init_settings := DEFAULT_SETTINGS.duplicate(true)
+	init_settings["game_mode"] = "death_race" if gmode == "death_race" else "battle_royale"
+	var ok: bool = await Lobby.create_lobby(Settings.display_name() + "'s Lobby", init_settings)
 	if not ok:
 		_set_status("Could not create a lobby.", COL_WARN)
 
 
-func _join_auto() -> void:
+func _join_auto(gmode: String = "battle_royale") -> void:
 	_set_status("Finding a lobby…", COL_INFO)
-	var ok: bool = await Lobby.join_auto()
+	var ok: bool = await Lobby.join_auto("death_race" if gmode == "death_race" else "battle_royale")
 	if not ok:
 		_set_status("Auto-join failed — try the main menu.", COL_WARN)
 
@@ -283,6 +299,11 @@ func _select_value(opt: OptionButton, values: Array, value: Variant) -> void:
 
 func _refresh_settings() -> void:
 	var s := _merged_settings()
+	if _game_mode != null:
+		var gm_idx := 1 if str(s.get("game_mode", "battle_royale")) == "death_race" else 0
+		_game_mode.selected = gm_idx
+	if _lap_target != null:
+		_select_value(_lap_target, LAP_TARGETS, int(s.get("lap_target", 3)))
 	_select_value(_kill_target, KILL_TARGETS, int(s["kill_target"]))
 	_select_value(_max_players, MAX_PLAYERS, int(s["max_players"]))
 	_select_value(_respawn, RESPAWNS, float(s["respawn_delay"]))
@@ -295,6 +316,10 @@ func _push_settings() -> void:
 	if not _is_host():
 		return
 	var s := _merged_settings()
+	if _game_mode != null:
+		s["game_mode"] = GAME_MODES[clampi(_game_mode.selected, 0, GAME_MODES.size() - 1)]
+	if _lap_target != null:
+		s["lap_target"] = LAP_TARGETS[clampi(_lap_target.selected, 0, LAP_TARGETS.size() - 1)]
 	s["kill_target"] = KILL_TARGETS[_kill_target.selected]
 	s["max_players"] = MAX_PLAYERS[_max_players.selected]
 	s["respawn_delay"] = RESPAWNS[_respawn.selected]
@@ -334,7 +359,8 @@ func _on_match_started() -> void:
 	if _transitioning:
 		return
 	_transitioning = true
-	get_tree().change_scene_to_file(SCENE_ARENA)
+	var target_scene := SCENE_DEATH_RACE if Match.game_mode() == "death_race" else SCENE_ARENA
+	get_tree().change_scene_to_file(target_scene)
 
 
 func _on_leave() -> void:

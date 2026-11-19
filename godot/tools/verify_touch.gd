@@ -124,10 +124,16 @@ func _initialize() -> void:
 	_drag(1, _drive_at(layer, 0.0, 0.0))
 	await process_frame
 	_check(not _fire_held(layer), "right-pad centre releases fire")
+	var sw_before := int(layer.call("weapon_switch_count"))
 	_drag(1, _drive_at(layer, 0.0, -1.0))
 	await process_frame
 	_check(not _fire_held(layer), "right-pad DOWN never fires")
-	_touch(1, _drive_at(layer, 0.0, -1.0), false)
+	_check(int(layer.call("weapon_switch_count")) == sw_before + 1 and bool(layer.call("is_weapon_switch_active")),
+			"right-pad DOWN (pull back) triggers one-shot weapon switch")
+	_drag(1, _drive_at(layer, 0.0, 0.0))
+	await process_frame
+	_check(not bool(layer.call("is_weapon_switch_active")), "returning to centre resets weapon switch latch")
+	_touch(1, _drive_at(layer, 0.0, 0.0), false)
 	await process_frame
 
 	# ---- right pad: LEFT/RIGHT trigger dodge; centre re-arms

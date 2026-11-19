@@ -3,6 +3,7 @@ extends Control
 ## Node names referenced below are the scene contract; see the report for the tree.
 
 const SCENE_TEST_RIDE := "res://scenes/TestRide.tscn"
+const SCENE_DEATH_RACE := "res://scenes/DeathRace.tscn"
 const SCENE_LOBBY := "res://scenes/LobbyMenu.tscn"
 const SCENE_SETTINGS := "res://scenes/SettingsMenu.tscn"
 const SCENE_ARENA := "res://scenes/Arena.tscn"
@@ -13,9 +14,14 @@ const COL_OK := UI.OK
 const COL_WARN := UI.WARN
 const COL_INFO := UI.INFO
 
+## Selected Dashboard game mode: "battle_royale" (default) | "death_race"
+static var selected_game_mode := "battle_royale"
+
 @onready var _safe: MarginContainer = $SafeMargin
 @onready var _status: Label = $SafeMargin/Card/VBox/Status
 @onready var _code: LineEdit = $SafeMargin/Card/VBox/JoinRow/CodeField
+@onready var _btn_mode_br: Button = get_node_or_null("SafeMargin/Card/VBox/ModeRow/BtnModeBattleRoyale")
+@onready var _btn_mode_dr: Button = get_node_or_null("SafeMargin/Card/VBox/ModeRow/BtnModeDeathRace")
 @onready var _btn_practice: Button = $SafeMargin/Card/VBox/BtnPractice
 @onready var _btn_create: Button = $SafeMargin/Card/VBox/BtnCreate
 @onready var _btn_join_auto: Button = $SafeMargin/Card/VBox/BtnJoinAuto
@@ -29,12 +35,17 @@ func _ready() -> void:
 	Settings.call_deferred("sync_back_handler")
 	_apply_safe_area(_safe)
 	get_viewport().size_changed.connect(_on_viewport_resized)
+	if _btn_mode_br != null:
+		_btn_mode_br.pressed.connect(func() -> void: select_game_mode("battle_royale"))
+	if _btn_mode_dr != null:
+		_btn_mode_dr.pressed.connect(func() -> void: select_game_mode("death_race"))
 	_btn_practice.pressed.connect(_on_practice)
 	_btn_create.pressed.connect(_on_create)
 	_btn_join_auto.pressed.connect(_on_join_auto)
 	_btn_join_code.pressed.connect(_on_join_code)
 	_btn_settings.pressed.connect(_on_settings)
 	_code.text_submitted.connect(_on_join_code)
+	_sync_mode_ui()
 	MOBILE_INPUT.attach(_code, {
 		"title": "ROOM CODE",
 		"placeholder": "ROOM CODE",
@@ -121,17 +132,40 @@ func _apply_safe_area(margin: MarginContainer) -> void:
 	if _status != null:
 		_status.custom_minimum_size.y = 24.0 if short else 44.0
 	var btn_h := 44.0 if short else 52.0
-	for btn in [_btn_practice, _btn_create, _btn_join_auto, _btn_join_code, _btn_settings]:
+	for btn in [_btn_mode_br, _btn_mode_dr, _btn_practice, _btn_create, _btn_join_auto, _btn_join_code, _btn_settings]:
 		if btn != null:
 			btn.custom_minimum_size.y = btn_h
 	if _code != null:
 		_code.custom_minimum_size.y = 44.0 if short else 48.0
 
 
+func select_game_mode(mode: String) -> void:
+	selected_game_mode = "death_race" if mode == "death_race" else "battle_royale"
+	_sync_mode_ui()
+
+
+func _sync_mode_ui() -> void:
+	var is_race := selected_game_mode == "death_race"
+	if _btn_mode_br != null:
+		UI.style_button(_btn_mode_br, Color(0.36, 0.44, 0.56) if is_race else UI.ACCENT, 16, _btn_mode_br.custom_minimum_size.y)
+		_btn_mode_br.text = "⚔ BATTLE ROYALE" if is_race else "⚔ BATTLE ROYALE ✓"
+	if _btn_mode_dr != null:
+		UI.style_button(_btn_mode_dr, UI.GOLD if is_race else Color(0.36, 0.44, 0.56), 16, _btn_mode_dr.custom_minimum_size.y)
+		_btn_mode_dr.text = "🏁 DEATH RACE ✓" if is_race else "🏁 DEATH RACE"
+	var subtitle := get_node_or_null("SafeMargin/Card/VBox/Subtitle") as Label
+	if subtitle != null:
+		subtitle.text = "DEATH RACE  ·  CIRCUIT LAPS & COMBAT" if is_race else "BATTLE ROYALE  ·  ARENA COMBAT"
+	if _btn_practice != null:
+		_btn_practice.text = "PRACTICE (DEATH RACE TRACK)" if is_race else "PRACTICE (FREE RIDE)"
+
+
 # --------------------------------------------------------------- actions ---
 
 func _on_practice() -> void:
-	get_tree().change_scene_to_file(SCENE_TEST_RIDE)
+	if selected_game_mode == "death_race":
+		get_tree().change_scene_to_file(SCENE_DEATH_RACE)
+	else:
+		get_tree().change_scene_to_file(SCENE_TEST_RIDE)
 
 
 func _on_create() -> void:
@@ -145,6 +179,7 @@ func _on_create() -> void:
 	if lobby_script:
 		lobby_script.pending_mode = "create"
 		lobby_script.pending_code = ""
+		lobby_script.pending_game_mode = selected_game_mode
 	get_tree().change_scene_to_file(SCENE_LOBBY)
 
 
@@ -159,6 +194,7 @@ func _on_join_auto() -> void:
 	if lobby_script:
 		lobby_script.pending_mode = "join_auto"
 		lobby_script.pending_code = ""
+		lobby_script.pending_game_mode = selected_game_mode
 	get_tree().change_scene_to_file(SCENE_LOBBY)
 
 

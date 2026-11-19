@@ -191,6 +191,8 @@ func call_rpc(name: String, args: Dictionary = {}) -> Dictionary:
 			return {"ok": true, "token": _token()}
 		"register_kill":
 			return await _register_kill(args)
+		"register_lap":
+			return await _register_lap(args)
 		"time_up":
 			return await _time_up()
 		_:
@@ -348,11 +350,17 @@ func _fetch_all_channels(max_pages: int = 10) -> Array:
 
 
 func _join_auto(args: Dictionary) -> Dictionary:
+	var wanted_mode := str(args.get("p_game_mode", ""))
 	var raw_channels: Array = await _fetch_all_channels(10)
 	var now_unix := Time.get_unix_time_from_system()
 	var candidates: Array = []
 	for ch in raw_channels:
 		if is_channel_joinable(ch, now_unix):
+			if wanted_mode != "":
+				var ch_settings := _parse_dict_static(str(ch.get_prop("settings", "{}")))
+				var ch_mode := str(ch_settings.get("game_mode", "battle_royale"))
+				if ch_mode != wanted_mode:
+					continue
 			candidates.append(ch)
 	# Prefer active lobbies with fewer players, breaking ties by newest heartbeat.
 	candidates.sort_custom(func(a, b):
@@ -373,6 +381,8 @@ func _join_auto(args: Dictionary) -> Dictionary:
 				return {"lobby": _lobby, "player": _roster.get(user_id, {})}
 			# Host vanished before heartbeat expired — leave zombie room and try next.
 			leave_lobby_channel()
+	if wanted_mode != "" and not args.has("p_settings"):
+		args["p_settings"] = {"game_mode": wanted_mode, "lap_target": 3, "kill_target": 10}
 	return await _create_lobby(args)
 
 
@@ -666,8 +676,10 @@ func _register_kill(args: Dictionary) -> Dictionary:
 		_roster[target] = victim
 	var status := str(_lobby.get("status", "waiting"))
 	var winner := ""
-	var target_kills := maxi(1, int((_lobby.get("settings", {}) as Dictionary).get("kill_target", 10)))
-	if score >= target_kills:
+	var s_dict := _lobby.get("settings", {}) as Dictionary
+	var gmode := str(s_dict.get("game_mode", "battle_royale"))
+	var target_kills := maxi(1, int(s_dict.get("kill_target", 10)))
+	if gmode != "death_race" and score >= target_kills:
 		status = "finished"
 		winner = killer
 		_lobby["status"] = status
@@ -678,6 +690,47 @@ func _register_kill(args: Dictionary) -> Dictionary:
 	# CombatController already broadcasts the "kill" event for the feed; send the
 	# authoritative state too so guests' scoreboards converge. Never re-send a
 	# "kill" here — its echo would re-enter register_kill and loop.
+	_send("state", {"lobby": _lobby, "roster": _roster})
+	return {"ok": true, "score": score,
+			"lobby_status": status,
+			"winner_id": winner}
+
+
+func _register_lap(args: Dictionary) -> Dictionary:
+	var token := str(args.get("p_token", ""))
+	var racer := str(args.get("p_racer", user_id))
+	if token == "" or racer == "":
+		return {}
+	if not _is_host():
+		_send("lap_request", {"racer": racer, "token": token})
+		return {"ok": true, "pending": true,
+				"lobby_status": str(_lobby.get("status", "")),
+				"winner_id": str(_lobby.get("winner_id", ""))}
+	if _used_tokens.has(token):
+		return {"ok": false, "reason": "token_consumed"}
+	if str(_lobby.get("status", "")) != "playing":
+		return {"ok": false, "reason": "lobby_not_playing"}
+	if not _roster.has(racer):
+		return {"ok": false, "reason": "not_in_lobby"}
+	_used_tokens[token] = true
+	while _used_tokens.size() > MAX_USED_TOKENS:
+		_used_tokens.erase(_used_tokens.keys()[0])
+	var row: Dictionary = _roster.get(racer, {})
+	var score := int(row.get("score", 0)) + 1
+	row["score"] = score
+	_roster[racer] = row
+	var status := str(_lobby.get("status", "waiting"))
+	var winner := ""
+	var s_dict := _lobby.get("settings", {}) as Dictionary
+	var target_laps := maxi(1, int(s_dict.get("lap_target", 3)))
+	if score >= target_laps:
+		status = "finished"
+		winner = racer
+		_lobby["status"] = status
+		_lobby["winner_id"] = winner
+	await _apply_props()
+	_emit_roster()
+	_emit_state()
 	_send("state", {"lobby": _lobby, "roster": _roster})
 	return {"ok": true, "score": score,
 			"lobby_status": status,
@@ -828,6 +881,16 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 				await _register_kill({"p_target": target,
 						"p_token": token,
 						"p_killer": killer})
+		"lap_request":
+			if _is_host() and payload is Dictionary:
+				var p := payload as Dictionary
+				var racer := str(p.get("racer", ""))
+				var token := str(p.get("token", ""))
+				if sender_id == "" or racer != sender_id:
+					return
+				if token == "" or _used_tokens.has(token):
+					return
+				await _register_lap({"p_racer": racer, "p_token": token})
 		"kill":
 			if payload is Dictionary:
 				var p := payload as Dictionary

@@ -4,6 +4,8 @@ extends Node3D
 const REMOTE_BIKE := preload("res://src/game/NetworkedBike.gd")
 const PROJECTILE := preload("res://src/game/Projectile.gd")
 const BANANA := preload("res://src/game/BananaProjectile.gd")
+const ROCKET := preload("res://src/game/RocketProjectile.gd")
+const METEOR := preload("res://src/game/MeteorStrike.gd")
 const SEND_HZ := 15.0
 const SPAWN_ORDER := [0, 4, 2, 6, 1, 5, 3, 7]
 
@@ -242,8 +244,33 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 		return
 	kept.append(now)
 	_shot_log[owner_id] = kept
-	var vehicle := VehicleRegistry.for_player(owner_id)
+	var weapon_kind := str(p.get("w", "primary"))
+	var roster_keys: Array = Match.players.keys() if Match != null else []
+	var vehicle := VehicleRegistry.for_player_in_roster(owner_id, roster_keys) if not roster_keys.is_empty() \
+			else VehicleRegistry.for_player(owner_id)
 	var pogo := VehicleRegistry.is_pogo(vehicle)
+	var combat := get_tree().get_first_node_in_group("local_combat")
+	if weapon_kind == "rocket":
+		var rocket_dmg := Match.damage() * 2.0
+		var rocket := Node3D.new()
+		rocket.set_script(ROCKET)
+		add_child(rocket)
+		rocket.setup(owner_id, _remote.get(owner_id), o, d, 38.0, rocket_dmg,
+				str(p.get("token", "")), Color(1.0, 0.38, 0.10), 4.5)
+		if combat != null and combat.has_method("_on_projectile_hit"):
+			rocket.on_hit = Callable(combat, "_on_projectile_hit")
+		return
+	elif weapon_kind == "meteor":
+		if d.length() > 65.0:
+			return
+		var target_pos := o + d
+		var meteor_dmg := Match.damage() * 3.5
+		var strike := Node3D.new()
+		strike.set_script(METEOR)
+		add_child(strike)
+		strike.setup(owner_id, _remote.get(owner_id), target_pos, meteor_dmg,
+				str(p.get("token", "")), Color(1.0, 0.28, 0.06), 2.0, 7.5)
+		return
 	var proj_script: GDScript = BANANA if pogo else PROJECTILE
 	var dmg := Match.damage() * VehicleRegistry.damage_multiplier(vehicle)
 	var shot_color := Color(1.0, 0.9, 0.25) if pogo else Color(1.0, 0.35, 0.25)
@@ -253,7 +280,6 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 	# Keep in sync with SideCannons.SHOT_SPEED.
 	proj.setup(owner_id, _remote.get(owner_id), o, d, 52.0, dmg,
 			str(p.get("token", "")), shot_color)
-	var combat := get_tree().get_first_node_in_group("local_combat")
 	if combat != null and combat.has_method("_on_projectile_hit"):
 		proj.on_hit = Callable(combat, "_on_projectile_hit")
 

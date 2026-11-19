@@ -253,7 +253,7 @@ func _build_main() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
 
-	var subtitle := _label("Subtitle", "ARENA  ·  ONLINE MULTIPLAYER", 14, MUTED)
+	var subtitle := _label("Subtitle", "BATTLE ROYALE  ·  DEATH RACE", 14, MUTED)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(subtitle)
 
@@ -266,6 +266,15 @@ func _build_main() -> void:
 	var sep := HSeparator.new()
 	sep.name = "Sep"
 	vbox.add_child(sep)
+
+	var mode_row := _hbox("ModeRow")
+	var btn_br := _button("BtnModeBattleRoyale", "⚔ BATTLE ROYALE", ACCENT)
+	btn_br.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mode_row.add_child(btn_br)
+	var btn_dr := _button("BtnModeDeathRace", "🏁 DEATH RACE", Color(0.36, 0.44, 0.56))
+	btn_dr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mode_row.add_child(btn_dr)
+	vbox.add_child(mode_row)
 
 	vbox.add_child(_button("BtnPractice", "PRACTICE (FREE RIDE)"))
 	vbox.add_child(_button("BtnCreate", "CREATE LOBBY"))
@@ -343,6 +352,8 @@ func _build_lobby() -> void:
 	var host_panel := _vbox("HostPanel")
 	host_panel.add_child(_button("BtnStart", "START MATCH", Color(0.35, 0.90, 0.55)))
 	host_panel.add_child(_section_header("HostTitle", "HOST SETTINGS"))
+	host_panel.add_child(_setting_row("GameModeRow", "Game mode", _option("GameMode", ["Battle Royale", "Death Race"])))
+	host_panel.add_child(_setting_row("LapTargetRow", "Race laps", _option("LapTarget", ["2", "3", "5"])))
 	host_panel.add_child(_setting_row("KillTargetRow", "Eliminations", _option("KillTarget", ["3", "5", "10", "15", "20"])))
 	host_panel.add_child(_setting_row("MaxPlayersRow", "Max riders", _option("MaxPlayers", ["2", "3", "4", "5", "6", "7", "8"])))
 	host_panel.add_child(_setting_row("RespawnRow", "Respawn", _option("RespawnDelay", ["1s", "2s", "2.5s", "3s", "4s", "5s"])))
@@ -450,6 +461,7 @@ func _verify() -> void:
 			"path": OUT_MAIN,
 			"script": "res://src/ui/MainMenu.gd",
 			"nodes": ["SafeMargin", "SafeMargin/Card/VBox/Status", "SafeMargin/Card/VBox/JoinRow/CodeField",
+					"SafeMargin/Card/VBox/ModeRow/BtnModeBattleRoyale", "SafeMargin/Card/VBox/ModeRow/BtnModeDeathRace",
 					"SafeMargin/Card/VBox/BtnPractice", "SafeMargin/Card/VBox/BtnCreate",
 					"SafeMargin/Card/VBox/BtnJoinAuto", "SafeMargin/Card/VBox/JoinRow/BtnJoinCode",
 					"SafeMargin/Card/VBox/BtnSettings"],
@@ -461,6 +473,8 @@ func _verify() -> void:
 					"SafeMargin/Scroll/VBox/CodeRow/BtnCopy", "SafeMargin/Scroll/VBox/PlayersLabel", "SafeMargin/Scroll/VBox/PlayerList",
 					"SafeMargin/Scroll/VBox/HostPanel", "SafeMargin/Scroll/VBox/HostPanel/BtnStart",
 					"SafeMargin/Scroll/VBox/BtnReady", "SafeMargin/Scroll/VBox/TopBar/BtnLeave",
+					"SafeMargin/Scroll/VBox/HostPanel/GameModeRow/GameMode",
+					"SafeMargin/Scroll/VBox/HostPanel/LapTargetRow/LapTarget",
 					"SafeMargin/Scroll/VBox/HostPanel/KillTargetRow/KillTarget",
 					"SafeMargin/Scroll/VBox/HostPanel/MaxPlayersRow/MaxPlayers",
 					"SafeMargin/Scroll/VBox/HostPanel/RespawnRow/RespawnDelay",

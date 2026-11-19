@@ -310,11 +310,44 @@ func _add_match_hud(root: Node) -> void:
 	radar.anchor_left = 0.0
 	radar.anchor_top = 0.0
 	radar.offset_left = 12.0
-	radar.offset_top = 66.0
+	radar.offset_top = 96.0
 	radar.offset_right = 140.0
-	radar.offset_bottom = 194.0
+	radar.offset_bottom = 224.0
 	radar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(radar)
+
+	var weapon_label := Label.new()
+	weapon_label.name = "WeaponLabel"
+	weapon_label.text = "MACHINE GUN · READY"
+	weapon_label.anchor_left = 0.0
+	weapon_label.anchor_right = 0.0
+	weapon_label.anchor_top = 0.0
+	weapon_label.anchor_bottom = 0.0
+	weapon_label.offset_left = 12.0
+	weapon_label.offset_right = 180.0
+	weapon_label.offset_top = 60.0
+	weapon_label.offset_bottom = 76.0
+	weapon_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_outlined(weapon_label, Color(0.84, 0.92, 1.0, 0.96), 10, 4)
+	hud.add_child(weapon_label)
+
+	var reload_bar := ProgressBar.new()
+	reload_bar.name = "ReloadBar"
+	reload_bar.max_value = 100.0
+	reload_bar.value = 100.0
+	reload_bar.show_percentage = false
+	reload_bar.anchor_left = 0.0
+	reload_bar.anchor_right = 0.0
+	reload_bar.anchor_top = 0.0
+	reload_bar.anchor_bottom = 0.0
+	reload_bar.offset_left = 12.0
+	reload_bar.offset_right = 142.0
+	reload_bar.offset_top = 77.0
+	reload_bar.offset_bottom = 87.0
+	reload_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	reload_bar.add_theme_stylebox_override("fill", UI.bar_fill(UI.INFO))
+	reload_bar.add_theme_stylebox_override("background", UI.bar_track())
+	hud.add_child(reload_bar)
 
 	var health_label := Label.new()
 	health_label.name = "HealthLabel"

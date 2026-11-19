@@ -325,21 +325,27 @@ rider_parts.append(loft_tube("ShirtTorso", shirt_stations, seg=26, material=SHIR
 # Flush crew-neck ribbed collar sitting directly on the neckline
 rider_parts.append(torus("ShirtCollar", (0.0, -0.008, 1.430), 0.095, 0.018, seg=20, sides=8, material=TRIM_GOLD))
 
-# ---------------------------------------------------------------- dynamic bent-arm pogo pose (lofted sleeves + arms + sculpted hands!)
+# ---------------------------------------------------------------- dynamic bent-arm pogo pose (shoulder-pivoted Arm_L / Arm_R for turbo bird-flap!)
+arm_objects = {}
 for side, sgn in [("L", -1), ("R", 1)]:
+    # Fixed deltoid shoulder socket cap remains on RiderBody so arm rotations up to +-45 deg never open a seam!
+    rider_parts.append(sph(f"ShoulderSocket_{side}", (sgn * 0.215, 0.005, 1.310),
+                           (0.095, 0.092, 0.095), seg=14, ring=10, material=SHIRT))
+
+    limb_parts = []
     # Short fitted sleeve starting tucked inside torso and curving smoothly down-out
     sleeve_stations = [
-        ((sgn * 0.170,  0.008, 1.315), 0.078, 0.078),  # tucked inside torso
-        ((sgn * 0.240,  0.005, 1.312), 0.106, 0.106),  # rounded deltoid shoulder
+        ((sgn * 0.195,  0.006, 1.312), 0.088, 0.088),  # tucked inside shoulder socket
+        ((sgn * 0.245,  0.005, 1.310), 0.104, 0.104),  # rounded deltoid shoulder
         ((sgn * 0.315,  0.001, 1.295), 0.096, 0.096),
         ((sgn * 0.388, -0.004, 1.268), 0.086, 0.086),
     ]
-    rider_parts.append(loft_tube(f"Sleeve_{side}", sleeve_stations, seg=16, material=SHIRT))
+    limb_parts.append(loft_tube(f"Sleeve_{side}", sleeve_stations, seg=16, material=SHIRT))
     # Flush gold athletic cuff band right at the sleeve opening
     sleeve_dir = Vector((sgn * 0.168, -0.009, -0.067)).normalized()
     cuff_rot = sleeve_dir.to_track_quat('Z', 'Y').to_euler()
-    rider_parts.append(torus(f"SleeveTrim_{side}", (sgn * 0.386, -0.004, 1.269), 0.085, 0.009,
-                             rot=cuff_rot, seg=18, sides=6, material=TRIM_GOLD))
+    limb_parts.append(torus(f"SleeveTrim_{side}", (sgn * 0.386, -0.004, 1.269), 0.085, 0.009,
+                            rot=cuff_rot, seg=18, sides=6, material=TRIM_GOLD))
 
     # Continuous lofted arm: upper arm angling down-out -> bent elbow -> forearm raised forward-up!
     arm_stations = [
@@ -349,15 +355,23 @@ for side, sgn in [("L", -1), ("R", 1)]:
         ((sgn * 0.578, -0.085, 1.268), 0.054, 0.052),  # mid forearm raised forward-up
         ((sgn * 0.618, -0.150, 1.352), 0.044, 0.042),  # wrist
     ]
-    rider_parts.append(loft_tube(f"Arm_{side}", arm_stations, seg=14, material=SKIN))
+    limb_parts.append(loft_tube(f"ArmMesh_{side}", arm_stations, seg=14, material=SKIN))
 
     # Sculpted energetic fist/hand + thumb at the wrist tip
     hx, hy, hz = sgn * 0.635, -0.175, 1.388
-    rider_parts.append(sph(f"Hand_{side}", (hx, hy, hz), (0.056, 0.054, 0.058), seg=14, ring=10, material=SKIN))
-    rider_parts.append(sph(f"Knuckles_{side}", (hx - sgn * 0.014, hy - 0.032, hz + 0.012),
-                           (0.038, 0.028, 0.034), seg=10, ring=8, material=SKIN))
-    rider_parts.append(sph(f"Thumb_{side}", (hx - sgn * 0.042, hy - 0.014, hz + 0.026),
-                           (0.024, 0.026, 0.032), seg=10, ring=6, material=SKIN))
+    limb_parts.append(sph(f"Hand_{side}", (hx, hy, hz), (0.056, 0.054, 0.058), seg=14, ring=10, material=SKIN))
+    limb_parts.append(sph(f"Knuckles_{side}", (hx - sgn * 0.014, hy - 0.032, hz + 0.012),
+                          (0.038, 0.028, 0.034), seg=10, ring=8, material=SKIN))
+    limb_parts.append(sph(f"Thumb_{side}", (hx - sgn * 0.042, hy - 0.014, hz + 0.026),
+                          (0.024, 0.026, 0.032), seg=10, ring=6, material=SKIN))
+
+    arm_obj = join_objects(f"Arm_{side}", limb_parts)
+    pivot = Vector((sgn * 0.215, 0.005, 1.310))
+    for v in arm_obj.data.vertices:
+        v.co -= pivot
+    arm_obj.data.update()
+    arm_obj.location = pivot
+    arm_objects[side] = arm_obj
 
 # ---------------------------------------------------------------- BELLY (separate Rider/Belly pivot for PogoVisual.gd!)
 # Generous round gut peeking hilariously below the tight shirt hem in front (-Y),
@@ -595,7 +609,7 @@ stick = bpy.data.objects.new("Stick", None)
 col.objects.link(rider)
 col.objects.link(stick)
 
-for ob in (rider_body, belly, decal):
+for ob in (rider_body, belly, decal, arm_objects.get("L"), arm_objects.get("R")):
     if ob is not None:
         ob.parent = rider
 

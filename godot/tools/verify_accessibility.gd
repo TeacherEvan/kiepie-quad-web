@@ -62,7 +62,7 @@ func _initialize() -> void:
 
 	# Menu / result navigation must be keyboard reachable.
 	_check_scene("res://scenes/MainMenu.tscn",
-			["BtnPractice", "BtnCreate", "BtnJoinAuto", "BtnJoinCode", "BtnSettings"],
+			["BtnModeBattleRoyale", "BtnModeDeathRace", "BtnPractice", "BtnCreate", "BtnJoinAuto", "BtnJoinCode", "BtnSettings"],
 			Control.FOCUS_ALL)
 	_check_scene("res://scenes/LobbyMenu.tscn",
 			["BtnLeave", "BtnCopy", "BtnStart", "BtnReady"], Control.FOCUS_ALL)

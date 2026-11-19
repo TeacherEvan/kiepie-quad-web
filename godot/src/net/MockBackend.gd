@@ -9,6 +9,8 @@ signal backend_error(message: String)
 signal host_lost()
 
 const DEFAULT_SETTINGS := {
+	"game_mode": "battle_royale",
+	"lap_target": 3,
 	"kill_target": 10,
 	"max_players": 8,
 	"respawn_delay": 2.5,
@@ -58,6 +60,13 @@ func _reset() -> void:
 func call_rpc(name: String, args: Dictionary = {}) -> Dictionary:
 	match name:
 		"join_auto", "create_lobby", "join_by_code":
+			if name == "create_lobby" and args.has("p_settings") and args["p_settings"] is Dictionary:
+				var s_in: Dictionary = (lobby["settings"] as Dictionary).duplicate(true)
+				for k in (args["p_settings"] as Dictionary).keys():
+					s_in[k] = (args["p_settings"] as Dictionary)[k]
+				lobby["settings"] = s_in
+			elif name == "join_auto" and args.has("p_game_mode"):
+				(lobby["settings"] as Dictionary)["game_mode"] = str(args["p_game_mode"])
 			var me := "mock-host"
 			if not players.has(me):
 				players[me] = {
@@ -95,6 +104,8 @@ func call_rpc(name: String, args: Dictionary = {}) -> Dictionary:
 			return {"token": token, "at": "2026-01-01T00:00:00Z"}
 		"register_kill":
 			return _mock_register_kill(args)
+		"register_lap":
+			return _mock_register_lap(args)
 		_:
 			return {}
 	return {}
@@ -148,13 +159,47 @@ func _mock_register_kill(args: Dictionary) -> Dictionary:
 		"record": shooter_row,
 	})
 	var winner = null
-	var target_score := int((lobby["settings"] as Dictionary).get("kill_target", 10))
-	if scores[shooter] >= target_score:
+	var s_dict := lobby.get("settings", {}) as Dictionary
+	var gmode := str(s_dict.get("game_mode", "battle_royale"))
+	var target_score := int(s_dict.get("kill_target", 10))
+	if gmode != "death_race" and scores[shooter] >= target_score:
 		lobby["status"] = "finished"
 		lobby["winner_id"] = shooter
 		winner = shooter
 	return {
 		"ok": true, "score": scores[shooter], "winner_id": winner,
+		"lobby_status": lobby["status"],
+	}
+
+
+func _mock_register_lap(args: Dictionary) -> Dictionary:
+	var racer := str(args.get("p_racer", "mock-host"))
+	var token := str(args.get("p_token", ""))
+	if token == "" or not _issued_tokens.has(token):
+		last_kill_reason = "invalid_token"
+		return {"ok": false, "reason": last_kill_reason}
+	if _used_tokens.has(token):
+		last_kill_reason = "token_consumed"
+		return {"ok": false, "reason": last_kill_reason}
+	_used_tokens[token] = true
+	scores[racer] = int(scores.get(racer, 0)) + 1
+	var racer_row: Dictionary = players.get(racer, {}).duplicate(true)
+	racer_row["user_id"] = racer
+	racer_row["score"] = scores[racer]
+	players[racer] = racer_row
+	postgres_change.emit({
+		"schema": "public", "table": "lobby_players", "type": "UPDATE",
+		"record": racer_row,
+	})
+	var winner = null
+	var s_dict := lobby.get("settings", {}) as Dictionary
+	var target_laps := maxi(1, int(s_dict.get("lap_target", 3)))
+	if scores[racer] >= target_laps:
+		lobby["status"] = "finished"
+		lobby["winner_id"] = racer
+		winner = racer
+	return {
+		"ok": true, "score": scores[racer], "winner_id": winner,
 		"lobby_status": lobby["status"],
 	}
 

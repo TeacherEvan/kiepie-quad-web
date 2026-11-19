@@ -33,6 +33,8 @@ extends VehicleBody3D
 
 var turbo_active := false
 var player_id := ""   ## set by CombatController for projectile hit attribution
+var loop_up := Vector3.ZERO  ## non-zero inside a 360° LoopZone (local track normal pointing toward loop center)
+var _assigned_vehicle: StringName = &""
 
 var _steer := 0.0
 var _spawn := Transform3D.IDENTITY
@@ -85,8 +87,16 @@ func _ready() -> void:
 	_spawn = global_transform
 	_steer_sensitivity = clampf(float(Settings.get_value("controls", "steer_sensitivity", 1.0)), 0.3, 2.0)
 	Settings.changed.connect(_on_settings_changed)
+	if typeof(Match) != TYPE_NIL and Match != null and Match.has_signal("roster_changed"):
+		if not Match.roster_changed.is_connected(refresh_vehicle_assignment):
+			Match.roster_changed.connect(refresh_vehicle_assignment)
 	VfxFactory.prewarm()
 	_build_flames()
+
+func _exit_tree() -> void:
+	if typeof(Match) != TYPE_NIL and Match != null and Match.has_signal("roster_changed"):
+		if Match.roster_changed.is_connected(refresh_vehicle_assignment):
+			Match.roster_changed.disconnect(refresh_vehicle_assignment)
 
 func _build_flames() -> void:
 	if _flames:
@@ -212,16 +222,52 @@ func _build_flames() -> void:
 
 func _assign_vehicle() -> StringName:
 	## Remote-player identity rule: the vehicle is a deterministic hash of the
-	## player id, so a baked shared .tscn picks the right model for every peer
-	## with zero extra network traffic.
+	## player id (with roster-level guarantee that at least one player in any
+	## active match roster is assigned NARDUS), so a baked shared .tscn picks
+	## the right model for every peer with zero extra network traffic.
 	var id := ""
 	if typeof(Supabase) != TYPE_NIL and Supabase != null and "user_id" in Supabase:
 		id = str(Supabase.user_id)
-	var assigned := VehicleRegistry.for_player(id if id != "" else "anonymous")
+	var lookup_id := id if id != "" else "anonymous"
+	var roster_keys: Array = []
+	if typeof(Match) != TYPE_NIL and Match != null and "players" in Match:
+		var mp: Variant = Match.get("players")
+		if mp is Dictionary and not (mp as Dictionary).is_empty():
+			roster_keys = (mp as Dictionary).keys()
+	var assigned := VehicleRegistry.for_player_in_roster(lookup_id, roster_keys) if not roster_keys.is_empty() \
+			else VehicleRegistry.for_player(lookup_id)
+	_assigned_vehicle = assigned
 	vehicle_profile = VehicleRegistry.profile(assigned)
 	if assigned != VehicleRegistry.VEHICLE_BIKE:
 		_swap_model(assigned, VehicleRegistry.model_path(assigned))
 	return assigned
+
+
+func refresh_vehicle_assignment() -> void:
+	var id := ""
+	if typeof(Supabase) != TYPE_NIL and Supabase != null and "user_id" in Supabase:
+		id = str(Supabase.user_id)
+	var lookup_id := id if id != "" else "anonymous"
+	var roster_keys: Array = []
+	if typeof(Match) != TYPE_NIL and Match != null and "players" in Match:
+		var mp: Variant = Match.get("players")
+		if mp is Dictionary and not (mp as Dictionary).is_empty():
+			roster_keys = (mp as Dictionary).keys()
+	var assigned := VehicleRegistry.for_player_in_roster(lookup_id, roster_keys) if not roster_keys.is_empty() \
+			else VehicleRegistry.for_player(lookup_id)
+	if assigned == _assigned_vehicle:
+		return
+	_assigned_vehicle = assigned
+	vehicle_profile = VehicleRegistry.profile(assigned)
+	_swap_model(assigned, VehicleRegistry.model_path(assigned))
+	if _flames != null:
+		_flames.position = Vector3(0.0, 0.30, -0.18) if vehicle_profile == "pogo" else Vector3(-0.278, 0.487, -0.715)
+	var combat := get_node_or_null("CombatController")
+	if combat != null:
+		var cannons := combat.get_node_or_null("SideCannons")
+		if cannons != null and cannons.has_method("setup"):
+			var pcol: Color = combat.get("player_color") if "player_color" in combat else Color(1.0, 0.48, 0.12)
+			cannons.call("setup", self, lookup_id, Callable(combat, "_on_projectile_hit"), pcol, vehicle_profile)
 
 
 func _swap_model(assigned: StringName, glb_path: String) -> void:
@@ -234,16 +280,16 @@ func _swap_model(assigned: StringName, glb_path: String) -> void:
 		return
 	var new_model := scene.instantiate()
 	new_model.name = "Model"
+	# give the rider its bounce personality BEFORE add_child so Godot runs _ready() and _physics_process()!
+	if VehicleRegistry.is_pogo(assigned):
+		var rider := new_model.get_node_or_null("Rider")
+		if rider != null:
+			rider.set_script(POGO_VISUAL)
 	var old := get_node_or_null("Model")
 	if old != null:
 		remove_child(old)
 		old.queue_free()
 	add_child(new_model)
-	# give the rider its bounce personality
-	if VehicleRegistry.is_pogo(assigned):
-		var rider := new_model.get_node_or_null("Rider")
-		if rider != null:
-			rider.set_script(POGO_VISUAL)
 	# refresh runtime visual lookups — the Pogo has no wheel meshes (raycasts
 	# only), and the dicts here are keyed for the bike GLB
 	_wheel_nodes = {
@@ -492,10 +538,16 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	# (2) an active righting spring rotating the chassis back toward level
 	var basis := state.transform.basis.orthonormalized()
 	var up := basis.y.normalized()
+	var in_loop := loop_up.length_squared() > 0.25
+	var ref_up := loop_up.normalized() if in_loop else Vector3.UP
+	if in_loop and state.linear_velocity.length() > 5.0:
+		# Centripetal track adhesion + gravity compensation inside a 360° vertical loop
+		# so raycast wheels stay planted against the loop surface even upside down.
+		state.linear_velocity += (Vector3(0.0, 9.81, 0.0) - ref_up * 24.0) * state.step
 	var av := state.angular_velocity
 	var yaw := av.dot(up) * up
 	var trans := av - yaw
-	var lean := clampf(1.0 - up.dot(Vector3.UP), 0.0, 1.0)
+	var lean := clampf(1.0 - up.dot(ref_up), 0.0, 1.0)
 	if _dodge_time > 0.0:
 		# Mid-cartwheel: the spin IS roll — leave it completely undamped.
 		return
@@ -505,11 +557,10 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var dt_scale := clampf(state.step * 60.0, 0.25, 4.0)
 	var keep := lerpf(0.10, 0.003, lean)
 	state.angular_velocity = yaw + trans * pow(keep, dt_scale)
-	# (2) righting spring: rotate about the tilt axis (y × world-UP) —
-	# frame-free, so it works at any yaw. Deadzone keeps small lean free;
-	# effort scales with lean and is capped per physics step.
-	var axis := basis.y.cross(Vector3.UP)
-	var tilt := basis.y.angle_to(Vector3.UP)
+	# (2) righting spring: rotate about the tilt axis (y × ref_up) —
+	# frame-free, so it works at any yaw (and follows 360° loop normals).
+	var axis := basis.y.cross(ref_up)
+	var tilt := basis.y.angle_to(ref_up)
 	if axis.length() <= 0.0001:
 		# y is parallel to world UP or its negative. Upright is handled by
 		# the deadzone; when fully inverted any horizontal axis fixes the
@@ -519,7 +570,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		if axis.length() <= 0.0001:
 			axis = Vector3(basis.z.x, 0.0, basis.z.z)
 	if tilt > 0.055 and axis.length() > 0.0001:
-		var effort := minf(minf(tilt * (0.10 + lean * 1.5), 0.14) * dt_scale, tilt)
+		var max_step := 0.24 if in_loop else 0.14
+		var effort := minf(minf(tilt * (0.14 + lean * 1.6 if in_loop else 0.10 + lean * 1.5), max_step) * dt_scale, tilt)
 		basis = Basis(Quaternion(axis.normalized(), effort)) * basis
 		basis = basis.orthonormalized()
 		state.transform = Transform3D(basis, state.transform.origin)

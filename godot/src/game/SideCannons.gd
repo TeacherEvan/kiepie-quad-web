@@ -1,17 +1,37 @@
 extends Node3D
-## Player weapon mount. One FIRE input fires both barrels/handles forward with a
-## slight outward spread. Cooldown paces shots cleanly without any overheat lockout.
-## Vehicle weapon profiles live here (VehicleRegistry picks which one applies).
+## Player weapon mount & 3-weapon arsenal manager:
+## - "primary": Twin Machine Gun (Quad) / Dual Banana Cannon (Nardus)
+## - "rocket":  Rocket Launcher (5.0s cooldown, 2x MG damage, 4.5m small blast radius)
+## - "meteor":  Meteor Shower (6.0s cooldown, practical ground aim reticle, 2.0s sky-fall delay, massive 3.5x AOE damage)
 
 signal fired(token: String)
+signal weapon_changed(weapon_id: String, label: String)
+signal reload_changed(progress: float, remaining: float, is_ready: bool, label: String)
 
 const PROJECTILE := preload("res://src/game/Projectile.gd")
 const BANANA := preload("res://src/game/BananaProjectile.gd")
+const ROCKET := preload("res://src/game/RocketProjectile.gd")
+const METEOR := preload("res://src/game/MeteorStrike.gd")
 const VFX := preload("res://src/game/VfxFactory.gd")
+
 # Keep in sync with the remote-shot speed in ArenaNet._spawn_remote_shot.
 const SHOT_SPEED := 52.0
+const ROCKET_SPEED := 38.0
 const SHOT_SPREAD := 0.055
-# Per-vehicle firing profiles. Bike keeps its historical cooldown/damage.
+
+const WEAPON_ORDER := ["primary", "rocket", "meteor"]
+const ROCKET_COOLDOWN := 5.0
+const ROCKET_DAMAGE_MULT := 2.0
+const ROCKET_BLAST_RADIUS := 4.5
+const METEOR_COOLDOWN := 6.0
+const METEOR_FALL_TIME := 2.0
+const METEOR_DAMAGE_MULT := 3.5
+const METEOR_BLAST_RADIUS := 7.5
+const METEOR_AIM_MIN_DIST := 12.0
+const METEOR_AIM_MAX_DIST := 44.0
+const METEOR_AIM_DEFAULT_DIST := 25.0
+
+# Per-vehicle primary firing profiles. Bike keeps its historical cooldown/damage.
 const PROFILES := {
 	"bike": {
 		"muzzles": [["Muzzle_L", "Cannon_Bore_L", -0.62], ["Muzzle_R", "Cannon_Bore_R", 0.62]],
@@ -31,13 +51,24 @@ var owner_node: Node3D
 var owner_id := ""
 var hit_callback: Callable
 var weapon_profile := "bike"
+var current_weapon := "primary"
 
-var _cooldown := 0.0
+var _cooldowns := {"primary": 0.0, "rocket": 0.0, "meteor": 0.0}
+var _cooldown := 0.0:
+	set(v):
+		_cooldown = v
+		if _cooldowns != null and _cooldowns.has(current_weapon):
+			_cooldowns[current_weapon] = v
 var _rapid := false
 var _muzzles: Array[Node3D] = []
 var _color := Color(1.0, 0.55, 0.15)
 var _fx_holder: Node3D = null
 var _profile: Dictionary = PROFILES["bike"]
+var _aim_reticle: MeshInstance3D = null
+var _aim_mat: StandardMaterial3D = null
+var _last_reload_progress := -1.0
+var _last_reload_ready := true
+var _last_weapon_emitted := ""
 
 
 func setup(p_owner: Node3D, p_owner_id: String, p_hit_callback: Callable, p_color: Color,
@@ -69,6 +100,7 @@ func setup(p_owner: Node3D, p_owner_id: String, p_hit_callback: Callable, p_colo
 			anchor.position = Vector3(spec[2], 0.62, 0.78)
 			p_owner.add_child(anchor)
 			_muzzles.append(anchor)
+	_emit_reload_status(true)
 
 
 func _find_named(root: Node, wanted: String) -> Node3D:
@@ -81,8 +113,104 @@ func _find_named(root: Node, wanted: String) -> Node3D:
 	return null
 
 
+func _exit_tree() -> void:
+	if _aim_reticle != null and is_instance_valid(_aim_reticle):
+		_aim_reticle.queue_free()
+	_aim_reticle = null
+
+
+func weapon_display_name(w_id: String = "") -> String:
+	var w := current_weapon if w_id == "" else w_id
+	match w:
+		"rocket":
+			return "ROCKET LAUNCHER"
+		"meteor":
+			return "METEOR SHOWER"
+		_:
+			return "BANANA CANNON" if weapon_profile == "pogo" else "MACHINE GUN"
+
+
+func max_cooldown_for(w_id: String = "") -> float:
+	var w := current_weapon if w_id == "" else w_id
+	match w:
+		"rocket":
+			return ROCKET_COOLDOWN
+		"meteor":
+			return METEOR_COOLDOWN
+		_:
+			return float(_profile["rapid_cooldown"] if _rapid else _profile["cooldown"])
+
+
+func reload_progress(w_id: String = "") -> float:
+	var w := current_weapon if w_id == "" else w_id
+	var rem := float(_cooldowns.get(w, 0.0))
+	if rem <= 0.001:
+		return 1.0
+	var max_cd := maxf(0.01, max_cooldown_for(w))
+	return clampf(1.0 - rem / max_cd, 0.0, 1.0)
+
+
+func remaining_cooldown(w_id: String = "") -> float:
+	var w := current_weapon if w_id == "" else w_id
+	return maxf(0.0, float(_cooldowns.get(w, 0.0)))
+
+
+func cycle_weapon(step: int = 1) -> String:
+	var idx := WEAPON_ORDER.find(current_weapon)
+	if idx < 0:
+		idx = 0
+	idx = posmod(idx + step, WEAPON_ORDER.size())
+	select_weapon(WEAPON_ORDER[idx])
+	return current_weapon
+
+
+func select_weapon(weapon_or_idx: Variant) -> void:
+	var next_w := "primary"
+	if weapon_or_idx is int:
+		var idx := clampi(int(weapon_or_idx), 0, WEAPON_ORDER.size() - 1)
+		next_w = WEAPON_ORDER[idx]
+	else:
+		var s := str(weapon_or_idx)
+		if WEAPON_ORDER.has(s):
+			next_w = s
+	var changed := next_w != current_weapon
+	current_weapon = next_w
+	_cooldown = float(_cooldowns.get(current_weapon, 0.0))
+	if changed:
+		var sfx := get_node_or_null("/root/Sfx")
+		if sfx != null and sfx.has_method("play_ui"):
+			sfx.call("play_ui", "ui_click")
+		weapon_changed.emit(current_weapon, weapon_display_name(current_weapon))
+	_update_aim_reticle()
+	_emit_reload_status(true)
+
+
 func _process(delta: float) -> void:
+	for k in _cooldowns.keys():
+		_cooldowns[k] = maxf(0.0, float(_cooldowns[k]) - delta)
+	# Legacy test compatibility: if a test writes _cooldown = 0.0 directly, mirror it into current_weapon
+	if _cooldown <= 0.0 and float(_cooldowns.get(current_weapon, 0.0)) > 0.0 and delta == 0.0:
+		_cooldowns[current_weapon] = 0.0
 	_cooldown = maxf(0.0, _cooldown - delta)
+	if _cooldown < float(_cooldowns.get(current_weapon, 0.0)):
+		_cooldowns[current_weapon] = _cooldown
+	else:
+		_cooldown = float(_cooldowns.get(current_weapon, 0.0))
+	_update_aim_reticle()
+	_emit_reload_status(false)
+
+
+func _emit_reload_status(force: bool) -> void:
+	var prog := reload_progress(current_weapon)
+	var rem := remaining_cooldown(current_weapon)
+	var rdy := rem <= 0.001
+	var lbl := weapon_display_name(current_weapon)
+	if force or rdy != _last_reload_ready or _last_weapon_emitted != current_weapon \
+			or absf(prog - _last_reload_progress) >= 0.015:
+		_last_reload_progress = prog
+		_last_reload_ready = rdy
+		_last_weapon_emitted = current_weapon
+		reload_changed.emit(prog, rem, rdy, lbl)
 
 
 func set_rapid(value: bool) -> void:
@@ -90,44 +218,176 @@ func set_rapid(value: bool) -> void:
 
 
 func can_fire() -> bool:
-	return owner_node != null and _cooldown <= 0.0
+	return owner_node != null and _cooldown <= 0.0 and float(_cooldowns.get(current_weapon, 0.0)) <= 0.0
+
+
+func compute_meteor_target() -> Vector3:
+	if owner_node == null or not is_instance_valid(owner_node):
+		return Vector3.ZERO
+	var forward := owner_node.global_transform.basis.z
+	forward.y = 0.0
+	if forward.length_squared() < 1e-6:
+		forward = Vector3.BACK
+	else:
+		forward = forward.normalized()
+
+	# Blend with camera look direction if a camera rig is active so players can steer aim naturally
+	var tree := get_tree()
+	if tree != null:
+		var cam_rig := tree.get_first_node_in_group("camera_rig") as Node3D
+		if cam_rig != null and is_instance_valid(cam_rig):
+			var cam_fwd := -cam_rig.global_transform.basis.z
+			cam_fwd.y = 0.0
+			if cam_fwd.length_squared() > 1e-4:
+				cam_fwd = cam_fwd.normalized()
+				if cam_fwd.dot(forward) > 0.15:
+					forward = (forward * 0.45 + cam_fwd * 0.55).normalized()
+
+	var speed := 0.0
+	if "linear_velocity" in owner_node:
+		var lv: Vector3 = owner_node.get("linear_velocity")
+		speed = Vector3(lv.x, 0.0, lv.z).length()
+	var aim_dist := clampf(METEOR_AIM_DEFAULT_DIST + speed * 0.45, METEOR_AIM_MIN_DIST, METEOR_AIM_MAX_DIST)
+	var cand := owner_node.global_position + forward * aim_dist
+	cand.y = owner_node.global_position.y
+
+	# Practical Aim Assist: if a visible enemy bike is inside a 22° forward cone (10m..46m),
+	# gently bias the target point toward that enemy's predicted ground position.
+	if tree != null:
+		var best_enemy: Node3D = null
+		var best_score := 1e9
+		for b in tree.get_nodes_in_group("bike"):
+			if b == owner_node or not is_instance_valid(b) or not (b is Node3D):
+				continue
+			var bn := b as Node3D
+			if not bn.visible:
+				continue
+			var to_enemy := bn.global_position - owner_node.global_position
+			var dist := Vector3(to_enemy.x, 0.0, to_enemy.z).length()
+			if dist < 8.0 or dist > METEOR_AIM_MAX_DIST + 4.0:
+				continue
+			var dir_2d := Vector3(to_enemy.x, 0.0, to_enemy.z).normalized()
+			var align := forward.dot(dir_2d)
+			if align < 0.91:  # ~24 deg half-cone
+				continue
+			var score := dist * (1.15 - align)
+			if score < best_score:
+				best_score = score
+				best_enemy = bn
+		if best_enemy != null:
+			var lead := Vector3.ZERO
+			if "linear_velocity" in best_enemy:
+				var ev: Vector3 = best_enemy.get("linear_velocity")
+				lead = Vector3(ev.x, 0.0, ev.z) * 0.55
+			cand = cand.lerp(best_enemy.global_position + lead, 0.72)
+
+	# Snap to the ground / track surface via downward physics raycast
+	var world := owner_node.get_world_3d()
+	if world != null:
+		var rq := PhysicsRayQueryParameters3D.create(
+				Vector3(cand.x, owner_node.global_position.y + 22.0, cand.z),
+				Vector3(cand.x, owner_node.global_position.y - 18.0, cand.z))
+		rq.collide_with_areas = false
+		rq.collide_with_bodies = true
+		if owner_node is CollisionObject3D:
+			rq.exclude = [(owner_node as CollisionObject3D).get_rid()]
+		var hit_res := world.direct_space_state.intersect_ray(rq)
+		if not hit_res.is_empty():
+			cand = hit_res.get("position", cand)
+		else:
+			cand.y = 0.0
+	else:
+		cand.y = 0.0
+	return cand
+
+
+func _update_aim_reticle() -> void:
+	var show_reticle := current_weapon == "meteor" and owner_node != null \
+			and is_instance_valid(owner_node) and owner_node.visible
+	if not show_reticle:
+		if _aim_reticle != null and is_instance_valid(_aim_reticle):
+			_aim_reticle.visible = false
+		return
+	var fx_parent := _resolve_fx_parent()
+	if fx_parent == null:
+		return
+	if _aim_reticle == null or not is_instance_valid(_aim_reticle):
+		_aim_reticle = MeshInstance3D.new()
+		_aim_reticle.name = "MeteorAimReticle"
+		var cm := CylinderMesh.new()
+		cm.top_radius = METEOR_BLAST_RADIUS * 0.5
+		cm.bottom_radius = METEOR_BLAST_RADIUS * 0.5
+		cm.height = 0.04
+		cm.radial_segments = 24
+		_aim_mat = StandardMaterial3D.new()
+		_aim_mat.albedo_color = Color(1.0, 0.36, 0.08, 0.34)
+		_aim_mat.emission_enabled = true
+		_aim_mat.emission = Color(1.0, 0.45, 0.12)
+		_aim_mat.emission_energy_multiplier = 2.6
+		_aim_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_aim_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_aim_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		cm.material = _aim_mat
+		_aim_reticle.mesh = cm
+		fx_parent.add_child(_aim_reticle)
+	_aim_reticle.visible = true
+	var tgt := compute_meteor_target()
+	_aim_reticle.global_position = tgt + Vector3(0.0, 0.08, 0.0)
+	if _aim_mat != null:
+		var rdy := can_fire()
+		_aim_mat.albedo_color = Color(0.28, 1.0, 0.52, 0.36) if rdy else Color(1.0, 0.36, 0.08, 0.20)
+		_aim_mat.emission = Color(0.32, 1.0, 0.55) if rdy else Color(1.0, 0.38, 0.10)
+
+
+func _resolve_fx_parent() -> Node3D:
+	if get_tree() != null:
+		var cs := get_tree().current_scene
+		if cs is Node3D:
+			return cs as Node3D
+		elif owner_node != null and owner_node.get_parent() is Node3D:
+			return owner_node.get_parent() as Node3D
+		else:
+			if _fx_holder == null or not is_instance_valid(_fx_holder):
+				_fx_holder = Node3D.new()
+				_fx_holder.name = "CannonFX"
+				get_tree().root.add_child(_fx_holder)
+			return _fx_holder
+	return null
 
 
 func fire() -> void:
 	if not can_fire():
 		return
-	_cooldown = float(_profile["rapid_cooldown"] if _rapid else _profile["cooldown"])
+	var active_weapon := current_weapon
+	var cd := max_cooldown_for(active_weapon)
+	_cooldowns[active_weapon] = cd
+	_cooldown = cd
+	_emit_reload_status(true)
 
-	# muzzle flash is instant; the token arrives a fraction of a second later
 	var sfx := get_node_or_null("/root/Sfx")
 	if sfx != null and sfx.has_method("play"):
-		sfx.call("play", str(_profile["sfx"]))
+		match active_weapon:
+			"rocket":
+				sfx.call("play", "fire", 1.5, 0.65)
+			"meteor":
+				sfx.call("play", "turbo", 1.5, 0.72)
+			_:
+				sfx.call("play", str(_profile["sfx"]))
 	var cam := get_tree().get_first_node_in_group("camera_rig") if get_tree() != null else null
 	if cam != null and cam.has_method("add_shake"):
-		cam.call("add_shake", 0.10)
-	var fx_parent: Node3D = null
-	if get_tree() != null:
-		var cs := get_tree().current_scene
-		if cs is Node3D:
-			fx_parent = cs as Node3D
-		elif owner_node.get_parent() is Node3D:
-			fx_parent = owner_node.get_parent() as Node3D
-		else:
-			# headless/tool contexts have no current scene and a Window root:
-			# mount effects on a dedicated holder instead of a non-Node3D parent
-			if _fx_holder == null or not is_instance_valid(_fx_holder):
-				_fx_holder = Node3D.new()
-				_fx_holder.name = "CannonFX"
-				get_tree().root.add_child(_fx_holder)
-			fx_parent = _fx_holder
+		cam.call("add_shake", 0.22 if active_weapon != "primary" else 0.10)
+
+	var fx_parent := _resolve_fx_parent()
 	var right_vec := owner_node.global_transform.basis.x.normalized()
 	for i in range(_muzzles.size()):
 		var muzzle: Node3D = _muzzles[i]
 		VFX.muzzle_flash(fx_parent, muzzle.global_position,
 				owner_node.global_transform.basis.z, _color)
-		# eject a brass casing out of the breech, opposite the barrel's side
-		var side := -1.0 if i == 0 else 1.0
-		VFX.casing(fx_parent, muzzle.global_position, right_vec * side + Vector3(0, 0.35, 0))
+		if active_weapon == "primary":
+			var side := -1.0 if i == 0 else 1.0
+			VFX.casing(fx_parent, muzzle.global_position, right_vec * side + Vector3(0, 0.35, 0))
+
+	var meteor_target := compute_meteor_target() if active_weapon == "meteor" else Vector3.ZERO
 
 	var res: Dictionary = await Match.issue_shot()
 	if not is_inside_tree() or not is_instance_valid(owner_node) or not owner_node.visible:
@@ -142,6 +402,69 @@ func fire() -> void:
 	if token == "":
 		push_warning("SideCannons: backend issued no shot token")
 		return
+	if not is_instance_valid(fx_parent):
+		fx_parent = _resolve_fx_parent()
+	if fx_parent == null:
+		return
+
+	if active_weapon == "rocket":
+		# Rocket Launcher: single center-forward finned rocket, 2x MG damage, 4.5m blast radius
+		var muzzle_pos := owner_node.global_position + Vector3(0.0, 0.68, 0.0) \
+				+ owner_node.global_transform.basis.z.normalized() * 0.85
+		if not _muzzles.is_empty() and is_instance_valid(_muzzles[0]):
+			muzzle_pos = _muzzles[0].global_position
+			if _muzzles.size() >= 2 and is_instance_valid(_muzzles[1]):
+				muzzle_pos = (_muzzles[0].global_position + _muzzles[1].global_position) * 0.5
+		var dir := owner_node.global_transform.basis.z.normalized()
+		var rocket_dmg := Match.damage() * ROCKET_DAMAGE_MULT
+		var rocket := Node3D.new()
+		rocket.set_script(ROCKET)
+		fx_parent.add_child(rocket)
+		rocket.setup(owner_id, owner_node, muzzle_pos, dir, ROCKET_SPEED,
+				rocket_dmg, token, Color(1.0, 0.38, 0.10), ROCKET_BLAST_RADIUS)
+		if hit_callback.is_valid():
+			rocket.on_hit = hit_callback
+		Supabase.broadcast("shot", {
+			"id": owner_id,
+			"w": "rocket",
+			"o": [muzzle_pos.x, muzzle_pos.y, muzzle_pos.z],
+			"d": [dir.x, dir.y, dir.z],
+			"token": token,
+		})
+		fired.emit(token)
+		return
+
+	if active_weapon == "meteor":
+		# Meteor Shower: single meteor from the sky falling onto meteor_target over 2.0s
+		var anchor_origin := owner_node.global_position + Vector3(0.0, 0.65, 0.0)
+		if not _muzzles.is_empty() and is_instance_valid(_muzzles[0]):
+			anchor_origin = _muzzles[0].global_position
+		var offset := meteor_target - anchor_origin
+		if offset.length() > 60.0:
+			offset = offset.normalized() * 60.0
+			meteor_target = anchor_origin + offset
+		elif offset.length_squared() < 1e-4:
+			offset = owner_node.global_transform.basis.z.normalized() * METEOR_AIM_DEFAULT_DIST
+			meteor_target = anchor_origin + offset
+		var meteor_dmg := Match.damage() * METEOR_DAMAGE_MULT
+		var strike := Node3D.new()
+		strike.set_script(METEOR)
+		fx_parent.add_child(strike)
+		strike.setup(owner_id, owner_node, meteor_target, meteor_dmg, token,
+				Color(1.0, 0.28, 0.06), METEOR_FALL_TIME, METEOR_BLAST_RADIUS)
+		# Keep 'o' at the bike muzzle (<= 5m from sender) and encode target offset in 'd' (<= 60m)
+		# so ArenaNet._spawn_remote_shot's anti-cheat validation accepts and reconstructs it!
+		Supabase.broadcast("shot", {
+			"id": owner_id,
+			"w": "meteor",
+			"o": [anchor_origin.x, anchor_origin.y, anchor_origin.z],
+			"d": [offset.x, offset.y, offset.z],
+			"token": token,
+		})
+		fired.emit(token)
+		return
+
+	# Primary weapon: Machine Gun (Quad) or Banana Cannon (Nardus)
 	var spread := float(_profile["spread"])
 	var speed := float(_profile["speed"])
 	var proj_script: GDScript = BANANA if bool(_profile["banana"]) else PROJECTILE
@@ -149,7 +472,6 @@ func fire() -> void:
 	for i in range(_muzzles.size()):
 		var muzzle: Node3D = _muzzles[i]
 		if not is_instance_valid(muzzle) or not is_instance_valid(owner_node) or not is_instance_valid(fx_parent):
-			# scene change / bike teardown across the issue_shot round-trip
 			continue
 		var forward := owner_node.global_transform.basis.z.normalized()
 		var right := owner_node.global_transform.basis.x.normalized()
@@ -164,6 +486,7 @@ func fire() -> void:
 			proj.on_hit = hit_callback
 		Supabase.broadcast("shot", {
 			"id": owner_id,
+			"w": "primary",
 			"o": [muzzle.global_position.x, muzzle.global_position.y, muzzle.global_position.z],
 			"d": [dir.x, dir.y, dir.z],
 			"token": token,

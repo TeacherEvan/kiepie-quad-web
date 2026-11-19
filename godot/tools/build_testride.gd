@@ -224,6 +224,31 @@ func _initialize() -> void:
 			UI.chip(Color(0.085, 0.075, 0.035, 0.82), Color(UI.GOLD.r, UI.GOLD.g, UI.GOLD.b, 0.28)))
 	layer.add_child(smashed)
 
+	var weapon_label := Label.new()
+	weapon_label.name = "WeaponLabel"
+	weapon_label.text = "MACHINE GUN · READY"
+	weapon_label.position = Vector2(16, 228)
+	weapon_label.offset_right = 266.0
+	weapon_label.offset_bottom = 248.0
+	weapon_label.add_theme_font_size_override("font_size", 13)
+	weapon_label.add_theme_color_override("font_color", UI.INFO)
+	weapon_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(weapon_label)
+
+	var reload_bar := ProgressBar.new()
+	reload_bar.name = "ReloadBar"
+	reload_bar.max_value = 100.0
+	reload_bar.value = 100.0
+	reload_bar.show_percentage = false
+	reload_bar.position = Vector2(16, 250)
+	reload_bar.offset_right = 200.0
+	reload_bar.offset_bottom = 262.0
+	reload_bar.custom_minimum_size = Vector2(184.0, 12.0)
+	reload_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	reload_bar.add_theme_stylebox_override("fill", UI.bar_fill(UI.INFO))
+	reload_bar.add_theme_stylebox_override("background", UI.bar_track())
+	layer.add_child(reload_bar)
+
 	var hitmarker := Label.new()
 	hitmarker.name = "HitMarker"
 	hitmarker.text = "×"

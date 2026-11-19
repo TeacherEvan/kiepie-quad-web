@@ -119,6 +119,15 @@ func kill_target() -> int:
 	return maxi(1, int(settings().get("kill_target", 10)))
 
 
+func game_mode() -> String:
+	var m := str(settings().get("game_mode", "battle_royale"))
+	return "death_race" if m == "death_race" else "battle_royale"
+
+
+func lap_target() -> int:
+	return clampi(int(settings().get("lap_target", 3)), 1, 10)
+
+
 func max_players() -> int:
 	return clampi(int(settings().get("max_players", 8)), 2, 8)
 
@@ -249,6 +258,34 @@ func register_kill(target_id: String, token: String) -> Dictionary:
 				match_finished.emit(str(res.get("winner_id", "")))
 	else:
 		error_message.emit(str(res.get("reason", "kill rejected")))
+	return res
+
+
+func register_lap(token: String) -> Dictionary:
+	var res: Dictionary = await Supabase.call_rpc("register_lap", {
+		"p_token": token,
+	})
+	last_result = res
+	if bool(res.get("ok", false)):
+		if bool(res.get("pending", false)):
+			return res
+		var score := int(res.get("score", my_score() + 1))
+		var me := my_user_id
+		var prev_score := int((players.get(me, {}) as Dictionary).get("score", -1))
+		if players.has(me):
+			players[me]["score"] = score
+		if prev_score != score:
+			score_updated.emit(me, score)
+		var status := str(res.get("lobby_status", ""))
+		if status == "finished":
+			var was_finished := is_finished()
+			lobby["status"] = "finished"
+			lobby["winner_id"] = str(res.get("winner_id", ""))
+			if not was_finished:
+				lobby_changed.emit()
+				match_finished.emit(str(res.get("winner_id", "")))
+	else:
+		error_message.emit(str(res.get("reason", "lap rejected")))
 	return res
 
 

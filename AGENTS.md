@@ -75,9 +75,9 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 - `gdlint` / `gdtoolkit` are **not installed** in this environment — do not rely on them.
   `godot-4.3 --check-only --script <file>` reports false "Identifier not found" for autoloads;
   use `tools/_check_scripts.gd` instead.
-- `run_gates.sh` runs **26 gates**: truth, stability, touch, features, smash_impact, diag2,
+- `run_gates.sh` runs **27 gates**: truth, stability, touch, features, smash_impact, diag2,
   cannons, settings, match_rules, combat, kill_flow, appeal, accessibility, talo_backend,
-  audit_regressions, controls, dodge, rollover, vfx, practice, multiplayer, pogo, check_scripts + `touch_multitouch` (runs under xvfb, not headless —
+  audit_regressions, controls, dodge, rollover, vfx, practice, multiplayer, pogo, deathrace, check_scripts + `touch_multitouch` (runs under xvfb, not headless —
   synthesized touch needs a real window) + GdUnit4 + `scene_sync` (tracked `.tscn` must equal
   the builders' output modulo resource-id churn; hand edits to generated scenes fail loudly). `audit_regressions` locks the surgical-audit
   defects: forged `state` events, 3-stop VFX gradients, exhaust axis, malformed shot arrays and
@@ -203,7 +203,7 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   always take this path; the live Web build does not. The old Settings → Network URL/key fields
   were removed from the UI; the key comes from `.env` at build time. Lobby READY now goes through
   the `set_ready` RPC to the host-owned roster.
-- Scene builders: `build_bike.gd`, `build_testride.gd`, `build_menus.gd`, `build_arena.gd`.
+- Scene builders: `build_bike.gd`, `build_testride.gd`, `build_menus.gd`, `build_arena.gd`, `build_deathrace.gd`.
   Groups only persist through `PackedScene.pack()` with `add_to_group(name, true)`, and a child
   added to an instanced sub-scene must be owned by the **outer** root or it is dropped on pack.
   But do **not** re-own the nodes *inside* an imported GLB instance (`find_children` + `owner=`):
@@ -247,8 +247,8 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
     0.40 s / 0.18 s rapid, `pop` SFX) — twice the cannon damage at half the rate.
     `vehicle_profile` on `KiepieBike.gd` carries `bike|pogo`; `SideCannons` PROFILES is
     keyed `bike`/`pogo` only.
-  - `verify_pogo.gd` locks assignment determinism, the runtime swap, weapon profile and
-    the pogo ground datum (minZ = 0.000).
+  - `verify_pogo.gd` locks assignment determinism, roster-level guaranteed Nardus assignment (`VehicleRegistry.for_player_in_roster`), identical vehicle stats, the runtime swap, shoulder-pivoted `Rider/Arm_L` & `Rider/Arm_R` bird-wing flapping during turbo, weapon profile and the pogo ground datum (minZ = 0.000).
+  - `verify_deathrace.gd` locks Dashboard Battle Royale (default) & Death Race mode selection, `DeathRace.tscn` circuit (4 kerbed turns, 2 360° stunt loops with `LoopZone` centripetal adhesion, 3 molten hazard pits, pit stop lane, 8 jump ramps, pickups, 4 ordered checkpoints, checkered `FinishLine`, `RaceTracker` lap counter, and `web-assets/kiepie-victory-splash.mp4` victory splash), plus Rocket Launcher (5.0s cooldown, 2× MG damage, 4.5m small blast radius), Meteor Shower (6.0s cooldown, 3D ground aiming reticle, 2.0s sky-fall delay, massive 3.5× AOE damage), `HUD/ReloadBar` & `HUD/WeaponLabel` reload status, and mobile right-analog-back weapon switching.
 - Forward axis is local **+Z** (positive `engine_force` drives +Z; GLB import already flips the
   Blender nose to +Z). FL/FR wheels at z = +0.68, rear at -0.66; chase camera is at
   `origin - basis.z * distance`. Don't re-flip without re-running `tools/truth_test.gd`.

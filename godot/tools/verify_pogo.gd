@@ -53,6 +53,17 @@ func _run() -> void:
 	_check(str(registry.call("profile", &"KiepieBike")) == "bike",
 			"profile: KiepieBike -> bike")
 
+	# Roster guarantee: even when every player in a roster individually hashes to
+	# KiepieBike (e.g. ["mock-host", "user-42"]), at least one player is promoted to PogoNardus!
+	var bike_only_roster := ["mock-host", "user-42"]
+	var r0 := str(registry.call("for_player_in_roster", "mock-host", bike_only_roster))
+	var r1 := str(registry.call("for_player_in_roster", "user-42", bike_only_roster))
+	_check(r0 == "PogoNardus" or r1 == "PogoNardus",
+			"for_player_in_roster guarantees at least one PogoNardus in all-bike roster (%s, %s)" % [r0, r1])
+	var solo_roster := ["mock-host"]
+	_check(str(registry.call("for_player_in_roster", "mock-host", solo_roster)) == "PogoNardus",
+			"for_player_in_roster guarantees PogoNardus in a 1-player match roster")
+
 	# ---- 2. the GLB itself
 	var glb: PackedScene = load("res://assets/Pogo_Nardus.glb")
 	_check(glb != null, "Pogo GLB loaded")
@@ -67,11 +78,14 @@ func _run() -> void:
 	var muzzle_l := model.get_node_or_null("Stick/BananaMuzzle_L")
 	var muzzle_r := model.get_node_or_null("Stick/BananaMuzzle_R")
 	var decal := model.get_node_or_null("Rider/NardusDecal")
+	var arm_l := model.get_node_or_null("Rider/Arm_L") as Node3D
+	var arm_r := model.get_node_or_null("Rider/Arm_R") as Node3D
 	_check(rider != null, "Rider pivot present")
 	_check(stick != null, "Stick (pogo) present")
 	_check(belly != null, "Belly present under Rider")
 	_check(muzzle_l != null and muzzle_r != null, "banana muzzle anchors present")
 	_check(decal != null, "NARDUS decal present")
+	_check(arm_l != null and arm_r != null, "shoulder-pivoted Arm_L and Arm_R present under Rider")
 	# ground datum: pogo tip on z == 0 in Blender -> y == 0 in Godot (Y up)
 	# compute in model-local space so unparented model never triggers !is_inside_tree()
 	var min_y := 1.0e9
@@ -141,7 +155,23 @@ func _run() -> void:
 				muzzle_count = mu.size()
 		_check(muzzle_count == 2, "two banana muzzles mounted (%d)" % muzzle_count)
 
-	# ---- 4. and a peer whose hash lands on the bike gets the bike
+		# Turbo bird-arm flapping check: engaging turbo/overdrive flaps Arm_L and Arm_R like a bird!
+		var live_arm_l := bike.get_node_or_null("Model/Rider/Arm_L") as Node3D
+		var live_arm_r := bike.get_node_or_null("Model/Rider/Arm_R") as Node3D
+		if combat != null and combat.has_method("apply_pickup"):
+			combat.call("apply_pickup", "overdrive")
+		for _f in range(6):
+			await physics_frame
+		_check(live_arm_l != null and live_arm_r != null
+				and absf(live_arm_l.rotation.z) > 0.02
+				and is_equal_approx(live_arm_l.rotation.z, -live_arm_r.rotation.z),
+				"Nardus flaps Arm_L and Arm_R symmetrically like a bird during turbo (z=%.3f / %.3f)" % [
+					live_arm_l.rotation.z if live_arm_l else 0.0,
+					live_arm_r.rotation.z if live_arm_r else 0.0])
+		if combat != null and combat.has_method("reset_state"):
+			combat.call("reset_state")
+
+	# ---- 4. and a peer whose hash lands on the bike gets the bike (with identical physics stats!)
 	if sb != null:
 		sb.set("user_id", "user-42")
 	var ride2 := scene.instantiate() as Node3D
@@ -153,6 +183,15 @@ func _run() -> void:
 			"user-42 gets the bike")
 	var sil: Array = bike2.find_children("Silencer_Tip", "", true, false) if bike2 != null else []
 	_check(bike2 != null and sil.size() > 0, "bike GLB still carries Silencer_Tip anchor")
+	if bike != null and bike2 != null:
+		var same_stats := is_equal_approx(float(bike.get("engine_power")), float(bike2.get("engine_power"))) \
+				and is_equal_approx(float(bike.get("turbo_boost")), float(bike2.get("turbo_boost"))) \
+				and is_equal_approx(float(bike.get("max_steer")), float(bike2.get("max_steer"))) \
+				and is_equal_approx(float(bike.get("steer_speed")), float(bike2.get("steer_speed"))) \
+				and is_equal_approx(float(bike.get("dodge_lift")), float(bike2.get("dodge_lift"))) \
+				and is_equal_approx(float(bike.get("dodge_side")), float(bike2.get("dodge_side"))) \
+				and is_equal_approx(float(bike.get("dodge_spin")), float(bike2.get("dodge_spin")))
+		_check(same_stats, "Nardus and KiepieBike have identical speed, steering, and cartwheel jump stats")
 
 	if sb != null:
 		sb.set("user_id", _prior_user_id)

@@ -9,6 +9,8 @@ var player_id := ""
 var display_name := ""
 var player_color := Color(1.0, 0.5, 0.2)
 var is_respawning := false
+var turbo_active := false
+var _assigned_vehicle: StringName = &""
 
 var _target_pos := Vector3.ZERO
 var _target_basis := Basis.IDENTITY
@@ -27,18 +29,25 @@ func setup(id: String, name_text: String, color_hex: String) -> void:
 	# Stay hidden until the first live state snapshot places us at the peer's real transform.
 	visible = false
 
-	var vehicle := VehicleRegistry.for_player(player_id)
+	var roster_keys: Array = []
+	if typeof(Match) != TYPE_NIL and Match != null and "players" in Match:
+		var mp: Variant = Match.get("players")
+		if mp is Dictionary and not (mp as Dictionary).is_empty():
+			roster_keys = (mp as Dictionary).keys()
+	var vehicle := VehicleRegistry.for_player_in_roster(player_id, roster_keys) if not roster_keys.is_empty() \
+			else VehicleRegistry.for_player(player_id)
+	_assigned_vehicle = vehicle
 	var pogo := VehicleRegistry.is_pogo(vehicle)
 	var model_path := VehicleRegistry.model_path(vehicle)
 	var glb: PackedScene = load(model_path)
 	if glb != null:
 		var model := glb.instantiate()
 		model.name = "Model"
-		add_child(model)
 		if pogo:
 			var rider := model.get_node_or_null("Rider")
 			if rider != null:
 				rider.set_script(POGO_VISUAL)
+		add_child(model)
 		# tint the body slightly so players are distinguishable at a glance
 		var tinted_cache: Dictionary = {}
 		for mesh in model.find_children("*", "MeshInstance3D", true, false):
@@ -108,6 +117,7 @@ func apply_state(data: Dictionary) -> void:
 		if is_finite(q.x) and is_finite(q.y) and is_finite(q.z) and is_finite(q.w) and q.length_squared() > 1e-8:
 			_target_basis = Basis(q.normalized()).orthonormalized()
 	var dead_now := bool(data.get("d", false))
+	turbo_active = bool(data.get("t", false)) and not dead_now
 	if not _initialised:
 		is_respawning = dead_now
 		visible = not dead_now

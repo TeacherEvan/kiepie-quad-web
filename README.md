@@ -8,13 +8,12 @@ hosted on Vercel and installable as a PWA.
 
 ## Modes
 
-- **Practice** — the original free-ride pad: 3 ramps, a cone-ringed start line
-  and 3 smashable buildings with a HUD smash counter.
-- **Multiplayer** — Create Lobby / Join Auto / Join by code. `Join Auto` drops you
-  into a waiting lobby (or creates one); the host starts the match and picks the
-  kill target, rider cap, respawn delay, time limit and damage. First to the kill
-  target wins. Multiplayer runs on a free Talo backend with host-authoritative scoring;
-  builds without a game key fall back to an offline mock backend.
+- **Battle Royale (Default)** — 100×100 m multiplayer combat arena (plus **Practice** free-ride pad with ramps and smashable buildings). Create Lobby / Join Auto / Join by code; first rider to reach the elimination target wins.
+- **Death Race** — high-speed closed-circuit combat racetrack (`DeathRace.tscn`) featuring sweeping banked turns, 2 full 360° vertical stunt loops, 3 molten hazard pits, a pit stop service lane, 8 jump ramps, pickups, 4 ordered checkpoints, and a checkered Start/Finish Line gantry tracking laps. First racer to complete the target laps triggers the **Victory Splash video** (`web-assets/kiepie-victory-splash.mp4`) and wins.
+- **Arsenal (Both Modes & Practice)** — cycle weapons by pulling the **right analog stick back** on mobile (or pressing `Tab` / `V` / `1–3` on desktop), with a live **HUD Reload Bar** showing reloading status:
+  - **Machine Gun (Quad) / Dual Bananas (Nardus):** Rapid-fire primary (`0.20 s` / `0.40 s` cooldown, identical 150 DPS).
+  - **Rocket Launcher:** Fires once every **5.0 seconds**, deals **2× machine-gun damage** (`60` dmg) across a **4.5 m small blast radius**.
+  - **Meteor Shower:** Fires once every **6.0 seconds** with practical forward ground-raycast aiming (and live 3D ground targeting reticle); drops a single flaming meteor from the sky with a **2.0-second fall delay** that detonates for **massive AOE damage** (`105` center damage across a `7.5 m` radius).
 
 ## Gameplay
 
@@ -39,8 +38,8 @@ no extra wire traffic:
   cannons (30 damage, 0.20 s cooldown; rapid-fire pickup shaves it to 0.09 s).
 - **NARDUS** — a stocky pogo-stick brawler in a tight crimson-magenta athletic shirt (bold gold
   **NARDUS** print across the back of his shirt, belly peeking out and sloshing with every hop)
-  and sporty shorts. He fires **bananas** (60 damage — twice the cannon — at 0.40 s / 0.18 s
-  rapid cooldown). Identical top speed, acceleration, handling, armour and dodge stats to the
+  and sporty shorts. Guaranteed to be assigned to **at least one player** in every match (`VehicleRegistry.for_player_in_roster`), and **flaps his arms like a bird** whenever turbo is active. He fires **bananas** (60 damage — twice the cannon — at 0.40 s / 0.18 s
+  rapid cooldown). Identical top speed, acceleration, handling, armour and cartwheel dodge stats to the
   QUAD — different attitude, same fight.
 
 ## Quick facts — controls
@@ -318,7 +317,7 @@ state lives in host-owned channel props, and shots/kills flow over channel socke
 Scoring is host-authoritative client logic (no server-side validation). Lobbies are stamped with a
 `protocol_version` channel prop — clients on a different wire version never get mixed in
 (`join_auto` skips the channel; `join_by_code` reports a version error). Without a key the client
-uses a full offline `MockBackend`, so all 26 gates run without credentials. The old `supabase/`
+uses a full offline `MockBackend`, so all 27 gates run without credentials. The old `supabase/`
 migrations are retained for history only and are not deployed.
 
 **VFX pass:** effects are built by `godot/src/game/VfxFactory.gd` from five tiny sprites
@@ -349,8 +348,8 @@ proportional steer strength, large touch controls and quality presets
 
 **New gates:** `verify_cannons.gd`, `verify_settings.gd`, `verify_match_rules.gd`,
 `verify_combat.gd`, `verify_kill_flow.gd`, `verify_appeal.gd`, `verify_talo_backend.gd` and
-`verify_audit_regressions.gd`, `verify_controls.gd`, `verify_dodge.gd` and `verify_rollover.gd` join the existing
-suite — `godot/tools/run_gates.sh` now runs 26 gates offline (23 headless gates plus GdUnit4,
+`verify_audit_regressions.gd`, `verify_controls.gd`, `verify_dodge.gd`, `verify_rollover.gd` and `verify_deathrace.gd` join the existing
+suite — `godot/tools/run_gates.sh` now runs 27 gates offline (24 headless gates plus GdUnit4,
 the `scene_sync` drift check and one xvfb-windowed multi-touch gate, `verify_touch_multitouch.gd`).
 The new `verify_pogo.gd` locks the NARDUS vehicle: deterministic FNV-based assignment,
 runtime model swap in `KiepieBike._enter_tree`, pogo weapon profile (0.40 s cooldown, 2×

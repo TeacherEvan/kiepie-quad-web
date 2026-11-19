@@ -32,6 +32,7 @@ SCENES = [
     "godot/scenes/KiepieBike.tscn",
     "godot/scenes/TestRide.tscn",
     "godot/scenes/Arena.tscn",
+    "godot/scenes/DeathRace.tscn",
     "godot/scenes/MainMenu.tscn",
     "godot/scenes/SettingsMenu.tscn",
     "godot/scenes/LobbyMenu.tscn",

@@ -4,9 +4,8 @@ Concrete done-vs-pending ledger. Companion to [project-plan.md](project-plan.md)
 navigation in [index.md](index.md). Statuses are evidence-backed: commit hashes,
 gate names, or live checks — not assumptions.
 
-**Last verified:** 2026-11-19 — `scene_sync OK (6 scenes match HEAD)`, full gate suite
-**26/26** green after the NARDUS pogo-vehicle rename & visual overhaul (`verify_pogo.gd`
-updated for `PogoNardus` / `Pogo_Nardus.glb` / `Rider/NardusDecal`).
+**Last verified:** 2026-11-19 — `scene_sync OK (7 scenes match HEAD)`, full gate suite
+**27/27** green after adding **Battle Royale** (default) & **Death Race** (`DeathRace.tscn`) game modes, Rocket Launcher & Meteor Shower arsenal with HUD reload bar & mobile right-analog-back switching, guaranteed Nardus roster assignment, Nardus turbo bird-flap animation, and the Victory Splash video (`verify_deathrace.gd`, `verify_pogo.gd`, `verify_touch.gd`).
 
 ## Audit remediation — 10 Principal Engineer (2026-11-18)
 

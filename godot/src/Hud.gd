@@ -10,6 +10,9 @@ var _cam_rig: Node
 var _combat: Node
 var _speed_label: Label
 var _smash_label: Label
+var _weapon_label: Label
+var _reload_bar: ProgressBar
+var _reload_fill: StyleBoxFlat
 var _hitmarker: Label
 var _hit_tween: Tween
 var _hit_gen := 0
@@ -36,6 +39,11 @@ func _ready() -> void:
 	_help_label = get_node_or_null("Help") as Label
 	_speed_label = get_node_or_null("Speed") as Label
 	_smash_label = get_node_or_null("Smashed") as Label
+	_weapon_label = get_node_or_null("WeaponLabel") as Label
+	_reload_bar = get_node_or_null("ReloadBar") as ProgressBar
+	if _reload_bar != null:
+		_reload_fill = UI.bar_fill(UI.OK)
+		_reload_bar.add_theme_stylebox_override("fill", _reload_fill)
 	_hitmarker = get_node_or_null("HitMarker") as Label
 	_restart_btn = get_node_or_null("RestartBtn") as Button
 	_view_btn = get_node_or_null("ViewBtn") as Button
@@ -50,6 +58,12 @@ func _ready() -> void:
 	if _combat != null:
 		if _combat.has_signal("hit_confirmed"):
 			_combat.hit_confirmed.connect(_on_hit_confirmed)
+		var cannons: Node = _combat.get("cannons") if "cannons" in _combat else _combat.get_node_or_null("SideCannons")
+		if cannons != null:
+			if cannons.has_signal("reload_changed"):
+				cannons.connect("reload_changed", _on_reload_changed)
+			if cannons.has_method("weapon_display_name"):
+				_on_reload_changed(1.0, 0.0, true, str(cannons.call("weapon_display_name")))
 	_total = maxi(1, smash_total)
 	_update_smash_label()
 	if get_viewport() != null:
@@ -106,6 +120,18 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			_on_restart()
 
 
+func _on_reload_changed(progress: float, remaining: float, is_ready: bool, label: String) -> void:
+	if _reload_bar != null:
+		_reload_bar.value = clampf(progress * 100.0, 0.0, 100.0)
+	if _reload_fill != null:
+		_reload_fill.bg_color = UI.OK if is_ready else UI.GOLD.lerp(UI.ACCENT, 1.0 - clampf(progress, 0.0, 1.0))
+	if _weapon_label != null:
+		if is_ready:
+			_weapon_label.text = "%s · READY" % label
+		else:
+			_weapon_label.text = "%s · RELOADING %.1fs" % [label, remaining]
+
+
 func _on_hit_confirmed() -> void:
 	if _hitmarker == null:
 		return
@@ -156,6 +182,13 @@ func _relayout() -> void:
 		_smash_label.size.x = smash_w
 		_smash_label.add_theme_font_size_override("font_size", 13 if narrow else 16)
 		_update_smash_label()
+	if _weapon_label != null:
+		_weapon_label.position = Vector2(14.0, top_y + 104.0)
+	if _reload_bar != null:
+		_reload_bar.position = Vector2(14.0, top_y + 124.0)
+		var rbw := 132.0 if narrow else 184.0
+		_reload_bar.custom_minimum_size = Vector2(rbw, 10.0)
+		_reload_bar.size = Vector2(rbw, 10.0)
 	if _restart_btn != null:
 		_restart_btn.offset_left = -132.0 if narrow else -150.0
 		_restart_btn.offset_right = -14.0

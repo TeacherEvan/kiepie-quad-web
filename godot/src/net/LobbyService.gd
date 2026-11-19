@@ -32,10 +32,11 @@ func _enter(result: Dictionary) -> bool:
 	return true
 
 
-func join_auto() -> bool:
+func join_auto(game_mode: String = "battle_royale") -> bool:
 	var res: Dictionary = await Supabase.call_rpc("join_auto", {
 		"p_display_name": Settings.display_name(),
 		"p_color": Settings.player_color(),
+		"p_game_mode": game_mode,
 	})
 	return _enter(res)
 

@@ -129,6 +129,20 @@ if [ "$BUILD" -eq 1 ]; then
 			FAILED+=("build_arena")
 		fi
 	fi
+	if [ -f godot/tools/build_deathrace.gd ]; then
+		"$GODOT" --headless --path godot --script tools/build_deathrace.gd >"$LOGDIR/build_deathrace.log" 2>&1
+		_dr_rc=$?
+		if [ "$_dr_rc" -ne 0 ]; then
+			note "   WARN build_deathrace rc=$_dr_rc (log: $LOGDIR/build_deathrace.log)"
+			FAILED+=("build_deathrace")
+		fi
+		if grep -q "saved" "$LOGDIR/build_deathrace.log"; then
+			note "   deathrace saved"
+		else
+			note "   FAIL deathrace rebuild did not save"
+			FAILED+=("build_deathrace")
+		fi
+	fi
 fi
 
 run_gate_gdunit() {
@@ -187,6 +201,7 @@ run_gate vfx             verify_vfx.gd
 run_gate practice        verify_practice.gd
 run_gate multiplayer     verify_multiplayer.gd
 run_gate pogo             verify_pogo.gd
+run_gate deathrace        verify_deathrace.gd
 run_gate check_scripts    _check_scripts.gd
 run_gate_windowed touch_multitouch verify_touch_multitouch.gd
 run_gate_gdunit

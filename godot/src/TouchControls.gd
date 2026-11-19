@@ -18,17 +18,22 @@ const CAPTURE := "res://src/TouchCapture.gd"
 const ANALOG := "res://src/AnalogSteer.gd"
 const DRIVE := "res://src/AnalogDrive.gd"
 
+signal weapon_switch_requested()
+
 const DEADZONE := 0.15
 const TURBO_ENGAGE := 0.48
 const TURBO_RELEASE := 0.32
 const REVERSE_ENGAGE := 0.40
 const REVERSE_RELEASE := 0.25
 # Right pad thresholds. Dodge uses a wider engagement band and hysteresis so a
-# thumb can't chatter between left/right; fire mirrors the turbo band.
+# thumb can't chatter between left/right; fire mirrors the turbo band; pulling
+# back (DOWN) cycles the active weapon once per gesture.
 const FIRE_ENGAGE := 0.45
 const FIRE_RELEASE := 0.30
 const DODGE_ENGAGE := 0.55
 const DODGE_RELEASE := 0.32
+const WEAPON_ENGAGE := 0.48
+const WEAPON_RELEASE := 0.28
 # Mirrors TouchCapture.MOUSE_POINTER: the emulated mouse follows the primary
 # finger but may stop emitting motion on some browsers, so a real touch must
 # always win arbitration when both own the same pad.
@@ -47,6 +52,8 @@ var _drive_latest := -1  # newest real touch on right pad
 var _drive_mouse_latest := -1  # emulated/desktop mouse on right pad
 var _drive_gas := false
 var _drive_fire := false
+var _drive_weapon_switch := false
+var _weapon_switch_count := 0
 var _drive_dodge := 0  # -1 = dodge_left, +1 = dodge_right, 0 = none
 var _drive_pad: Control = null
 var _touch_toggle: Button
@@ -119,6 +126,12 @@ func _ready() -> void:
 ## emulation presses MOUSE_BUTTON_LEFT, which is bound to that action.
 func is_fire_held() -> bool:
 	return _drive_fire
+
+func is_weapon_switch_active() -> bool:
+	return _drive_weapon_switch
+
+func weapon_switch_count() -> int:
+	return _weapon_switch_count
 
 func _analog_rect() -> Rect2:
 	# Hidden pad (touch auto-detect OFF) must not capture fingers either.
@@ -247,7 +260,7 @@ static func _curve(t: float) -> float:
 func _process(_delta: float) -> void:
 	if not _analog.is_empty() or _analog_side != 0 or _analog_turbo or _analog_reverse:
 		_sync_analog()
-	if not _drive.is_empty() or _drive_gas or _drive_fire or _drive_dodge != 0:
+	if not _drive.is_empty() or _drive_gas or _drive_fire or _drive_weapon_switch or _drive_dodge != 0:
 		_sync_drive()
 
 func _sync_analog() -> void:
@@ -321,6 +334,7 @@ func _sync_drive() -> void:
 	var target := 0.0
 	var best_abs := 0.0
 	var best_up := -1.0
+	var best_down := 1.0
 	for pointer in sources:
 		var v: Vector2 = _drive[pointer]
 		if absf(v.x) > best_abs:
@@ -328,6 +342,8 @@ func _sync_drive() -> void:
 			target = v.x
 		if v.y > best_up:
 			best_up = v.y
+		if v.y < best_down:
+			best_down = v.y
 
 	# Gas: any finger (or paired emulated mouse hold) resting on the pad.
 	var want_gas := not _drive.is_empty()
@@ -345,6 +361,19 @@ func _sync_drive() -> void:
 		var threshold := FIRE_RELEASE if _drive_fire else FIRE_ENGAGE
 		want_fire = best_up >= threshold
 	_drive_fire = want_fire
+
+	# Weapon switch: pulling the right analog BACK (downward) cycles the active
+	# weapon once per pull-back gesture (must return above -WEAPON_RELEASE to re-arm).
+	var want_switch := false
+	if not sources.is_empty():
+		var sw_thresh := WEAPON_RELEASE if _drive_weapon_switch else WEAPON_ENGAGE
+		want_switch = -best_down >= sw_thresh
+	if want_switch and not _drive_weapon_switch:
+		_drive_weapon_switch = true
+		_weapon_switch_count += 1
+		weapon_switch_requested.emit()
+	elif not want_switch:
+		_drive_weapon_switch = false
 
 	# Dodge: one cartwheel per deflection. Hold the action until the thumb
 	# returns below DODGE_RELEASE so KiepieBike.is_action_just_pressed() sees
@@ -366,11 +395,13 @@ func _sync_drive() -> void:
 		_drive_dodge = dodge_dir
 
 	_update_drive_pad(target, maxf(0.0, best_up) if not sources.is_empty() else 0.0,
-			_drive_fire, dodge_dir == -1, dodge_dir == 1, want_gas)
+			_drive_fire, dodge_dir == -1, dodge_dir == 1, want_gas,
+			maxf(0.0, -best_down) if not sources.is_empty() else 0.0, _drive_weapon_switch)
 
 
 func _update_drive_pad(steer: float, fire_val: float, fire_on: bool,
-		left_on: bool, right_on: bool, gas_on: bool) -> void:
+		left_on: bool, right_on: bool, gas_on: bool,
+		swap_val: float = 0.0, swap_on: bool = false) -> void:
 	if _drive_pad == null:
 		return
 	var changed := false
@@ -382,6 +413,12 @@ func _update_drive_pad(steer: float, fire_val: float, fire_on: bool,
 		changed = true
 	if bool(_drive_pad.get("fire_active")) != fire_on:
 		_drive_pad.set("fire_active", fire_on)
+		changed = true
+	if not is_equal_approx(float(_drive_pad.get("swap_value")), swap_val):
+		_drive_pad.set("swap_value", swap_val)
+		changed = true
+	if bool(_drive_pad.get("swap_active")) != swap_on:
+		_drive_pad.set("swap_active", swap_on)
 		changed = true
 	if bool(_drive_pad.get("dodge_left_active")) != left_on:
 		_drive_pad.set("dodge_left_active", left_on)
@@ -488,6 +525,7 @@ func _release_all() -> void:
 	_analog_reverse = false
 	_drive_gas = false
 	_drive_fire = false
+	_drive_weapon_switch = false
 	_drive_dodge = 0
 	_analog_latest = -1
 	_analog_mouse_latest = -1

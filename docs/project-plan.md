@@ -12,7 +12,7 @@ Canonical project plan for the single repository `TeacherEvan/kiepie-quad-web`
 
 - Sport quad (Yamaha Blaster class) procedurally built in Blender 5.3 from `src/qb_spec.py`;
   QA APPROVED, 0 non-manifold edges, ground datum minZ = 0.000.
-- Godot 4.3 game: Practice (TestRide) + multiplayer Arena, main scene `MainMenu.tscn`.
+- Godot 4.3 game: Dashboard with **Battle Royale** (default, `Arena.tscn` + `TestRide.tscn` practice) and **Death Race** (`DeathRace.tscn` circuit with loops, hazard pits, pit lane, ramps, pickups, ordered checkpoints, finish line, lap counter, and victory splash video), main scene `MainMenu.tscn`.
   Backend: Talo 0.20.0 (vendored), host-authoritative scoring, wire `protocol_version = 1`.
 - The 2026-11-18 **10-Principal-Engineer audit**
   ([source report](audits/10%20Principal%20Engineer.txt)) was remediated in commits
@@ -20,7 +20,7 @@ Canonical project plan for the single repository `TeacherEvan/kiepie-quad-web`
   gated in `b35bae7`. Web bundles were re-exported and auto-deployed in `f09c80e` and
   `a3ec39c` (live HTTP 200 verified 2026-11-19). Per-finding status:
   [task-status.md](task-status.md).
-- Gate suite: **26 gates**, all green at the `f09c80e` deploy (deploy_web.sh runs the full
+- Gate suite: **27 gates**, all green (deploy_web.sh runs the full
   suite before export and aborts on any failure).
 - **Blocked:** GitHub Actions CI cannot start — the GitHub account is locked for billing
   (run 44373734263 annotation). Code-side CI fixes are already landed; see
@@ -46,16 +46,16 @@ Sweep rule: changing any row means grepping the name **and** the old literal acr
 
 | Constant | Value | Defined in |
 | --- | --- | --- |
-| Gate suite size | **26** (23 headless + 1 xvfb multi-touch + GdUnit4 + scene_sync) | `godot/tools/run_gates.sh` |
+| Gate suite size | **27** (24 headless + 1 xvfb multi-touch + GdUnit4 + scene_sync) | `godot/tools/run_gates.sh` |
 | Remote shot rate cap | **24 shots/s** per sender (twin-barrel rapid ≈ 22/s legit) | `godot/src/game/ArenaNet.gd` |
-| Cannon cooldown (QUAD / NARDUS) | 0.20 / 0.09 s normal / 0.40 / 0.18 s rapid (no overheat mechanic) | `godot/src/game/SideCannons.gd` |
+| Cannon cooldown (QUAD / NARDUS) | Primary: 0.20 / 0.09 s normal / 0.40 / 0.18 s rapid · Rocket Launcher: 5.0 s (2× dmg, 4.5 m blast) · Meteor Shower: 6.0 s (2.0 s sky-fall, 3.5× dmg, 7.5 m blast) | `godot/src/game/SideCannons.gd` |
 | Kill registration | 1 s per-killer cooldown, 20/min window | `godot/src/net/TaloBackend.gd` |
 | Armour / default damage / repair | 100 / 30 / +45 | `CombatController.gd`, `Match` defaults, `Pickup.gd` |
 | Dodge | 1.0 s cooldown, 0.72 s duration, ground-only | `godot/src/KiepieBike.gd` |
 | Wire protocol | `PROTOCOL_VERSION = 1` (bump only on wire-breaking change) | `godot/src/net/TaloBackend.gd` |
-| Web pck size | currently **2.69 MB**; deploy aborts above **4 MB** | root `index.pck`, `deploy_web.sh` |
+| Web pck size | currently **2.75 MB**; deploy aborts above **4 MB** | root `index.pck`, `deploy_web.sh` |
 | Scorch / scar caps | MAX_SCORCH = 12 / MAX_SCAR = 24 | `godot/src/game/VfxFactory.gd` |
-| Level counts | Arena 10 ramps / 7 buildings · TestRide 6 ramps / 4 buildings | `build_arena.gd`, `build_testride.gd` |
+| Level counts | Arena 10 ramps / 7 buildings · TestRide 6 ramps / 4 buildings · DeathRace 8 ramps / 2 loops / 3 hazard pits / 4 checkpoints / FinishLine | `build_arena.gd`, `build_testride.gd`, `build_deathrace.gd` |
 
 ## Roadmap
 
