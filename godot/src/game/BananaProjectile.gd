@@ -20,6 +20,9 @@ var _light: OmniLight3D
 var _ray_query: PhysicsRayQueryParameters3D
 
 static var _banana_mesh: ArrayMesh = null
+static var _tip_mesh: SphereMesh = null
+static var _trail_puff_mesh: SphereMesh = null
+static var _trail_ramp: GradientTexture1D = null
 
 
 static func _quad_bezier(p0: Vector3, p1: Vector3, p2: Vector3, t: float) -> Vector3:
@@ -88,18 +91,52 @@ static func _get_banana_mesh() -> ArrayMesh:
 	return _banana_mesh
 
 
+static func _get_tip_mesh() -> SphereMesh:
+	if _tip_mesh == null:
+		var sm := SphereMesh.new()
+		sm.radius = 0.030
+		sm.height = 0.060
+		sm.radial_segments = 6
+		sm.rings = 4
+		var m := StandardMaterial3D.new()
+		m.albedo_color = Color(0.35, 0.22, 0.08)
+		m.roughness = 0.6
+		sm.material = m
+		_tip_mesh = sm
+	return _tip_mesh
+
+
+static func _get_trail_puff_mesh() -> SphereMesh:
+	if _trail_puff_mesh == null:
+		var puff := SphereMesh.new()
+		puff.radius = 0.06
+		puff.height = 0.12
+		puff.radial_segments = 5
+		puff.rings = 3
+		var tm := StandardMaterial3D.new()
+		tm.albedo_color = Color(1.0, 0.9, 0.3)
+		tm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		tm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		tm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		puff.material = tm
+		_trail_puff_mesh = puff
+	return _trail_puff_mesh
+
+
+static func _get_trail_ramp() -> GradientTexture1D:
+	if _trail_ramp == null:
+		var ramp := GradientTexture1D.new()
+		var g := Gradient.new()
+		g.set_color(0, Color(1.0, 0.9, 0.25, 0.9))
+		g.set_color(1, Color(1.0, 0.75, 0.1, 0.0))
+		ramp.gradient = g
+		_trail_ramp = ramp
+	return _trail_ramp
+
+
 static func _add_tip(tracer: Node3D, offset: Vector3) -> void:
 	var tip := MeshInstance3D.new()
-	var sm := SphereMesh.new()
-	sm.radius = 0.030
-	sm.height = 0.060
-	sm.radial_segments = 6
-	sm.rings = 4
-	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(0.35, 0.22, 0.08)
-	m.roughness = 0.6
-	sm.material = m
-	tip.mesh = sm
+	tip.mesh = _get_tip_mesh()
 	tip.position = offset
 	tracer.add_child(tip)
 
@@ -134,7 +171,9 @@ func _build_tracer() -> void:
 	_tracer.add_child(body)
 	_add_tip(_tracer, Vector3(0.0, -0.085, -0.02))
 	_add_tip(_tracer, Vector3(0.0, 0.085, -0.02))
-	_tracer.basis = Basis.looking_at(velocity.normalized(), Vector3.UP)
+	var dir := velocity.normalized()
+	var up := Vector3.UP if absf(dir.dot(Vector3.UP)) < 0.99 else Vector3.FORWARD
+	_tracer.basis = Basis.looking_at(dir, up)
 
 	_ray_query = PhysicsRayQueryParameters3D.new()
 	_ray_query.collide_with_areas = false
@@ -162,25 +201,9 @@ func _build_tracer() -> void:
 	pm.initial_velocity_max = 0.9
 	pm.scale_min = 0.10
 	pm.scale_max = 0.26
-	var ramp := GradientTexture1D.new()
-	var g := Gradient.new()
-	g.set_color(0, Color(1.0, 0.9, 0.25, 0.9))
-	g.set_color(1, Color(1.0, 0.75, 0.1, 0.0))
-	ramp.gradient = g
-	pm.color_ramp = ramp
+	pm.color_ramp = _get_trail_ramp()
 	trail.process_material = pm
-	var puff := SphereMesh.new()
-	puff.radius = 0.06
-	puff.height = 0.12
-	puff.radial_segments = 5
-	puff.rings = 3
-	var tm := StandardMaterial3D.new()
-	tm.albedo_color = Color(1.0, 0.9, 0.3)
-	tm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	tm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	tm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	puff.material = tm
-	trail.draw_pass_1 = puff
+	trail.draw_pass_1 = _get_trail_puff_mesh()
 	_tracer.add_child(trail)
 	trail.emitting = true
 

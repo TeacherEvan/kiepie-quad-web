@@ -39,6 +39,8 @@ static var _sprite_mats: Dictionary = {}
 static var _sprite_quads: Dictionary = {}
 static var _rubble_meshes: Array[BoxMesh] = []
 static var _rubble_shapes: Array[BoxShape3D] = []
+static var _casing_shape: CylinderShape3D = null
+static var _casing_mesh: CylinderMesh = null
 static var _shaders_warmed := false
 static var _casing_count := 0
 const MAX_CASINGS := 24
@@ -58,6 +60,26 @@ static func _ensure_rubble_pool() -> void:
 		var bs := BoxShape3D.new()
 		bs.size = Vector3.ONE * float(s)
 		_rubble_shapes.append(bs)
+
+
+static func _ensure_casing_pool() -> void:
+	if _casing_shape != null and _casing_mesh != null:
+		return
+	var shape := CylinderShape3D.new()
+	shape.radius = 0.028
+	shape.height = 0.075
+	_casing_shape = shape
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.028
+	cyl.bottom_radius = 0.028
+	cyl.height = 0.075
+	cyl.radial_segments = 8
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = COL_BRASS
+	mat.metallic = 0.85
+	mat.roughness = 0.32
+	cyl.material = mat
+	_casing_mesh = cyl
 
 
 static func prewarm(host: Node3D = null) -> void:
@@ -495,27 +517,36 @@ static func muzzle_flash(parent: Node3D, pos: Vector3, dir: Vector3, color: Colo
 		dt.parallel().tween_property(dm, "albedo_color:a", 0.0, 0.14)
 		dt.tween_callback(disc_inst.queue_free)
 
-	var light := OmniLight3D.new()
-	light.light_color = color
-	light.light_energy = 7.5
-	light.omni_range = 4.0
-	holder.add_child(light)
-	var t := holder.create_tween()
-	if Settings.reduced_motion():
-		light.light_energy = 2.5
-		t.tween_interval(0.14)
-	else:
-		t.tween_property(light, "light_energy", 0.0, 0.14)
+	var smoke_tree := holder.get_tree()
+	var lights: Array = smoke_tree.get_nodes_in_group("vfx_light") if smoke_tree != null else []
+	if Settings.quality_multiplier() >= 0.75 and lights.size() < MAX_IMPACT_LIGHTS:
+		var light := OmniLight3D.new()
+		light.light_color = color
+		light.light_energy = 7.5
+		light.omni_range = 4.0
+		light.add_to_group("vfx_light")
+		holder.add_child(light)
+		var t := light.create_tween()
+		if Settings.reduced_motion():
+			light.light_energy = 2.5
+			t.tween_interval(0.14)
+		else:
+			t.tween_property(light, "light_energy", 0.0, 0.14)
+		t.tween_callback(func() -> void:
+			if is_instance_valid(light):
+				light.remove_from_group("vfx_light")
+				light.queue_free())
 	# The 0.75 s smoke wisp child outlives the 0.14 s light fade — freeing the
 	# holder with the light chopped the smoke short on every shot. The holder
 	# goes after the slowest child, not with the light.
-	var smoke_tree := holder.get_tree()
 	if smoke_tree != null:
 		smoke_tree.create_timer(0.9).timeout.connect(func() -> void:
 			if is_instance_valid(holder):
 				holder.queue_free())
 	else:
-		t.tween_callback(holder.queue_free)
+		var ht := holder.create_tween()
+		ht.tween_interval(0.14)
+		ht.tween_callback(holder.queue_free)
 
 
 static func casing(parent: Node3D, pos: Vector3, eject_dir: Vector3) -> void:
@@ -526,28 +557,16 @@ static func casing(parent: Node3D, pos: Vector3, eject_dir: Vector3) -> void:
 	if _casing_count >= MAX_CASINGS:
 		return
 	_casing_count += 1
+	_ensure_casing_pool()
 	var body := RigidBody3D.new()
 	body.mass = 0.02
 	body.collision_layer = 0
 	body.collision_mask = 0
 	var col := CollisionShape3D.new()
-	var shape := CylinderShape3D.new()
-	shape.radius = 0.028
-	shape.height = 0.075
-	col.shape = shape
+	col.shape = _casing_shape
 	body.add_child(col)
 	var mesh := MeshInstance3D.new()
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.028
-	cyl.bottom_radius = 0.028
-	cyl.height = 0.075
-	cyl.radial_segments = 8
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = COL_BRASS
-	mat.metallic = 0.85
-	mat.roughness = 0.32
-	cyl.material = mat
-	mesh.mesh = cyl
+	mesh.mesh = _casing_mesh
 	body.add_child(mesh)
 	parent.add_child(body)
 	var out := eject_dir.normalized()
@@ -731,6 +750,7 @@ static func explosion(parent: Node3D, pos: Vector3, color: Color, scale: float =
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	var pieces := 0 if Settings.reduced_motion() else int(12 * _q())
+	var debris_chunks: Array[RigidBody3D] = []
 	if pieces > 0:
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = COL_CHAR
@@ -751,7 +771,9 @@ static func explosion(parent: Node3D, pos: Vector3, color: Color, scale: float =
 			mesh.mesh = _rubble_meshes[variant]
 			mesh.material_override = mat
 			chunk.add_child(mesh)
-			holder.add_child(chunk)
+			# Parent RigidBody3D chunks to unscaled parent instead of scaled holder.
+			parent.add_child(chunk)
+			debris_chunks.append(chunk)
 			chunk.global_position = pos + Vector3(rng.randf_range(-0.5, 0.5),
 					rng.randf_range(0.2, 1.0), rng.randf_range(-0.5, 0.5))
 			chunk.linear_velocity = Vector3(rng.randf_range(-6, 6), rng.randf_range(3, 9),
@@ -774,7 +796,12 @@ static func explosion(parent: Node3D, pos: Vector3, color: Color, scale: float =
 
 	var cleanup := holder.create_tween()
 	cleanup.tween_interval(3.4)
-	cleanup.tween_callback(holder.queue_free)
+	cleanup.tween_callback(func() -> void:
+		for c in debris_chunks:
+			if is_instance_valid(c):
+				c.queue_free()
+		if is_instance_valid(holder):
+			holder.queue_free())
 
 
 # ------------------------------------------------------------------ dust -----

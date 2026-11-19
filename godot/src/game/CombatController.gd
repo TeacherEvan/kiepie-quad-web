@@ -233,6 +233,16 @@ func reset_state() -> void:
 		return
 	if Match.self_respawn_at.is_connected(_on_server_respawn):
 		Match.self_respawn_at.disconnect(_on_server_respawn)
+	bike.collision_layer = 1
+	bike.collision_mask = 1
+	_rapid_until = 0.0
+	_overdrive_until = 0.0
+	_shield_until = 0.0
+	if cannons != null:
+		cannons.call("set_rapid", false)
+	if "overdrive_active" in bike:
+		bike.set("overdrive_active", false)
+	bike.set("engine_power", _base_power)
 	bike.set_physics_process(true)
 	bike.visible = true
 	health = MAX_HEALTH

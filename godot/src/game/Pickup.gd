@@ -119,11 +119,15 @@ func _process(delta: float) -> void:
 	if _collected or not _lobby_enabled:
 		return
 	_t = fmod(_t + delta, TAU)
+	var reduced := Settings != null and Settings.reduced_motion()
 	if is_instance_valid(_visual):
-		_visual.rotation.y += delta * 1.6
-		_visual.position.y = sin(_t * 2.2) * 0.12
+		if reduced:
+			_visual.position.y = 0.0
+		else:
+			_visual.rotation.y += delta * 1.6
+			_visual.position.y = sin(_t * 2.0) * 0.12
 	if is_instance_valid(_glow):
-		_glow.light_energy = 1.7 + sin(_t * 3.0) * 0.35
+		_glow.light_energy = 1.7 if reduced else (1.7 + sin(_t * 3.0) * 0.35)
 
 
 func _on_body_entered(body: Node) -> void:

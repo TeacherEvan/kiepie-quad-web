@@ -130,6 +130,14 @@ func fire() -> void:
 		VFX.casing(fx_parent, muzzle.global_position, right_vec * side + Vector3(0, 0.35, 0))
 
 	var res: Dictionary = await Match.issue_shot()
+	if not is_inside_tree() or not is_instance_valid(owner_node) or not owner_node.visible:
+		return
+	var combat := get_parent()
+	if combat != null and "alive" in combat and not bool(combat.get("alive")):
+		return
+	var practice := combat != null and "practice_mode" in combat and bool(combat.get("practice_mode"))
+	if not practice and not Match.is_playing():
+		return
 	var token := str(res.get("token", ""))
 	if token == "":
 		push_warning("SideCannons: backend issued no shot token")

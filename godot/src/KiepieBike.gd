@@ -44,6 +44,10 @@ var _ground_coyote := 0.0   ## brief grace so suspension bounce can't eat a dodg
 var _was_grounded := false   ## visual-only landing detector
 var _roost_accum := 0.0
 var _pending_reset := false
+var _dink_cd := 0.0       ## rate-limit the landing ping (dink)
+var _scrape_cd := 0.0     ## rate-limit the handbrake slide rumble (scrape)
+var _was_turbo := false
+var _turbo_sfx_cd := 0.0
 ## Set by CombatController while an overdrive pickup is live: counts as boost
 ## for the turbo blend/flames so the flame visual lasts the whole effect, not
 ## one physics frame.
@@ -260,6 +264,9 @@ func _physics_process(delta: float) -> void:
 
 	_dodge_time = maxf(0.0, _dodge_time - delta)
 	_dodge_cd = maxf(0.0, _dodge_cd - delta)
+	_dink_cd = maxf(0.0, _dink_cd - delta)
+	_scrape_cd = maxf(0.0, _scrape_cd - delta)
+	_turbo_sfx_cd = maxf(0.0, _turbo_sfx_cd - delta)
 	if _grounded():
 		_ground_coyote = 0.12
 	else:
@@ -277,8 +284,15 @@ func _physics_process(delta: float) -> void:
 	var vy := linear_velocity.y
 	if grounded and not _was_grounded and vy < -3.5:
 		var rear: Vector3 = global_position - global_transform.basis.z * 0.66
-		VfxFactory.dust_ring(self, Vector3(rear.x, 0.0, rear.z), 1.1, 4.5)
+		VfxFactory.dust_ring(_fx_parent(), Vector3(rear.x, 0.0, rear.z), 1.1, 4.5)
 		_shake(0.08)
+		if _dink_cd <= 0.0:
+			_dink_cd = 0.45
+			_play_sfx("impact", -2.0)
+	elif grounded and not _was_grounded and vy < -1.5 and _dink_cd <= 0.0:
+		# Soft landing (no dust ring): wheels give a light metallic ping.
+		_dink_cd = 0.45
+		_play_sfx("dink")
 	_was_grounded = grounded
 	if grounded and speed_kmh() > 42.0:
 		_roost_accum += delta
@@ -287,7 +301,7 @@ func _physics_process(delta: float) -> void:
 			for sx in [-0.55, 0.55]:
 				var at: Vector3 = global_position + global_transform.basis.x * sx \
 						- global_transform.basis.z * 0.66
-				VfxFactory.roost(self, at, global_transform.basis.z)
+				VfxFactory.roost(_fx_parent(), at, global_transform.basis.z)
 	else:
 		_roost_accum = 0.0
 
@@ -298,6 +312,10 @@ func _physics_process(delta: float) -> void:
 	var want_turbo := (Input.is_action_pressed("turbo") and throttle > 0.1) or overdrive_active
 	_turbo_blend = move_toward(_turbo_blend, 1.0 if want_turbo else 0.0, delta * 4.0)
 	turbo_active = _turbo_blend > 0.35
+	if turbo_active and not _was_turbo and _turbo_sfx_cd <= 0.0:
+		_turbo_sfx_cd = 0.6
+		_play_sfx("turbo")
+	_was_turbo = turbo_active
 	if _flames:
 		_flames.emitting = turbo_active
 	if _jet_plume != null:
@@ -342,6 +360,11 @@ func _physics_process(delta: float) -> void:
 		if key == "FL" or key == "FR":
 			w.steering = _steer
 
+	# Handbrake on ground: wheels scrape — low-velocity slide rumble (scrape).
+	if braking and grounded and _scrape_cd <= 0.0 and linear_velocity.length() > 2.5:
+		_scrape_cd = 1.6
+		_play_sfx("scrape", -2.5)
+
 	# visual feedback: yaw the steering pivots and roll the wheel meshes
 	for side in ["FL", "FR"]:
 		var node: Node3D = _steer_nodes[side]
@@ -375,6 +398,8 @@ func reset_bike() -> void:
 	_steer = 0.0
 	_turbo_blend = 0.0
 	turbo_active = false
+	_was_turbo = false
+	_turbo_sfx_cd = 0.0
 	_dodge_time = 0.0
 	_dodge_cd = 0.0
 	_ground_coyote = 0.0
@@ -402,6 +427,19 @@ func _shake(amount: float) -> void:
 	var cam := get_tree().get_first_node_in_group("camera_rig") if get_tree() != null else null
 	if cam != null and cam.has_method("add_shake"):
 		cam.call("add_shake", amount)
+
+
+func _fx_parent() -> Node3D:
+	var tree := get_tree()
+	if tree != null and tree.current_scene is Node3D:
+		return tree.current_scene as Node3D
+	return get_parent() as Node3D
+
+
+func _play_sfx(name: String, volume_db: float = 0.0) -> void:
+	var sfx := get_node_or_null("/root/Sfx")
+	if sfx != null and sfx.has_method("play"):
+		sfx.call("play", name, volume_db)
 
 
 func _grounded() -> bool:
@@ -465,7 +503,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	# per-tick retention/torque does not over-damp at high physics rates or
 	# under-damp at low ones. pow(keep, dt_scale) is the exponential form.
 	var dt_scale := clampf(state.step * 60.0, 0.25, 4.0)
-	var keep := lerpf(0.90, 0.997, lean)
+	var keep := lerpf(0.10, 0.003, lean)
 	state.angular_velocity = yaw + trans * pow(keep, dt_scale)
 	# (2) righting spring: rotate about the tilt axis (y × world-UP) —
 	# frame-free, so it works at any yaw. Deadzone keeps small lean free;
@@ -481,7 +519,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		if axis.length() <= 0.0001:
 			axis = Vector3(basis.z.x, 0.0, basis.z.z)
 	if tilt > 0.055 and axis.length() > 0.0001:
-		var effort := minf(tilt * (0.10 + lean * 1.5), 0.14) * dt_scale
+		var effort := minf(minf(tilt * (0.10 + lean * 1.5), 0.14) * dt_scale, tilt)
 		basis = Basis(Quaternion(axis.normalized(), effort)) * basis
 		basis = basis.orthonormalized()
 		state.transform = Transform3D(basis, state.transform.origin)

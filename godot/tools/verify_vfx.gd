@@ -40,6 +40,7 @@ func _run() -> void:
 	_scaling()
 	_effects()
 	await _anchored()
+	await _bike_world_vfx()
 	_decal_caps()
 	await _layout()
 	print("VFX: %d failure(s)" % _fail)
@@ -121,6 +122,38 @@ func _anchored() -> void:
 				near += 1
 	_check(total >= 5 and near >= 3,
 			"collapse dust anchored to site (%d of %d emitters within 5 m of (12, 0.5, -8))" % [near, total])
+	holder.free()
+
+
+func _bike_world_vfx() -> void:
+	## F-09 regression: dust_ring and roost spawned from KiepieBike must attach
+	## to the world parent (not the bike itself), so world coordinates are not
+	## double-translated when the bike is away from the origin.
+	var holder := Node3D.new()
+	root.add_child(holder)
+	var bike_ps := load("res://scenes/KiepieBike.tscn") as PackedScene
+	var bike := bike_ps.instantiate() as VehicleBody3D
+	holder.add_child(bike)
+	await process_frame
+	var world_pos := Vector3(20.0, 0.0, 20.0)
+	bike.global_position = world_pos
+	var fx_parent: Node3D = bike.call("_fx_parent") as Node3D
+	_check(fx_parent != null and fx_parent != bike,
+			"F-09: KiepieBike._fx_parent() returns world parent, not self")
+	var before := holder.get_child_count()
+	vf.dust_ring(fx_parent, world_pos, 1.1, 4.5)
+	vf.roost(fx_parent, world_pos, Vector3.FORWARD)
+	var spawned := 0
+	var not_doubled := 0
+	for i in range(before, holder.get_child_count()):
+		var c := holder.get_child(i)
+		if c is Node3D:
+			spawned += 1
+			var d := (c as Node3D).global_position.distance_to(world_pos)
+			if d <= 1.0:
+				not_doubled += 1
+	_check(spawned >= 2 and not_doubled == spawned,
+			"F-09: dust_ring/roost at (20, 0, 20) stay at world pos, not doubled (%d/%d within 1 m)" % [not_doubled, spawned])
 	holder.free()
 
 

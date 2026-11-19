@@ -60,6 +60,27 @@ func _run() -> void:
 	_check(float(combat.get("health")) == 70.0, "incoming shot damaged the local player")
 	proj.queue_free()
 
+	# F-08 regression: reset_state() after _die() must restore collision and clear active buffs
+	combat.call("apply_pickup", "overdrive")
+	combat.call("apply_pickup", "rapid")
+	combat.call("apply_pickup", "shield")
+	combat.set("_shield_until", 0.0)
+	combat.set("_invuln_until", 0.0)
+	combat.call("take_damage", 100.0, "enemy-3", Vector3.ZERO)
+	_check(not bool(combat.get("alive")), "F-08 setup: bike dead before reset_state()")
+	_check(bike.collision_layer == 0 and bike.collision_mask == 0,
+			"F-08 setup: dead bike collision disabled")
+	combat.set("_shield_until", Time.get_ticks_msec() / 1000.0 + 4.0)
+	combat.call("reset_state")
+	_check(bool(combat.get("alive")), "F-08: reset_state() restores alive")
+	_check(bike.collision_layer == 1 and bike.collision_mask == 1,
+			"F-08: reset_state() restores collision_layer == 1 and collision_mask == 1")
+	_check(not bool(bike.get("overdrive_active")),
+			"F-08: reset_state() clears bike.overdrive_active")
+	_check(float(combat.get("_rapid_until")) == 0.0 and float(combat.get("_overdrive_until")) == 0.0
+			and float(combat.get("_shield_until")) == 0.0,
+			"F-08: reset_state() zeroes buff timers")
+
 	combat.queue_free()
 	bike.queue_free()
 	holder.queue_free()

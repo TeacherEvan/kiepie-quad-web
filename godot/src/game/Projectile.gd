@@ -141,7 +141,9 @@ func _build_tracer() -> void:
 	nose.mesh = _get_nose_mesh()
 	nose.position.z = 0.22
 	_tracer.add_child(nose)
-	_tracer.basis = Basis.looking_at(velocity.normalized(), Vector3.UP)
+	var dir := velocity.normalized()
+	var up := Vector3.UP if absf(dir.dot(Vector3.UP)) < 0.99 else Vector3.FORWARD
+	_tracer.basis = Basis.looking_at(dir, up)
 
 	# Reuse a single ray query across all physics ticks of this projectile.
 	_ray_query = PhysicsRayQueryParameters3D.new()
