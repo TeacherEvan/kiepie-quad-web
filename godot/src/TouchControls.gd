@@ -517,8 +517,6 @@ func _release_all() -> void:
 	# Only actions THIS layer holds are released - keyboard/test presses are
 	# never wiped. Iterate _counts so analog-held turbo/reverse, right-pad gas
 	# and dodge all release even though no Buttons remain.
-	_analog_turbo = false
-	_analog_reverse = false
 	for action in _counts.keys().duplicate():
 		var count := int(_counts.get(action, 0))
 		for i in range(count):
@@ -601,8 +599,8 @@ func _relayout() -> void:
 		var rh := clampf(114.0 * pad_scale, 96.0, 150.0)
 		_set_rect(_drive_pad, -12.0 - rw, -12.0 - rh, -12.0, -12.0, 1.0)
 	else:
-		# Standard (e.g. 1280x720)
-		_set_rect(_analog_pad, 12.0, -156.0, 312.0, -16.0, 0.0)
+		# Standard (e.g. 1280x720): clear the Web shell's bottom-left desktop hint strip.
+		_set_rect(_analog_pad, 12.0, -196.0, 312.0, -56.0, 0.0)
 		var rw := clampf(158.0 * pad_scale, 112.0, 210.0)
 		var rh := clampf(158.0 * pad_scale, 112.0, 210.0)
 		_set_rect(_drive_pad, -14.0 - rw, -14.0 - rh, -14.0, -14.0, 1.0)

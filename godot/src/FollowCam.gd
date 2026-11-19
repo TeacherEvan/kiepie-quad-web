@@ -60,6 +60,28 @@ func toggle_view() -> void:
 		_yaw = atan2(d.x, d.z)
 		_pitch = clampf(asin(clampf(d.y / maxf(d.length(), 0.01), -1.0, 1.0)), 0.06, 1.25)
 
+func _safe_look_at(look_target: Vector3, desired_up: Vector3) -> void:
+	var to_target := look_target - global_position
+	if to_target.length_squared() <= 1e-4:
+		return
+	var look_dir := to_target.normalized()
+	var up_vec := desired_up.normalized() if desired_up.length_squared() > 1e-4 else Vector3.UP
+	if absf(look_dir.dot(up_vec)) > 0.96:
+		if _target != null and is_instance_valid(_target):
+			var bike_up := _target.global_transform.basis.y.normalized()
+			if bike_up.length_squared() > 0.5 and absf(look_dir.dot(bike_up)) <= 0.96:
+				up_vec = bike_up
+			elif absf(look_dir.dot(Vector3.FORWARD)) <= 0.96:
+				up_vec = Vector3.FORWARD
+			else:
+				up_vec = Vector3.RIGHT
+		elif absf(look_dir.dot(Vector3.FORWARD)) <= 0.96:
+			up_vec = Vector3.FORWARD
+		else:
+			up_vec = Vector3.RIGHT
+	look_at(look_target, up_vec)
+
+
 func _process(delta: float) -> void:
 	if _target == null:
 		return
@@ -70,7 +92,9 @@ func _process(delta: float) -> void:
 		else:
 			var offset := Vector3(sin(_yaw) * cos(_pitch), sin(_pitch), cos(_yaw) * cos(_pitch)) * _radius
 			global_position = _spectate_target.global_position + offset
-			look_at(_spectate_target.global_position + look_offset, Vector3.UP)
+			_safe_look_at(_spectate_target.global_position + look_offset, Vector3.UP)
+			if _cam != null:
+				_cam.position = Vector3.ZERO
 			_shake = move_toward(_shake, 0.0, delta * 3.0)
 			return
 	var dt := minf(delta, 0.05)
@@ -98,23 +122,17 @@ func _process(delta: float) -> void:
 		var offset := Vector3(sin(_yaw) * cos(_pitch), sin(_pitch), cos(_yaw) * cos(_pitch)) * _radius
 		global_position = _target.global_position + offset
 	var look_target := _target.global_transform.origin + _cam_up * look_offset.y
-	var to_target := look_target - global_position
-	if to_target.length_squared() > 1e-4:
-		var look_dir := to_target.normalized()
-		var up_vec := _cam_up if mode == "follow" else Vector3.UP
-		if absf(look_dir.dot(up_vec)) > 0.96:
-			var bike_up := _target.global_transform.basis.y.normalized()
-			if bike_up.length_squared() > 0.5 and absf(look_dir.dot(bike_up)) <= 0.96:
-				up_vec = bike_up
-			elif absf(look_dir.dot(Vector3.FORWARD)) <= 0.96:
-				up_vec = Vector3.FORWARD
-			else:
-				up_vec = Vector3.RIGHT
-		look_at(look_target, up_vec)
+	_safe_look_at(look_target, _cam_up if mode == "follow" else Vector3.UP)
 	if _shake > 0.001:
 		var s := _shake * Settings.shake_multiplier()
-		global_position += Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * s
+		var jitter := Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * s
+		if _cam != null:
+			_cam.position = jitter
+		else:
+			global_position += jitter
 		_shake = move_toward(_shake, 0.0, delta * 2.5)
+	elif _cam != null and _cam.position != Vector3.ZERO:
+		_cam.position = Vector3.ZERO
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("camera_toggle") and event is InputEventKey:

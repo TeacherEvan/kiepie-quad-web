@@ -54,11 +54,11 @@ var weapon_profile := "bike"
 var current_weapon := "primary"
 
 var _cooldowns := {"primary": 0.0, "rocket": 0.0, "meteor": 0.0}
-var _cooldown := 0.0:
+var _cooldown: float:
+	get:
+		return float(_cooldowns.get(current_weapon, 0.0))
 	set(v):
-		_cooldown = v
-		if _cooldowns != null and _cooldowns.has(current_weapon):
-			_cooldowns[current_weapon] = v
+		_cooldowns[current_weapon] = maxf(0.0, v)
 var _rapid := false
 var _muzzles: Array[Node3D] = []
 var _color := Color(1.0, 0.55, 0.15)
@@ -74,13 +74,26 @@ var _last_reload_ready := true
 var _last_weapon_emitted := ""
 
 
+static func _profile_for(profile_id: String) -> Dictionary:
+	var key := profile_id if PROFILES.has(profile_id) else "bike"
+	var base: Dictionary = (PROFILES[key] as Dictionary).duplicate(true)
+	# Single source of truth for per-vehicle combat balance lives in VehicleRegistry.
+	var veh := VehicleRegistry.VEHICLE_POGO if key == "pogo" else VehicleRegistry.VEHICLE_BIKE
+	base["cooldown"] = VehicleRegistry.cooldown(veh)
+	base["rapid_cooldown"] = VehicleRegistry.rapid_cooldown(veh)
+	base["damage_mult"] = VehicleRegistry.damage_multiplier(veh)
+	base["spread"] = VehicleRegistry.spread(veh)
+	base["sfx"] = VehicleRegistry.fire_sfx(veh)
+	return base
+
+
 func setup(p_owner: Node3D, p_owner_id: String, p_hit_callback: Callable, p_color: Color,
 		p_profile: String = "bike") -> void:
 	owner_node = p_owner
 	owner_id = p_owner_id
 	hit_callback = p_hit_callback
 	weapon_profile = p_profile if PROFILES.has(p_profile) else "bike"
-	_profile = PROFILES[weapon_profile]
+	_profile = _profile_for(weapon_profile)
 	_color = Color(_profile["color"]) if weapon_profile != "bike" else p_color
 	# purge stale fallback mounts from an earlier setup on the same owner
 	for m in _muzzles:
@@ -181,7 +194,6 @@ func select_weapon(weapon_or_idx: Variant) -> void:
 			next_w = s
 	var changed := next_w != current_weapon
 	current_weapon = next_w
-	_cooldown = float(_cooldowns.get(current_weapon, 0.0))
 	if changed:
 		var sfx := get_node_or_null("/root/Sfx")
 		if sfx != null and sfx.has_method("play_ui"):
@@ -202,14 +214,6 @@ func _physics_process(_delta: float) -> void:
 func _process(delta: float) -> void:
 	for k in _cooldowns.keys():
 		_cooldowns[k] = maxf(0.0, float(_cooldowns[k]) - delta)
-	# Legacy test compatibility: if a test writes _cooldown = 0.0 directly, mirror it into current_weapon
-	if _cooldown <= 0.0 and float(_cooldowns.get(current_weapon, 0.0)) > 0.0 and delta == 0.0:
-		_cooldowns[current_weapon] = 0.0
-	_cooldown = maxf(0.0, _cooldown - delta)
-	if _cooldown < float(_cooldowns.get(current_weapon, 0.0)):
-		_cooldowns[current_weapon] = _cooldown
-	else:
-		_cooldown = float(_cooldowns.get(current_weapon, 0.0))
 	_update_aim_reticle(delta)
 	_emit_reload_status(false)
 
@@ -388,7 +392,15 @@ func _update_aim_reticle(delta: float = 0.0) -> void:
 
 		fx_parent.add_child(_aim_reticle)
 	_aim_reticle.visible = true
-	var tgt := _cached_meteor_target if _has_cached_meteor else compute_meteor_target()
+	var tgt := _cached_meteor_target
+	if not _has_cached_meteor:
+		# Pure math fallback until the next physics step runs the raycast —
+		# never query direct_space_state from _process().
+		var fwd_f := owner_node.global_transform.basis.z
+		fwd_f.y = 0.0
+		fwd_f = fwd_f.normalized() if fwd_f.length_squared() > 1e-4 else Vector3.BACK
+		tgt = owner_node.global_position + fwd_f * METEOR_AIM_DEFAULT_DIST
+		tgt.y = 0.02
 	_aim_reticle.global_position = tgt + Vector3(0.0, 0.06, 0.0)
 	if delta > 0.0 and not Settings.reduced_motion():
 		_aim_reticle.rotate_y(2.1 * minf(delta, 0.05))

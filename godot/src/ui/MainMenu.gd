@@ -65,6 +65,18 @@ func _ready() -> void:
 		_set_status("Connecting to backend…", COL_INFO)
 
 
+func _exit_tree() -> void:
+	if Supabase != null and Supabase.auth_status.is_connected(_on_auth_status):
+		Supabase.auth_status.disconnect(_on_auth_status)
+	if Lobby != null and Lobby.error_message.is_connected(_on_error):
+		Lobby.error_message.disconnect(_on_error)
+	if Match != null and Match.error_message.is_connected(_on_error):
+		Match.error_message.disconnect(_on_error)
+	var vp := get_viewport()
+	if vp != null and vp.size_changed.is_connected(_on_viewport_resized):
+		vp.size_changed.disconnect(_on_viewport_resized)
+
+
 # ------------------------------------------------------------------ ui ---
 
 func _set_status(text: String, color: Color) -> void:

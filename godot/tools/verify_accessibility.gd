@@ -86,11 +86,24 @@ func _initialize() -> void:
 			var b := by_name.get(str(n)) as Button
 			_check(b != null and b.focus_mode == Control.FOCUS_NONE,
 					"Arena.%s focus_mode == FOCUS_NONE" % n)
-		for pad_name in ["AnalogSteer", "AnalogDrive"]:  # runtime-created; absent without _ready()
-			var pad := inst.get_node_or_null("TouchHUD/" + pad_name) as Control
-			if pad != null:
-				_check(pad.focus_mode == Control.FOCUS_NONE,
-						"Arena.%s focus_mode == FOCUS_NONE" % pad_name)
+		# Mount TouchHUD live so runtime-created AnalogSteer/AnalogDrive pads are
+		# actually inspected (not silently skipped on an unmounted packed tree).
+		var touch_hud := inst.get_node_or_null("TouchHUD")
+		if touch_hud != null:
+			inst.remove_child(touch_hud)
+			root.add_child(touch_hud)
+			await process_frame
+			for pad_name in ["AnalogSteer", "AnalogDrive"]:
+				var pad := touch_hud.get_node_or_null(pad_name) as Control
+				_check(pad != null and pad.focus_mode == Control.FOCUS_NONE,
+						"Arena.%s focus_mode == FOCUS_NONE (live)" % pad_name)
+			var steer_pad := touch_hud.get_node_or_null("AnalogSteer") as Control
+			var vp_sz := root.get_visible_rect().size
+			if steer_pad != null and vp_sz.x >= 700.0 and vp_sz.y >= 520.0:
+				_check(steer_pad.offset_bottom <= -52.0,
+						"Desktop AnalogSteer clears bottom Web hint strip (offset_bottom=%.1f <= -52)" % steer_pad.offset_bottom)
+			touch_hud.queue_free()
+			await process_frame
 		if inst != null:
 			inst.free()
 

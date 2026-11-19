@@ -418,6 +418,7 @@ static func _install_js_bridge() -> void:
       delete pending[id];
       if (activeId === id) {
         activeId = '';
+        try { input.blur(); } catch (_) {}
         overlay.style.display = 'none';
       }
     },

@@ -241,6 +241,9 @@ func _on_setting_changed(_section: String, _key: String, _value: Variant) -> voi
 # ----------------------------------------------------------------- actions ---
 
 func _on_defaults() -> void:
+	_pending_writes.clear()
+	if _flush_timer != null and is_instance_valid(_flush_timer):
+		_flush_timer.stop()
 	Settings.reset_defaults()
 	_refresh_all()
 

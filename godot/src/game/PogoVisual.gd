@@ -51,6 +51,7 @@ var _spring_coil: Node3D
 
 var _bike: VehicleBody3D
 var _host_node: Node3D
+var _settings: Node = null
 
 var _base_y := 0.0
 var _stick_base_y := 0.0
@@ -103,6 +104,7 @@ func _ready() -> void:
 		node = node.get_parent()
 	_host_node = node as Node3D
 	_bike = node as VehicleBody3D
+	_settings = get_node_or_null("/root/Settings")
 	_base_y = position.y
 	_prev_rider_y = _base_y
 
@@ -162,9 +164,8 @@ func _physics_process(delta: float) -> void:
 		return
 
 	var reduced := false
-	var settings := get_node_or_null("/root/Settings")
-	if settings != null and settings.has_method("reduced_motion"):
-		reduced = bool(settings.call("reduced_motion"))
+	if _settings != null and _settings.has_method("reduced_motion"):
+		reduced = bool(_settings.call("reduced_motion"))
 	var motion_scale := 0.30 if reduced else 1.0
 
 	# ---- 1. Sample host motion (local VehicleBody3D OR remote NetworkedBike proxy)

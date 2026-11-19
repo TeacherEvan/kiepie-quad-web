@@ -301,6 +301,12 @@ func _load() -> void:
 			needs_save = true
 	else:
 		push_warning("Settings: no readable settings.cfg at %s — using defaults" % PATH)
+		# On first Web visit with no saved config, honour OS prefers-reduced-motion.
+		if OS.has_feature("web") and Engine.has_singleton("JavaScriptBridge"):
+			var prefers_rm := bool(JavaScriptBridge.eval(
+					"!!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)", true))
+			if prefers_rm:
+				(data["gameplay"] as Dictionary)["reduced_motion"] = true
 		needs_save = true
 	data["meta"]["version"] = VERSION
 	if needs_save:

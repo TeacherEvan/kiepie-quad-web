@@ -156,8 +156,10 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   **outside** `godot/` so the pck stays small — do not move those files into `godot/assets/`.
   (`window.__kiepieSetFullscreen`) that `Settings.gd` drives via `JavaScriptBridge` on Web
   (fullscreen is now default-on; `Settings` schema v2 migrates v1 configs) — don't clobber it
-  when editing the preset. Expect root `index.pck` ≈ **2.7 MB**; `deploy_web.sh` aborts above **4 MB**,
+  when editing the preset. Expect root `index.pck` ≈ **3.4 MB**; `deploy_web.sh` aborts above **4 MB**,
   so check the printed size after adding assets (and update the script's expected-size note if it changes).
+  Root `.vercelignore` uses a strict allowlist (`*`, `!index.*`, `!favicon.ico`, `!web-assets/**`) so
+  only Web runtime assets ship to Vercel (never `docs/`, `src/`, `godot/`, `renders/`, `.blend`/`.stl`).
 - The Talo **game** key (JWT, `eyJ…`) is injected from root `.env` `TALO_API_GAME` and ships in the
   public pck by design. `TALO_API_ADMIN` (`ta_…`) is rejected by the v1 API — never use it here.
 - Vercel project `kiepie-quad-web` (team `teacher-evans-projects`, Hobby). Auth/password
