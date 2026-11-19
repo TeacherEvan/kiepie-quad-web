@@ -45,7 +45,7 @@ func _new_backend() -> Node:
 		"2": {"user_id": "2", "display_name": "guest", "score": 0},
 	}
 	backend._channel = null
-	backend._channel_id = -1
+	backend._channel_id = 1
 	return backend
 
 
@@ -184,12 +184,21 @@ func _initialize() -> void:
 	_check(not bool(dr_lap_spam.get("ok", true)) and str(dr_lap_spam.get("reason", "")) == "rate_limited",
 			"B-P0-1: rapid second lap within MIN_LAP_SECONDS is rate_limited")
 
-	# B-P1-4 regression: leave_lobby_channel increments _prop_gen so stale writes cannot resurrect _channel
+	# B-P1-4 & P1-3 regressions: leave_lobby_channel increments _prop_gen and drops ALL subsequent socket messages
 	var gen_before := int(dr_backend.get("_prop_gen"))
+	var post_leave_sigs := 0
+	dr_backend.connect("broadcast_received", func(_e: String, _p: Variant) -> void: post_leave_sigs += 1)
 	dr_backend.leave_lobby_channel()
 	_check(int(dr_backend.get("_prop_gen")) > gen_before,
 			"B-P1-4: leave_lobby_channel increments _prop_gen to invalidate in-flight writes")
+	for kind in ["shot", "hurt", "kill", "leave"]:
+		await dr_backend._on_socket_message("v1.channels.message", {
+			"playerAlias": {"id": 2},
+			"message": JSON.stringify({"k": kind, "p": {"id": "2", "victim": "2", "user_id": "2"}}),
+		})
+	_check(post_leave_sigs == 0,
+			"P1-3: shot/hurt/kill/leave frames are all dropped after leave_lobby_channel")
 	dr_backend.free()
 
-	print("talo backend contract: %d checks, %d failure(s)" % [24, _failures])
+	print("talo backend contract: %d checks, %d failure(s)" % [25, _failures])
 	quit(1 if _failures > 0 else 0)

@@ -76,8 +76,14 @@ func _join_allowlist_and_channel_guards() -> void:
 			"P1-3: join dropped after leave_lobby_channel (roster empty, 0 signals)")
 	await b.call("_on_socket_message", "v1.channels.message",
 			{"playerAlias": {"id": 2}, "message": JSON.stringify({"k": "bike_state", "p": {}})})
+	await b.call("_on_socket_message", "v1.channels.message",
+			{"playerAlias": {"id": 2}, "message": JSON.stringify({"k": "shot", "p": {"id": "2"}})})
+	await b.call("_on_socket_message", "v1.channels.message",
+			{"playerAlias": {"id": 2}, "message": JSON.stringify({"k": "hurt", "p": {"victim": "2", "amount": 30}})})
+	await b.call("_on_socket_message", "v1.channels.message",
+			{"playerAlias": {"id": 2}, "message": JSON.stringify({"k": "kill", "p": {"victim": "2", "killer": "1"}})})
 	_check(b.get("_roster").is_empty() and sig == 0,
-			"P1-3: bike_state dropped after leave_lobby_channel (roster empty, 0 signals)")
+			"P1-3: bike_state/shot/hurt/kill dropped after leave_lobby_channel (roster empty, 0 signals)")
 	b.free()
 
 func _state_spoof() -> void:
@@ -88,7 +94,8 @@ func _state_spoof() -> void:
 	b.set("_lobby", {"id": "1", "host_id": "1", "status": "playing", "settings": {}})
 	b.set("_roster", {"1": {"user_id": "1", "score": 0},
 			"2": {"user_id": "2", "score": 0}})
-	b.set("_channel_id", -1)
+	b.set("_channel_id", 1)
+	b.set("_channel", null)
 	var forged := JSON.stringify({"k": "state", "p": {
 		"lobby": {"status": "finished", "winner_id": "2"},
 		"roster": {"2": {"user_id": "2", "score": 999}}}})
@@ -129,7 +136,8 @@ func _net_security_and_roster() -> void:
 		"2": {"user_id": "2", "score": 0, "is_ready": false},
 		"3": {"user_id": "3", "score": 0, "is_ready": false},
 	})
-	b.set("_channel_id", -1)
+	b.set("_channel_id", 1)
+	b.set("_channel", null)
 
 	var relayed: Array = []
 	b.connect("broadcast_received", func(ev: String, pay: Variant) -> void:

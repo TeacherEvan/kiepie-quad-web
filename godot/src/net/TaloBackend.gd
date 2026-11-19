@@ -240,7 +240,7 @@ func leave_lobby_channel() -> void:
 	_prop_gen += 1
 	_apply_dirty = false
 	_apply_extra.clear()
-	if _channel_id > 0:
+	if _channel_id > 0 and _channel != null:
 		Talo.channels.leave(_channel_id)
 	_channel = null
 	_channel_id = -1
@@ -832,9 +832,11 @@ func _send(kind: String, payload: Dictionary) -> void:
 func _on_socket_message(res: String, data: Dictionary) -> void:
 	if res != "v1.channels.message":
 		return
+	if _channel_id <= 0:
+		return
 	_reconnect_attempts = 0
 	var ch = data.get("channel", null)
-	if ch is Dictionary and _channel_id > 0 and int((ch as Dictionary).get("id", _channel_id)) != _channel_id:
+	if ch is Dictionary and int((ch as Dictionary).get("id", _channel_id)) != _channel_id:
 		return
 	var alias = data.get("playerAlias", null)
 	# Talo stamps every socket message with the sending alias; use an integer
@@ -853,10 +855,6 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 		return
 	var msg: Dictionary = json.get_data()
 	var kind := str(msg.get("k", ""))
-	# Left-lobby / offline: "join" frames must not rehydrate a roster and
-	# "bike_state" frames must not spawn proxies (P1-3).
-	if _channel_id <= 0 and (kind == "join" or kind == "bike_state"):
-		return
 	var payload: Variant = msg.get("p", {})
 	match kind:
 		"state":

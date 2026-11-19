@@ -124,19 +124,22 @@ func _on_finish_line_entered(body: Node) -> void:
 			_finishing_lap = false
 			return
 		var tok := str(shot_res.get("token", ""))
-		if tok != "":
-			var lap_res: Dictionary = await Match.register_lap(tok)
-			if not is_inside_tree():
-				_finishing_lap = false
-				return
-			var err := str(lap_res.get("reason", lap_res.get("error", "")))
-			if err in ["rate_limited", "wrong_mode", "lobby_not_playing", "invalid_token", "token_consumed"] \
-					or lap_res.is_empty() or not bool(lap_res.get("ok", false)):
-				# Fail closed: an empty RPC response, or a live-match rejection,
-				# never credits a lap.
-				_finishing_lap = false
-				return
-			lap_pending = bool(lap_res.get("pending", false))
+		if tok == "":
+			# Fail closed: an empty shot token during a live match never credits a lap.
+			_finishing_lap = false
+			return
+		var lap_res: Dictionary = await Match.register_lap(tok)
+		if not is_inside_tree():
+			_finishing_lap = false
+			return
+		var err := str(lap_res.get("reason", lap_res.get("error", "")))
+		if err in ["rate_limited", "wrong_mode", "lobby_not_playing", "invalid_token", "token_consumed"] \
+				or lap_res.is_empty() or not bool(lap_res.get("ok", false)):
+			# Fail closed: an empty RPC response, or a live-match rejection,
+			# never credits a lap.
+			_finishing_lap = false
+			return
+		lap_pending = bool(lap_res.get("pending", false))
 
 	next_checkpoint = 0
 	completed_laps += 1

@@ -260,6 +260,20 @@ func _run() -> void:
 		await tracker.call("_on_finish_line_entered", bike)
 		_check(int(tracker.get("completed_laps")) == 1,
 				"Instant second lap inside MIN_LAP_SECONDS is rejected (B-P0-1)")
+		# Regression P1-6: empty shot token in a live match fails closed (never credits lap)
+		if mock_node != null and mock_node.has_method("reset_cooldown_for_test"):
+			mock_node.call("reset_cooldown_for_test")
+		var empty_rpc_stub := Node.new()
+		var empty_rpc_gd := GDScript.new()
+		empty_rpc_gd.source_code = "extends Node\nfunc call_rpc(_n: String, _a: Dictionary = {}) -> Dictionary:\n\treturn {}\n"
+		empty_rpc_gd.reload()
+		empty_rpc_stub.set_script(empty_rpc_gd)
+		sb.set("mock", empty_rpc_stub)
+		await tracker.call("_on_finish_line_entered", bike)
+		sb.set("mock", mock_node)
+		empty_rpc_stub.free()
+		_check(int(tracker.get("completed_laps")) == 1,
+				"RaceTracker fails closed when issue_shot returns an empty token (P1-6)")
 		# Reset mock lap cooldown and finish Lap 2 (lap_target == 2)
 		if mock_node != null and mock_node.has_method("reset_cooldown_for_test"):
 			mock_node.call("reset_cooldown_for_test")

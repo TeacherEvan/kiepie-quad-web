@@ -14,6 +14,7 @@ var _kill_lines: Array = []
 var _fps_label: Label
 var _fps_accum := 0.0
 var _fps_frames := 0
+var _show_fps := false
 var _vignette: ColorRect
 var _announce_label: Label
 var _last_respawn_text := ""
@@ -105,6 +106,9 @@ func _ready() -> void:
 		radar.set("local_bike_path", NodePath("../../KiepieBike"))
 
 	# --- initial state
+	_show_fps = bool(Settings.get_value("video", "show_fps", false)) if Settings != null else false
+	if Settings != null and Settings.has_signal("changed") and not Settings.changed.is_connected(_on_settings_changed):
+		Settings.changed.connect(_on_settings_changed)
 	_refresh_banner()
 	_refresh_scoreboard()
 	_relayout()
@@ -548,6 +552,13 @@ func _exit_tree() -> void:
 	var vp := get_viewport()
 	if vp != null and vp.size_changed.is_connected(_on_viewport_resized):
 		vp.size_changed.disconnect(_on_viewport_resized)
+	if Settings != null and Settings.has_signal("changed") and Settings.changed.is_connected(_on_settings_changed):
+		Settings.changed.disconnect(_on_settings_changed)
+
+
+func _on_settings_changed(section: String, key: String, val: Variant) -> void:
+	if section == "video" and key == "show_fps":
+		_show_fps = bool(val)
 
 
 func _on_match_finished(winner_id: String) -> void:
@@ -641,11 +652,9 @@ func add_kill(killer_id: String, victim_id: String) -> void:
 func _name_for(uid: String) -> String:
 	# O(1) lookup into Match.players (cached roster) — the previous
 	# O(N log N) Match.scoreboard() sort per name ran at the HUD 60 Hz.
-	var row := Dictionary.new()
-	if Match != null and Match.players.has(uid):
-		row = Match.players.get(uid)
-	if row is Dictionary and str(row.get("display_name", "")) != "":
-		return str(row.get("display_name", "RIDER"))
+	var row: Variant = Match.players.get(uid, null) if Match != null else null
+	if row is Dictionary and str((row as Dictionary).get("display_name", "")) != "":
+		return str((row as Dictionary).get("display_name", "RIDER"))
 	return uid.substr(0, 6) if uid.length() > 6 else (uid if uid != "" else "RIDER")
 
 
@@ -717,6 +726,8 @@ func _on_play_again() -> void:
 
 
 func _on_leave_match() -> void:
+	if OS.has_feature("web") and Engine.has_singleton("JavaScriptBridge"):
+		JavaScriptBridge.eval("window.__kiepieDropVictory && window.__kiepieDropVictory();", true)
 	if Lobby != null:
 		Lobby.leave()
 	get_tree().change_scene_to_file(MAIN_MENU)
@@ -734,7 +745,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
-	if Settings.get_value("video", "show_fps", false):
+	if _show_fps:
 		if _fps_label == null:
 			_fps_label = Label.new()
 			_fps_label.name = "FpsLabel"

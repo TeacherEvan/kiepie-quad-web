@@ -101,7 +101,7 @@ func _send_state() -> void:
 	# the respawn state instead of reappearing at the corpse position.
 	if bike == null:
 		return
-	var q := Quaternion(bike.global_transform.basis)
+	var q := Quaternion(bike.global_transform.basis.orthonormalized())
 	var combat := get_tree().get_first_node_in_group("local_combat")
 	Supabase.broadcast("state", {
 		"id": Supabase.user_id,
@@ -357,3 +357,8 @@ func _sync_roster() -> void:
 			if is_instance_valid(node):
 				node.queue_free()
 			_remote.erase(id)
+			_shot_log.erase(id)
+			_rocket_last.erase(id)
+			_meteor_last.erase(id)
+			_death_gen.erase(id)
+			_local_dmg_shown_at.erase(id)
