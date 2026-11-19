@@ -20,7 +20,8 @@ func _initialize() -> void:
 func _run() -> void:
 	await process_frame
 	await process_frame
-	_state_spoof()
+	await _state_spoof()
+	await _net_security_and_roster()
 	_gradient_stops()
 	_exhaust_axis()
 	_malformed_shot()
@@ -64,6 +65,104 @@ func _state_spoof() -> void:
 			{"playerAlias": {"id": 7}, "message": forged_join})
 	var roster3: Dictionary = b.get("_roster")
 	_check(not roster3.has("999"), "forged join from another alias is rejected")
+	b.free()
+
+func _net_security_and_roster() -> void:
+	var b: Node = (load("res://src/net/TaloBackend.gd") as GDScript).new()
+	root.add_child(b)
+	b.set("is_ready", true)
+	b.set("user_id", "1")
+	b.set("_lobby", {"id": "1", "host_id": "1", "status": "playing", "settings": {}})
+	b.set("_roster", {
+		"1": {"user_id": "1", "score": 0, "is_ready": false},
+		"2": {"user_id": "2", "score": 0, "is_ready": false},
+		"3": {"user_id": "3", "score": 0, "is_ready": false},
+	})
+	b.set("_channel_id", -1)
+
+	var relayed: Array = []
+	b.connect("broadcast_received", func(ev: String, pay: Variant) -> void:
+		relayed.append([ev, pay]))
+	var pg_events: Array = []
+	b.connect("postgres_change", func(d: Dictionary) -> void:
+		pg_events.append(d))
+
+	# F-01: guest cannot forge lobby_update; host lobby_update is relayed
+	var forged_lu := JSON.stringify({"k": "lobby_update", "p": {
+		"lobby": {"status": "finished", "winner_id": "2", "host_id": "2"}}})
+	await b.call("_on_socket_message", "v1.channels.message",
+			{"playerAlias": {"id": 2}, "message": forged_lu})
+	_check(relayed.is_empty(), "F-01: guest forged lobby_update is dropped")
+	var host_lu := JSON.stringify({"k": "lobby_update", "p": {
+		"lobby": {"status": "playing", "host_id": "1"}}})
+	await b.call("_on_socket_message", "v1.channels.message",
+			{"playerAlias": {"id": 1}, "message": host_lu})
+	_check(relayed.size() == 1 and str(relayed[0][0]) == "lobby_update",
+			"F-01: authentic host lobby_update is relayed (positive control)")
+	relayed.clear()
+
+	# F-03: non-victim cannot spoof kill; victim's own kill is relayed
+	var spoof_kill := JSON.stringify({"k": "kill", "p": {
+		"killer": "1", "victim": "2", "token": "forged-tok"}})
+	await b.call("_on_socket_message", "v1.channels.message",
+			{"playerAlias": {"id": 3}, "message": spoof_kill})
+	_check(relayed.is_empty(), "F-03: third-party spoofed kill broadcast is dropped")
+	await b.call("_on_socket_message", "v1.channels.message",
+			{"playerAlias": {"id": 2}, "message": spoof_kill})
+	_check(relayed.size() == 1 and str(relayed[0][0]) == "kill",
+			"F-03: victim-authored kill broadcast is relayed (positive control)")
+	relayed.clear()
+
+	# F-05: ready_request with missing playerAlias or mismatched alias is dropped
+	var ready_msg := JSON.stringify({"k": "ready_request", "p": {
+		"user_id": "2", "ready": true}})
+	await b.call("_on_socket_message", "v1.channels.message", {"message": ready_msg})
+	var r_after_empty: Dictionary = b.get("_roster")
+	_check(not bool((r_after_empty["2"] as Dictionary).get("is_ready", false)),
+			"F-05: ready_request with missing playerAlias is rejected")
+	await b.call("_on_socket_message", "v1.channels.message",
+			{"playerAlias": {"id": 3}, "message": ready_msg})
+	var r_after_mismatch: Dictionary = b.get("_roster")
+	_check(not bool((r_after_mismatch["2"] as Dictionary).get("is_ready", false)),
+			"F-05: ready_request from mismatched alias is rejected")
+	await b.call("_on_socket_message", "v1.channels.message",
+			{"playerAlias": {"id": 2}, "message": ready_msg})
+	var r_after_auth: Dictionary = b.get("_roster")
+	_check(bool((r_after_auth["2"] as Dictionary).get("is_ready", false)),
+			"F-05: authentic ready_request toggles is_ready (positive control)")
+
+	# F-04: peer leave emits SYNC without departed uid and MatchState erases it
+	var m: Node = root.get_node("Match")
+	var prev_lobby: Dictionary = (m.get("lobby") as Dictionary).duplicate(true)
+	var prev_players: Dictionary = (m.get("players") as Dictionary).duplicate(true)
+	m.set("lobby", {"id": "1", "host_id": "1", "status": "waiting", "settings": {}})
+	m.set("players", {
+		"1": {"user_id": "1", "score": 0},
+		"2": {"user_id": "2", "score": 0},
+		"3": {"user_id": "3", "score": 0},
+	})
+	pg_events.clear()
+	var leave_msg := JSON.stringify({"k": "leave", "p": {"user_id": "3"}})
+	await b.call("_on_socket_message", "v1.channels.message",
+			{"playerAlias": {"id": 3}, "message": leave_msg})
+	for ev in pg_events:
+		m.call("_on_pg_change", ev)
+	var m_players: Dictionary = m.get("players")
+	_check(not m_players.has("3") and m_players.has("1") and m_players.has("2"),
+			"F-04: departed peer is removed from Match.players via roster SYNC")
+	m.call("_on_pg_change", {"table": "lobby_players", "type": "DELETE", "record": {"user_id": "2"}})
+	var m_players2: Dictionary = m.get("players")
+	_check(not m_players2.has("2") and m_players2.has("1"),
+			"F-04: MatchState._on_pg_change handles DELETE for lobby_players")
+	m.call("set_lobby", {
+		"lobby": {"id": "2", "host_id": "9", "status": "waiting", "settings": {}},
+		"player": {"user_id": "9", "score": 0},
+	})
+	var m_players3: Dictionary = m.get("players")
+	_check(not m_players3.has("1") and m_players3.has("9"),
+			"F-04: MatchState.set_lobby clears prior players when switching lobby IDs")
+	m.set("lobby", prev_lobby)
+	m.set("players", prev_players)
 	b.free()
 
 func _gradient_stops() -> void:

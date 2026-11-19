@@ -101,7 +101,7 @@ func call_rpc(name: String, args: Dictionary = {}) -> Dictionary:
 
 
 func _mock_register_kill(args: Dictionary) -> Dictionary:
-	var shooter := str(args.get("p_shooter", "mock-host"))
+	var shooter := str(args.get("p_killer", args.get("p_shooter", "mock-host")))
 	var token := str(args.get("p_token", ""))
 	if token == "" or not _issued_tokens.has(token):
 		last_kill_reason = "invalid_token"

@@ -76,7 +76,12 @@ func reset_time_limit_guard() -> void:
 
 func set_lobby(result: Dictionary) -> void:
 	if result.has("lobby"):
-		lobby = (result["lobby"] as Dictionary).duplicate(true)
+		var next_lobby := (result["lobby"] as Dictionary).duplicate(true)
+		var prev_id := str(lobby.get("id", ""))
+		var next_id := str(next_lobby.get("id", ""))
+		if next_id != prev_id:
+			players.clear()
+		lobby = next_lobby
 	if result.has("player"):
 		var p := (result["player"] as Dictionary).duplicate(true)
 		players[str(p.get("user_id", my_user_id))] = p
@@ -229,15 +234,19 @@ func register_kill(target_id: String, token: String) -> Dictionary:
 			return res
 		var score := int(res.get("score", my_score() + 1))
 		var me := my_user_id
+		var prev_score := int((players.get(me, {}) as Dictionary).get("score", -1))
 		if players.has(me):
 			players[me]["score"] = score
-		score_updated.emit(me, score)
+		if prev_score != score:
+			score_updated.emit(me, score)
 		var status := str(res.get("lobby_status", ""))
 		if status == "finished":
+			var was_finished := is_finished()
 			lobby["status"] = "finished"
 			lobby["winner_id"] = str(res.get("winner_id", ""))
-			lobby_changed.emit()
-			match_finished.emit(str(res.get("winner_id", "")))
+			if not was_finished:
+				lobby_changed.emit()
+				match_finished.emit(str(res.get("winner_id", "")))
 	else:
 		error_message.emit(str(res.get("reason", "kill rejected")))
 	return res
@@ -271,6 +280,38 @@ func _on_pg_change(data: Dictionary) -> void:
 	var table := str(data.get("table", ""))
 	var kind := str(data.get("type", ""))
 	if kind == "DELETE":
+		if table == "lobby_players":
+			var del_rec: Variant = data.get("record", data.get("old_record", null))
+			if del_rec is Dictionary:
+				var del_uid := str((del_rec as Dictionary).get("user_id", ""))
+				if del_uid != "" and players.has(del_uid):
+					players.erase(del_uid)
+					roster_changed.emit()
+		return
+	if kind == "SYNC":
+		if table == "lobby_players":
+			var records: Variant = data.get("records", null)
+			if not (records is Dictionary):
+				return
+			var next_players: Dictionary = {}
+			var recs := records as Dictionary
+			for k in recs.keys():
+				if not (recs[k] is Dictionary):
+					continue
+				var row := (recs[k] as Dictionary).duplicate(true)
+				var uid := str(row.get("user_id", k))
+				if uid == "":
+					continue
+				row["user_id"] = uid
+				var old_score := int((players.get(uid, {}) as Dictionary).get("score", 0))
+				next_players[uid] = row
+				var new_score := int(row.get("score", 0))
+				if new_score != old_score:
+					score_updated.emit(uid, new_score)
+			players = next_players
+			if players.has(my_user_id) and is_respawning(my_user_id):
+				self_respawn_at.emit(respawn_delay())
+			roster_changed.emit()
 		return
 	var record: Variant = data.get("record", null)
 	if not (record is Dictionary):
@@ -286,7 +327,7 @@ func _on_pg_change(data: Dictionary) -> void:
 			var new_score := int(row.get("score", 0))
 			if new_score != old_score:
 				score_updated.emit(uid, new_score)
-			if uid == my_user_id and not str(row.get("respawn_at", "")).is_empty():
+			if uid == my_user_id and is_respawning(uid):
 				self_respawn_at.emit(respawn_delay())
 			roster_changed.emit()
 

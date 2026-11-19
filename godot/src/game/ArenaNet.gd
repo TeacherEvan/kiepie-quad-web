@@ -15,6 +15,7 @@ var _streak := 0
 var _hitstop := false
 var _shot_log: Dictionary = {}   # owner_id -> Array of msec timestamps (1 s, max 24)
 var _state_tick := 0             # monotonic relay sequence for bike_state
+var _death_gen: Dictionary = {}  # peer_id -> monotonic death generation for respawn timer
 
 
 func _ready() -> void:
@@ -65,6 +66,10 @@ func _exit_tree() -> void:
 	# leave Engine.time_scale stuck at the 0.28 hitstop value.
 	Engine.time_scale = 1.0
 	_hitstop = false
+	if Supabase != null and Supabase.broadcast_received.is_connected(_on_broadcast):
+		Supabase.broadcast_received.disconnect(_on_broadcast)
+	if Match != null and Match.roster_changed.is_connected(_sync_roster):
+		Match.roster_changed.disconnect(_sync_roster)
 
 
 func _process(delta: float) -> void:
@@ -167,8 +172,17 @@ func _hide_remote_briefly(id: String) -> void:
 	var rb: Node = _remote.get(id)
 	if rb == null or not is_instance_valid(rb):
 		return
+	var gen := int(_death_gen.get(id, 0)) + 1
+	_death_gen[id] = gen
 	rb.call("set_respawning", true)
-	await get_tree().create_timer(Match.respawn_delay() + 0.5).timeout
+	var tree := get_tree()
+	if tree == null:
+		return
+	await tree.create_timer(Match.respawn_delay() + 0.5).timeout
+	if not is_instance_valid(self) or not is_inside_tree():
+		return
+	if int(_death_gen.get(id, 0)) != gen:
+		return
 	if is_instance_valid(rb) and _remote.has(id):
 		rb.call("set_respawning", false)
 
@@ -204,9 +218,11 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 			and is_finite(d.x) and is_finite(d.y) and is_finite(d.z)):
 		return
 	# shots leave the muzzle of a live bike (well, its ~4 m lag window); anything
-	# parked further away is fabricated coordinates
+	# parked further away or from an uninitialised / respawning peer is fabricated
 	var sender: Node3D = _remote.get(owner_id)
-	if sender != null and is_instance_valid(sender) and sender.global_position.distance_to(o) > 5.0:
+	if sender == null or not is_instance_valid(sender) or not bool(sender.get("_initialised")) or bool(sender.get("is_respawning")):
+		return
+	if sender.global_position.distance_to(o) > 5.0:
 		return
 	if d.length_squared() < 1e-8:
 		return

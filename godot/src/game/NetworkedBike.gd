@@ -146,7 +146,7 @@ func set_respawning(value: bool) -> void:
 func _process(delta: float) -> void:
 	if not _initialised:
 		return
-	var t := clampf(delta * 14.0, 0.0, 1.0)
+	var t := 1.0 - exp(-14.0 * minf(delta, 0.05))
 	global_position = global_position.lerp(_target_pos, t)
 	var q0 := Quaternion(global_transform.basis.orthonormalized())
 	var q1 := Quaternion(_target_basis.orthonormalized())

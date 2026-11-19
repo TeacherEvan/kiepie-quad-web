@@ -83,6 +83,7 @@ func start() -> void:
 		auth_status.emit(false, "Talo socket timed out — check your connection")
 		return
 	is_ready = true
+	_starting = false
 	_reconnect_attempts = 0
 	connection_state.emit("connected")
 	auth_status.emit(true, "talo online · " + str(Talo.current_alias.identifier))
@@ -143,7 +144,11 @@ func _on_socket_closed(_code: int, _reason: String) -> void:
 	var delay := minf(30.0, 2.0 * pow(2.0, float(_reconnect_attempts - 1)))
 	await get_tree().create_timer(delay).timeout
 	_reconnecting = false
+	if not is_inside_tree():
+		return
 	if is_ready:
+		if Talo.current_alias != null:
+			await Talo.players.identify("anonymous", Talo.current_alias.identifier)
 		await Talo.socket.open_connection()
 		# Prove identification before claiming "connected": the initial handshake
 		# does this with a 2500 ms wall-clock deadline, so a half-open socket
@@ -155,7 +160,9 @@ func _on_socket_closed(_code: int, _reason: String) -> void:
 			connection_state.emit("connected")
 		else:
 			is_ready = false
+			_starting = false
 			connection_state.emit("disconnected")
+			auth_status.emit(false, "Talo socket reconnect timed out — check your connection")
 
 
 # ------------------------------------------------------------------ RPC surface ---
@@ -323,9 +330,25 @@ static func is_channel_joinable(channel, now_unix: float, max_stale_sec: float =
 	return true
 
 
+func _fetch_all_channels(max_pages: int = 10) -> Array:
+	var all_channels: Array = []
+	for page in range(max_pages):
+		var res = await Talo.channels.get_channels(page)
+		if not (res is Array) or res.is_empty():
+			break
+		var page_channels: Variant = res[0]
+		if page_channels is Array:
+			all_channels.append_array(page_channels as Array)
+		var is_last := true
+		if res.size() >= 3:
+			is_last = bool(res[2])
+		if is_last:
+			break
+	return all_channels
+
+
 func _join_auto(args: Dictionary) -> Dictionary:
-	var res = await Talo.channels.get_channels(0)
-	var raw_channels: Array = res[0] if res is Array and res.size() > 0 else []
+	var raw_channels: Array = await _fetch_all_channels(10)
 	var now_unix := Time.get_unix_time_from_system()
 	var candidates: Array = []
 	for ch in raw_channels:
@@ -355,8 +378,7 @@ func _join_auto(args: Dictionary) -> Dictionary:
 
 func _join_by_code(args: Dictionary) -> Dictionary:
 	var code := str(args.get("p_code", "")).strip_edges().to_upper()
-	var res = await Talo.channels.get_channels(0)
-	var channels: Array = res[0] if res is Array and res.size() > 0 else []
+	var channels: Array = await _fetch_all_channels(10)
 	var saw_protocol_mismatch := false
 	var saw_stale := false
 	var now_unix := Time.get_unix_time_from_system()
@@ -409,6 +431,7 @@ func _try_join(channel, args: Dictionary) -> bool:
 	_load_state()
 	if not _roster.has(user_id):
 		_roster[user_id] = _player_row(args)
+	_emit_state()
 	_emit_roster()
 	_send("join", _roster[user_id])
 	return true
@@ -541,10 +564,12 @@ func _emit_state() -> void:
 
 
 func _emit_roster() -> void:
+	var records: Dictionary = {}
 	for uid in _roster.keys():
 		var row: Dictionary = (_roster[uid] as Dictionary).duplicate(true)
 		row["user_id"] = str(uid)
-		postgres_change.emit({"table": "lobby_players", "type": "UPDATE", "record": row})
+		records[str(uid)] = row
+	postgres_change.emit({"table": "lobby_players", "type": "SYNC", "records": records})
 
 
 # ------------------------------------------------------------------ match ops ---
@@ -708,6 +733,8 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 		if alias_id <= 0:
 			return
 		sender_id = str(alias_id)
+	if sender_id == "":
+		return
 	var raw := str(data.get("message", ""))
 	var json := JSON.new()
 	if json.parse(raw) != OK or not (json.get_data() is Dictionary):
@@ -780,7 +807,7 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 				var uid := str(p.get("user_id", ""))
 				if uid == "" or not _roster.has(uid):
 					return
-				if sender_id != "" and uid != sender_id:
+				if sender_id == "" or sender_id != uid:
 					return
 				var row: Dictionary = _roster[uid]
 				row["is_ready"] = bool(p.get("ready", false))
@@ -803,11 +830,11 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 						"p_killer": killer})
 		"kill":
 			if payload is Dictionary:
-				broadcast_received.emit("kill", payload)
 				var p := payload as Dictionary
-				if str(p.get("victim", "")) == user_id:
-					# refreshed roster arrives via the host's state message
-					pass
+				var victim := str(p.get("victim", ""))
+				if victim == "" or sender_id == "" or victim != sender_id:
+					return
+				broadcast_received.emit("kill", payload)
 		"bike_state":
 			if payload is Dictionary:
 				var p := payload as Dictionary
@@ -823,6 +850,8 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 					return
 				broadcast_received.emit("shot", payload)
 		"lobby_update":
+			if sender_id == "" or sender_id != str(_lobby.get("host_id", "")):
+				return
 			broadcast_received.emit("lobby_update", payload)
 
 

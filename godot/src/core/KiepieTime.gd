@@ -11,12 +11,8 @@ static func parse_iso(value: String) -> float:
 	var s := str(value).strip_edges()
 	if s.is_empty() or s == "null":
 		return 0.0
-	var utc := s.ends_with("Z")
 	s = s.replace("Z", "").replace("T", " ")
-	var dict := Time.get_datetime_dict_from_datetime_string(s, utc)
-	if dict.is_empty():
-		# Relaxed retry without forcing UTC if the marked form failed.
-		dict = Time.get_datetime_dict_from_datetime_string(s, false)
+	var dict := Time.get_datetime_dict_from_datetime_string(s, false)
 	if dict.is_empty():
 		return 0.0
 	return float(Time.get_unix_time_from_datetime_dict(dict))
