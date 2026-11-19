@@ -122,8 +122,11 @@ func _initialize() -> void:
 
 	# Auto-join channel filter: reject 0-member, stale, owner-mismatch, and full channels.
 	var talo_script = load("res://src/net/TaloBackend.gd")
+	var cur_proto := str(talo_script.get("PROTOCOL_VERSION"))
+	_check(cur_proto == "2", "PROTOCOL_VERSION bumped to 2 for Death Race + heavy weapons")
 	var now := Time.get_unix_time_from_system()
-	var make_ch := func(members: int, owner_id: int, host_id: String, hb: float, roster_obj: Dictionary, status: String = "waiting", proto: String = "1") -> RefCounted:
+	var make_ch := func(members: int, owner_id: int, host_id: String, hb: float, roster_obj: Dictionary, status: String = "waiting", proto: String = "") -> RefCounted:
+		var use_proto := cur_proto if proto == "__CURRENT__" else proto
 		var props := {
 			"status": status,
 			"host_id": host_id,
@@ -131,30 +134,62 @@ func _initialize() -> void:
 			"roster": JSON.stringify(roster_obj),
 			"settings": JSON.stringify({"max_players": 4}),
 		}
-		if proto != "":
-			props["protocol_version"] = proto
+		if use_proto != "":
+			props["protocol_version"] = use_proto
 		return FakeChannel.new(members, owner_id, "2026-11-17T00:00:00Z", props)
 	var live_roster := {"10": {"user_id": "10", "display_name": "H"}}
-	_check(bool(talo_script.call("is_channel_joinable", make_ch.call(1, 10, "10", now - 5.0, live_roster), now)),
+	_check(bool(talo_script.call("is_channel_joinable", make_ch.call(1, 10, "10", now - 5.0, live_roster, "waiting", "__CURRENT__"), now)),
 			"live active channel is joinable")
-	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(0, 10, "10", now - 5.0, live_roster), now)),
+	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(0, 10, "10", now - 5.0, live_roster, "waiting", "__CURRENT__"), now)),
 			"zero-member channel is rejected by join_auto")
-	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(1, 10, "10", now - 300.0, live_roster), now)),
+	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(1, 10, "10", now - 300.0, live_roster, "waiting", "__CURRENT__"), now)),
 			"stale heartbeat channel is rejected by join_auto")
-	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(1, 99, "10", now - 5.0, live_roster), now)),
+	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(1, 99, "10", now - 5.0, live_roster, "waiting", "__CURRENT__"), now)),
 			"owner/host mismatch channel is rejected by join_auto")
-	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(1, 10, "10", now - 5.0, {}), now)),
+	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(1, 10, "10", now - 5.0, {}, "waiting", "__CURRENT__"), now)),
 			"channel missing host in roster is rejected by join_auto")
-	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(4, 10, "10", now - 5.0, live_roster), now)),
+	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(4, 10, "10", now - 5.0, live_roster, "waiting", "__CURRENT__"), now)),
 			"full channel is rejected by join_auto")
-	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(1, 10, "10", now - 5.0, live_roster, "waiting", "2"), now)),
-			"protocol-versioned channel with a different version is rejected")
+	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(1, 10, "10", now - 5.0, live_roster, "waiting", "1"), now)),
+			"protocol-versioned channel with an older version (v1) is rejected")
 	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(1, 10, "10", now - 5.0, live_roster, "waiting", ""), now)),
 			"channel missing protocol_version is rejected (pre-versioning lobby)")
-	_check(bool(talo_script.call("protocol_ok", make_ch.call(1, 10, "10", now - 5.0, live_roster))),
+	_check(bool(talo_script.call("protocol_ok", make_ch.call(1, 10, "10", now - 5.0, live_roster, "waiting", "__CURRENT__"))),
 			"protocol_ok accepts the current wire version")
-	_check(not bool(talo_script.call("protocol_ok", make_ch.call(1, 10, "10", now - 5.0, live_roster, "waiting", "2"))),
-			"protocol_ok rejects a different wire version")
+	_check(not bool(talo_script.call("protocol_ok", make_ch.call(1, 10, "10", now - 5.0, live_roster, "waiting", "1"))),
+			"protocol_ok rejects an older wire version")
 
-	print("talo backend contract: %d checks, %d failure(s)" % [19, _failures])
+	# B-P0-1 & B-P0-2 regressions: lap_request rejected in battle_royale, rate-limited in death_race,
+	# and Death Race kills never collide with lap score.
+	var dr_backend := _new_backend()
+	get_root().add_child(dr_backend)
+	dr_backend._lobby["settings"] = {"game_mode": "battle_royale", "kill_target": 10, "lap_target": 3}
+	var br_lap: Dictionary = await dr_backend.call_rpc("register_lap", {"p_racer": "1", "p_token": "br-lap-1"})
+	_check(not bool(br_lap.get("ok", true)) and str(br_lap.get("reason", "")) == "wrong_mode",
+			"B-P0-1: register_lap rejected with wrong_mode in battle_royale")
+
+	dr_backend._lobby["settings"] = {"game_mode": "death_race", "kill_target": 10, "lap_target": 3}
+	dr_backend._roster = {
+		"1": {"user_id": "1", "display_name": "host", "score": 0},
+		"2": {"user_id": "2", "display_name": "guest", "score": 0},
+	}
+	await dr_backend.call_rpc("register_kill", {"p_target": "2", "p_token": "dr-k1", "p_killer": "1"})
+	dr_backend._kill_cooldowns.clear()
+	await dr_backend.call_rpc("register_kill", {"p_target": "2", "p_token": "dr-k2", "p_killer": "1"})
+	var dr_lap1: Dictionary = await dr_backend.call_rpc("register_lap", {"p_racer": "1", "p_token": "dr-lap-1"})
+	_check(bool(dr_lap1.get("ok", false)) and int(dr_lap1.get("score", -1)) == 1
+			and str(dr_lap1.get("lobby_status", "")) == "playing",
+			"B-P0-2: 2 kills + 1 lap in 3-lap Death Race leaves score=1 and status=playing")
+	var dr_lap_spam: Dictionary = await dr_backend.call_rpc("register_lap", {"p_racer": "1", "p_token": "dr-lap-2"})
+	_check(not bool(dr_lap_spam.get("ok", true)) and str(dr_lap_spam.get("reason", "")) == "rate_limited",
+			"B-P0-1: rapid second lap within MIN_LAP_SECONDS is rate_limited")
+
+	# B-P1-4 regression: leave_lobby_channel increments _prop_gen so stale writes cannot resurrect _channel
+	var gen_before := int(dr_backend.get("_prop_gen"))
+	dr_backend.leave_lobby_channel()
+	_check(int(dr_backend.get("_prop_gen")) > gen_before,
+			"B-P1-4: leave_lobby_channel increments _prop_gen to invalidate in-flight writes")
+	dr_backend.free()
+
+	print("talo backend contract: %d checks, %d failure(s)" % [24, _failures])
 	quit(1 if _failures > 0 else 0)

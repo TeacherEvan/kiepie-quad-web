@@ -98,6 +98,31 @@ func _run() -> void:
 			await process_frame
 			_check(net.get_child_count() > before_children, "remote peer shot spawns projectile near peer-2")
 
+			# B-P1-1 regression: remote meteor/rocket flood is throttled per weapon cooldown
+			var before_meteor := net.get_child_count()
+			for mi in range(4):
+				mock.call("simulate_remote_shot", {
+					"id": "peer-2",
+					"w": "meteor",
+					"o": [18.6, 0.9, -11.4],
+					"d": [0.0, 0.0, 14.0],
+					"token": "meteor-flood-%d" % mi,
+				})
+			await process_frame
+			_check(net.get_child_count() - before_meteor == 1,
+					"B-P1-1: remote meteor flood spawns at most 1 strike per 5.5s window (got %d)" % (net.get_child_count() - before_meteor))
+
+			# B-P1-5 regression: non-roster rogue state packet cannot spawn a ghost proxy
+			mock.call("simulate_remote_state", {
+				"id": "rogue-non-roster",
+				"p": [0.0, 0.6, 0.0],
+				"r": [0.0, 0.0, 0.0, 1.0],
+				"d": false,
+			})
+			await process_frame
+			_check(not (net.get("_remote") as Dictionary).has("rogue-non-roster"),
+					"B-P1-5: ArenaNet ignores bike_state from unknown non-roster peer")
+
 			# Death hides proxy; respawn reveals at new position
 			mock.call("simulate_remote_state", {
 				"id": "peer-2",

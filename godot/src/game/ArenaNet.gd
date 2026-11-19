@@ -16,6 +16,10 @@ var _send_accum := 0.0
 var _streak := 0
 var _hitstop := false
 var _shot_log: Dictionary = {}   # owner_id -> Array of msec timestamps (1 s, max 24)
+var _rocket_last: Dictionary = {} # owner_id -> sec timestamp of last remote rocket
+var _meteor_last: Dictionary = {} # owner_id -> sec timestamp of last remote meteor
+const REMOTE_ROCKET_MIN_S := 4.5
+const REMOTE_METEOR_MIN_S := 5.5
 var _state_tick := 0             # monotonic relay sequence for bike_state
 var _death_gen: Dictionary = {}  # peer_id -> monotonic death generation for respawn timer
 
@@ -111,6 +115,10 @@ func _on_broadcast(event: String, payload: Variant) -> void:
 		"state":
 			var id := str(p.get("id", ""))
 			if id == "" or id == Supabase.user_id:
+				return
+			# Only roster members may own a proxy: departed or rogue peers cannot
+			# inject unremovable ghost StaticBody3D colliders into the arena.
+			if Match != null and not Match.players.is_empty() and not Match.players.has(id):
 				return
 			if not _remote.has(id):
 				_create_remote(id)
@@ -245,6 +253,16 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 	kept.append(now)
 	_shot_log[owner_id] = kept
 	var weapon_kind := str(p.get("w", "primary"))
+	if weapon_kind != "primary" and weapon_kind != "rocket" and weapon_kind != "meteor":
+		return
+	if weapon_kind == "rocket":
+		if now - float(_rocket_last.get(owner_id, -REMOTE_ROCKET_MIN_S)) < REMOTE_ROCKET_MIN_S:
+			return
+		_rocket_last[owner_id] = now
+	elif weapon_kind == "meteor":
+		if now - float(_meteor_last.get(owner_id, -REMOTE_METEOR_MIN_S)) < REMOTE_METEOR_MIN_S:
+			return
+		_meteor_last[owner_id] = now
 	var roster_keys: Array = Match.players.keys() if Match != null else []
 	var vehicle := VehicleRegistry.for_player_in_roster(owner_id, roster_keys) if not roster_keys.is_empty() \
 			else VehicleRegistry.for_player(owner_id)
@@ -257,8 +275,6 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 		add_child(rocket)
 		rocket.setup(owner_id, _remote.get(owner_id), o, d, 38.0, rocket_dmg,
 				str(p.get("token", "")), Color(1.0, 0.38, 0.10), 4.5)
-		if combat != null and combat.has_method("_on_projectile_hit"):
-			rocket.on_hit = Callable(combat, "_on_projectile_hit")
 		return
 	elif weapon_kind == "meteor":
 		if d.length() > 65.0:

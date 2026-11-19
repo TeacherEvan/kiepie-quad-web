@@ -6,6 +6,7 @@ signal left()
 signal error_message(message: String)
 
 var current_lobby_id := ""
+var _session_gen := 0
 
 
 func _ready() -> void:
@@ -25,6 +26,7 @@ func _enter(result: Dictionary) -> bool:
 	if lobby.is_empty():
 		error_message.emit(str(result.get("message", "No lobby returned")))
 		return false
+	_session_gen += 1
 	current_lobby_id = str(lobby.get("id", ""))
 	Match.set_lobby(result)
 	Supabase.join_lobby_channel(current_lobby_id)
@@ -63,7 +65,13 @@ func create_lobby(name: String, settings: Dictionary) -> bool:
 func leave() -> void:
 	if current_lobby_id == "":
 		return
+	_session_gen += 1
+	var gen := _session_gen
 	await Supabase.call_rpc("leave_lobby", {})
+	# If the player already joined a new lobby while leave_lobby was awaiting
+	# host handoff retries, never wipe the newly entered lobby state.
+	if gen != _session_gen:
+		return
 	Supabase.leave_lobby_channel()
 	current_lobby_id = ""
 	Match.lobby = {}

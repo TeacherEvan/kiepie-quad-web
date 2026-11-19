@@ -29,40 +29,7 @@ func setup(id: String, name_text: String, color_hex: String) -> void:
 	# Stay hidden until the first live state snapshot places us at the peer's real transform.
 	visible = false
 
-	var roster_keys: Array = []
-	if typeof(Match) != TYPE_NIL and Match != null and "players" in Match:
-		var mp: Variant = Match.get("players")
-		if mp is Dictionary and not (mp as Dictionary).is_empty():
-			roster_keys = (mp as Dictionary).keys()
-	var vehicle := VehicleRegistry.for_player_in_roster(player_id, roster_keys) if not roster_keys.is_empty() \
-			else VehicleRegistry.for_player(player_id)
-	_assigned_vehicle = vehicle
-	var pogo := VehicleRegistry.is_pogo(vehicle)
-	var model_path := VehicleRegistry.model_path(vehicle)
-	var glb: PackedScene = load(model_path)
-	if glb != null:
-		var model := glb.instantiate()
-		model.name = "Model"
-		if pogo:
-			var rider := model.get_node_or_null("Rider")
-			if rider != null:
-				rider.set_script(POGO_VISUAL)
-		add_child(model)
-		# tint the body slightly so players are distinguishable at a glance
-		var tinted_cache: Dictionary = {}
-		for mesh in model.find_children("*", "MeshInstance3D", true, false):
-			var mi := mesh as MeshInstance3D
-			if mi == null or mi.mesh == null:
-				continue
-			for s in range(mi.mesh.get_surface_count()):
-				var mat := mi.get_active_material(s)
-				if mat is StandardMaterial3D:
-					var tinted: StandardMaterial3D = tinted_cache.get(mat)
-					if tinted == null:
-						tinted = (mat as StandardMaterial3D).duplicate() as StandardMaterial3D
-						tinted.albedo_color = tinted.albedo_color.lerp(player_color, 0.28)
-						tinted_cache[mat] = tinted
-					mi.set_surface_override_material(s, tinted)
+	_apply_roster_vehicle(true)
 
 	var col := CollisionShape3D.new()
 	var box := BoxShape3D.new()
@@ -84,6 +51,50 @@ func setup(id: String, name_text: String, color_hex: String) -> void:
 	add_child(_nameplate)
 
 
+func _apply_roster_vehicle(force: bool = false) -> void:
+	var roster_keys: Array = []
+	if typeof(Match) != TYPE_NIL and Match != null and "players" in Match:
+		var mp: Variant = Match.get("players")
+		if mp is Dictionary and not (mp as Dictionary).is_empty():
+			roster_keys = (mp as Dictionary).keys()
+	var vehicle := VehicleRegistry.for_player_in_roster(player_id, roster_keys) if not roster_keys.is_empty() \
+			else VehicleRegistry.for_player(player_id)
+	if not force and vehicle == _assigned_vehicle:
+		return
+	_assigned_vehicle = vehicle
+	var pogo := VehicleRegistry.is_pogo(vehicle)
+	var model_path := VehicleRegistry.model_path(vehicle)
+	var glb: PackedScene = load(model_path)
+	if glb == null:
+		return
+	var old := get_node_or_null("Model")
+	if old != null:
+		remove_child(old)
+		old.queue_free()
+	var model := glb.instantiate()
+	model.name = "Model"
+	if pogo:
+		var rider := model.get_node_or_null("Rider")
+		if rider != null:
+			rider.set_script(POGO_VISUAL)
+	add_child(model)
+	# tint the body slightly so players are distinguishable at a glance
+	var tinted_cache: Dictionary = {}
+	for mesh in model.find_children("*", "MeshInstance3D", true, false):
+		var mi := mesh as MeshInstance3D
+		if mi == null or mi.mesh == null:
+			continue
+		for s in range(mi.mesh.get_surface_count()):
+			var mat := mi.get_active_material(s)
+			if mat is StandardMaterial3D:
+				var tinted: StandardMaterial3D = tinted_cache.get(mat)
+				if tinted == null:
+					tinted = (mat as StandardMaterial3D).duplicate() as StandardMaterial3D
+					tinted.albedo_color = tinted.albedo_color.lerp(player_color, 0.28)
+					tinted_cache[mat] = tinted
+				mi.set_surface_override_material(s, tinted)
+
+
 func update_identity(name_text: String, color_hex: String) -> void:
 	if name_text != "" and name_text != display_name:
 		display_name = name_text
@@ -95,6 +106,8 @@ func update_identity(name_text: String, color_hex: String) -> void:
 			player_color = col
 			if _nameplate != null:
 				_nameplate.modulate = player_color
+	# Re-evaluate roster-aware Nardus promotion when peers join or leave.
+	_apply_roster_vehicle(false)
 
 
 func apply_state(data: Dictionary) -> void:

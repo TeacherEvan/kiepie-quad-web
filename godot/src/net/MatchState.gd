@@ -188,7 +188,12 @@ func scoreboard() -> Array:
 			"is_host": str(uid) == host,
 			"is_me": str(uid) == my_user_id,
 		})
-	out.sort_custom(func(a, b): return int(a["score"]) > int(b["score"]))
+	out.sort_custom(func(a, b):
+		var sa := int(a["score"])
+		var sb := int(b["score"])
+		if sa != sb:
+			return sa > sb
+		return str(a["user_id"]) < str(b["user_id"]))
 	return out
 
 
@@ -347,7 +352,7 @@ func _on_pg_change(data: Dictionary) -> void:
 					score_updated.emit(uid, new_score)
 			players = next_players
 			if players.has(my_user_id) and is_respawning(my_user_id):
-				self_respawn_at.emit(respawn_delay())
+				self_respawn_at.emit(respawn_remaining(my_user_id))
 			roster_changed.emit()
 		return
 	var record: Variant = data.get("record", null)
@@ -365,7 +370,7 @@ func _on_pg_change(data: Dictionary) -> void:
 			if new_score != old_score:
 				score_updated.emit(uid, new_score)
 			if uid == my_user_id and is_respawning(uid):
-				self_respawn_at.emit(respawn_delay())
+				self_respawn_at.emit(respawn_remaining(uid))
 			roster_changed.emit()
 
 

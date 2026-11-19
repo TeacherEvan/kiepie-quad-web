@@ -12,7 +12,7 @@ const KT := preload("res://src/core/KiepieTime.gd")
 ## prop keys, kill-token semantics). Lobbies stamp it as the `protocol_version`
 ## channel prop; peers present it too — mismatched peers are never mixed into
 ## the same lobby.
-const PROTOCOL_VERSION := "1"
+const PROTOCOL_VERSION := "2"
 
 signal auth_status(ok: bool, message: String)
 signal connection_state(state: String)
@@ -32,11 +32,14 @@ var _starting := false
 var _used_tokens: Dictionary = {}     # shot token -> true, stops echoed kills scoring twice
 var _kill_cooldowns: Dictionary = {}  # killer -> msec timestamp of last scored kill (host only)
 var _kill_window: Dictionary = {}     # killer -> Array of msec timestamps (60 s, max 20)
+var _lap_timestamps: Dictionary = {}  # racer -> sec timestamp of last scored lap (host only)
 const HEARTBEAT_INTERVAL_S := 20.0
 const STALE_LOBBY_S := 90.0
 const HOST_ACK_TIMEOUT_MS := 2000
 const HOST_POLL_INTERVAL_S := 15.0
 const MAX_USED_TOKENS := 512
+const MIN_LAP_SECONDS := 12.0
+const MAX_RECONNECT_ATTEMPTS := 5
 
 var _prop_gen := 0                    # guards interleaved channel-prop writes
 var _reconnecting := false
@@ -140,29 +143,35 @@ func _on_socket_closed(_code: int, _reason: String) -> void:
 	if not is_ready or _reconnecting:
 		return
 	_reconnecting = true
-	_reconnect_attempts += 1
-	var delay := minf(30.0, 2.0 * pow(2.0, float(_reconnect_attempts - 1)))
-	await get_tree().create_timer(delay).timeout
-	_reconnecting = false
-	if not is_inside_tree():
-		return
-	if is_ready:
+	# Hold _reconnecting across the full bounded retry loop so concurrent closes
+	# never spawn racing reconnect coroutines, and transient pre-auth drops (where
+	# vendored TaloSocket._poll() will not re-emit connection_closed) still retry.
+	var reconnected := false
+	while _reconnect_attempts < MAX_RECONNECT_ATTEMPTS and is_inside_tree() and is_ready:
+		_reconnect_attempts += 1
+		var delay := minf(30.0, 2.0 * pow(2.0, float(_reconnect_attempts - 1)))
+		await get_tree().create_timer(delay).timeout
+		if not is_inside_tree() or not is_ready:
+			break
 		if Talo.current_alias != null:
 			await Talo.players.identify("anonymous", Talo.current_alias.identifier)
+		if not is_inside_tree() or not is_ready:
+			break
 		await Talo.socket.open_connection()
-		# Prove identification before claiming "connected": the initial handshake
-		# does this with a 2500 ms wall-clock deadline, so a half-open socket
-		# can never masquerade as online while every send silently dies.
 		var sock_deadline := Time.get_ticks_msec() + 2500
-		while not bool(Talo.socket.get("_identified")) and Time.get_ticks_msec() < sock_deadline:
+		while is_inside_tree() and not bool(Talo.socket.get("_identified")) and Time.get_ticks_msec() < sock_deadline:
 			await get_tree().process_frame
 		if bool(Talo.socket.get("_identified")):
+			_reconnect_attempts = 0
+			reconnected = true
 			connection_state.emit("connected")
-		else:
-			is_ready = false
-			_starting = false
-			connection_state.emit("disconnected")
-			auth_status.emit(false, "Talo socket reconnect timed out — check your connection")
+			break
+	_reconnecting = false
+	if not reconnected and is_inside_tree() and is_ready:
+		is_ready = false
+		_starting = false
+		connection_state.emit("disconnected")
+		auth_status.emit(false, "Talo socket reconnect timed out — check your connection")
 
 
 # ------------------------------------------------------------------ RPC surface ---
@@ -216,12 +225,19 @@ func join_lobby_channel(lobby_id: String) -> void:
 
 
 func leave_lobby_channel() -> void:
+	# Bump _prop_gen so any in-flight _write_props() response cannot resurrect _channel.
+	_prop_gen += 1
+	_apply_dirty = false
+	_apply_extra.clear()
 	if _channel_id > 0:
 		Talo.channels.leave(_channel_id)
 	_channel = null
 	_channel_id = -1
 	_lobby.clear()
 	_roster.clear()
+	_lap_timestamps.clear()
+	_kill_cooldowns.clear()
+	_kill_window.clear()
 	_host_lost_emitted = false
 
 
@@ -381,9 +397,20 @@ func _join_auto(args: Dictionary) -> Dictionary:
 				return {"lobby": _lobby, "player": _roster.get(user_id, {})}
 			# Host vanished before heartbeat expired — leave zombie room and try next.
 			leave_lobby_channel()
-	if wanted_mode != "" and not args.has("p_settings"):
-		args["p_settings"] = {"game_mode": wanted_mode, "lap_target": 3, "kill_target": 10}
-	return await _create_lobby(args)
+	var create_args := args.duplicate(true)
+	if wanted_mode != "" and not create_args.has("p_settings"):
+		create_args["p_settings"] = {
+			"game_mode": wanted_mode,
+			"lap_target": 3,
+			"kill_target": 10,
+			"max_players": 8,
+			"respawn_delay": 2.5,
+			"match_seconds": 0,
+			"damage": 30,
+			"pickups": true,
+			"friendly_fire": false,
+		}
+	return await _create_lobby(create_args)
 
 
 func _join_by_code(args: Dictionary) -> Dictionary:
@@ -481,12 +508,14 @@ func _handoff_host_before_leave() -> void:
 		{"key": "protocol_version", "value": PROTOCOL_VERSION},
 		{"key": "roster", "value": JSON.stringify(new_roster)},
 	]
-	_send("state", {"lobby": new_lobby, "roster": new_roster})
 	for attempt in range(2):
 		var res: Variant = await Talo.channels.client.make_request(
 				HTTPClient.METHOD_PUT, "/%s" % _channel_id,
 				{"ownerAliasId": int(next_host), "props": prop_array})
 		if int((res as Dictionary).get("status", 0)) == 200:
+			# Broadcast the new host only AFTER Talo commits ownerAliasId, so
+			# guests never switch to a host whose channel PUTs fail with 403.
+			_send("state", {"lobby": new_lobby, "roster": new_roster})
 			return
 		if attempt == 0:
 			continue  # one retry for transient failures
@@ -559,8 +588,8 @@ func _write_props(extra: Dictionary) -> void:
 	_prop_gen = gen
 	var res = await Talo.channels.client.make_request(
 			HTTPClient.METHOD_PUT, "/%s" % _channel_id, {"props": prop_array})
-	if gen != _prop_gen:
-		return  # a newer write superseded this one
+	if gen != _prop_gen or _channel_id <= 0:
+		return  # a newer write or leave_lobby_channel() superseded this one
 	if int(res.get("status", 0)) == 200:
 		var body: Dictionary = res.get("body", {})
 		if body.has("channel"):
@@ -664,9 +693,17 @@ func _register_kill(args: Dictionary) -> Dictionary:
 	while _used_tokens.size() > MAX_USED_TOKENS:
 		# Dictionary preserves insertion order: drop the oldest consumed token.
 		_used_tokens.erase(_used_tokens.keys()[0])
+	var s_dict := _lobby.get("settings", {}) as Dictionary
+	var gmode := str(s_dict.get("game_mode", "battle_royale"))
 	var row: Dictionary = _roster.get(killer, {})
-	var score := int(row.get("score", 0)) + 1
-	row["score"] = score
+	var kills := int(row.get("kills", int(row.get("score", 0)) if gmode != "death_race" else 0)) + 1
+	row["kills"] = kills
+	# In Death Race, row["score"] tracks completed laps only — kills must NEVER
+	# collide with lap progress or allow 2 kills + 1 lap to finish a 3-lap race.
+	var score := int(row.get("score", 0))
+	if gmode != "death_race":
+		score = kills
+		row["score"] = score
 	_roster[killer] = row
 	if target != "":
 		var victim: Dictionary = _roster.get(target, {})
@@ -676,8 +713,6 @@ func _register_kill(args: Dictionary) -> Dictionary:
 		_roster[target] = victim
 	var status := str(_lobby.get("status", "waiting"))
 	var winner := ""
-	var s_dict := _lobby.get("settings", {}) as Dictionary
-	var gmode := str(s_dict.get("game_mode", "battle_royale"))
 	var target_kills := maxi(1, int(s_dict.get("kill_target", 10)))
 	if gmode != "death_race" and score >= target_kills:
 		status = "finished"
@@ -691,7 +726,7 @@ func _register_kill(args: Dictionary) -> Dictionary:
 	# authoritative state too so guests' scoreboards converge. Never re-send a
 	# "kill" here — its echo would re-enter register_kill and loop.
 	_send("state", {"lobby": _lobby, "roster": _roster})
-	return {"ok": true, "score": score,
+	return {"ok": true, "score": score, "kills": kills,
 			"lobby_status": status,
 			"winner_id": winner}
 
@@ -706,24 +741,32 @@ func _register_lap(args: Dictionary) -> Dictionary:
 		return {"ok": true, "pending": true,
 				"lobby_status": str(_lobby.get("status", "")),
 				"winner_id": str(_lobby.get("winner_id", ""))}
+	var s_dict := _lobby.get("settings", {}) as Dictionary
+	if str(s_dict.get("game_mode", "battle_royale")) != "death_race":
+		return {"ok": false, "reason": "wrong_mode"}
 	if _used_tokens.has(token):
 		return {"ok": false, "reason": "token_consumed"}
 	if str(_lobby.get("status", "")) != "playing":
 		return {"ok": false, "reason": "lobby_not_playing"}
 	if not _roster.has(racer):
 		return {"ok": false, "reason": "not_in_lobby"}
+	var now_s := Time.get_ticks_msec() / 1000.0
+	var last_lap := float(_lap_timestamps.get(racer, -MIN_LAP_SECONDS))
+	if now_s - last_lap < MIN_LAP_SECONDS:
+		return {"ok": false, "reason": "rate_limited"}
+	_lap_timestamps[racer] = now_s
 	_used_tokens[token] = true
 	while _used_tokens.size() > MAX_USED_TOKENS:
 		_used_tokens.erase(_used_tokens.keys()[0])
 	var row: Dictionary = _roster.get(racer, {})
-	var score := int(row.get("score", 0)) + 1
-	row["score"] = score
+	var laps := int(row.get("laps", 0)) + 1
+	row["laps"] = laps
+	row["score"] = laps
 	_roster[racer] = row
 	var status := str(_lobby.get("status", "waiting"))
 	var winner := ""
-	var s_dict := _lobby.get("settings", {}) as Dictionary
 	var target_laps := maxi(1, int(s_dict.get("lap_target", 3)))
-	if score >= target_laps:
+	if laps >= target_laps:
 		status = "finished"
 		winner = racer
 		_lobby["status"] = status
@@ -732,7 +775,7 @@ func _register_lap(args: Dictionary) -> Dictionary:
 	_emit_roster()
 	_emit_state()
 	_send("state", {"lobby": _lobby, "roster": _roster})
-	return {"ok": true, "score": score,
+	return {"ok": true, "score": laps, "laps": laps,
 			"lobby_status": status,
 			"winner_id": winner}
 

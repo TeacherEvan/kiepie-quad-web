@@ -182,15 +182,19 @@ func _sync_mobile_scale() -> void:
 	# run per resize event.
 	if _scale_pending:
 		return
+	var tree := get_tree()
+	if tree == null:
+		return
 	_scale_pending = true
-	var timer := get_tree().create_timer(0.1)
+	var timer := tree.create_timer(0.1)
 	timer.timeout.connect(func() -> void:
 		_scale_pending = false
-		_sync_mobile_scale_now())
+		if is_instance_valid(self) and is_inside_tree():
+			_sync_mobile_scale_now())
 
 
 func _sync_mobile_scale_now() -> void:
-	if DisplayServer.get_name() == "headless":
+	if DisplayServer.get_name() == "headless" or not is_inside_tree() or get_tree() == null:
 		return
 	var win := get_tree().root
 	if win == null:
@@ -284,6 +288,7 @@ func _load() -> void:
 	data = {}
 	for section in DEFAULTS.keys():
 		data[section] = (DEFAULTS[section] as Dictionary).duplicate(true)
+	var needs_save := false
 	if _cfg.load(PATH) == OK:
 		for section in _cfg.get_sections():
 			if not data.has(section):
@@ -291,12 +296,15 @@ func _load() -> void:
 			for key in _cfg.get_section_keys(section):
 				data[section][key] = _cfg.get_value(section, key)
 		# Migrate v1 configs to enable fullscreen-on-launch by default.
-		if int((data.get("meta", {}) as Dictionary).get("version", 1)) < 2:
+		if int((data.get("meta", {}) as Dictionary).get("version", 1)) < VERSION:
 			(data["video"] as Dictionary)["fullscreen"] = true
+			needs_save = true
 	else:
 		push_warning("Settings: no readable settings.cfg at %s — using defaults" % PATH)
+		needs_save = true
 	data["meta"]["version"] = VERSION
-	_save()
+	if needs_save:
+		_save()
 
 
 func _save() -> void:
@@ -330,10 +338,25 @@ func set_value(section: String, key: String, value: Variant) -> void:
 func apply_quality(preset: String) -> void:
 	if not QUALITY_PRESETS.has(preset):
 		return
-	set_value("video", "quality", preset)
+	if not data.has("video"):
+		data["video"] = {}
+	var vid := data["video"] as Dictionary
 	var q: Dictionary = QUALITY_PRESETS[preset]
+	var mutated: Array = []
+	if vid.get("quality", null) != preset:
+		vid["quality"] = preset
+		mutated.append(["quality", preset])
 	for key in q.keys():
-		set_value("video", key, q[key])
+		if vid.get(key, null) != q[key]:
+			vid[key] = q[key]
+			mutated.append([key, q[key]])
+	if mutated.is_empty():
+		return
+	# Single disk write + single scene-tree video pass instead of 5 sequential writes.
+	_save()
+	_apply_video_to_tree()
+	for pair in mutated:
+		changed.emit("video", str(pair[0]), pair[1])
 
 
 func reset_defaults() -> void:

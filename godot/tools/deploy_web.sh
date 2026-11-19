@@ -57,7 +57,7 @@ PCK="$ROOT/web/index.pck"
 SIZE=$(stat -c %s "$PCK" 2>/dev/null || echo 0)
 echo "   index.pck: $((SIZE / 1024 / 1024)) MB ($SIZE bytes)"
 if [ "$SIZE" -gt 4194304 ]; then
-	echo "DEPLOY ABORTED: pck unexpectedly large (expected ~3.0 MB, saw $SIZE)"
+	echo "DEPLOY ABORTED: pck unexpectedly large (expected ~3.4 MB, saw $SIZE)"
 	exit 1
 fi
 for f in index.html index.js index.wasm index.manifest.json index.service.worker.js; do
@@ -96,12 +96,15 @@ fi
 git push origin main || { echo "DEPLOY ABORTED: push failed"; exit 1; }
 
 echo "== verify Vercel auto-deploy (live alias)"
-LOCAL_MD5=$(md5sum "$ROOT/index.html" | awk '{print $1}')
+LOCAL_HTML_MD5=$(md5sum "$ROOT/index.html" | awk '{print $1}')
+LOCAL_SW_MD5=$(md5sum "$ROOT/index.service.worker.js" | awk '{print $1}')
 for i in $(seq 1 24); do
 	sleep 5
-	LIVE_MD5=$(curl --fail --max-time 10 -s https://kiepie-quad-web.vercel.app/index.html | md5sum | awk '{print $1}') || LIVE_MD5=""
-	if [ -n "$LIVE_MD5" ] && [ "$LIVE_MD5" = "$LOCAL_MD5" ]; then
-		echo "DEPLOY OK — live alias serves the pushed build ($LIVE_MD5)"
+	LIVE_HTML_MD5=$(curl --fail --max-time 10 -s https://kiepie-quad-web.vercel.app/index.html | md5sum | awk '{print $1}') || LIVE_HTML_MD5=""
+	LIVE_SW_MD5=$(curl --fail --max-time 10 -s https://kiepie-quad-web.vercel.app/index.service.worker.js | md5sum | awk '{print $1}') || LIVE_SW_MD5=""
+	if [ -n "$LIVE_HTML_MD5" ] && [ "$LIVE_HTML_MD5" = "$LOCAL_HTML_MD5" ] \
+			&& [ -n "$LIVE_SW_MD5" ] && [ "$LIVE_SW_MD5" = "$LOCAL_SW_MD5" ]; then
+		echo "DEPLOY OK — live alias serves the pushed build (html=$LIVE_HTML_MD5 sw=$LIVE_SW_MD5)"
 		exit 0
 	fi
 done

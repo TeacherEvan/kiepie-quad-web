@@ -23,6 +23,8 @@ const DEFAULT_SETTINGS := {
 var lobby: Dictionary = {}
 var players: Dictionary = {}
 var scores: Dictionary = {}
+var kills: Dictionary = {}
+var laps: Dictionary = {}
 var shot_count := 0
 var kill_count := 0
 var last_kill_reason := ""
@@ -30,6 +32,8 @@ var _used_tokens: Dictionary = {}
 var _issued_tokens: Dictionary = {}
 var _last_kill_at := -100.0
 var _kill_times: Array = []
+var _lap_timestamps: Dictionary = {}
+const MIN_LAP_SECONDS := 12.0
 
 
 func _ready() -> void:
@@ -48,6 +52,8 @@ func _reset() -> void:
 	}
 	players = {}
 	scores = {}
+	kills = {}
+	laps = {}
 	shot_count = 0
 	kill_count = 0
 	last_kill_reason = ""
@@ -55,6 +61,7 @@ func _reset() -> void:
 	_issued_tokens = {}
 	_last_kill_at = -100.0
 	_kill_times = []
+	_lap_timestamps = {}
 
 
 func call_rpc(name: String, args: Dictionary = {}) -> Dictionary:
@@ -137,7 +144,13 @@ func _mock_register_kill(args: Dictionary) -> Dictionary:
 	_used_tokens[token] = true
 	_last_kill_at = now
 	_kill_times.append(now)
-	scores[shooter] = int(scores.get(shooter, 0)) + 1
+	var s_dict := lobby.get("settings", {}) as Dictionary
+	var gmode := str(s_dict.get("game_mode", "battle_royale"))
+	kills[shooter] = int(kills.get(shooter, 0)) + 1
+	if gmode != "death_race":
+		scores[shooter] = int(kills[shooter])
+	else:
+		scores[shooter] = int(laps.get(shooter, 0))
 	kill_count += 1
 	var target := str(args.get("p_target", "mock-target"))
 	# MatchState.is_respawning() reads respawn_at as a future ISO deadline.
@@ -152,22 +165,21 @@ func _mock_register_kill(args: Dictionary) -> Dictionary:
 	}
 	var shooter_row: Dictionary = players.get(shooter, {}).duplicate(true)
 	shooter_row["user_id"] = shooter
-	shooter_row["score"] = scores[shooter]
+	shooter_row["kills"] = int(kills[shooter])
+	shooter_row["score"] = int(scores[shooter])
 	players[shooter] = shooter_row
 	postgres_change.emit({
 		"schema": "public", "table": "lobby_players", "type": "UPDATE",
 		"record": shooter_row,
 	})
 	var winner = null
-	var s_dict := lobby.get("settings", {}) as Dictionary
-	var gmode := str(s_dict.get("game_mode", "battle_royale"))
 	var target_score := int(s_dict.get("kill_target", 10))
 	if gmode != "death_race" and scores[shooter] >= target_score:
 		lobby["status"] = "finished"
 		lobby["winner_id"] = shooter
 		winner = shooter
 	return {
-		"ok": true, "score": scores[shooter], "winner_id": winner,
+		"ok": true, "score": scores[shooter], "kills": kills[shooter], "winner_id": winner,
 		"lobby_status": lobby["status"],
 	}
 
@@ -175,31 +187,45 @@ func _mock_register_kill(args: Dictionary) -> Dictionary:
 func _mock_register_lap(args: Dictionary) -> Dictionary:
 	var racer := str(args.get("p_racer", "mock-host"))
 	var token := str(args.get("p_token", ""))
+	var s_dict := lobby.get("settings", {}) as Dictionary
+	if str(s_dict.get("game_mode", "battle_royale")) != "death_race":
+		last_kill_reason = "wrong_mode"
+		return {"ok": false, "reason": last_kill_reason}
+	if str(lobby.get("status", "")) != "playing":
+		last_kill_reason = "lobby_not_playing"
+		return {"ok": false, "reason": last_kill_reason}
 	if token == "" or not _issued_tokens.has(token):
 		last_kill_reason = "invalid_token"
 		return {"ok": false, "reason": last_kill_reason}
 	if _used_tokens.has(token):
 		last_kill_reason = "token_consumed"
 		return {"ok": false, "reason": last_kill_reason}
+	var now := Time.get_ticks_msec() / 1000.0
+	var last_lap := float(_lap_timestamps.get(racer, -MIN_LAP_SECONDS))
+	if now - last_lap < MIN_LAP_SECONDS:
+		last_kill_reason = "rate_limited"
+		return {"ok": false, "reason": last_kill_reason}
+	_lap_timestamps[racer] = now
 	_used_tokens[token] = true
-	scores[racer] = int(scores.get(racer, 0)) + 1
+	laps[racer] = int(laps.get(racer, 0)) + 1
+	scores[racer] = int(laps[racer])
 	var racer_row: Dictionary = players.get(racer, {}).duplicate(true)
 	racer_row["user_id"] = racer
-	racer_row["score"] = scores[racer]
+	racer_row["laps"] = int(laps[racer])
+	racer_row["score"] = int(laps[racer])
 	players[racer] = racer_row
 	postgres_change.emit({
 		"schema": "public", "table": "lobby_players", "type": "UPDATE",
 		"record": racer_row,
 	})
 	var winner = null
-	var s_dict := lobby.get("settings", {}) as Dictionary
 	var target_laps := maxi(1, int(s_dict.get("lap_target", 3)))
-	if scores[racer] >= target_laps:
+	if laps[racer] >= target_laps:
 		lobby["status"] = "finished"
 		lobby["winner_id"] = racer
 		winner = racer
 	return {
-		"ok": true, "score": scores[racer], "winner_id": winner,
+		"ok": true, "score": laps[racer], "laps": laps[racer], "winner_id": winner,
 		"lobby_status": lobby["status"],
 	}
 
@@ -207,6 +233,7 @@ func _mock_register_lap(args: Dictionary) -> Dictionary:
 func reset_cooldown_for_test() -> void:
 	_last_kill_at = -100.0
 	_kill_times.clear()
+	_lap_timestamps.clear()
 
 
 func broadcast(event: String, payload: Dictionary) -> void:

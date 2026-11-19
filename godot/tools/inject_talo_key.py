@@ -52,17 +52,21 @@ def main() -> int:
     tmp_path = OUT.parent / f".{OUT.name}.{os.getpid()}.{secrets.token_hex(4)}.tmp"
     try:
         fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        fd_owned = True
         try:
             os.fchmod(fd, 0o600)
-            with os.fdopen(fd, "wb") as fh:
+            fh = os.fdopen(fd, "wb")
+            fd_owned = False  # fh now owns and closes fd
+            with fh:
                 fh.write(content)
                 fh.flush()
                 os.fsync(fh.fileno())
         except BaseException:
-            try:
-                os.close(fd)
-            except OSError:
-                pass
+            if fd_owned:
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
             raise
         os.replace(tmp_path, OUT)
     except BaseException:
