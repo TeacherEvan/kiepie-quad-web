@@ -68,6 +68,9 @@ done
 python3 "$HERE/patch_web_sw.py" "$ROOT/web/index.service.worker.js" || {
 	echo "DEPLOY ABORTED: failed to patch service worker"; exit 1;
 }
+python3 "$HERE/patch_web_html.py" "$ROOT/web/index.html" || {
+	echo "DEPLOY ABORTED: failed to patch index.html"; exit 1;
+}
 echo "   web bundle complete"
 
 if [ "$APPLY" -ne 1 ]; then
