@@ -1,5 +1,5 @@
 extends Node3D
-## PRINCESS's favorite ammunition: little flying bananas. Same swept-ray rules
+## NARDUS's favorite ammunition: little flying bananas. Same swept-ray rules
 ## as Projectile.gd so fast fruit cannot tunnel through bikes or scenery.
 
 signal hit(target: Node, point: Vector3)

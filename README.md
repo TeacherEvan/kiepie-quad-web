@@ -37,10 +37,11 @@ no extra wire traffic:
 
 - **Kiepie QUAD** — the blast quad. Photo-anchored dimensions, 22-inch tyres, twin side
   cannons (30 damage, 0.20 s cooldown; rapid-fire pickup shaves it to 0.09 s).
-- **PRINCESS** — an obese man in a hot-pink Borat mankini on a tiny pogo stick (his belly
-  sloshes with every hop, plus the gold PRINCESS print across the back). He fires **bananas**
-  (60 damage — twice the cannon — at 0.40 s / 0.18 s rapid cooldown). Identical top speed,
-  acceleration, handling, armour and dodge stats to the QUAD — different attitude, same fight.
+- **NARDUS** — a stocky pogo-stick brawler in a tight crimson-magenta athletic shirt (bold gold
+  **NARDUS** print across the back of his shirt, belly peeking out and sloshing with every hop)
+  and sporty shorts. He fires **bananas** (60 damage — twice the cannon — at 0.40 s / 0.18 s
+  rapid cooldown). Identical top speed, acceleration, handling, armour and dodge stats to the
+  QUAD — different attitude, same fight.
 
 ## Quick facts — controls
 
@@ -351,7 +352,7 @@ proportional steer strength, large touch controls and quality presets
 `verify_audit_regressions.gd`, `verify_controls.gd`, `verify_dodge.gd` and `verify_rollover.gd` join the existing
 suite — `godot/tools/run_gates.sh` now runs 26 gates offline (23 headless gates plus GdUnit4,
 the `scene_sync` drift check and one xvfb-windowed multi-touch gate, `verify_touch_multitouch.gd`).
-The new `verify_pogo.gd` locks the PRINCESS vehicle: deterministic FNV-based assignment,
+The new `verify_pogo.gd` locks the NARDUS vehicle: deterministic FNV-based assignment,
 runtime model swap in `KiepieBike._enter_tree`, pogo weapon profile (0.40 s cooldown, 2×
 damage), Rider/Stick GLB layout, `PogoVisual.gd` belly-wobble attach, and the pogo ground datum.
 The new `verify_practice.gd` locks practice-mode cannons (no lobby required, desktop

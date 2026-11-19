@@ -40,8 +40,8 @@ This is a **Blender → Godot → Vercel** asset pipeline, not a normal code app
 # Rebuild model + export .glb + previews
 blender -b -noaudio -P src/build_quad.py
 
-# PRINCESS (pogo man) vehicle sculpt: rebuild Pogo_Princess.blend + godot/assets/Pogo_Princess.glb
-blender -b -noaudio -P src/build_pogo_princess.py
+# NARDUS (pogo man) vehicle sculpt: rebuild Pogo_Nardus.blend + godot/assets/Pogo_Nardus.glb
+blender -b -noaudio -P src/build_pogo_nardus.py
 
 # Full model pipeline: rebuild → ground-seat → export .glb/.stl/.blend → round-trip verify
 blender -b -noaudio -P src/repair_and_verify.py
@@ -228,7 +228,7 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 
 ## Vehicle / gameplay conventions
 
-- **PRINCESS pogo vehicle** — every player is **dealt** a vehicle; nobody picks. The draw is
+- **NARDUS pogo vehicle** — every player is **dealt** a vehicle; nobody picks. The draw is
   a deterministic hash of the player id (FNV-1a-32 over UTF-8 bytes) in
   `godot/src/game/VehicleRegistry.gd` — the draw takes a high-middle bit of the FNV-1a hash
   (`for_player`); the exact-integer audit measured the raw low bit ~50/50 over sequential
@@ -239,8 +239,9 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   `KiepieBike.gd` swaps the visual shell in `_enter_tree` (parent-first, so
   CombatController caches the post-swap muzzle anchors); physics, wheels, mass and collision
   are identical to the bike.
-  - `Pogo_Princess.blend` → `src/build_pogo_princess.py` → `godot/assets/Pogo_Princess.glb`
-    (never hand-edit). GLB layout is one level flat: `Rider/` (bobs via
+  - `Pogo_Nardus.blend` → `src/build_pogo_nardus.py` → `godot/assets/Pogo_Nardus.glb`
+    (never hand-edit; back-of-shirt decal generated via `src/gen_decal_nardus.py` →
+    `assets/decal_nardus.png`). GLB layout is one level flat: `Rider/` (bobs via
     `src/game/PogoVisual.gd` — cosmetic spring, belly slosh + landing squash) and `Stick/`
     (the pogo). Weapon is bananas (`BananaProjectile.gd`, procedural crescent; 60 dmg,
     0.40 s / 0.18 s rapid, `pop` SFX) — twice the cannon damage at half the rate.

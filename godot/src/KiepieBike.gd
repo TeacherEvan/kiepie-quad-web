@@ -135,7 +135,7 @@ func _build_flames() -> void:
 	p.draw_pass_1 = flame_mesh
 
 	# Match the imported rim: (-0.278, 0.487, -0.715) for the bike's exhaust,
-	# and the pogo spring for PRINCESS (funny fires from the base — comedy).
+	# and the pogo spring for NARDUS (funny fires from the base — comedy).
 	p.position = Vector3(0.0, 0.30, -0.18) if vehicle_profile == "pogo" else Vector3(-0.278, 0.487, -0.715)
 
 	# Inner afterburner jet cone + Mach shock diamonds for unmistakable turbine thrust.

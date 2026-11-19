@@ -5,10 +5,8 @@ navigation in [index.md](index.md). Statuses are evidence-backed: commit hashes,
 gate names, or live checks — not assumptions.
 
 **Last verified:** 2026-11-19 — `scene_sync OK (6 scenes match HEAD)`, full gate suite
-**26/26** green after the PRINCESS pogo-vehicle pass (including the new `verify_pogo.gd`
-and three rebuilt scenes); live site HTTP 200 on the `a3ec39c` auto-deploy. A web re-export
-of the pogo-vehicle build follows this series via `godot/tools/deploy_web.sh --apply`.
-Previous deploy: `f09c80e`.
+**26/26** green after the NARDUS pogo-vehicle rename & visual overhaul (`verify_pogo.gd`
+updated for `PogoNardus` / `Pogo_Nardus.glb` / `Rider/NardusDecal`).
 
 ## Audit remediation — 10 Principal Engineer (2026-11-18)
 
@@ -96,15 +94,15 @@ findings). Web re-export + deploy: **`f09c80e`**. Earlier surgical audit:
 | Client-authoritative scoring spoofing (P2) | Design constraint of Talo v1 (no SQL RPC). Mitigations: per-killer 1 s / 20 min caps, join/leave alias binding, score clamping, shot-payload validation | AGENTS.md · `TaloBackend.gd` |
 
 
-## Feature — PRINCESS pogo vehicle + TURBO banner removal (2026-11-19)
+## Feature — NARDUS pogo vehicle (renamed from PRINCESS) + TURBO banner removal (2026-11-19)
 
 New vehicle, dealt randomly to every rider (nobody picks), plus removal of the TURBO
 flash banner from both HUDs.
 
 | ID | Change | Evidence |
 | --- | --- | --- |
-| POG-1 | `VehicleRegistry.gd`: deterministic vehicle draw (FNV-1a-32 hash of player id; high-middle-bit mixer — exact-integer audit: raw low bit ~50/50 over sequential Talo alias ids, so bit 15 is the robust bin; measured ~53% pogo over sequential ids, ~49% over random/uuid); mock-host, user-42 → QUAD; peer-1/2/3/5 → PRINCESS; zero wire traffic; future vehicles extend the table | `godot/src/game/VehicleRegistry.gd` · `verify_pogo.gd` |
-| POG-2 | Blender sculpt `src/build_pogo_princess.py`: PRINCESS — Borat mankini pogo man, PRINCESS gold decal on the back (image-texture, never text geometry), belly morph split into a `Belly` pivot | `Pogo_Princess.blend` · `godot/assets/Pogo_Princess.glb` (4.6 k verts, minZ = 0.000, 0 non-manifold) |
+| POG-1 | `VehicleRegistry.gd`: deterministic vehicle draw (FNV-1a-32 hash of player id; high-middle-bit mixer — exact-integer audit: raw low bit ~50/50 over sequential Talo alias ids, so bit 15 is the robust bin; measured ~53% pogo over sequential ids, ~49% over random/uuid); mock-host, user-42 → QUAD; peer-1/2/3/5 → NARDUS; zero wire traffic; future vehicles extend the table | `godot/src/game/VehicleRegistry.gd` · `verify_pogo.gd` |
+| POG-2 | Blender sculpt `src/build_pogo_nardus.py` + `src/gen_decal_nardus.py`: NARDUS — stylized smooth-shaded pogo brawler in a tight crimson-magenta athletic shirt with curved conformal gold **NARDUS** decal on the shirt back (image-texture, never text geometry), sporty shorts, symmetric arms, expressive face, consolidated multi-material meshes (47 → 18 draw calls), belly split into a `Belly` pivot | `Pogo_Nardus.blend` · `godot/assets/Pogo_Nardus.glb` (6.4 k verts, minZ = 0.000, 0 non-manifold) |
 | POG-3 | Runtime swap in `KiepieBike._enter_tree` (parent-first): model shell swap, physics/wheels/mass/collision byte-identical to the bike; `PogoVisual.gd` cosmetic bounce + belly slosh + landing squash | `KiepieBike.gd` · gates unchanged (bike default under mock backend) |
 | POG-4 | Weapons: profile-based `SideCannons` (`bike`/`pogo`) — banana projectile (`BananaProjectile.gd`, procedural crescent), 60 dmg (2× cannon), 0.40 s / 0.18 s rapid cooldown, `pop` SFX; remote/ArenaNet path applies the same profile by hash | `SideCannons.gd` · `BananaProjectile.gd` · `ArenaNet.gd` · `Sfx.gd` · `verify_practice/pogo` green |
 | POG-5 | Remote proxies (`NetworkedBike.gd`) load the GLB for the peer's hashed vehicle (deterministic mix across peers) | `NetworkedBike.gd` · `verify_multiplayer` green |

@@ -7,7 +7,7 @@ extends RefCounted
 ## consistently, so mixed-version lobbies must bump PROTOCOL_VERSION as usual).
 
 const VEHICLE_BIKE := &"KiepieBike"
-const VEHICLE_POGO := &"PogoPrincess"
+const VEHICLE_POGO := &"PogoNardus"
 const VEHICLES: Array[StringName] = [VEHICLE_BIKE, VEHICLE_POGO]
 const _FNV_OFFSET := 2166136261
 const _FNV_PRIME := 16777619
@@ -35,14 +35,14 @@ static func is_valid(vehicle: StringName) -> bool:
 static func model_path(vehicle: StringName) -> String:
 	match vehicle:
 		VEHICLE_POGO:
-			return "res://assets/Pogo_Princess.glb"
+			return "res://assets/Pogo_Nardus.glb"
 		_:
 			return "res://assets/Kiepie_Bike.glb"
 
 static func display_name(vehicle: StringName) -> String:
 	match vehicle:
 		VEHICLE_POGO:
-			return "PRINCESS"
+			return "NARDUS"
 		_:
 			return "KIEPIE QUAD"
 

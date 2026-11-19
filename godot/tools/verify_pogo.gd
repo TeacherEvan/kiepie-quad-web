@@ -1,5 +1,5 @@
 extends SceneTree
-## Gate: the PRINCESS pogo vehicle — deterministic assignment, weapon profile,
+## Gate: the NARDUS pogo vehicle — deterministic assignment, weapon profile,
 ## runtime model swap, belly-wobble script attach, and ground datum.
 
 var _fail := 0
@@ -36,23 +36,25 @@ func _run() -> void:
 	# Godot-verified (exact-integer FNV, matched by VehicleRegistry.gd): mock-host -> bike.
 	_check(str(registry.call("for_player", "mock-host")) == "KiepieBike",
 			"registry: mock-host -> KiepieBike (gate determinism)")
-	_check(str(registry.call("for_player", "peer-1")) == "PogoPrincess",
-			"registry: peer-1 -> PogoPrincess")
-	_check(str(registry.call("for_player", "peer-2")) == "PogoPrincess",
-			"registry: peer-2 -> PogoPrincess")
-	_check(str(registry.call("for_player", "peer-3")) == "PogoPrincess",
-			"registry: peer-3 -> PogoPrincess")
-	_check(str(registry.call("for_player", "peer-5")) == "PogoPrincess",
-			"registry: peer-5 -> PogoPrincess")
+	_check(str(registry.call("for_player", "peer-1")) == "PogoNardus",
+			"registry: peer-1 -> PogoNardus")
+	_check(str(registry.call("for_player", "peer-2")) == "PogoNardus",
+			"registry: peer-2 -> PogoNardus")
+	_check(str(registry.call("for_player", "peer-3")) == "PogoNardus",
+			"registry: peer-3 -> PogoNardus")
+	_check(str(registry.call("for_player", "peer-5")) == "PogoNardus",
+			"registry: peer-5 -> PogoNardus")
 	_check(str(registry.call("for_player", "user-42")) == "KiepieBike",
 			"registry: user-42 -> KiepieBike")
-	_check(str(registry.call("profile", &"PogoPrincess")) == "pogo",
-			"profile: PogoPrincess -> pogo")
+	_check(str(registry.call("profile", &"PogoNardus")) == "pogo",
+			"profile: PogoNardus -> pogo")
+	_check(str(registry.call("display_name", &"PogoNardus")) == "NARDUS",
+			"display_name: PogoNardus -> NARDUS")
 	_check(str(registry.call("profile", &"KiepieBike")) == "bike",
 			"profile: KiepieBike -> bike")
 
 	# ---- 2. the GLB itself
-	var glb: PackedScene = load("res://assets/Pogo_Princess.glb")
+	var glb: PackedScene = load("res://assets/Pogo_Nardus.glb")
 	_check(glb != null, "Pogo GLB loaded")
 	if glb == null:
 		_restore()
@@ -64,26 +66,28 @@ func _run() -> void:
 	var belly := model.get_node_or_null("Rider/Belly")
 	var muzzle_l := model.get_node_or_null("Stick/BananaMuzzle_L")
 	var muzzle_r := model.get_node_or_null("Stick/BananaMuzzle_R")
-	var decal := model.get_node_or_null("Rider/PrincessDecal")
+	var decal := model.get_node_or_null("Rider/NardusDecal")
 	_check(rider != null, "Rider pivot present")
 	_check(stick != null, "Stick (pogo) present")
 	_check(belly != null, "Belly present under Rider")
 	_check(muzzle_l != null and muzzle_r != null, "banana muzzle anchors present")
-	_check(decal != null, "PRINCESS decal present")
+	_check(decal != null, "NARDUS decal present")
 	# ground datum: pogo tip on z == 0 in Blender -> y == 0 in Godot (Y up)
+	# compute in model-local space so unparented model never triggers !is_inside_tree()
 	var min_y := 1.0e9
 	for mesh in model.find_children("*", "MeshInstance3D", true, false):
 		var mi := mesh as MeshInstance3D
 		var aabb := mi.get_aabb()
-		var origin: Vector3 = mi.global_position
-		# world-space bottom of this mesh instance (axis-aligned approximation)
-		var bottom := origin.y + mi.global_transform.basis.y.dot(aabb.position)
-		var ex := absf(mi.global_transform.basis.x.length()) * aabb.size.x
-		var ey := absf(mi.global_transform.basis.y.length()) * aabb.size.y
-		var ez := absf(mi.global_transform.basis.z.length()) * aabb.size.z
-		bottom = origin.y - ey / 2.0
-		min_y = minf(min_y, bottom)
-	_check(min_y < 0.06, "pogo footprint at the ground (min_y=%.3f)" % min_y)
+		var xf := Transform3D.IDENTITY
+		var cur: Node = mi
+		while cur != null and cur != model:
+			if cur is Node3D:
+				xf = (cur as Node3D).transform * xf
+			cur = cur.get_parent()
+		for corner_i in range(8):
+			var pt := xf * aabb.get_endpoint(corner_i)
+			min_y = minf(min_y, pt.y)
+	_check(min_y >= -0.02 and min_y < 0.06, "pogo footprint at the ground (min_y=%.3f)" % min_y)
 	var tri_count := 0
 	for mesh in model.find_children("*", "MeshInstance3D", true, false):
 		var mi := mesh as MeshInstance3D
