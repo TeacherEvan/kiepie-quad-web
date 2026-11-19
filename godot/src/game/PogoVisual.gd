@@ -14,8 +14,9 @@ extends Node3D
 @export var pitch_speed_gain := 0.012   ## forward tilt into motion (rad per m/s)
 @export var bounce_sway := 0.032        ## rhythmic side-to-side hop swagger (rad)
 @export var flap_hz := 9.5              ## bird wing-beats per second during turbo
-@export var flap_amp_z := 0.68          ## vertical wing flap arc (rad, ~39 deg)
-@export var flap_amp_y := 0.20          ## forward-back rowing wing sweep (rad)
+@export var flap_amp_z := 1.05          ## vertical wing flap arc (rad, ~60 deg full bird flap)
+@export var flap_amp_x := 0.32          ## wing-tip feather pitch twist on up/downstroke (rad)
+@export var flap_amp_y := 0.28          ## forward-back rowing wing sweep (rad)
 
 var _belly: Node3D
 var _arm_l: Node3D
@@ -107,16 +108,22 @@ func _physics_process(delta: float) -> void:
 		var wing_scale := (0.45 if reduced else 1.0) * _flap_blend
 		var flap_z := sin(_flap_phase) * flap_amp_z * wing_scale
 		var sweep_y := cos(_flap_phase) * flap_amp_y * wing_scale
+		var twist_x := cos(_flap_phase) * flap_amp_x * wing_scale
+		var span := Vector3(1.0 + 0.14 * wing_scale, 1.0, 1.0)
 		if _arm_l != null:
-			_arm_l.rotation = Vector3(0.0, sweep_y, -flap_z)
+			_arm_l.rotation = Vector3(twist_x, sweep_y, -flap_z)
+			_arm_l.scale = span
 		if _arm_r != null:
-			_arm_r.rotation = Vector3(0.0, -sweep_y, flap_z)
+			_arm_r.rotation = Vector3(twist_x, -sweep_y, flap_z)
+			_arm_r.scale = span
 	else:
 		_flap_phase = 0.0
 		if _arm_l != null:
 			_arm_l.rotation = Vector3.ZERO
+			_arm_l.scale = Vector3.ONE
 		if _arm_r != null:
 			_arm_r.rotation = Vector3.ZERO
+			_arm_r.scale = Vector3.ONE
 
 
 var _belly_base_cached := INF

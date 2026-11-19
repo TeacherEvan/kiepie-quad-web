@@ -144,17 +144,37 @@ func select_game_mode(mode: String) -> void:
 	_sync_mode_ui()
 
 
+func _apply_mode_pill_style(btn: Button, active: bool, accent: Color) -> void:
+	if btn == null:
+		return
+	UI.style_button(btn, accent if active else Color(0.32, 0.38, 0.48), 16, btn.custom_minimum_size.y)
+	for st in ["normal", "hover", "focus"]:
+		var sb := btn.get_theme_stylebox(st)
+		if sb is StyleBoxFlat:
+			var dup := (sb as StyleBoxFlat).duplicate() as StyleBoxFlat
+			if active:
+				dup.bg_color = Color(accent.r * 0.24, accent.g * 0.20, accent.b * 0.10, 0.96)
+				dup.border_color = Color(accent.r, accent.g, accent.b, 0.98)
+				dup.set_border_width_all(2)
+			else:
+				dup.bg_color = Color(0.055, 0.065, 0.085, 0.76)
+				dup.border_color = Color(0.35, 0.40, 0.50, 0.35)
+				dup.set_border_width_all(1)
+			btn.add_theme_stylebox_override(st, dup)
+	btn.add_theme_color_override("font_color", UI.GOLD if active else UI.MUTED)
+
+
 func _sync_mode_ui() -> void:
 	var is_race := selected_game_mode == "death_race"
 	if _btn_mode_br != null:
-		UI.style_button(_btn_mode_br, Color(0.36, 0.44, 0.56) if is_race else UI.ACCENT, 16, _btn_mode_br.custom_minimum_size.y)
+		_apply_mode_pill_style(_btn_mode_br, not is_race, UI.ACCENT)
 		_btn_mode_br.text = "⚔ BATTLE ROYALE" if is_race else "⚔ BATTLE ROYALE ✓"
 	if _btn_mode_dr != null:
-		UI.style_button(_btn_mode_dr, UI.GOLD if is_race else Color(0.36, 0.44, 0.56), 16, _btn_mode_dr.custom_minimum_size.y)
+		_apply_mode_pill_style(_btn_mode_dr, is_race, UI.GOLD)
 		_btn_mode_dr.text = "🏁 DEATH RACE ✓" if is_race else "🏁 DEATH RACE"
 	var subtitle := get_node_or_null("SafeMargin/Card/VBox/Subtitle") as Label
 	if subtitle != null:
-		subtitle.text = "DEATH RACE  ·  CIRCUIT LAPS & COMBAT" if is_race else "BATTLE ROYALE  ·  ARENA COMBAT"
+		subtitle.text = "DEATH RACE  ·  3 LAPS · LOOPS, PITS & FULL ARSENAL" if is_race else "BATTLE ROYALE  ·  ARENA COMBAT · ROCKETS & METEORS"
 	if _btn_practice != null:
 		_btn_practice.text = "PRACTICE (DEATH RACE TRACK)" if is_race else "PRACTICE (FREE RIDE)"
 

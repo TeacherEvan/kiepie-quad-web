@@ -291,7 +291,7 @@ func _build_main() -> void:
 
 	vbox.add_child(_button("BtnSettings", "SETTINGS", Color(0.55, 0.60, 0.70)))
 
-	var footer := _label("Footer", "W/A/S/D drive  ·  Q/E dodge  ·  SPACE handbrake  ·  F fire", 12, MUTED)
+	var footer := _label("Footer", "W/A/S/D drive  ·  Q/E dodge  ·  SPACE handbrake  ·  F fire  ·  TAB/1-3 weapon", 12, MUTED)
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	footer.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(footer)

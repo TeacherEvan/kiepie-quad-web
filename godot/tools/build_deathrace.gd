@@ -20,6 +20,7 @@ const BUILDING := "res://src/DestructibleBuilding.gd"
 const PICKUP := "res://src/game/Pickup.gd"
 const FUEL_DRUM := "res://src/game/FuelDrum.gd"
 const AMBIENT := "res://src/game/AmbientVfx.gd"
+const DECOR := preload("res://src/game/BuildingDecor.gd")
 const UI := preload("res://src/ui/UiTheme.gd")
 
 
@@ -103,6 +104,7 @@ func _initialize() -> void:
 	root.add_child(ground)
 
 	# ---------------- circuit track surface ribbon, turns, barriers & pit stop lane
+	_add_backdrop(root)
 	_build_circuit(root)
 
 	# ---------------- Start/Finish Line & 4 ordered Checkpoints
@@ -119,10 +121,10 @@ func _initialize() -> void:
 	_add_checkpoint(root, 3, Vector3(-38.0, 0.0, -44.0), 90.0)
 
 	# ---------------- 2 Full 360° Vertical Stunt Loops (with LoopZone centripetal normal)
-	# TrackLoop0 on the North straight (east of FinishLine, heading +X)
-	_add_stunt_loop(root, "TrackLoop0", Vector3(24.0, 0.0, -44.0), 90.0, 8.5)
-	# TrackLoop1 on the South back-straight (heading -X)
-	_add_stunt_loop(root, "TrackLoop1", Vector3(-12.0, 0.0, 44.0), -90.0, 8.5)
+	# TrackLoop0 on the North straight outer lane (east of FinishLine, heading +X)
+	_add_stunt_loop(root, "TrackLoop0", Vector3(26.0, 0.0, -47.2), 90.0, 8.5)
+	# TrackLoop1 on the South back-straight outer lane (heading -X)
+	_add_stunt_loop(root, "TrackLoop1", Vector3(-14.0, 0.0, 47.2), -90.0, 8.5)
 
 	# ---------------- 3 Molten Hazard Pits (with jump ramps over them)
 	_add_hazard_pit(root, "HazardPit0", Vector3(58.0, 0.0, 10.0), Vector3(10.0, 1.4, 8.0))
@@ -247,6 +249,7 @@ func _set_owners(node: Node, owner: Node) -> void:
 # --------------------------------------------------------------- circuit ---
 
 static var _kerb_tex: ImageTexture = null
+static var _check_tex: ImageTexture = null
 
 func _kerb_stripe() -> ImageTexture:
 	if _kerb_tex == null:
@@ -255,6 +258,92 @@ func _kerb_stripe() -> ImageTexture:
 		img.set_pixel(1, 0, Color(0.90, 0.90, 0.88, 1))
 		_kerb_tex = ImageTexture.create_from_image(img)
 	return _kerb_tex
+
+
+func _checkered_tex() -> ImageTexture:
+	if _check_tex == null:
+		var img := Image.create(16, 4, false, Image.FORMAT_RGB8)
+		for y in range(4):
+			for x in range(16):
+				var is_white := ((x + y) % 2) == 0
+				img.set_pixel(x, y, Color(0.96, 0.96, 0.98) if is_white else Color(0.08, 0.09, 0.12))
+		_check_tex = ImageTexture.create_from_image(img)
+	return _check_tex
+
+
+func _glow_panel(color: Color, energy: float) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = color
+	m.emission_enabled = true
+	m.emission = color
+	m.emission_energy_multiplier = energy
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	return m
+
+
+func _add_backdrop(root: Node3D) -> void:
+	var backdrop := Node3D.new()
+	backdrop.name = "Backdrop"
+	var lamp := _glow_panel(Color(1.0, 0.93, 0.72, 1), 3.0)
+	var dark := StandardMaterial3D.new()
+	dark.albedo_color = Color(0.11, 0.13, 0.16, 1)
+	dark.roughness = 0.95
+	var win := _glow_panel(Color(0.32, 0.56, 0.72, 1), 1.2)
+	for sx in [-1.0, 1.0]:
+		for sz in [-1.0, 1.0]:
+			var tower := Node3D.new()
+			tower.name = "Floodlight_%d_%d" % [int(sx), int(sz)]
+			var mast := BoxMesh.new()
+			mast.size = Vector3(0.65, 20.0, 0.65)
+			mast.material = dark
+			var mast_inst := MeshInstance3D.new()
+			mast_inst.mesh = mast
+			mast_inst.position = Vector3(0, 10.0, 0)
+			tower.add_child(mast_inst)
+			var bar := BoxMesh.new()
+			bar.size = Vector3(5.0, 0.4, 0.65)
+			bar.material = dark
+			var bar_inst := MeshInstance3D.new()
+			bar_inst.mesh = bar
+			bar_inst.position = Vector3(0, 19.8, 0)
+			tower.add_child(bar_inst)
+			for i in range(4):
+				var panel := BoxMesh.new()
+				panel.size = Vector3(1.0, 0.55, 0.14)
+				panel.material = lamp
+				var p := MeshInstance3D.new()
+				p.mesh = panel
+				p.position = Vector3(-1.65 + float(i) * 1.1, 19.8, 0.36)
+				tower.add_child(p)
+			tower.position = Vector3(sx * 84.0, 0.0, sz * 66.0)
+			backdrop.add_child(tower)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77711
+	for i in range(10):
+		var a := TAU * float(i) / 10.0 + 0.15
+		var r := rng.randf_range(98.0, 118.0)
+		var h := rng.randf_range(6.0, 13.0)
+		var w := rng.randf_range(12.0, 20.0)
+		var hangar := Node3D.new()
+		hangar.name = "Grandstand%d" % i
+		var body := BoxMesh.new()
+		body.size = Vector3(w, h, w * 0.65)
+		body.material = dark
+		var bi := MeshInstance3D.new()
+		bi.mesh = body
+		bi.position.y = h * 0.5
+		hangar.add_child(bi)
+		var strip := BoxMesh.new()
+		strip.size = Vector3(w * 0.75, 0.28, 0.06)
+		strip.material = win
+		var si := MeshInstance3D.new()
+		si.mesh = strip
+		si.position = Vector3(0, h * 0.65, w * 0.33)
+		hangar.add_child(si)
+		hangar.position = Vector3(cos(a) * r, 0.0, sin(a) * r * 0.8)
+		hangar.rotation.y = -a
+		backdrop.add_child(hangar)
+	root.add_child(backdrop)
 
 
 func _build_circuit(root: Node) -> void:
@@ -291,6 +380,46 @@ func _build_circuit(root: Node) -> void:
 		mi.position = spec[1]
 		mi.rotation_degrees.y = float(spec[3])
 		track.add_child(mi)
+
+	# Glowing racing lane edge lines + corner directional chevron signs
+	var line_mat := _glow_panel(Color(1.0, 0.76, 0.22, 1.0), 1.15)
+	var edge_lines := [
+		["EdgeLineN_In", Vector3(0.0, 0.052, -36.2), Vector3(96.0, 0.02, 0.28)],
+		["EdgeLineN_Out", Vector3(0.0, 0.052, -51.8), Vector3(104.0, 0.02, 0.28)],
+		["EdgeLineS_In", Vector3(0.0, 0.052, 36.2), Vector3(96.0, 0.02, 0.28)],
+		["EdgeLineS_Out", Vector3(0.0, 0.052, 51.8), Vector3(104.0, 0.02, 0.28)],
+		["EdgeLineE_In", Vector3(50.2, 0.052, 0.0), Vector3(0.28, 0.02, 68.0)],
+		["EdgeLineE_Out", Vector3(65.8, 0.052, 0.0), Vector3(0.28, 0.02, 76.0)],
+		["EdgeLineW_In", Vector3(-50.2, 0.052, 0.0), Vector3(0.28, 0.02, 68.0)],
+		["EdgeLineW_Out", Vector3(-65.8, 0.052, 0.0), Vector3(0.28, 0.02, 76.0)],
+	]
+	for el in edge_lines:
+		var lmi := MeshInstance3D.new()
+		lmi.name = str(el[0])
+		var lbm := BoxMesh.new()
+		lbm.size = el[2]
+		lbm.material = line_mat
+		lmi.mesh = lbm
+		lmi.position = el[1]
+		track.add_child(lmi)
+
+	# 4 Turn Apex Chevron Boards
+	var chev_specs := [
+		["ChevronTurn1", Vector3(66.0, 1.6, -46.0), -135.0, ">>> TURN 1 >>>"],
+		["ChevronTurn2", Vector3(66.0, 1.6, 46.0), 135.0, ">>> TURN 2 >>>"],
+		["ChevronTurn3", Vector3(-66.0, 1.6, 46.0), 45.0, ">>> TURN 3 >>>"],
+		["ChevronTurn4", Vector3(-66.0, 1.6, -46.0), -45.0, ">>> TURN 4 >>>"],
+	]
+	for cs in chev_specs:
+		var sign_lbl := Label3D.new()
+		sign_lbl.name = str(cs[0])
+		sign_lbl.text = str(cs[3])
+		sign_lbl.font_size = 54
+		sign_lbl.outline_size = 12
+		sign_lbl.modulate = Color(1.0, 0.78, 0.20)
+		sign_lbl.position = cs[1]
+		sign_lbl.rotation_degrees.y = float(cs[2])
+		track.add_child(sign_lbl)
 
 	# Outer stadium boundary walls & inner infield barriers (keeps racers on the circuit)
 	var walls := Node3D.new()
@@ -358,11 +487,15 @@ func _add_finish_line(root: Node, pos: Vector3, rot_y_deg: float) -> void:
 	pillar_mat.metallic = 0.65
 	pillar_mat.roughness = 0.35
 
-	var gold_mat := StandardMaterial3D.new()
-	gold_mat.albedo_color = Color(1.0, 0.78, 0.22)
-	gold_mat.emission_enabled = true
-	gold_mat.emission = Color(1.0, 0.74, 0.18)
-	gold_mat.emission_energy_multiplier = 2.2
+	var check_mat := StandardMaterial3D.new()
+	check_mat.albedo_texture = _checkered_tex()
+	check_mat.albedo_color = Color.WHITE
+	check_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	check_mat.texture_repeat = true
+	check_mat.roughness = 0.45
+	check_mat.uv1_scale = Vector3(3.0, 1.0, 1.0)
+
+	var trim_mat := _glow_panel(Color(1.0, 0.76, 0.22), 1.35)
 
 	for sgn in [-1.0, 1.0]:
 		var post := MeshInstance3D.new()
@@ -379,32 +512,40 @@ func _add_finish_line(root: Node, pos: Vector3, rot_y_deg: float) -> void:
 	var banner := MeshInstance3D.new()
 	banner.name = "FinishBanner"
 	var bm := BoxMesh.new()
-	bm.size = Vector3(17.2, 1.2, 0.45)
-	bm.material = gold_mat
+	bm.size = Vector3(17.2, 1.15, 0.45)
+	bm.material = check_mat
 	banner.mesh = bm
 	banner.position = Vector3(0.0, 6.0, 0.0)
 	finish.add_child(banner)
 
-	var lbl := Label3D.new()
-	lbl.name = "FinishLabel"
-	lbl.text = "🏁 FINISH LINE 🏁"
-	lbl.font_size = 64
-	lbl.outline_size = 14
-	lbl.modulate = Color(1.0, 0.96, 0.78)
-	lbl.position = Vector3(0.0, 6.0, 0.30)
-	finish.add_child(lbl)
+	for trim_y in [5.40, 6.60]:
+		var bar := MeshInstance3D.new()
+		var tbm := BoxMesh.new()
+		tbm.size = Vector3(17.4, 0.09, 0.52)
+		tbm.material = trim_mat
+		bar.mesh = tbm
+		bar.position = Vector3(0.0, float(trim_y), 0.0)
+		finish.add_child(bar)
 
-	# Checkered ground strip
+	# Double-sided finish signs (facing both approaching racers and the starting grid)
+	for side_i in range(2):
+		var lbl := Label3D.new()
+		lbl.name = "FinishLabel" if side_i == 0 else "FinishLabelBack"
+		lbl.text = "🏁 FINISH LINE 🏁"
+		lbl.font_size = 58
+		lbl.outline_size = 14
+		lbl.modulate = Color(1.0, 0.88, 0.32)
+		lbl.position = Vector3(0.0, 7.15, -0.30 if side_i == 0 else 0.30)
+		if side_i == 0:
+			lbl.rotation_degrees.y = 180.0
+		finish.add_child(lbl)
+
+	# Checkered ground strip across the track
 	var strip := MeshInstance3D.new()
 	strip.name = "CheckeredStrip"
 	var sbm := BoxMesh.new()
-	sbm.size = Vector3(16.0, 0.04, 1.8)
-	var smat := StandardMaterial3D.new()
-	smat.albedo_color = Color(0.96, 0.96, 0.98)
-	smat.emission_enabled = true
-	smat.emission = Color(0.95, 0.85, 0.40)
-	smat.emission_energy_multiplier = 0.55
-	sbm.material = smat
+	sbm.size = Vector3(16.0, 0.04, 2.2)
+	sbm.material = check_mat
 	strip.mesh = sbm
 	strip.position = Vector3(0.0, 0.04, 0.0)
 	finish.add_child(strip)
@@ -469,16 +610,23 @@ func _add_stunt_loop(root: Node, name: String, pos: Vector3, rot_y_deg: float, r
 	loop_root.position = pos
 	loop_root.rotation_degrees.y = rot_y_deg
 
-	var seg_mat := StandardMaterial3D.new()
-	seg_mat.albedo_color = Color(0.92, 0.38, 0.10)
-	seg_mat.emission_enabled = true
-	seg_mat.emission = Color(1.0, 0.42, 0.10)
-	seg_mat.emission_energy_multiplier = 0.65
-	seg_mat.roughness = 0.6
+	# High-grip dark asphalt track deck with glowing neon-gold edge guide rails
+	var deck_mat := StandardMaterial3D.new()
+	var asphalt_tex := load("res://assets/tex_asphalt.png") as Texture2D
+	deck_mat.albedo_texture = asphalt_tex
+	deck_mat.albedo_color = Color(0.20, 0.22, 0.27, 1.0)
+	deck_mat.roughness = 0.82
+	deck_mat.uv1_scale = Vector3(2.0, 2.0, 1.0)
 
-	var seg_count := 20
+	var rail_mat := _glow_panel(Color(1.0, 0.56, 0.14), 1.45)
+	var strut_mat := StandardMaterial3D.new()
+	strut_mat.albedo_color = Color(0.14, 0.16, 0.20)
+	strut_mat.metallic = 0.72
+	strut_mat.roughness = 0.35
+
+	var seg_count := 22
 	var chord_len := (TAU * radius / float(seg_count)) * 1.18
-	var helical_pitch := 3.6  # lateral offset across 360° so exit clears entry cleanly
+	var helical_pitch := 4.4  # lateral offset across 360° so exit clears entry cleanly
 
 	for i in range(seg_count):
 		var frac := (float(i) + 0.5) / float(seg_count)
@@ -494,17 +642,49 @@ func _add_stunt_loop(root: Node, name: String, pos: Vector3, rot_y_deg: float, r
 
 		var col := CollisionShape3D.new()
 		var sh := BoxShape3D.new()
-		sh.size = Vector3(4.2, 0.35, chord_len)
+		sh.size = Vector3(4.0, 0.32, chord_len)
 		col.shape = sh
 		seg.add_child(col)
 
 		var mi := MeshInstance3D.new()
 		var bm := BoxMesh.new()
-		bm.size = Vector3(4.2, 0.35, chord_len)
-		bm.material = seg_mat
+		bm.size = Vector3(4.0, 0.32, chord_len)
+		bm.material = deck_mat
 		mi.mesh = bm
 		seg.add_child(mi)
+
+		# Glowing edge guide rails along both sides of the loop deck
+		for sgn in [-1.0, 1.0]:
+			var rail := MeshInstance3D.new()
+			var rbm := BoxMesh.new()
+			rbm.size = Vector3(0.18, 0.42, chord_len)
+			rbm.material = rail_mat
+			rail.mesh = rbm
+			rail.position = Vector3(sgn * 1.95, 0.08, 0.0)
+			seg.add_child(rail)
+
 		loop_root.add_child(seg)
+
+	# Structural steel A-frame support pillars anchoring the loop outside the deck width
+	for sgn in [-1.0, 1.0]:
+		var strut := MeshInstance3D.new()
+		strut.name = "SupportPylon_%s" % ("L" if sgn < 0.0 else "R")
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.25
+		cm.bottom_radius = 0.38
+		cm.height = radius * 2.05
+		cm.material = strut_mat
+		strut.mesh = cm
+		strut.position = Vector3(sgn * 5.2, radius, 0.0)
+		loop_root.add_child(strut)
+
+	var top_beam := MeshInstance3D.new()
+	var tbm := BoxMesh.new()
+	tbm.size = Vector3(10.8, 0.45, 0.55)
+	tbm.material = strut_mat
+	top_beam.mesh = tbm
+	top_beam.position = Vector3(0.0, radius * 2.05, 0.0)
+	loop_root.add_child(top_beam)
 
 	# LoopZone Area3D supplies centripetal normal adhesion to KiepieBike._integrate_forces()
 	var zone := Area3D.new()
@@ -649,17 +829,37 @@ func _add_building(root: Node, node_name: String, display_name: String,
 	col.position = Vector3(0.0, size.y * 0.5, 0.0)
 	b.add_child(col)
 
+	var facade_path := "res://assets/tex_facade_garage.jpg" if node_name == "PitGarage" else "res://assets/tex_facade_store.png"
+	var facade := load(facade_path) as Texture2D
 	var mi := MeshInstance3D.new()
 	mi.name = "MainBlock"
 	var bm := BoxMesh.new()
 	bm.size = size
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
+	if facade != null:
+		mat.albedo_texture = facade
+		mat.albedo_color = Color.WHITE
+	else:
+		mat.albedo_color = color
 	mat.roughness = 0.85
 	bm.material = mat
 	mi.mesh = bm
 	mi.position = Vector3(0.0, size.y * 0.5, 0.0)
 	b.add_child(mi)
+
+	var roof_mesh := BoxMesh.new()
+	roof_mesh.size = Vector3(size.x + 0.5, 0.28, size.z + 0.5)
+	var roof_mat := StandardMaterial3D.new()
+	roof_mat.albedo_color = Color(0.22, 0.23, 0.24, 1)
+	roof_mat.roughness = 0.8
+	roof_mesh.material = roof_mat
+	var roof_inst := MeshInstance3D.new()
+	roof_inst.name = "Roof"
+	roof_inst.mesh = roof_mesh
+	roof_inst.position = Vector3(0.0, size.y + 0.14, 0.0)
+	b.add_child(roof_inst)
+
+	DECOR.dress(b, size, display_name)
 	root.add_child(b)
 
 

@@ -64,7 +64,7 @@ var _muzzles: Array[Node3D] = []
 var _color := Color(1.0, 0.55, 0.15)
 var _fx_holder: Node3D = null
 var _profile: Dictionary = PROFILES["bike"]
-var _aim_reticle: MeshInstance3D = null
+var _aim_reticle: Node3D = null
 var _aim_mat: StandardMaterial3D = null
 var _last_reload_progress := -1.0
 var _last_reload_ready := true
@@ -281,12 +281,14 @@ func compute_meteor_target() -> Vector3:
 				lead = Vector3(ev.x, 0.0, ev.z) * 0.55
 			cand = cand.lerp(best_enemy.global_position + lead, 0.72)
 
-	# Snap to the ground / track surface via downward physics raycast
+	# Snap to the ground / track surface via downward physics raycast.
+	# Start at +2.6m above the bike (below overhead loop roofs at 10-17m and
+	# finish banners at 6m!) so the reticle always hugs the drivable road surface.
 	var world := owner_node.get_world_3d()
 	if world != null:
 		var rq := PhysicsRayQueryParameters3D.create(
-				Vector3(cand.x, owner_node.global_position.y + 22.0, cand.z),
-				Vector3(cand.x, owner_node.global_position.y - 18.0, cand.z))
+				Vector3(cand.x, owner_node.global_position.y + 2.6, cand.z),
+				Vector3(cand.x, owner_node.global_position.y - 12.0, cand.z))
 		rq.collide_with_areas = false
 		rq.collide_with_bodies = true
 		if owner_node is CollisionObject3D:
@@ -295,9 +297,9 @@ func compute_meteor_target() -> Vector3:
 		if not hit_res.is_empty():
 			cand = hit_res.get("position", cand)
 		else:
-			cand.y = 0.0
+			cand.y = 0.02
 	else:
-		cand.y = 0.0
+		cand.y = 0.02
 	return cand
 
 
@@ -312,30 +314,69 @@ func _update_aim_reticle() -> void:
 	if fx_parent == null:
 		return
 	if _aim_reticle == null or not is_instance_valid(_aim_reticle):
-		_aim_reticle = MeshInstance3D.new()
+		_aim_reticle = Node3D.new()
 		_aim_reticle.name = "MeteorAimReticle"
-		var cm := CylinderMesh.new()
-		cm.top_radius = METEOR_BLAST_RADIUS * 0.5
-		cm.bottom_radius = METEOR_BLAST_RADIUS * 0.5
-		cm.height = 0.04
-		cm.radial_segments = 24
 		_aim_mat = StandardMaterial3D.new()
-		_aim_mat.albedo_color = Color(1.0, 0.36, 0.08, 0.34)
+		_aim_mat.albedo_color = Color(0.28, 1.0, 0.52, 0.55)
 		_aim_mat.emission_enabled = true
-		_aim_mat.emission = Color(1.0, 0.45, 0.12)
-		_aim_mat.emission_energy_multiplier = 2.6
+		_aim_mat.emission = Color(0.32, 1.0, 0.55)
+		_aim_mat.emission_energy_multiplier = 2.8
 		_aim_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		_aim_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		_aim_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+
+		# Outer bullseye ring (torus lying flat on ground)
+		var outer := MeshInstance3D.new()
+		var ot := TorusMesh.new()
+		ot.outer_radius = 3.8
+		ot.inner_radius = 3.45
+		ot.rings = 28
+		ot.ring_segments = 8
+		ot.material = _aim_mat
+		outer.mesh = ot
+		_aim_reticle.add_child(outer)
+
+		# Inner bullseye ring
+		var inner := MeshInstance3D.new()
+		var it := TorusMesh.new()
+		it.outer_radius = 1.45
+		it.inner_radius = 1.20
+		it.rings = 24
+		it.ring_segments = 8
+		it.material = _aim_mat
+		inner.mesh = it
+		_aim_reticle.add_child(inner)
+
+		# Crosshair bars
+		for ang in [0.0, 90.0]:
+			var bar := MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = Vector3(6.8, 0.03, 0.16)
+			bm.material = _aim_mat
+			bar.mesh = bm
+			bar.rotation_degrees.y = float(ang)
+			_aim_reticle.add_child(bar)
+
+		# Subtle vertical sky-laser beacon so aim depth reads clearly at any distance
+		var beacon := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.08
+		cm.bottom_radius = 0.22
+		cm.height = 12.0
+		cm.radial_segments = 12
 		cm.material = _aim_mat
-		_aim_reticle.mesh = cm
+		beacon.mesh = cm
+		beacon.position = Vector3(0.0, 6.0, 0.0)
+		_aim_reticle.add_child(beacon)
+
 		fx_parent.add_child(_aim_reticle)
 	_aim_reticle.visible = true
 	var tgt := compute_meteor_target()
-	_aim_reticle.global_position = tgt + Vector3(0.0, 0.08, 0.0)
+	_aim_reticle.global_position = tgt + Vector3(0.0, 0.06, 0.0)
+	_aim_reticle.rotate_y(0.035)
 	if _aim_mat != null:
 		var rdy := can_fire()
-		_aim_mat.albedo_color = Color(0.28, 1.0, 0.52, 0.36) if rdy else Color(1.0, 0.36, 0.08, 0.20)
+		_aim_mat.albedo_color = Color(0.28, 1.0, 0.52, 0.55) if rdy else Color(1.0, 0.42, 0.10, 0.30)
 		_aim_mat.emission = Color(0.32, 1.0, 0.55) if rdy else Color(1.0, 0.38, 0.10)
 
 
