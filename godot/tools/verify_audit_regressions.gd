@@ -22,12 +22,63 @@ func _run() -> void:
 	await process_frame
 	await _state_spoof()
 	await _net_security_and_roster()
+	await _join_allowlist_and_channel_guards()
 	_gradient_stops()
 	_exhaust_axis()
 	_malformed_shot()
 	_respawn_deadline()
 	print("AUDIT REGRESSIONS: %d failure(s)" % _fail)
 	quit(1 if _fail > 0 else 0)
+
+
+## P0-1 (join allowlist) + P1-3 (channel-active guard on join/bike_state).
+func _join_allowlist_and_channel_guards() -> void:
+	# 1. Matching-alias "join" must not inject laps/kills/score/readiness —
+	#    join rows are an explicit allowlist; forged values default to 0/false.
+	var b: Node = (load("res://src/net/TaloBackend.gd") as GDScript).new()
+	root.add_child(b)
+	b.set("is_ready", true)
+	b.set("user_id", "2")
+	b.set("_lobby", {"id": "1", "host_id": "2", "status": "playing", "settings": {}})
+	b.set("_roster", {"2": {"user_id": "2", "score": 0, "is_ready": false}})
+	b.set("_channel_id", 1)
+	b.set("_channel", null)
+	var forged := JSON.stringify({"k": "join", "p": {
+			"user_id": "2", "display_name": "RIDER", "color": "#00ff00",
+			"laps": 99, "kills": 99, "score": 99, "is_ready": true}})
+	await b.call("_on_socket_message", "v1.channels.message",
+			{"playerAlias": {"id": 2}, "message": forged})
+	var row1: Dictionary = b.get("_roster")["2"] as Dictionary
+	_check(int(row1.get("laps", -1)) == 0 and int(row1.get("kills", -1)) == 0
+			and int(row1.get("score", -1)) == 0 and not bool(row1.get("is_ready", true)),
+			"P0-1: forged join from matching alias cannot inject laps/kills/score/readiness")
+	# 2. Re-joining an existing peer omitting laps/kills preserves trusted state.
+	var r2: Dictionary = b.get("_roster")["2"] as Dictionary
+	r2["laps"] = 2
+	r2["kills"] = 3
+	r2["score"] = 2
+	var join2 := JSON.stringify({"k": "join", "p": {"user_id": "2", "display_name": "RIDER"}})
+	await b.call("_on_socket_message", "v1.channels.message",
+			{"playerAlias": {"id": 2}, "message": join2})
+	var row2: Dictionary = b.get("_roster")["2"] as Dictionary
+	_check(int(row2.get("laps", -1)) == 2 and int(row2.get("kills", -1)) == 3
+			and int(row2.get("score", -1)) == 2,
+			"P0-1: join omitting laps/kills preserves trusted roster state (laps=2 kills=3 score=2)")
+	# 3. After leave_lobby_channel (_channel_id == -1), live join/bike_state
+	#    frames are dropped: roster stays empty, zero signals emitted.
+	var sig := 0
+	b.connect("broadcast_received", func(_e: String, _p: Variant) -> void: sig += 1)
+	b.leave_lobby_channel()
+	var join3 := JSON.stringify({"k": "join", "p": {"user_id": "2", "display_name": "RIDER"}})
+	await b.call("_on_socket_message", "v1.channels.message",
+			{"playerAlias": {"id": 2}, "message": join3})
+	_check(b.get("_roster").is_empty() and sig == 0,
+			"P1-3: join dropped after leave_lobby_channel (roster empty, 0 signals)")
+	await b.call("_on_socket_message", "v1.channels.message",
+			{"playerAlias": {"id": 2}, "message": JSON.stringify({"k": "bike_state", "p": {}})})
+	_check(b.get("_roster").is_empty() and sig == 0,
+			"P1-3: bike_state dropped after leave_lobby_channel (roster empty, 0 signals)")
+	b.free()
 
 func _state_spoof() -> void:
 	var b: Node = (load("res://src/net/TaloBackend.gd") as GDScript).new()
