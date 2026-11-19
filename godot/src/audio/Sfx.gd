@@ -13,6 +13,8 @@ extends Node
 
 const SAMPLES := {
 	"fire": "res://assets/sfx/cannon_fire.wav",
+	"dink": "res://assets/sfx/dink.wav",
+	"scrape": "res://assets/sfx/scrape.wav",
 	"pop": "res://assets/sfx/pop.wav",
 	"impact": "res://assets/sfx/impact.wav",
 	"explosion": "res://assets/sfx/explosion.wav",
@@ -160,7 +162,7 @@ func _bus(preferred: String) -> String:
 func _pitch(name: String, pitch: float) -> float:
 	if JITTERED.has(name):
 		return maxf(0.05, pitch * _rng.randf_range(1.0 - PITCH_JITTER, 1.0 + PITCH_JITTER))
-	return pitch
+	return maxf(0.05, pitch)
 
 
 func _prune(arr: Array) -> void:

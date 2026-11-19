@@ -318,6 +318,40 @@ def respawn():
 
 
 # ---------------------------------------------------------------------------
+# 9. dink — crisp metallic ping for light/soft impacts
+# ---------------------------------------------------------------------------
+def dink():
+    n = int(SR * 0.07)
+    out = [0.0] * n
+    lp = 0.0
+    for i in range(n):
+        t = i / SR
+        ping = math.sin(TAU * (2100.0 + 1400.0 * math.exp(-t / 0.04)) * t) * math.exp(-t / 0.10)
+        lp = one_pole_lp(lp, random.uniform(-1.0, 1.0), 3400.0 * math.exp(-t / 0.007))
+        out[i] = 0.55 * ping + 0.30 * lp
+    return out
+
+
+# ---------------------------------------------------------------------------
+# 9b. scrape — low-velocity slide rumble (wheels scraping ground)
+# ---------------------------------------------------------------------------
+def scrape():
+    n = int(SR * 0.35)
+    out = [0.0] * n
+    phase = 0.0
+    lp = 0.0
+    for i in range(n):
+        t = i / SR
+        u = min(1.0, t / 0.35)
+        sweep = 700.0 - 640.0 * u
+        lp = one_pole_lp(lp, random.uniform(-1.0, 1.0), sweep)
+        out[i] = 0.40 * lp
+        phase += TAU * (0.55 * sweep + 45.0) / SR
+        out[i] += 0.20 * math.sin(phase) * math.exp(-t / 0.9)
+    return out
+
+
+# ---------------------------------------------------------------------------
 # 10. engine loop — 2.0 s seamless quad rumble
 # ---------------------------------------------------------------------------
 def engine_loop():
@@ -361,6 +395,8 @@ SOUNDS = [
     ("ui_click.wav", ui_click, 0.85),
     ("respawn.wav", respawn, 0.92),
     ("engine_loop.wav", engine_loop, 0.70),  # quieter: it loops forever
+    ("dink.wav", dink, 0.85),
+    ("scrape.wav", scrape, 0.85),
 ]
 
 
