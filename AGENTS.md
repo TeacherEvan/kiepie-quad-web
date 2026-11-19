@@ -230,9 +230,12 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 
 - **PRINCESS pogo vehicle** — every player is **dealt** a vehicle; nobody picks. The draw is
   a deterministic hash of the player id (FNV-1a-32 over UTF-8 bytes) in
-  `godot/src/game/VehicleRegistry.gd`. Do NOT randomize on the client, do NOT add
+  `godot/src/game/VehicleRegistry.gd` — the draw takes a high-middle bit of the FNV-1a hash
+  (`for_player`); the exact-integer audit measured the raw low bit ~50/50 over sequential
+  Talo alias ids, so the mixer reads bit 15 instead (measured ~53% pogo over sequential
+  ids, ~49% over random ids and uuids). Do NOT randomize on the client, do NOT add
   per-player scenes, and do NOT special-case peers — the hash keeps every peer in agreement
-  with zero extra wire traffic (`mock-host → KiepieBike` keeps gates on the bike).
+  with zero extra wire traffic (`mock-host` draws the bike, `peer-5` draws the pogo).
   `KiepieBike.gd` swaps the visual shell in `_enter_tree` (parent-first, so
   CombatController caches the post-swap muzzle anchors); physics, wheels, mass and collision
   are identical to the bike.

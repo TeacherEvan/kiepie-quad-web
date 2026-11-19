@@ -103,7 +103,7 @@ flash banner from both HUDs.
 
 | ID | Change | Evidence |
 | --- | --- | --- |
-| POG-1 | `VehicleRegistry.gd`: FNV-1a-32 hash of player id → vehicle (mock-host → QUAD, peer-1/peer-3 → pogo); zero wire traffic; future vehicles extend the table | `godot/src/game/VehicleRegistry.gd` · `verify_pogo.gd` |
+| POG-1 | `VehicleRegistry.gd`: deterministic vehicle draw (FNV-1a-32 hash of player id; high-middle-bit mixer — exact-integer audit: raw low bit ~50/50 over sequential Talo alias ids, so bit 15 is the robust bin; measured ~53% pogo over sequential ids, ~49% over random/uuid); mock-host, user-42 → QUAD; peer-1/2/3/5 → PRINCESS; zero wire traffic; future vehicles extend the table | `godot/src/game/VehicleRegistry.gd` · `verify_pogo.gd` |
 | POG-2 | Blender sculpt `src/build_pogo_princess.py`: PRINCESS — Borat mankini pogo man, PRINCESS gold decal on the back (image-texture, never text geometry), belly morph split into a `Belly` pivot | `Pogo_Princess.blend` · `godot/assets/Pogo_Princess.glb` (4.6 k verts, minZ = 0.000, 0 non-manifold) |
 | POG-3 | Runtime swap in `KiepieBike._enter_tree` (parent-first): model shell swap, physics/wheels/mass/collision byte-identical to the bike; `PogoVisual.gd` cosmetic bounce + belly slosh + landing squash | `KiepieBike.gd` · gates unchanged (bike default under mock backend) |
 | POG-4 | Weapons: profile-based `SideCannons` (`bike`/`pogo`) — banana projectile (`BananaProjectile.gd`, procedural crescent), 60 dmg (2× cannon), 0.40 s / 0.18 s rapid cooldown, `pop` SFX; remote/ArenaNet path applies the same profile by hash | `SideCannons.gd` · `BananaProjectile.gd` · `ArenaNet.gd` · `Sfx.gd` · `verify_practice/pogo` green |

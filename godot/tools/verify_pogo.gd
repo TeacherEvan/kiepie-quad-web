@@ -32,14 +32,20 @@ func _run() -> void:
 		quit(1)
 		return
 
-	# ---- 1. deterministic assignment: known hashes (FNV-1a-32 / UTF-8 bytes)
-	# mock-host must resolve to the bike so every other gate sees the bike.
+	# ---- 1. deterministic assignment (FNV-1a-32, high-middle bit mixer)
+	# Godot-verified (exact-integer FNV, matched by VehicleRegistry.gd): mock-host -> bike.
 	_check(str(registry.call("for_player", "mock-host")) == "KiepieBike",
 			"registry: mock-host -> KiepieBike (gate determinism)")
 	_check(str(registry.call("for_player", "peer-1")) == "PogoPrincess",
 			"registry: peer-1 -> PogoPrincess")
+	_check(str(registry.call("for_player", "peer-2")) == "PogoPrincess",
+			"registry: peer-2 -> PogoPrincess")
 	_check(str(registry.call("for_player", "peer-3")) == "PogoPrincess",
 			"registry: peer-3 -> PogoPrincess")
+	_check(str(registry.call("for_player", "peer-5")) == "PogoPrincess",
+			"registry: peer-5 -> PogoPrincess")
+	_check(str(registry.call("for_player", "user-42")) == "KiepieBike",
+			"registry: user-42 -> KiepieBike")
 	_check(str(registry.call("profile", &"PogoPrincess")) == "pogo",
 			"profile: PogoPrincess -> pogo")
 	_check(str(registry.call("profile", &"KiepieBike")) == "bike",
@@ -131,16 +137,16 @@ func _run() -> void:
 				muzzle_count = mu.size()
 		_check(muzzle_count == 2, "two banana muzzles mounted (%d)" % muzzle_count)
 
-	# ---- 4. and the default scene host gets the bike
+	# ---- 4. and a peer whose hash lands on the bike gets the bike
 	if sb != null:
-		sb.set("user_id", "mock-host")
+		sb.set("user_id", "user-42")
 	var ride2 := scene.instantiate() as Node3D
 	root.add_child(ride2)
 	for i in range(2):
 		await physics_frame
 	var bike2 := ride2.get_node_or_null("KiepieBike") as Node3D
 	_check(bike2 != null and str(bike2.get("vehicle_profile")) == "bike",
-			"mock-host keeps the bike")
+			"user-42 gets the bike")
 	var sil: Array = bike2.find_children("Silencer_Tip", "", true, false) if bike2 != null else []
 	_check(bike2 != null and sil.size() > 0, "bike GLB still carries Silencer_Tip anchor")
 

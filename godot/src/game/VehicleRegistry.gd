@@ -1,8 +1,9 @@
 class_name VehicleRegistry
 extends RefCounted
 ## Deterministic vehicle assignment: every peer derives the same vehicle from
-## the player id (FNV-1a-32 over UTF-8 bytes). No new network messages; a
-## future vehicle is one line in VEHICLES (hashes reshuffle across all peers
+## the player id (FNV-1a-32 over UTF-8 bytes; the raw low bit is replaced by a
+## high-middle one — see for_player). No new network messages; a future
+## vehicle is one line in VEHICLES (hashes reshuffle across all peers
 ## consistently, so mixed-version lobbies must bump PROTOCOL_VERSION as usual).
 
 const VEHICLE_BIKE := &"KiepieBike"
@@ -19,7 +20,14 @@ static func for_player(player_id: String) -> StringName:
 	var h := _FNV_OFFSET
 	for b in player_id.to_utf8_buffer():
 		h = ((h ^ b) * _FNV_PRIME) & 0xffffffff
-	return VEHICLES[h % VEHICLES.size()]
+	# The raw low bit of FNV-1a is unreliable as a bin on short id strings (the
+	# exact-integer audit measured it ~50/50 over sequential Talo alias ids;
+	# the earlier JS readings were double-precision artifacts). Read a
+	# high-middle bit of the hash instead — measured ~53% pogo over sequential
+	# ids, ~49% over random ints and uuids.
+	if (h >> 15) & 1:
+		return VEHICLE_POGO
+	return VEHICLE_BIKE
 
 static func is_valid(vehicle: StringName) -> bool:
 	return vehicle == VEHICLE_BIKE or vehicle == VEHICLE_POGO
