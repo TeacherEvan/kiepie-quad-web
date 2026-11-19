@@ -202,14 +202,16 @@ func _die(by: String) -> void:
 		sfx.call("play", "explosion", 2.5, 0.58)
 	_shake(0.82)
 	if not Settings.reduced_motion():
-		# 55 ms local hitstop, timescale restored on a tree timer. Capture prev:
-		# ArenaNet's kill hitstop may own time_scale at the same moment.
-		var prev_scale := Engine.time_scale
-		Engine.time_scale = 0.25
+		# 55 ms local hitstop via the shared slow-mo lease: overlapping kill-cam
+		# (ArenaNet) and death hitstop beats cannot leave the engine slow-mo'd.
+		var an := _arena_net()
+		if an != null and an.has_method("_begin_slow_mo"):
+			an.call("_begin_slow_mo", 0.25)
 		var tree := get_tree()
 		if tree != null:
 			tree.create_timer(0.055, true, false, true).timeout.connect(func() -> void:
-				Engine.time_scale = prev_scale)
+				if an != null and is_instance_valid(an) and an.has_method("_end_slow_mo"):
+					an.call("_end_slow_mo"))
 	if not practice_mode:
 		Supabase.broadcast("kill", {
 			"killer": attributable,

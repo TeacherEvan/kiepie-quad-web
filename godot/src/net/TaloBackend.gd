@@ -166,6 +166,16 @@ func _on_socket_closed(_code: int, _reason: String) -> void:
 			_reconnect_attempts = 0
 			reconnected = true
 			connection_state.emit("connected")
+			# Re-sync authoritative state: a reconnect may have missed match-start,
+			# host-handoff, or winner transitions — fetch fresh channel props and
+			# re-emit state/roster so converged peers see the current lobby.
+			if _channel_id > 0:
+				var ch = await Talo.channels.find(_channel_id)
+				if ch != null:
+					_channel = ch
+				_load_state()
+				_emit_state()
+				_emit_roster()
 			break
 	_reconnecting = false
 	if not reconnected and is_inside_tree() and is_ready:
@@ -477,9 +487,12 @@ func _try_join(channel, args: Dictionary) -> bool:
 
 
 func _leave_lobby() -> void:
+	var leaving_id := _channel_id
 	if _channel_id > 0:
 		if _is_host() and _roster.size() > 1 and str(_lobby.get("status", "")) == "waiting":
 			await _handoff_host_before_leave()
+		if _channel_id != leaving_id:
+			return  # user already joined a new lobby — never wipe it
 		_send("leave", {"user_id": user_id})
 	leave_lobby_channel()
 
@@ -810,7 +823,8 @@ func _time_up() -> Dictionary:
 # ------------------------------------------------------------------ socket in ---
 
 func _send(kind: String, payload: Dictionary) -> void:
-	if _channel_id <= 0:
+	# Offline-safe: offline tests stage _channel_id = 1, _channel = null.
+	if _channel_id <= 0 or _channel == null:
 		return
 	Talo.channels.send_message(_channel_id, JSON.stringify({"k": kind, "p": payload}))
 
@@ -839,6 +853,10 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 		return
 	var msg: Dictionary = json.get_data()
 	var kind := str(msg.get("k", ""))
+	# Left-lobby / offline: "join" frames must not rehydrate a roster and
+	# "bike_state" frames must not spawn proxies (P1-3).
+	if _channel_id <= 0 and (kind == "join" or kind == "bike_state"):
+		return
 	var payload: Variant = msg.get("p", {})
 	match kind:
 		"state":
@@ -869,22 +887,25 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 				if kind == "join":
 					if _roster.size() >= 8 and not _roster.has(uid):
 						return  # full lobby; no unbounded growth
-					var row := p.duplicate(true)
-					row["user_id"] = uid
-					row["display_name"] = str(row.get("display_name", "RIDER")).substr(0, 32)
-					var col := str(row.get("color", "#40c8ff"))
+					var prev: Dictionary = {}
+					if _roster.has(uid) and _roster[uid] is Dictionary:
+						prev = _roster[uid] as Dictionary
+					var col := str(p.get("color", "#40c8ff"))
 					if not _is_hex_color(col):
 						col = "#40c8ff"
-					row["color"] = col
-					if _roster.has(uid) and _roster[uid] is Dictionary:
-						var prev := _roster[uid] as Dictionary
-						row["score"] = int(prev.get("score", 0))
-						row["is_ready"] = bool(prev.get("is_ready", false))
-						row["respawn_at"] = str(prev.get("respawn_at", ""))
-					else:
-						row["score"] = 0
-						row["is_ready"] = false
-						row["respawn_at"] = ""
+					# Allowlist: join rows carry ONLY the keys below, so forged
+					# frames cannot inject arbitrary lobby state; prior score/kills/
+					# laps/readiness are re-seeded from trusted roster state.
+					var row: Dictionary = {
+						"user_id": uid,
+						"display_name": str(p.get("display_name", "RIDER")).substr(0, 32),
+						"color": col,
+						"score": int(prev.get("score", 0)),
+						"kills": int(prev.get("kills", 0)),
+						"laps": int(prev.get("laps", 0)),
+						"is_ready": bool(prev.get("is_ready", false)),
+						"respawn_at": str(prev.get("respawn_at", "")),
+					}
 					_roster[uid] = row
 				else:
 					_roster.erase(uid)
