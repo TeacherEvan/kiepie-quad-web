@@ -81,6 +81,8 @@ func _ready() -> void:
 				await _join_code(code)
 			"join_auto", "":
 				await _join_auto(gmode)
+	if not is_inside_tree():
+		return
 	_refresh_all()
 
 
@@ -119,6 +121,8 @@ func _create_lobby(gmode: String = "battle_royale") -> void:
 	var init_settings := DEFAULT_SETTINGS.duplicate(true)
 	init_settings["game_mode"] = "death_race" if gmode == "death_race" else "battle_royale"
 	var ok: bool = await Lobby.create_lobby(Settings.display_name() + "'s Lobby", init_settings)
+	if not is_inside_tree():
+		return
 	if not ok:
 		_set_status("Could not create a lobby.", COL_WARN)
 
@@ -126,6 +130,8 @@ func _create_lobby(gmode: String = "battle_royale") -> void:
 func _join_auto(gmode: String = "battle_royale") -> void:
 	_set_status("Finding a lobby…", COL_INFO)
 	var ok: bool = await Lobby.join_auto("death_race" if gmode == "death_race" else "battle_royale")
+	if not is_inside_tree():
+		return
 	if not ok:
 		_set_status("Auto-join failed — try the main menu.", COL_WARN)
 
@@ -136,6 +142,8 @@ func _join_code(code: String) -> void:
 		return
 	_set_status("Joining %s…" % code.to_upper(), COL_INFO)
 	var ok: bool = await Lobby.join_by_code(code)
+	if not is_inside_tree():
+		return
 	if not ok:
 		_set_status("Could not join %s." % code.to_upper(), COL_WARN)
 
@@ -195,8 +203,22 @@ func _exit_tree() -> void:
 	var vp := get_viewport()
 	if vp != null and vp.size_changed.is_connected(_on_viewport_resized):
 		vp.size_changed.disconnect(_on_viewport_resized)
-	if Match.score_updated.is_connected(_on_score_updated):
-		Match.score_updated.disconnect(_on_score_updated)
+	if Match != null:
+		if Match.roster_changed.is_connected(_refresh_players):
+			Match.roster_changed.disconnect(_refresh_players)
+		if Match.score_updated.is_connected(_on_score_updated):
+			Match.score_updated.disconnect(_on_score_updated)
+		if Match.lobby_changed.is_connected(_on_lobby_changed):
+			Match.lobby_changed.disconnect(_on_lobby_changed)
+		if Match.match_started.is_connected(_on_match_started):
+			Match.match_started.disconnect(_on_match_started)
+		if Match.error_message.is_connected(_on_error):
+			Match.error_message.disconnect(_on_error)
+	if Lobby != null:
+		if Lobby.error_message.is_connected(_on_error):
+			Lobby.error_message.disconnect(_on_error)
+		if Lobby.left.is_connected(_on_left_elsewhere):
+			Lobby.left.disconnect(_on_left_elsewhere)
 
 
 func _on_lobby_changed() -> void:
@@ -350,6 +372,8 @@ func _on_start() -> void:
 	_btn_start.disabled = true
 	_set_status("Starting match…", COL_INFO)
 	await Match.start_match()
+	if not is_inside_tree():
+		return
 	_btn_start.disabled = false
 	if Match.is_playing():
 		_on_match_started()

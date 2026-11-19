@@ -19,7 +19,6 @@ var blast_radius := BLAST_RADIUS
 var fall_duration := FALL_DURATION
 var token := ""
 var hit_color := Color(1.0, 0.28, 0.06)
-var on_hit: Callable
 
 var _age := 0.0
 var _armed := false
@@ -180,7 +179,9 @@ func _build_visual() -> void:
 		_light.light_color = Color(1.0, 0.42, 0.10)
 		_light.light_energy = 7.5
 		_light.omni_range = 12.0
+		_light.add_to_group("vfx_light")
 		_boulder.add_child(_light)
+		VFX._cap_group(_boulder, "vfx_light", VFX.MAX_IMPACT_LIGHTS)
 
 	_trail = GPUParticles3D.new()
 	_trail.amount = maxi(8, int(44 * Settings.quality_multiplier()))

@@ -703,12 +703,14 @@ static func explosion(parent: Node3D, pos: Vector3, color: Color, scale: float =
 	holder.scale = Vector3.ONE * scale
 	parent.add_child(holder)
 
-	# light: fast attack, slow release
+	# light: fast attack, slow release (capped to stay within WebGL2's 8-light budget)
 	var light := OmniLight3D.new()
 	light.light_color = Color(1.0, 0.74, 0.34)
 	light.light_energy = 26.0
 	light.omni_range = 10.0
+	light.add_to_group("vfx_light")
 	holder.add_child(light)
+	_cap_group(parent, "vfx_light", MAX_IMPACT_LIGHTS)
 	if Settings.reduced_motion():
 		light.light_energy = 7.0
 	else:

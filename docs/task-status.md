@@ -131,4 +131,7 @@ flash banner from both HUDs.
 - [x] 10-Principal-Engineer audit remediation — `1494b0d` + `60a8b82` + INP-3 arbitration (`b35bae7`), 25/25 gates
 - [x] Web re-export + auto-deploy of remediated build — `f09c80e`, live HTTP 200
 - [x] INP-3 arbitration re-export + auto-deploy — `a3ec39c`, live HTTP 200
-- [x] Documentation sync (plan / index / task-status / README / AGENTS constants sweep) — this commit
+- [x] Documentation sync (plan / index / task-status / README / AGENTS constants sweep) — prior milestone
+- [x] Separate Backend & Frontend Principal-10 surgical audits + SARIF 2.1.0 — `0fe330a`
+- [x] Backend surgical audit remediation (B-P0-1..2, B-P1-1..7, B-P2-1..5, B-P3-1; `PROTOCOL_VERSION = 2`, `MIN_LAP_SECONDS = 12.0`, separated `kills`/`laps`, heavy-weapon remote rate limits, SW timer/206 fix) — `a933f20`
+- [x] Frontend surgical audit remediation (F-P0-1..2, F-P1-1..8, F-P2-1..9, F-P3-1..4; `DestructibleBuilding.smash(impulse)`, Death Race pit-launcher ramp rotations + outer loop aprons, checkpoint respawn preservation, zero-overlap HUD relayout, WebGL2 OmniLight budget `<= 8`, vertical-loop `FollowCam`, Victory Splash audio fallback/grace/a11y) — this commit

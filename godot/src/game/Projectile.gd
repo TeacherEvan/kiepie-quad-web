@@ -136,10 +136,10 @@ func _build_tracer() -> void:
 	# CapsuleMesh long axis is Y; rotate to lie along Z (the tracer basis).
 	shaft.rotation_degrees.x = 90.0
 	_tracer.add_child(shaft)
-	# hot white-hot nose pellet for the leading edge
+	# hot white-hot nose pellet for the leading edge (-Z is forward under looking_at)
 	var nose := MeshInstance3D.new()
 	nose.mesh = _get_nose_mesh()
-	nose.position.z = 0.22
+	nose.position.z = -0.22
 	_tracer.add_child(nose)
 	var dir := velocity.normalized()
 	var up := Vector3.UP if absf(dir.dot(Vector3.UP)) < 0.99 else Vector3.FORWARD
@@ -155,13 +155,8 @@ func _build_tracer() -> void:
 		# bolt past whatever it should have hit.
 		_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()]
 
-	# Dynamic OmniLight3D per bolt multiplies forward WebGL shader lights; skip on low/mobile-auto budgets.
-	if Settings.quality_multiplier() >= 0.75:
-		_light = OmniLight3D.new()
-		_light.light_color = hit_color
-		_light.light_energy = 3.2
-		_light.omni_range = 3.2
-		add_child(_light)
+	# Rapid-fire tracers rely on unshaded additive bloom instead of per-bolt
+	# OmniLight3D nodes so WebGL2 stays within its 8-light-per-surface budget.
 
 	_trail = GPUParticles3D.new()
 	_trail.amount = maxi(4, int(30 * Settings.quality_multiplier()))

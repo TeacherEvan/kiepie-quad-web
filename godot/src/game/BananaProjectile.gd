@@ -181,13 +181,8 @@ func _build_tracer() -> void:
 	if owner_node is CollisionObject3D:
 		_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()]
 
-	# bananas are bright, diffuse fruit — a small warm light only on high budgets
-	if Settings.quality_multiplier() >= 0.75:
-		_light = OmniLight3D.new()
-		_light.light_color = Color(1.0, 0.85, 0.25)
-		_light.light_energy = 1.6
-		_light.omni_range = 2.4
-		add_child(_light)
+	# Bananas rely on emissive material + bloom rather than per-shot OmniLight3D
+	# nodes so WebGL2 stays within its 8-light-per-surface budget.
 
 	var trail := GPUParticles3D.new()
 	trail.amount = maxi(3, int(14 * Settings.quality_multiplier()))

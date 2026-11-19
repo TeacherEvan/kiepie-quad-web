@@ -44,7 +44,7 @@ func _ready() -> void:
 
 func setup(p_bike: VehicleBody3D) -> void:
 	bike = p_bike
-	player_color = Color.html(Settings.player_color())
+	player_color = Color.from_string(Settings.player_color(), Color(1.0, 0.48, 0.12))
 	# Projectile hit attribution reads player_id from the collider; remote bikes
 	# get theirs in NetworkedBike.setup, the local bike needs it here.
 	bike.set("player_id", Supabase.user_id)
@@ -143,13 +143,22 @@ func _play_sfx(name: String) -> void:
 		sfx.call("play", name)
 
 
-func take_damage(amount: float, attacker_id: String, point: Vector3, token: String = "") -> void:
+func _exit_tree() -> void:
+	if Match != null and Match.self_respawn_at.is_connected(_on_server_respawn):
+		Match.self_respawn_at.disconnect(_on_server_respawn)
+	if _fx_holder != null and is_instance_valid(_fx_holder):
+		_fx_holder.queue_free()
+	_fx_holder = null
+
+
+func take_damage(amount: float, attacker_id: String, point: Vector3, token: String = "",
+		bypass_invuln: bool = false) -> void:
 	# practice mode: cannons/drums/buildings fire and deal damage without an
 	# arena lobby (the match gate is for network sync, not for offline play)
 	if not alive or (not practice_mode and not Match.is_playing()):
 		return
 	var now := Time.get_ticks_msec() / 1000.0
-	if now < _invuln_until or now < _shield_until:
+	if not bypass_invuln and (now < _invuln_until or now < _shield_until):
 		# Absorbed damage still needs a read — otherwise a shield looks broken.
 		VFX.shield_block(_fx_parent(), point, Color(0.30, 0.88, 1.0))
 		return
@@ -202,18 +211,26 @@ func _on_server_respawn(_seconds: float) -> void:
 
 
 func _respawn() -> void:
-	var points := get_tree().get_nodes_in_group("spawn_point")
+	# In Death Race, RaceTracker advances bike._spawn at every cleared checkpoint;
+	# preserve that checkpoint transform instead of teleporting back to the start grid.
+	var tree := get_tree()
+	var in_race := tree != null and tree.get_first_node_in_group("race_tracker") != null
 	var pos := Vector3(0.0, 0.6, 0.0)
-	if not points.is_empty():
-		var pick: Node3D = points[RandomNumberGenerator.new().randi_range(0, points.size() - 1)] as Node3D
-		pos = pick.global_position + Vector3(0.0, 0.6, 0.0)
-	elif practice_mode:
-		pos = Vector3(0.0, 0.6, 0.0)
+	if in_race:
+		var sp_xf: Variant = bike.get("_spawn")
+		if sp_xf is Transform3D:
+			pos = (sp_xf as Transform3D).origin
 	else:
-		pos = Vector3(RandomNumberGenerator.new().randf_range(-25, 25), 0.6,
-				RandomNumberGenerator.new().randf_range(-25, 25))
-	var t := Transform3D(Basis.IDENTITY, pos)
-	bike.set_spawn(t)
+		var points := tree.get_nodes_in_group("spawn_point") if tree != null else []
+		if not points.is_empty():
+			var pick: Node3D = points[randi_range(0, points.size() - 1)] as Node3D
+			pos = pick.global_position + Vector3(0.0, 0.6, 0.0)
+		elif practice_mode:
+			pos = Vector3(0.0, 0.6, 0.0)
+		else:
+			pos = Vector3(randf_range(-25.0, 25.0), 0.6, randf_range(-25.0, 25.0))
+		var t := Transform3D(Basis.IDENTITY, pos)
+		bike.set_spawn(t)
 	# reset_bike() zeroes wheel force/brake/steer, clears dodge state and pushes
 	# the spawn transform into PhysicsServer3D — direct global_transform writes
 	# get overwritten on the next physics sync step.

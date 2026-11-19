@@ -21,6 +21,8 @@ var race_finished := false
 var _bike: Node3D = null
 var _checkpoints: Array[Area3D] = []
 var _finish_line: Area3D = null
+var _injected_solo_uid := ""
+var _finishing_lap := false
 
 
 func _ready() -> void:
@@ -29,6 +31,13 @@ func _ready() -> void:
 	_setup_solo_or_match_mode()
 	_bind_triggers()
 	_sync_hud()
+
+
+func _exit_tree() -> void:
+	# Never pollute the global Match autoload with synthetic solo-mode rows after leaving.
+	if _injected_solo_uid != "" and Match != null and Match.lobby.is_empty():
+		Match.players.erase(_injected_solo_uid)
+	_injected_solo_uid = ""
 
 
 func _setup_solo_or_match_mode() -> void:
@@ -49,6 +58,7 @@ func _setup_solo_or_match_mode() -> void:
 				"score": 0,
 				"is_ready": true,
 			}
+			_injected_solo_uid = uid
 		if _bike.has_method("refresh_vehicle_assignment"):
 			_bike.call("refresh_vehicle_assignment")
 
@@ -101,10 +111,30 @@ func _on_checkpoint_entered(cp_idx: int, cp_area: Area3D, body: Node) -> void:
 
 
 func _on_finish_line_entered(body: Node) -> void:
-	if race_finished or body != _bike or _bike == null:
+	if race_finished or _finishing_lap or body != _bike or _bike == null:
 		return
 	if next_checkpoint < total_checkpoints:
 		return
+	_finishing_lap = true
+	var was_live_match := Match != null and Match.is_playing()
+	var lap_pending := false
+	if was_live_match:
+		var shot_res: Dictionary = await Match.issue_shot()
+		if not is_inside_tree():
+			_finishing_lap = false
+			return
+		var tok := str(shot_res.get("token", ""))
+		if tok != "":
+			var lap_res: Dictionary = await Match.register_lap(tok)
+			if not is_inside_tree():
+				_finishing_lap = false
+				return
+			var err := str(lap_res.get("reason", lap_res.get("error", "")))
+			if err in ["rate_limited", "wrong_mode", "lobby_not_playing", "invalid_token", "token_consumed"]:
+				_finishing_lap = false
+				return
+			lap_pending = bool(lap_res.get("pending", false))
+
 	next_checkpoint = 0
 	completed_laps += 1
 	var target := lap_target()
@@ -116,12 +146,7 @@ func _on_finish_line_entered(body: Node) -> void:
 	if sfx != null and sfx.has_method("play"):
 		sfx.call("play", "kill" if completed_laps >= target else "pickup")
 	lap_completed.emit(completed_laps, target)
-
-	if Match != null and Match.is_playing():
-		var shot_res: Dictionary = await Match.issue_shot()
-		var tok := str(shot_res.get("token", ""))
-		if tok != "":
-			await Match.register_lap(tok)
+	_finishing_lap = false
 
 	if completed_laps >= target:
 		race_finished = true
@@ -129,8 +154,9 @@ func _on_finish_line_entered(body: Node) -> void:
 		_sync_hud()
 		var uid := str(Supabase.user_id) if (Supabase != null and str(Supabase.user_id) != "") else "mock-host"
 		race_won.emit(uid)
-		# In solo/practice mode (or if backend didn't already transition Match), fire HUD finish + victory splash
-		if Match == null or not Match.is_finished():
+		# In solo/practice mode (never on a pending guest RPC where the host arbitrates
+		# photo-finish winners), fire HUD finish + victory splash directly.
+		if not lap_pending and (Match == null or not Match.is_finished()):
 			var hud := get_tree().get_first_node_in_group("match_hud") if get_tree() != null else null
 			if hud != null and hud.has_method("_on_match_finished"):
 				hud.call("_on_match_finished", uid)

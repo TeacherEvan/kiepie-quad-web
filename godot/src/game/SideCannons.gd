@@ -66,6 +66,9 @@ var _fx_holder: Node3D = null
 var _profile: Dictionary = PROFILES["bike"]
 var _aim_reticle: Node3D = null
 var _aim_mat: StandardMaterial3D = null
+var _cached_meteor_target := Vector3.ZERO
+var _has_cached_meteor := false
+var _aim_ray_query: PhysicsRayQueryParameters3D = null
 var _last_reload_progress := -1.0
 var _last_reload_ready := true
 var _last_weapon_emitted := ""
@@ -117,6 +120,9 @@ func _exit_tree() -> void:
 	if _aim_reticle != null and is_instance_valid(_aim_reticle):
 		_aim_reticle.queue_free()
 	_aim_reticle = null
+	if _fx_holder != null and is_instance_valid(_fx_holder):
+		_fx_holder.queue_free()
+	_fx_holder = null
 
 
 func weapon_display_name(w_id: String = "") -> String:
@@ -181,8 +187,16 @@ func select_weapon(weapon_or_idx: Variant) -> void:
 		if sfx != null and sfx.has_method("play_ui"):
 			sfx.call("play_ui", "ui_click")
 		weapon_changed.emit(current_weapon, weapon_display_name(current_weapon))
-	_update_aim_reticle()
+	_has_cached_meteor = false
+	_update_aim_reticle(0.0)
 	_emit_reload_status(true)
+
+
+func _physics_process(_delta: float) -> void:
+	if current_weapon == "meteor" and owner_node != null \
+			and is_instance_valid(owner_node) and owner_node.visible:
+		_cached_meteor_target = compute_meteor_target()
+		_has_cached_meteor = true
 
 
 func _process(delta: float) -> void:
@@ -196,7 +210,7 @@ func _process(delta: float) -> void:
 		_cooldowns[current_weapon] = _cooldown
 	else:
 		_cooldown = float(_cooldowns.get(current_weapon, 0.0))
-	_update_aim_reticle()
+	_update_aim_reticle(delta)
 	_emit_reload_status(false)
 
 
@@ -286,14 +300,17 @@ func compute_meteor_target() -> Vector3:
 	# finish banners at 6m!) so the reticle always hugs the drivable road surface.
 	var world := owner_node.get_world_3d()
 	if world != null:
-		var rq := PhysicsRayQueryParameters3D.create(
-				Vector3(cand.x, owner_node.global_position.y + 2.6, cand.z),
-				Vector3(cand.x, owner_node.global_position.y - 12.0, cand.z))
-		rq.collide_with_areas = false
-		rq.collide_with_bodies = true
+		if _aim_ray_query == null:
+			_aim_ray_query = PhysicsRayQueryParameters3D.new()
+			_aim_ray_query.collide_with_areas = false
+			_aim_ray_query.collide_with_bodies = true
+		_aim_ray_query.from = Vector3(cand.x, owner_node.global_position.y + 2.6, cand.z)
+		_aim_ray_query.to = Vector3(cand.x, owner_node.global_position.y - 12.0, cand.z)
 		if owner_node is CollisionObject3D:
-			rq.exclude = [(owner_node as CollisionObject3D).get_rid()]
-		var hit_res := world.direct_space_state.intersect_ray(rq)
+			_aim_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()]
+		else:
+			_aim_ray_query.exclude = []
+		var hit_res := world.direct_space_state.intersect_ray(_aim_ray_query)
 		if not hit_res.is_empty():
 			cand = hit_res.get("position", cand)
 		else:
@@ -303,7 +320,7 @@ func compute_meteor_target() -> Vector3:
 	return cand
 
 
-func _update_aim_reticle() -> void:
+func _update_aim_reticle(delta: float = 0.0) -> void:
 	var show_reticle := current_weapon == "meteor" and owner_node != null \
 			and is_instance_valid(owner_node) and owner_node.visible
 	if not show_reticle:
@@ -371,9 +388,10 @@ func _update_aim_reticle() -> void:
 
 		fx_parent.add_child(_aim_reticle)
 	_aim_reticle.visible = true
-	var tgt := compute_meteor_target()
+	var tgt := _cached_meteor_target if _has_cached_meteor else compute_meteor_target()
 	_aim_reticle.global_position = tgt + Vector3(0.0, 0.06, 0.0)
-	_aim_reticle.rotate_y(0.035)
+	if delta > 0.0 and not Settings.reduced_motion():
+		_aim_reticle.rotate_y(2.1 * minf(delta, 0.05))
 	if _aim_mat != null:
 		var rdy := can_fire()
 		_aim_mat.albedo_color = Color(0.28, 1.0, 0.52, 0.55) if rdy else Color(1.0, 0.42, 0.10, 0.30)
@@ -422,6 +440,8 @@ func fire() -> void:
 	var right_vec := owner_node.global_transform.basis.x.normalized()
 	for i in range(_muzzles.size()):
 		var muzzle: Node3D = _muzzles[i]
+		if not is_instance_valid(muzzle):
+			continue
 		VFX.muzzle_flash(fx_parent, muzzle.global_position,
 				owner_node.global_transform.basis.z, _color)
 		if active_weapon == "primary":
@@ -442,6 +462,10 @@ func fire() -> void:
 	var token := str(res.get("token", ""))
 	if token == "":
 		push_warning("SideCannons: backend issued no shot token")
+		_cooldowns[active_weapon] = 0.0
+		if current_weapon == active_weapon:
+			_cooldown = 0.0
+		_emit_reload_status(true)
 		return
 	if not is_instance_valid(fx_parent):
 		fx_parent = _resolve_fx_parent()
@@ -463,15 +487,14 @@ func fire() -> void:
 		fx_parent.add_child(rocket)
 		rocket.setup(owner_id, owner_node, muzzle_pos, dir, ROCKET_SPEED,
 				rocket_dmg, token, Color(1.0, 0.38, 0.10), ROCKET_BLAST_RADIUS)
-		if hit_callback.is_valid():
-			rocket.on_hit = hit_callback
-		Supabase.broadcast("shot", {
-			"id": owner_id,
-			"w": "rocket",
-			"o": [muzzle_pos.x, muzzle_pos.y, muzzle_pos.z],
-			"d": [dir.x, dir.y, dir.z],
-			"token": token,
-		})
+		if not practice:
+			Supabase.broadcast("shot", {
+				"id": owner_id,
+				"w": "rocket",
+				"o": [muzzle_pos.x, muzzle_pos.y, muzzle_pos.z],
+				"d": [dir.x, dir.y, dir.z],
+				"token": token,
+			})
 		fired.emit(token)
 		return
 
@@ -495,13 +518,14 @@ func fire() -> void:
 				Color(1.0, 0.28, 0.06), METEOR_FALL_TIME, METEOR_BLAST_RADIUS)
 		# Keep 'o' at the bike muzzle (<= 5m from sender) and encode target offset in 'd' (<= 60m)
 		# so ArenaNet._spawn_remote_shot's anti-cheat validation accepts and reconstructs it!
-		Supabase.broadcast("shot", {
-			"id": owner_id,
-			"w": "meteor",
-			"o": [anchor_origin.x, anchor_origin.y, anchor_origin.z],
-			"d": [offset.x, offset.y, offset.z],
-			"token": token,
-		})
+		if not practice:
+			Supabase.broadcast("shot", {
+				"id": owner_id,
+				"w": "meteor",
+				"o": [anchor_origin.x, anchor_origin.y, anchor_origin.z],
+				"d": [offset.x, offset.y, offset.z],
+				"token": token,
+			})
 		fired.emit(token)
 		return
 
@@ -525,11 +549,12 @@ func fire() -> void:
 				speed, dmg, token, _color)
 		if hit_callback.is_valid():
 			proj.on_hit = hit_callback
-		Supabase.broadcast("shot", {
-			"id": owner_id,
-			"w": "primary",
-			"o": [muzzle.global_position.x, muzzle.global_position.y, muzzle.global_position.z],
-			"d": [dir.x, dir.y, dir.z],
-			"token": token,
-		})
+		if not practice:
+			Supabase.broadcast("shot", {
+				"id": owner_id,
+				"w": "primary",
+				"o": [muzzle.global_position.x, muzzle.global_position.y, muzzle.global_position.z],
+				"d": [dir.x, dir.y, dir.z],
+				"token": token,
+			})
 	fired.emit(token)

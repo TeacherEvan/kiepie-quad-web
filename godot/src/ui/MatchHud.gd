@@ -92,7 +92,7 @@ func _ready() -> void:
 	Settings.call_deferred("sync_back_handler")
 	var again := get_node_or_null("ResultPanel/PlayAgainBtn") as Button
 	if again != null:
-		again.pressed.connect(_on_leave_match)
+		again.pressed.connect(_on_play_again)
 	var leave := get_node_or_null("ResultPanel/LeaveBtn") as Button
 	if leave != null:
 		leave.pressed.connect(_on_leave_match)
@@ -345,11 +345,11 @@ func _relayout() -> void:
 		if narrow:
 			feed.offset_left = 12.0
 			feed.offset_right = minf(220.0, vp.x * 0.56)
-			feed.offset_top = 160.0
-			feed.offset_bottom = 236.0
+			feed.offset_top = 190.0
+			feed.offset_bottom = 266.0
 		else:
-			feed.offset_left = 154.0
-			feed.offset_right = maxf(240.0, minf(380.0, vp.x - 340.0))
+			feed.offset_left = 224.0
+			feed.offset_right = maxf(310.0, minf(440.0, vp.x - 336.0))
 			feed.offset_top = 10.0
 			feed.offset_bottom = 106.0
 
@@ -533,7 +533,28 @@ func _on_match_started() -> void:
 	_refresh_scoreboard()
 
 
+func _exit_tree() -> void:
+	if Match != null:
+		if Match.score_updated.is_connected(_on_score_updated):
+			Match.score_updated.disconnect(_on_score_updated)
+		if Match.match_started.is_connected(_on_match_started):
+			Match.match_started.disconnect(_on_match_started)
+		if Match.match_finished.is_connected(_on_match_finished):
+			Match.match_finished.disconnect(_on_match_finished)
+		if Match.lobby_changed.is_connected(_on_lobby_changed):
+			Match.lobby_changed.disconnect(_on_lobby_changed)
+		if Match.self_respawn_at.is_connected(_on_self_respawn_at):
+			Match.self_respawn_at.disconnect(_on_self_respawn_at)
+	var vp := get_viewport()
+	if vp != null and vp.size_changed.is_connected(_on_viewport_resized):
+		vp.size_changed.disconnect(_on_viewport_resized)
+
+
 func _on_match_finished(winner_id: String) -> void:
+	_dead = false
+	var overlay := get_node_or_null("RespawnOverlay")
+	if overlay != null:
+		overlay.visible = false
 	var winner_name := _name_for(winner_id).to_upper() if winner_id != "" else ""
 	var winner_label := get_node_or_null("ResultPanel/WinnerLabel") as Label
 	if winner_label != null:
@@ -555,9 +576,10 @@ func _play_victory_splash(winner_name: String) -> void:
 		var mode_str := "DEATH RACE" if (Match != null and Match.has_method("game_mode") and str(Match.call("game_mode")) == "death_race") else "BATTLE ROYALE"
 		_victory_banner.text = "🏁 %s CHAMPION · %s 🏁" % [mode_str, winner_name]
 		_victory_banner.visible = true
-	if OS.has_feature("web") and not _reduced_motion():
+	if OS.has_feature("web") and Engine.has_singleton("JavaScriptBridge") and not _reduced_motion():
 		var safe_winner := JSON.stringify(winner_name + " WINS!")
-		JavaScriptBridge.eval("window.__kiepiePlayVictorySplash && window.__kiepiePlayVictorySplash(%s);" % safe_winner, true)
+		var muted_flag := "true" if bool(Settings.get_value("audio", "muted", false)) else "false"
+		JavaScriptBridge.eval("window.__kiepiePlayVictorySplash && window.__kiepiePlayVictorySplash(%s, %s);" % [safe_winner, muted_flag], true)
 
 
 func set_race_status(current_lap: int, total_laps: int, cp_cleared: int, cp_total: int) -> void:
@@ -579,6 +601,8 @@ func _on_self_respawn_at(_seconds: float) -> void:
 
 func add_kill(killer_id: String, victim_id: String) -> void:
 	## Append one kill-feed line ("KILLER  ⚔  VICTIM"), fade after ~5 s, cap 5.
+	if not bool(Settings.get_value("gameplay", "kill_feed", true)):
+		return
 	var feed := get_node_or_null("KillFeed") as VBoxContainer
 	if feed == null:
 		return
@@ -684,6 +708,13 @@ func _refresh_scoreboard() -> void:
 			box.add_child(lbl)
 
 
+func _on_play_again() -> void:
+	if Match == null or Match.lobby.is_empty():
+		get_tree().reload_current_scene()
+		return
+	_on_leave_match()
+
+
 func _on_leave_match() -> void:
 	if Lobby != null:
 		Lobby.leave()
@@ -706,7 +737,7 @@ func _process(delta: float) -> void:
 		if _fps_label == null:
 			_fps_label = Label.new()
 			_fps_label.name = "FpsLabel"
-			_fps_label.position = Vector2(16, 250)
+			_fps_label.position = Vector2(12, 272)
 			_fps_label.add_theme_font_size_override("font_size", 14)
 			_fps_label.add_theme_color_override("font_color", Color(0.6, 1.0, 0.7))
 			add_child(_fps_label)

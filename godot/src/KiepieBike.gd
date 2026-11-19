@@ -94,6 +94,8 @@ func _ready() -> void:
 	_build_flames()
 
 func _exit_tree() -> void:
+	if Settings != null and Settings.changed.is_connected(_on_settings_changed):
+		Settings.changed.disconnect(_on_settings_changed)
 	if typeof(Match) != TYPE_NIL and Match != null and Match.has_signal("roster_changed"):
 		if Match.roster_changed.is_connected(refresh_vehicle_assignment):
 			Match.roster_changed.disconnect(refresh_vehicle_assignment)
@@ -412,11 +414,12 @@ func _physics_process(delta: float) -> void:
 		_play_sfx("scrape", -2.5)
 
 	# visual feedback: yaw the steering pivots and roll the wheel meshes
+	var steer_alpha := 1.0 - exp(-10.0 * minf(delta, 0.05))
 	for side in ["FL", "FR"]:
 		var node: Node3D = _steer_nodes[side]
 		if node:
 			var target := _steer * visual_steer_scale
-			node.rotation.y = lerp_angle(node.rotation.y, target, clamp(delta * 10.0, 0.0, 1.0))
+			node.rotation.y = lerp_angle(node.rotation.y, target, steer_alpha)
 
 	var speed := linear_velocity.length()
 	var roll := (speed / maxf(wheel_radius, 0.01)) * delta
@@ -444,6 +447,8 @@ func reset_bike() -> void:
 	_steer = 0.0
 	_turbo_blend = 0.0
 	turbo_active = false
+	overdrive_active = false
+	loop_up = Vector3.ZERO
 	_was_turbo = false
 	_turbo_sfx_cd = 0.0
 	_dodge_time = 0.0

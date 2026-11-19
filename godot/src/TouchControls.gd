@@ -364,10 +364,12 @@ func _sync_drive() -> void:
 
 	# Weapon switch: pulling the right analog BACK (downward) cycles the active
 	# weapon once per pull-back gesture (must return above -WEAPON_RELEASE to re-arm).
+	# Axis dominance (1.15x) stops diagonal dodges from accidentally swapping weapons.
 	var want_switch := false
 	if not sources.is_empty():
 		var sw_thresh := WEAPON_RELEASE if _drive_weapon_switch else WEAPON_ENGAGE
-		want_switch = -best_down >= sw_thresh
+		var down_dom := _drive_weapon_switch or (-best_down > absf(target) * 1.15)
+		want_switch = -best_down >= sw_thresh and down_dom
 	if want_switch and not _drive_weapon_switch:
 		_drive_weapon_switch = true
 		_weapon_switch_count += 1
@@ -377,11 +379,13 @@ func _sync_drive() -> void:
 
 	# Dodge: one cartwheel per deflection. Hold the action until the thumb
 	# returns below DODGE_RELEASE so KiepieBike.is_action_just_pressed() sees
-	# exactly one rising edge per gesture.
+	# exactly one rising edge per gesture. Axis dominance stops off-axis fire
+	# or weapon-switch drags from unintentionally firing a cartwheel.
 	var dodge_dir := 0
 	if not sources.is_empty():
 		var threshold := DODGE_RELEASE if _drive_dodge != 0 else DODGE_ENGAGE
-		if absf(target) >= threshold:
+		var horiz_dom := _drive_dodge != 0 or absf(target) > maxf(best_up, -best_down) * 1.15
+		if absf(target) >= threshold and horiz_dom:
 			dodge_dir = -1 if target < 0.0 else 1
 	if dodge_dir != _drive_dodge:
 		if _drive_dodge == -1:

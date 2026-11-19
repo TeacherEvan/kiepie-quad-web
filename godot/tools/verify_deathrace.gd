@@ -64,14 +64,20 @@ func _run() -> void:
 	_check(FileAccess.file_exists(victory_mp4), "web-assets/kiepie-victory-splash.mp4 exists")
 
 	# ---- 3. DeathRace.tscn circuit: loops, pits, ramps, pickups, checkpoints, finish line & lap counter
-	match_node.call("apply_lobby", {
-		"id": "dr-1",
-		"host_id": "mock-host",
-		"status": "playing",
-		"settings": {"game_mode": "death_race", "lap_target": 2, "damage": 30, "respawn_delay": 1.0},
+	var mock_node: Node = sb.get("mock")
+	if mock_node != null and mock_node.has_method("reset_cooldown_for_test"):
+		mock_node.call("reset_cooldown_for_test")
+	var create_res: Dictionary = await sb.call("call_rpc", "create_lobby", {
+		"p_name": "DeathRaceGate",
+		"p_settings": {"game_mode": "death_race", "lap_target": 2, "damage": 30, "respawn_delay": 1.0},
 	})
+	var lobby_dict: Dictionary = create_res.get("lobby", {})
+	var lobby_id := str(lobby_dict.get("id", "dr-1"))
+	await sb.call("call_rpc", "start_match", {"p_lobby_id": lobby_id})
+	lobby_dict["status"] = "playing"
+	match_node.call("apply_lobby", lobby_dict)
 	match_node.set("players", {
-		"mock-host": {"user_id": "mock-host", "display_name": "Host", "color": "#ff7a1a", "score": 0},
+		"mock-host": {"user_id": "mock-host", "display_name": "Host", "color": "#ff7a1a", "score": 0, "laps": 0, "kills": 0},
 	})
 
 	var dr_packed := load("res://scenes/DeathRace.tscn") as PackedScene
@@ -215,12 +221,27 @@ func _run() -> void:
 		tracker.call("_on_finish_line_entered", bike)
 		_check(int(tracker.get("completed_laps")) == 0,
 				"Crossing FinishLine without clearing checkpoints does not count a lap")
-		# Complete Lap 1 & Lap 2 (lap_target == 2)
-		for lap_i in range(2):
-			for cp_i in range(4):
-				var cp_area := dr.get_node("Checkpoint%d" % cp_i) as Area3D
-				tracker.call("_on_checkpoint_entered", cp_i, cp_area, bike)
-			await tracker.call("_on_finish_line_entered", bike)
+		# Complete Lap 1
+		for cp_i in range(4):
+			var cp_area := dr.get_node("Checkpoint%d" % cp_i) as Area3D
+			tracker.call("_on_checkpoint_entered", cp_i, cp_area, bike)
+		await tracker.call("_on_finish_line_entered", bike)
+		_check(int(tracker.get("completed_laps")) == 1,
+				"Clearing all 4 checkpoints + FinishLine counts Lap 1")
+		# Regression B-P0-1: immediate second lap inside MIN_LAP_SECONDS is rejected
+		for cp_i in range(4):
+			var cp_area := dr.get_node("Checkpoint%d" % cp_i) as Area3D
+			tracker.call("_on_checkpoint_entered", cp_i, cp_area, bike)
+		await tracker.call("_on_finish_line_entered", bike)
+		_check(int(tracker.get("completed_laps")) == 1,
+				"Instant second lap inside MIN_LAP_SECONDS is rejected (B-P0-1)")
+		# Reset mock lap cooldown and finish Lap 2 (lap_target == 2)
+		if mock_node != null and mock_node.has_method("reset_cooldown_for_test"):
+			mock_node.call("reset_cooldown_for_test")
+		for cp_i in range(4):
+			var cp_area := dr.get_node("Checkpoint%d" % cp_i) as Area3D
+			tracker.call("_on_checkpoint_entered", cp_i, cp_area, bike)
+		await tracker.call("_on_finish_line_entered", bike)
 		_check(int(tracker.get("completed_laps")) == 2 and bool(tracker.get("race_finished")),
 				"Clearing all 4 checkpoints + FinishLine across 2 laps finishes Death Race")
 		var res_panel := hud.get_node_or_null("ResultPanel") as Control
@@ -228,6 +249,87 @@ func _run() -> void:
 		_check(bool(hud.get("victory_splash_shown")) and res_panel != null and res_panel.visible
 				and v_banner != null and v_banner.visible,
 				"Winning Death Race triggers Victory Splash and ResultPanel")
+
+	# ---- 6. Frontend audit regressions (F-P0-1, F-P0-2, F-P1-1, F-P1-2, F-P1-6, F-P1-7, F-P1-8)
+	# F-P0-2: Pit-launcher ramps launch ALONG clockwise travel direction
+	#   Ramp0 = East straight (+Z), Ramp2 = South straight (-X), Ramp4 = West straight (-Z)
+	var r0 := dr.get_node_or_null("Ramp0") as Node3D
+	var r2 := dr.get_node_or_null("Ramp2") as Node3D
+	var r4 := dr.get_node_or_null("Ramp4") as Node3D
+	_check(r0 != null and r0.global_transform.basis.z.normalized().dot(Vector3.BACK) > 0.95,
+			"Ramp0 launches along +Z clockwise east straight over HazardPit0 (F-P0-2)")
+	_check(r2 != null and r2.global_transform.basis.z.normalized().dot(Vector3.LEFT) > 0.95,
+			"Ramp2 launches along -X clockwise south straight over HazardPit1 (F-P0-2)")
+	_check(r4 != null and r4.global_transform.basis.z.normalized().dot(Vector3.FORWARD) > 0.95,
+			"Ramp4 launches along -Z clockwise west straight over HazardPit2 (F-P0-2)")
+
+	# F-P1-8: TrackLoop0/LoopZone does not overlap the flat straightaway center (26, 0.5, -44)
+	var lz0 := dr.get_node_or_null("TrackLoop0/LoopZone") as Area3D
+	var lz0_col := lz0.get_node_or_null("ZoneCollider") as CollisionShape3D if lz0 != null else null
+	_check(lz0_col != null and lz0_col.shape is BoxShape3D, "TrackLoop0/LoopZone/ZoneCollider exists")
+	if lz0_col != null and lz0_col.shape is BoxShape3D:
+		var local_flat := lz0_col.to_local(Vector3(26.0, 0.5, -44.0))
+		var half := (lz0_col.shape as BoxShape3D).size * 0.5
+		var overlaps_flat := absf(local_flat.x) < half.x and absf(local_flat.y) < half.y and absf(local_flat.z) < half.z
+		_check(not overlaps_flat, "TrackLoop0/LoopZone is clear of flat lane center (26,0.5,-44) (F-P1-8)")
+
+	# F-P1-7: Idle OmniLight3D count stays within WebGL2 8-light forward budget
+	var omni_cnt := 0
+	var stack: Array = [dr]
+	while not stack.is_empty():
+		var cur: Node = stack.pop_back()
+		if cur is OmniLight3D:
+			omni_cnt += 1
+		for ch in cur.get_children():
+			stack.append(ch)
+	_check(omni_cnt <= 8, "DeathRace idle OmniLight3D count (%d) <= 8 WebGL2 budget (F-P1-7)" % omni_cnt)
+
+	# F-P1-2: MatchHud KillFeed does not overlap WeaponLabel, Banner, or Radar
+	if hud != null:
+		hud.call("_relayout")
+		var kf := hud.get_node_or_null("KillFeed") as Control
+		var wl := hud.get_node_or_null("WeaponLabel") as Control
+		var bn := hud.get_node_or_null("Banner") as Control
+		var rd := hud.get_node_or_null("Radar") as Control
+		if kf != null and wl != null and bn != null and rd != null:
+			var r_kf := kf.get_global_rect()
+			_check(r_kf.intersection(wl.get_global_rect()).get_area() == 0.0
+					and r_kf.intersection(bn.get_global_rect()).get_area() == 0.0
+					and r_kf.intersection(rd.get_global_rect()).get_area() == 0.0,
+					"MatchHud KillFeed has zero overlap with WeaponLabel/Banner/Radar (F-P1-2)")
+
+	# F-P0-1: DestructibleBuilding.smash(impulse) accepts Rocket/Meteor impulse safely
+	var pit_garage := dr.get_node_or_null("PitGarage") as Node3D
+	if pit_garage != null:
+		pit_garage.call("smash", Vector3(0.0, 2.0, 12.0))
+		_check(not bool(pit_garage.get("_intact")),
+				"DestructibleBuilding.smash(impulse) shatters PitGarage cleanly (F-P0-1)")
+
+	# F-P1-1: Respawning after clearing Checkpoint0 preserves checkpoint spawn
+	if tracker != null and bike != null and combat != null:
+		tracker.set("race_finished", false)
+		tracker.set("next_checkpoint", 0)
+		var cp0 := dr.get_node_or_null("Checkpoint0") as Area3D
+		if cp0 != null:
+			tracker.call("_on_checkpoint_entered", 0, cp0, bike)
+			combat.call("_respawn")
+			for _f in range(3):
+				await physics_frame
+			var dist_cp0 := Vector2(bike.global_position.x - cp0.global_position.x,
+					bike.global_position.z - cp0.global_position.z).length()
+			_check(dist_cp0 < 2.5,
+					"CombatController._respawn preserves Death Race Checkpoint0 (dist=%.2fm) (F-P1-1)" % dist_cp0)
+
+	# F-P1-6: FollowCam handles vertical loop pose without collinear look_at NaN
+	var cam_rig := dr.get_node_or_null("CameraRig") as Node3D
+	if cam_rig != null and bike != null:
+		var prev_xf := bike.global_transform
+		bike.global_transform = Transform3D(Basis(Vector3.RIGHT, Vector3.BACK, Vector3.UP), Vector3(0.0, 10.0, 0.0))
+		cam_rig.global_position = Vector3(0.0, 5.0, 0.0)
+		cam_rig.call("_process", 0.016)
+		_check(cam_rig.global_position.is_finite() and cam_rig.global_transform.basis.is_finite(),
+				"FollowCam survives vertical loop pose with finite transform (F-P1-6)")
+		bike.global_transform = prev_xf
 
 	dr.free()
 	match_node.set("lobby", prev_lobby)

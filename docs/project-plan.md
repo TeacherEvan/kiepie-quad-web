@@ -13,7 +13,7 @@ Canonical project plan for the single repository `TeacherEvan/kiepie-quad-web`
 - Sport quad (Yamaha Blaster class) procedurally built in Blender 5.3 from `src/qb_spec.py`;
   QA APPROVED, 0 non-manifold edges, ground datum minZ = 0.000.
 - Godot 4.3 game: Dashboard with **Battle Royale** (default, `Arena.tscn` + `TestRide.tscn` practice) and **Death Race** (`DeathRace.tscn` circuit with loops, hazard pits, pit lane, ramps, pickups, ordered checkpoints, finish line, lap counter, and victory splash video), main scene `MainMenu.tscn`.
-  Backend: Talo 0.20.0 (vendored), host-authoritative scoring, wire `protocol_version = 1`.
+  Backend: Talo 0.20.0 (vendored), host-authoritative scoring, wire `protocol_version = 2`.
 - The 2026-11-18 **10-Principal-Engineer audit**
   ([source report](audits/10%20Principal%20Engineer.txt)) was remediated in commits
   `1494b0d` + `60a8b82`; the final P1 (INP-3 opposing analog arbitration) was fixed and
@@ -52,7 +52,7 @@ Sweep rule: changing any row means grepping the name **and** the old literal acr
 | Kill registration | 1 s per-killer cooldown, 20/min window | `godot/src/net/TaloBackend.gd` |
 | Armour / default damage / repair | 100 / 30 / +45 | `CombatController.gd`, `Match` defaults, `Pickup.gd` |
 | Dodge | 1.0 s cooldown, 0.72 s duration, ground-only | `godot/src/KiepieBike.gd` |
-| Wire protocol | `PROTOCOL_VERSION = 1` (bump only on wire-breaking change) | `godot/src/net/TaloBackend.gd` |
+| Wire protocol | `PROTOCOL_VERSION = 2` (bump only on wire-breaking change) | `godot/src/net/TaloBackend.gd` |
 | Web pck size | currently **2.75 MB**; deploy aborts above **4 MB** | root `index.pck`, `deploy_web.sh` |
 | Scorch / scar caps | MAX_SCORCH = 12 / MAX_SCAR = 24 | `godot/src/game/VfxFactory.gd` |
 | Level counts | Arena 10 ramps / 7 buildings · TestRide 6 ramps / 4 buildings · DeathRace 8 ramps / 2 loops / 3 hazard pits / 4 checkpoints / FinishLine | `build_arena.gd`, `build_testride.gd`, `build_deathrace.gd` |

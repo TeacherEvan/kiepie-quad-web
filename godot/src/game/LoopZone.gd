@@ -33,10 +33,18 @@ func _on_body_exited(body: Node) -> void:
 			body.set("loop_up", Vector3.ZERO)
 
 
+func _exit_tree() -> void:
+	for b in _bikes:
+		if is_instance_valid(b) and "loop_up" in b:
+			b.set("loop_up", Vector3.ZERO)
+	_bikes.clear()
+
+
 func _physics_process(_delta: float) -> void:
 	if _bikes.is_empty():
 		return
-	var center := global_position + Vector3(0.0, loop_radius, 0.0)
+	var local_up := global_transform.basis.y.normalized()
+	var center := global_position + local_up * loop_radius
 	# Loop axis is the local X axis of the LoopZone node (travel is along local Z)
 	var axis_x := global_transform.basis.x.normalized()
 	for i in range(_bikes.size() - 1, -1, -1):

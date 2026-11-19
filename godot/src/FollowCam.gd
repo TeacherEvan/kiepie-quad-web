@@ -25,6 +25,7 @@ var _shake := 0.0
 var _spectate_target: Node3D
 var _spectate_until := 0.0
 var _saved_mode := "follow"
+var _cam_up := Vector3.UP
 
 func add_shake(amount: float) -> void:
 	# Single reduced-motion sink: every caller (CombatController, SideCannons,
@@ -72,19 +73,44 @@ func _process(delta: float) -> void:
 			look_at(_spectate_target.global_position + look_offset, Vector3.UP)
 			_shake = move_toward(_shake, 0.0, delta * 3.0)
 			return
+	var dt := minf(delta, 0.05)
 	var turbo := bool(_target.get("turbo_active")) and not Settings.reduced_motion()
 	var want_fov := fov_base + (fov_kick if turbo else 0.0)
 	if _cam:
-		_cam.fov = lerpf(_cam.fov, want_fov, clampf(delta * 6.0, 0.0, 1.0))
+		_cam.fov = lerpf(_cam.fov, want_fov, 1.0 - exp(-6.0 * dt))
+
+	var target_up := Vector3.UP
+	if "loop_up" in _target:
+		var lup: Vector3 = _target.get("loop_up")
+		if lup.length_squared() > 0.25:
+			target_up = lup.normalized()
+	_cam_up = _cam_up.lerp(target_up, 1.0 - exp(-8.0 * dt))
+	if _cam_up.length_squared() < 1e-4:
+		_cam_up = Vector3.UP
+	else:
+		_cam_up = _cam_up.normalized()
 
 	if mode == "follow":
 		var basis := _target.global_transform.basis.orthonormalized()
-		var desired := _target.global_transform.origin - basis.z * distance + Vector3(0.0, height, 0.0)
-		global_position = global_position.lerp(desired, clampf(delta * follow_speed, 0.0, 1.0))
+		var desired := _target.global_transform.origin - basis.z * distance + _cam_up * height
+		global_position = global_position.lerp(desired, 1.0 - exp(-follow_speed * dt))
 	elif mode == "free":
 		var offset := Vector3(sin(_yaw) * cos(_pitch), sin(_pitch), cos(_yaw) * cos(_pitch)) * _radius
 		global_position = _target.global_position + offset
-	look_at(_target.global_transform.origin + look_offset, Vector3.UP)
+	var look_target := _target.global_transform.origin + _cam_up * look_offset.y
+	var to_target := look_target - global_position
+	if to_target.length_squared() > 1e-4:
+		var look_dir := to_target.normalized()
+		var up_vec := _cam_up if mode == "follow" else Vector3.UP
+		if absf(look_dir.dot(up_vec)) > 0.96:
+			var bike_up := _target.global_transform.basis.y.normalized()
+			if bike_up.length_squared() > 0.5 and absf(look_dir.dot(bike_up)) <= 0.96:
+				up_vec = bike_up
+			elif absf(look_dir.dot(Vector3.FORWARD)) <= 0.96:
+				up_vec = Vector3.FORWARD
+			else:
+				up_vec = Vector3.RIGHT
+		look_at(look_target, up_vec)
 	if _shake > 0.001:
 		var s := _shake * Settings.shake_multiplier()
 		global_position += Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * s

@@ -67,12 +67,9 @@ func _ready() -> void:
 	_visual.rotation_degrees.x = 20.0
 	add_child(_visual)
 
-	_glow = OmniLight3D.new()
-	_glow.name = "Glow"
-	_glow.light_color = c
-	_glow.light_energy = 2.0
-	_glow.omni_range = 3.0
-	add_child(_glow)
+	# Emissive torus provides clear bloom readability without consuming
+	# WebGL2's 8-omni-light-per-surface budget across 8-10 pickups per arena.
+	_glow = null
 
 	body_entered.connect(_on_body_entered)
 	if Match != null:

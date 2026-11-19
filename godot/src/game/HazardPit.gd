@@ -132,8 +132,10 @@ func _physics_process(delta: float) -> void:
 
 func _damage_bike(bike_node: Node3D) -> void:
 	var combat := bike_node.get_node_or_null("CombatController")
-	if combat != null and combat.has_method("take_damage"):
-		combat.set("_invuln_until", 0.0)
-		combat.call("take_damage", tick_damage, "hazard-pit", bike_node.global_position, "")
+	if combat != null:
+		if "alive" in combat and not bool(combat.get("alive")):
+			return
+		if combat.has_method("take_damage"):
+			combat.call("take_damage", tick_damage, "hazard-pit", bike_node.global_position, "", true)
 	var fx := get_tree().current_scene as Node3D if (get_tree() != null and get_tree().current_scene is Node3D) else get_parent() as Node3D
 	VFX.explosion(fx, bike_node.global_position, Color(1.0, 0.32, 0.05), 0.95)

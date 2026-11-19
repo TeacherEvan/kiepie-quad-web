@@ -121,29 +121,31 @@ func _initialize() -> void:
 	_add_checkpoint(root, 3, Vector3(-38.0, 0.0, -44.0), 90.0)
 
 	# ---------------- 2 Full 360° Vertical Stunt Loops (with LoopZone centripetal normal)
-	# TrackLoop0 on the North straight outer lane (east of FinishLine, heading +X)
-	_add_stunt_loop(root, "TrackLoop0", Vector3(26.0, 0.0, -47.2), 90.0, 8.5)
-	# TrackLoop1 on the South back-straight outer lane (heading -X)
-	_add_stunt_loop(root, "TrackLoop1", Vector3(-14.0, 0.0, 47.2), -90.0, 8.5)
+	# Positioned on the outer loop aprons (z = +-52.0) so racers on the flat
+	# center lanes (z = +-44.0) stay completely outside LoopZone and support pylons.
+	_add_stunt_loop(root, "TrackLoop0", Vector3(26.0, 0.0, -52.0), 90.0, 8.5)
+	_add_stunt_loop(root, "TrackLoop1", Vector3(-14.0, 0.0, 52.0), -90.0, 8.5)
 
 	# ---------------- 3 Molten Hazard Pits (with jump ramps over them)
 	_add_hazard_pit(root, "HazardPit0", Vector3(58.0, 0.0, 10.0), Vector3(10.0, 1.4, 8.0))
 	_add_hazard_pit(root, "HazardPit1", Vector3(14.0, 0.0, 44.0), Vector3(8.0, 1.4, 10.0))
 	_add_hazard_pit(root, "HazardPit2", Vector3(-58.0, 0.0, -10.0), Vector3(10.0, 1.4, 8.0))
 
-	# ---------------- 8 Ramps (pit jump kickers + loop/straight speed boosters)
-	# East straight gap jump over HazardPit0 (heading +Z, rot_y = 180 launches +Z)
-	_add_ramp(root, "Ramp0", Vector3(58.0, 0.0, 2.0), Vector3(15.0, 180.0, 0.0))
-	_add_ramp(root, "Ramp1", Vector3(58.0, 0.0, 18.0), Vector3(10.0, 0.0, 0.0))
-	# South back-straight gap jump over HazardPit1 (heading -X, rot_y = 90 launches -X)
-	_add_ramp(root, "Ramp2", Vector3(22.0, 0.0, 44.0), Vector3(15.0, 90.0, 0.0))
-	_add_ramp(root, "Ramp3", Vector3(6.0, 0.0, 44.0), Vector3(10.0, -90.0, 0.0))
-	# West straight gap jump over HazardPit2 (heading -Z, rot_y = 0 launches -Z)
-	_add_ramp(root, "Ramp4", Vector3(-58.0, 0.0, -2.0), Vector3(15.0, 0.0, 0.0))
-	_add_ramp(root, "Ramp5", Vector3(-58.0, 0.0, -18.0), Vector3(10.0, 180.0, 0.0))
-	# Turn exit kicker ramps
-	_add_ramp(root, "Ramp6", Vector3(46.0, 0.0, -34.0), Vector3(12.0, 225.0, 0.0))
-	_add_ramp(root, "Ramp7", Vector3(-46.0, 0.0, 34.0), Vector3(12.0, 45.0, 0.0))
+	# ---------------- 8 Ramps (pit jump kickers + landing ramps + turn kickers)
+	# _add_ramp() raises local +Z as the high launch lip (stand at +stand_z):
+	#   rot_y = 0° launches +Z, rot_y = -90° launches -X, rot_y = 180° launches -Z, rot_y = 90° launches +X.
+	# East straight gap jump over HazardPit0 (clockwise travel +Z)
+	_add_ramp(root, "Ramp0", Vector3(58.0, 0.0, 2.0), Vector3(15.0, 0.0, 0.0))
+	_add_ramp(root, "Ramp1", Vector3(58.0, 0.0, 18.0), Vector3(10.0, 180.0, 0.0))
+	# South back-straight gap jump over HazardPit1 (clockwise travel -X)
+	_add_ramp(root, "Ramp2", Vector3(22.0, 0.0, 44.0), Vector3(15.0, -90.0, 0.0))
+	_add_ramp(root, "Ramp3", Vector3(6.0, 0.0, 44.0), Vector3(10.0, 90.0, 0.0))
+	# West straight gap jump over HazardPit2 (clockwise travel -Z)
+	_add_ramp(root, "Ramp4", Vector3(-58.0, 0.0, -2.0), Vector3(15.0, 180.0, 0.0))
+	_add_ramp(root, "Ramp5", Vector3(-58.0, 0.0, -18.0), Vector3(10.0, 0.0, 0.0))
+	# Turn exit kicker ramps (clockwise travel: NE -> +X/+Z, SW -> -X/-Z)
+	_add_ramp(root, "Ramp6", Vector3(46.0, 0.0, -34.0), Vector3(12.0, 45.0, 0.0))
+	_add_ramp(root, "Ramp7", Vector3(-46.0, 0.0, 34.0), Vector3(12.0, -135.0, 0.0))
 
 	# ---------------- Pickups (10 total: along track apexes + Pit Stop Lane)
 	_add_pickups(root)
@@ -665,7 +667,8 @@ func _add_stunt_loop(root: Node, name: String, pos: Vector3, rot_y_deg: float, r
 
 		loop_root.add_child(seg)
 
-	# Structural steel A-frame support pillars anchoring the loop outside the deck width
+	# Structural steel A-frame support pillars anchoring the loop tightly beside the deck
+	# (width 7.6m keeps inner pylon at z = +-48.2, completely clear of flat lane z = +-44.0)
 	for sgn in [-1.0, 1.0]:
 		var strut := MeshInstance3D.new()
 		strut.name = "SupportPylon_%s" % ("L" if sgn < 0.0 else "R")
@@ -675,18 +678,18 @@ func _add_stunt_loop(root: Node, name: String, pos: Vector3, rot_y_deg: float, r
 		cm.height = radius * 2.05
 		cm.material = strut_mat
 		strut.mesh = cm
-		strut.position = Vector3(sgn * 5.2, radius, 0.0)
+		strut.position = Vector3(sgn * 3.8, radius, 0.0)
 		loop_root.add_child(strut)
 
 	var top_beam := MeshInstance3D.new()
 	var tbm := BoxMesh.new()
-	tbm.size = Vector3(10.8, 0.45, 0.55)
+	tbm.size = Vector3(8.0, 0.45, 0.55)
 	tbm.material = strut_mat
 	top_beam.mesh = tbm
 	top_beam.position = Vector3(0.0, radius * 2.05, 0.0)
 	loop_root.add_child(top_beam)
 
-	# LoopZone Area3D supplies centripetal normal adhesion to KiepieBike._integrate_forces()
+	# LoopZone Area3D supplies centripetal normal adhesion strictly inside the loop footprint
 	var zone := Area3D.new()
 	zone.name = "LoopZone"
 	zone.set_script(load(LOOP_ZONE))
@@ -694,7 +697,7 @@ func _add_stunt_loop(root: Node, name: String, pos: Vector3, rot_y_deg: float, r
 	var zcol := CollisionShape3D.new()
 	zcol.name = "ZoneCollider"
 	var zsh := BoxShape3D.new()
-	zsh.size = Vector3(9.0, radius * 2.3, radius * 2.3)
+	zsh.size = Vector3(6.2, radius * 2.3, radius * 2.3)
 	zcol.shape = zsh
 	zcol.position = Vector3(0.0, radius, 0.0)
 	zone.add_child(zcol)
@@ -921,10 +924,10 @@ func _add_match_hud(root: Node) -> void:
 	feed.name = "KillFeed"
 	feed.anchor_left = 0.0
 	feed.anchor_top = 0.0
-	feed.offset_left = 154.0
-	feed.offset_right = 410.0
-	feed.offset_top = 12.0
-	feed.offset_bottom = 124.0
+	feed.offset_left = 224.0
+	feed.offset_right = 440.0
+	feed.offset_top = 10.0
+	feed.offset_bottom = 106.0
 	feed.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	feed.add_theme_constant_override("separation", 4)
 	hud.add_child(feed)

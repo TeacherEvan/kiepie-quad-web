@@ -297,8 +297,8 @@ func _add_match_hud(root: Node) -> void:
 	feed.name = "KillFeed"
 	feed.anchor_left = 0.0
 	feed.anchor_top = 0.0
-	feed.offset_left = 154.0
-	feed.offset_right = 410.0
+	feed.offset_left = 224.0
+	feed.offset_right = 440.0
 	feed.offset_top = 12.0
 	feed.offset_bottom = 124.0
 	feed.mouse_filter = Control.MOUSE_FILTER_IGNORE

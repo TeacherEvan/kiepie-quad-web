@@ -89,7 +89,9 @@ func _on_body_entered(body: Node) -> void:
 	if speed >= hit_speed:
 		smash()
 
-func smash() -> void:
+func smash(impulse: Vector3 = Vector3.ZERO) -> void:
+	if not _intact:
+		return
 	_intact = false
 	# report the smash first, so the HUD counts it even if debris code fails
 	var hud := get_tree().get_first_node_in_group("hud") if get_tree() != null else null
@@ -144,7 +146,8 @@ func smash() -> void:
 			outward = Vector3(rng.randf_range(-1.0, 1.0), 0.0, rng.randf_range(-1.0, 1.0))
 		outward = outward.normalized()
 		chunk.linear_velocity = (outward * rng.randf_range(2.5, 7.0)
-				+ Vector3(0.0, rng.randf_range(2.2, 5.2), 0.0))
+				+ Vector3(0.0, rng.randf_range(2.2, 5.2), 0.0)
+				+ impulse * 0.30)
 		chunk.angular_velocity = Vector3(rng.randf_range(-6.0, 6.0),
 				rng.randf_range(-6.0, 6.0), rng.randf_range(-6.0, 6.0))
 	# fade all chunks in a single timer callback to avoid 14 per-piece closures

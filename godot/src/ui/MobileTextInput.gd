@@ -22,6 +22,8 @@ var _mobile_like := false
 var _last_rect := Rect2(-1, -1, 0, 0)
 var _last_text := ""
 var _last_visible := false
+var _poll_accum := 0.0
+var _open_active := false
 
 static var _next_id := 0
 
@@ -63,16 +65,23 @@ func _ready() -> void:
 			_sync_field(true)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not _web_active or _le == null or not is_instance_valid(_le):
 		return
 	_sync_field(false)
+	if not _open_active:
+		_poll_accum += delta
+		if _poll_accum < 0.16:
+			return
+		_poll_accum = 0.0
 	var raw: Variant = JavaScriptBridge.eval(
 			"window.__kiepieVk ? window.__kiepieVk.poll(%s) : ''" % JSON.stringify(_id), true)
 	if raw is String and raw != "":
 		var parsed: Variant = JSON.parse_string(raw)
 		if parsed is Dictionary:
-			apply_dom_state(_le, parsed as Dictionary, _uppercase, _commit_on_close)
+			var d := parsed as Dictionary
+			_open_active = not (bool(d.get("submitted", false)) or bool(d.get("closed", false)))
+			apply_dom_state(_le, d, _uppercase, _commit_on_close)
 			_last_text = _le.text
 
 
@@ -96,6 +105,8 @@ func _on_le_gui_input(event: InputEvent) -> void:
 		var is_open := bool(JavaScriptBridge.eval(
 				"!!(window.__kiepieVk && window.__kiepieVk.isOpen())", true))
 		if not is_open:
+			_open_active = true
+			_poll_accum = 0.0
 			_sync_field(true)
 			JavaScriptBridge.eval(
 					"window.__kiepieVk && window.__kiepieVk.openById(%s, %s);" % [
