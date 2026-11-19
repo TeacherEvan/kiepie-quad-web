@@ -7,6 +7,7 @@ const BANANA := preload("res://src/game/BananaProjectile.gd")
 const ROCKET := preload("res://src/game/RocketProjectile.gd")
 const METEOR := preload("res://src/game/MeteorStrike.gd")
 const VFX := preload("res://src/game/VfxFactory.gd")
+const KT := preload("res://src/core/KiepieTime.gd")
 const SEND_HZ := 15.0
 const SPAWN_ORDER := [0, 4, 2, 6, 1, 5, 3, 7]
 
@@ -18,29 +19,6 @@ var _streak := 0
 # ------------------------------------------------------------------ hitstop ----
 
 var _hitstop := false
-# Shared slow-mo lease: keeps Engine.time_scale race-free when the kill cam
-# (ArenaNet) and death hitstop (CombatController) overlap. The strongest active
-# beat wins; the scale returns to 1.0 when the last beat ends.
-var _slow_mo_scales: Array = []
-
-
-func _begin_slow_mo(amount: float) -> void:
-	_slow_mo_scales.append(amount)
-	Engine.time_scale = _slow_mo_min()
-
-
-func _end_slow_mo() -> void:
-	if _slow_mo_scales.is_empty():
-		return
-	_slow_mo_scales.pop_back()
-	Engine.time_scale = 1.0 if _slow_mo_scales.is_empty() else _slow_mo_min()
-
-
-func _slow_mo_min() -> float:
-	var m := 1.0e9
-	for v in _slow_mo_scales:
-		m = minf(m, float(v))
-	return m if _slow_mo_scales.is_empty() == false else 1.0
 var _shot_log: Dictionary = {}   # owner_id -> Array of msec timestamps (1 s, max 24)
 var _rocket_last: Dictionary = {} # owner_id -> sec timestamp of last remote rocket
 var _meteor_last: Dictionary = {} # owner_id -> sec timestamp of last remote meteor
@@ -97,9 +75,9 @@ func _place_local_bike_at_roster_slot() -> void:
 
 func _exit_tree() -> void:
 	# A hitstop coroutine may still be awaiting when the arena unloads — never
-	# leave Engine.time_scale stuck at the 0.28 hitstop value.
-	Engine.time_scale = 1.0
-	self._slow_mo_scales.clear()
+	# leave Engine.time_scale stuck at the hitstop value (resets the gen so the
+	# pending beat's timer cannot clobber the next scene).
+	KT.reset_hitstop()
 	_hitstop = false
 	if Supabase != null and Supabase.broadcast_received.is_connected(_on_broadcast):
 		Supabase.broadcast_received.disconnect(_on_broadcast)
@@ -220,13 +198,14 @@ func _do_hitstop() -> void:
 	if Settings.reduced_motion() or _hitstop:
 		return
 	_hitstop = true
-	# Lease via the shared slow-mo tracker — restores when the last beat ends,
-	# even if two beats (kill cam + death hitstop) overlap.
-	self._begin_slow_mo(0.28)
+	# Lease via the shared refcounted slow-mo coordinator (KiepieTime):
+	# restore happens when the last beat ends, or on scene unload via
+	# KT.reset_hitstop() — the kill cam and the death hitstop cannot clobber
+	# each other or leave the engine slow-mo'd.
+	KT.trigger_hitstop(get_tree(), 0.28, 0.060)
 	await get_tree().create_timer(0.06, true, false, true).timeout
 	if not is_instance_valid(self):
 		return
-	self._end_slow_mo()
 	_hitstop = false
 
 

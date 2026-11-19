@@ -639,12 +639,13 @@ func add_kill(killer_id: String, victim_id: String) -> void:
 # ------------------------------------------------------------------ helpers ---
 
 func _name_for(uid: String) -> String:
-	if Match == null:
-		return uid.substr(0, 6) if uid.length() > 6 else uid
-	for row in Match.scoreboard():
-		var d := row as Dictionary
-		if d != null and str(d.get("user_id", "")) == uid:
-			return str(d.get("name", "RIDER"))
+	# O(1) lookup into Match.players (cached roster) — the previous
+	# O(N log N) Match.scoreboard() sort per name ran at the HUD 60 Hz.
+	var row := Dictionary.new()
+	if Match != null and Match.players.has(uid):
+		row = Match.players.get(uid)
+	if row is Dictionary and str(row.get("display_name", "")) != "":
+		return str(row.get("display_name", "RIDER"))
 	return uid.substr(0, 6) if uid.length() > 6 else (uid if uid != "" else "RIDER")
 
 

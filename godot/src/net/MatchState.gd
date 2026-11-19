@@ -62,7 +62,13 @@ func _process(_delta: float) -> void:
 	if Time.get_unix_time_from_system() - started < float(limit):
 		return
 	_time_up_called = true
+	# Capture the lobby identity before the RPC so a lobby swap mid-flight
+	# (Leave→Create race) can be detected and aborted instead of applying the
+	# old lobby's time_up transition to the new lobby.
+	var expected_id := str(lobby.get("id", ""))
 	var res: Dictionary = await Supabase.call_rpc("time_up", {})
+	if str(lobby.get("id", "")) != expected_id:
+		return
 	if not res.is_empty() and str(res.get("status", "")) == "finished":
 		apply_lobby(res)
 	else:
@@ -72,6 +78,15 @@ func _process(_delta: float) -> void:
 
 func reset_time_limit_guard() -> void:
 	_time_up_called = false
+
+
+func clear_lobby() -> void:
+	lobby.clear()
+	players.clear()
+	_time_up_called = false
+	_refresh_settings_cache()
+	lobby_changed.emit()
+	roster_changed.emit()
 
 
 func set_lobby(result: Dictionary) -> void:
@@ -116,32 +131,32 @@ func _refresh_settings_cache() -> void:
 
 
 func kill_target() -> int:
-	return maxi(1, int(settings().get("kill_target", 10)))
+	return maxi(1, int(_settings_cache.get("kill_target", 10)))
 
 
 func game_mode() -> String:
-	var m := str(settings().get("game_mode", "battle_royale"))
+	var m := str(_settings_cache.get("game_mode", "battle_royale"))
 	return "death_race" if m == "death_race" else "battle_royale"
 
 
 func lap_target() -> int:
-	return clampi(int(settings().get("lap_target", 3)), 1, 10)
+	return clampi(int(_settings_cache.get("lap_target", 3)), 1, 10)
 
 
 func max_players() -> int:
-	return clampi(int(settings().get("max_players", 8)), 2, 8)
+	return clampi(int(_settings_cache.get("max_players", 8)), 2, 8)
 
 
 func respawn_delay() -> float:
-	return clampf(float(settings().get("respawn_delay", 2.5)), 0.5, 10.0)
+	return clampf(float(_settings_cache.get("respawn_delay", 2.5)), 0.5, 10.0)
 
 
 func damage() -> float:
-	return clampf(float(settings().get("damage", 30.0)), 10.0, 100.0)
+	return clampf(float(_settings_cache.get("damage", 30.0)), 10.0, 100.0)
 
 
 func pickups_enabled() -> bool:
-	return bool(settings().get("pickups", true))
+	return bool(_settings_cache.get("pickups", true))
 
 
 func is_playing() -> bool:

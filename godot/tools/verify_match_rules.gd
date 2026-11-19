@@ -58,4 +58,8 @@ func _run() -> void:
 	_check(bool(match_state.call("is_finished")), "match state marked finished")
 
 	lobby.call("leave")
+	_check(match_state.get("lobby").is_empty(), "Lobby.leave() immediately empties Match.lobby (P1-2)")
+	_check(str(match_state.call("game_mode")) == "battle_royale"
+			and int(match_state.call("damage")) == 30.0,
+			"Match._settings_cache resets on Lobby.leave() (P1-2)")
 	quit(1 if _fail > 0 else 0)

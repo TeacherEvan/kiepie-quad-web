@@ -67,13 +67,14 @@ func leave() -> void:
 		return
 	_session_gen += 1
 	var gen := _session_gen
-	await Supabase.call_rpc("leave_lobby", {})
-	# If the player already joined a new lobby while leave_lobby was awaiting
-	# host handoff retries, never wipe the newly entered lobby state.
-	if gen != _session_gen:
-		return
-	Supabase.leave_lobby_channel()
+	# Synchronous reset: a Leave→Create race must never see stale Match.lobby
+	# or stale Match._settings_cache, and LobbyMenu double-leave is a no-op.
+	Match.clear_lobby()
 	current_lobby_id = ""
-	Match.lobby = {}
-	Match.players.clear()
+	await Supabase.call_rpc("leave_lobby", {})
+	if gen != _session_gen:
+		return  # user already joined a new lobby — TaloBackend._leave_lobby
+		# aborts the stale-room cleanup on a channel-id mismatch, and Match
+		# state is already owned by the new lobby via LobbyService._enter.
+	Supabase.leave_lobby_channel()
 	left.emit()

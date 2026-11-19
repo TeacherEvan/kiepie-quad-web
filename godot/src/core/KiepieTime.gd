@@ -31,3 +31,46 @@ static func now_iso() -> String:
 
 static func iso_from_now(seconds: float) -> String:
 	return iso_from_unix(Time.get_unix_time_from_system() + maxf(0.0, seconds))
+
+
+# --------------------------------------------------------------- hitstop ----
+
+## Refcounted Engine.time_scale hitstop coordinator (P0-2). All slow-mo
+## leases — kill cam (ArenaNet) and death hitstop (CombatController) — funnel
+## through here so the engine time scale returns to 1.0 deterministically when
+## the last beat ends, and never sticks below 1.0 after overlapping beats or
+## scene unloads: reset_hitstop() bumps _gen so pending timers invalidated by
+## the scene unload cannot clobber Engine.time_scale in the next scene.
+
+static var _scales: Array = []
+static var _active := 0
+static var _gen := 0
+
+
+static func trigger_hitstop(tree, scale: float, duration_s: float) -> void:
+	# Untyped: callers pass SceneTree (ArenaNet/CombatController get_tree()) or
+	# the root node (verify scripts); SceneTree scripts have no is_inside_tree().
+	if tree == null or not tree.has_method("create_timer") or scale <= 0.0 or duration_s <= 0.0:
+		return
+	var my_gen := _gen
+	_scales.append(scale)
+	_active += 1
+	tree.create_timer(duration_s, true, false, true).timeout.connect(func() -> void:
+		if _gen != my_gen or _active <= 0:
+			return
+		_active -= 1
+		if _active == 0:
+			_scales.clear()
+			Engine.time_scale = 1.0
+		elif _scales.size() > 0:
+			Engine.time_scale = minf(1.0, _scales.min())
+	)
+	if _active > 0 and _scales.size() > 0:
+		Engine.time_scale = minf(1.0, _scales.min())
+
+
+static func reset_hitstop() -> void:
+	_gen += 1
+	_scales.clear()
+	_active = 0
+	Engine.time_scale = 1.0

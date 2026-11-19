@@ -60,6 +60,13 @@ func _run() -> void:
 	_check(float(combat.get("health")) == 70.0, "incoming shot damaged the local player")
 	proj.queue_free()
 
+	# --- P2-3a regression: non-positive / NaN damage is a no-op ---
+	var h_before := float(combat.get("health"))
+	combat.call("take_damage", -50.0, "enemy-neg", Vector3.ZERO)
+	_check(float(combat.get("health")) == h_before, "take_damage(-50) leaves health unchanged")
+	combat.call("take_damage", NAN, "enemy-nan", Vector3.ZERO)
+	_check(float(combat.get("health")) == h_before, "take_damage(NAN) leaves health unchanged")
+
 	# F-08 regression: reset_state() after _die() must restore collision and clear active buffs
 	combat.call("apply_pickup", "overdrive")
 	combat.call("apply_pickup", "rapid")
@@ -81,7 +88,22 @@ func _run() -> void:
 			and float(combat.get("_shield_until")) == 0.0,
 			"F-08: reset_state() zeroes buff timers")
 
-	combat.queue_free()
+	# --- P0-2 regression: overlapping KT hitstop beats restore Engine.time_scale ---
+	var KT := load("res://src/core/KiepieTime.gd")
+	Engine.time_scale = 1.0
+	KT.trigger_hitstop(root, 0.28, 0.060)
+	KT.trigger_hitstop(root, 0.25, 0.055)
+	await create_timer(0.12).timeout
+	_check(Engine.time_scale == 1.0,
+			"overlapping hitstops (kill cam + death) restore Engine.time_scale to 1.0 after 120 ms")
+	# Freeing CombatController mid-hitstop immediately restores 1.0.
+	# Freeing CombatController mid-beat restores Engine.time_scale to 1.0.
+	KT.trigger_hitstop(root, 0.25, 30.0)
+	combat.call("queue_free")
+	await process_frame
+	_check(Engine.time_scale == 1.0,
+			"freeing CombatController mid-hitstop restores Engine.time_scale to 1.0")
+	Engine.time_scale = 1.0
 	bike.queue_free()
 	holder.queue_free()
 	quit(1 if _fail > 0 else 0)

@@ -13,6 +13,7 @@ signal hit_confirmed()
 const MAX_HEALTH := 100.0
 const CANNON := preload("res://src/game/SideCannons.gd")
 const VFX := preload("res://src/game/VfxFactory.gd")
+const KT := preload("res://src/core/KiepieTime.gd")
 
 @export var practice_mode := false
 
@@ -144,6 +145,9 @@ func _play_sfx(name: String) -> void:
 
 
 func _exit_tree() -> void:
+	# Free of the hitstop leaves: force time_scale back to 1.0 so nothing
+	# lingers after this tree unloads.
+	KT.reset_hitstop()
 	if Match != null and Match.self_respawn_at.is_connected(_on_server_respawn):
 		Match.self_respawn_at.disconnect(_on_server_respawn)
 	if _fx_holder != null and is_instance_valid(_fx_holder):
@@ -153,6 +157,9 @@ func _exit_tree() -> void:
 
 func take_damage(amount: float, attacker_id: String, point: Vector3, token: String = "",
 		bypass_invuln: bool = false) -> void:
+	# Non-positive / NaN damage: no health movement, no events, no death path.
+	if not is_finite(amount) or amount <= 0.0:
+		return
 	# practice mode: cannons/drums/buildings fire and deal damage without an
 	# arena lobby (the match gate is for network sync, not for offline play)
 	if not alive or (not practice_mode and not Match.is_playing()):
@@ -202,16 +209,9 @@ func _die(by: String) -> void:
 		sfx.call("play", "explosion", 2.5, 0.58)
 	_shake(0.82)
 	if not Settings.reduced_motion():
-		# 55 ms local hitstop via the shared slow-mo lease: overlapping kill-cam
-		# (ArenaNet) and death hitstop beats cannot leave the engine slow-mo'd.
-		var an := _arena_net()
-		if an != null and an.has_method("_begin_slow_mo"):
-			an.call("_begin_slow_mo", 0.25)
-		var tree := get_tree()
-		if tree != null:
-			tree.create_timer(0.055, true, false, true).timeout.connect(func() -> void:
-				if an != null and is_instance_valid(an) and an.has_method("_end_slow_mo"):
-					an.call("_end_slow_mo"))
+		# 55 ms death hitstop via the shared refcounted slow-mo coordinator:
+		# overlapping kill-cam (ArenaNet) beats cannot leave it slow-mo'd.
+		KT.trigger_hitstop(get_tree(), 0.25, 0.055)
 	if not practice_mode:
 		Supabase.broadcast("kill", {
 			"killer": attributable,

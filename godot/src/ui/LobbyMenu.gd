@@ -342,12 +342,12 @@ func _push_settings() -> void:
 		s["game_mode"] = GAME_MODES[clampi(_game_mode.selected, 0, GAME_MODES.size() - 1)]
 	if _lap_target != null:
 		s["lap_target"] = LAP_TARGETS[clampi(_lap_target.selected, 0, LAP_TARGETS.size() - 1)]
-	s["kill_target"] = KILL_TARGETS[_kill_target.selected]
-	s["max_players"] = MAX_PLAYERS[_max_players.selected]
-	s["respawn_delay"] = RESPAWNS[_respawn.selected]
-	s["match_seconds"] = MATCH_SECONDS[_match_seconds.selected]
-	s["damage"] = DAMAGES[_damage.selected]
-	s["pickups"] = _pickups.button_pressed
+	s["kill_target"] = KILL_TARGETS[clampi(_kill_target.selected, 0, KILL_TARGETS.size() - 1)]
+	s["max_players"] = MAX_PLAYERS[clampi(_max_players.selected, 0, MAX_PLAYERS.size() - 1)]
+	s["respawn_delay"] = RESPAWNS[clampi(_respawn.selected, 0, RESPAWNS.size() - 1)]
+	s["match_seconds"] = MATCH_SECONDS[clampi(_match_seconds.selected, 0, MATCH_SECONDS.size() - 1)]
+	s["damage"] = DAMAGES[clampi(_damage.selected, 0, DAMAGES.size() - 1)]
+	s["pickups"] = bool(_pickups.button_pressed)
 	await Match.set_lobby_settings(s)
 
 
