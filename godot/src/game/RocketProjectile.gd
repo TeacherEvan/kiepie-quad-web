@@ -189,31 +189,45 @@ func _build_visual() -> void:
 		add_child(_light)
 		VFX._cap_group(self, "vfx_light", VFX.MAX_IMPACT_LIGHTS)
 
-	_trail = GPUParticles3D.new()
-	_trail.amount = maxi(6, int(36 * Settings.quality_multiplier()))
-	_trail.lifetime = 0.44
-	_trail.local_coords = false
-	_trail.visibility_aabb = AABB(Vector3(-3, -3, -3), Vector3(6, 6, 6))
-	var pm := ParticleProcessMaterial.new()
-	pm.direction = -velocity.normalized()
-	pm.spread = 11.0
-	pm.initial_velocity_min = 0.8
-	pm.initial_velocity_max = 2.6
-	pm.scale_min = 0.24
-	pm.scale_max = 0.65
-	pm.color_ramp = _trail_ramp
-	_trail.process_material = pm
-	_trail.draw_pass_1 = _trail_mesh
-	add_child(_trail)
-	_trail.emitting = true
+	if not Settings.reduced_motion():
+		_trail = GPUParticles3D.new()
+		_trail.amount = maxi(6, int(36 * Settings.quality_multiplier()))
+		_trail.lifetime = 0.44
+		_trail.local_coords = false
+		_trail.visibility_aabb = AABB(Vector3(-3, -3, -3), Vector3(6, 6, 6))
+		var pm := ParticleProcessMaterial.new()
+		pm.direction = -velocity.normalized()
+		pm.spread = 11.0
+		pm.initial_velocity_min = 0.8
+		pm.initial_velocity_max = 2.6
+		pm.scale_min = 0.24
+		pm.scale_max = 0.65
+		pm.color_ramp = _trail_ramp
+		_trail.process_material = pm
+		_trail.draw_pass_1 = _trail_mesh
+		add_child(_trail)
+		_trail.emitting = true
+
+
+func _release_light() -> void:
+	if is_instance_valid(_light):
+		if _light.is_in_group("vfx_light"):
+			_light.remove_from_group("vfx_light")
+		_light.queue_free()
+	_light = null
+
+
+func _exit_tree() -> void:
+	_release_light()
 
 
 func _physics_process(delta: float) -> void:
 	_age += delta
 	if _inert or _age >= _life:
+		_release_light()
 		queue_free()
 		return
-	if _visual != null:
+	if _visual != null and not Settings.reduced_motion():
 		_visual.rotate_object_local(Vector3(0.0, 0.0, 1.0), delta * 12.0)
 	var world := get_world_3d()
 	if world == null:
@@ -237,6 +251,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _detonate(point: Vector3, direct_collider: Object) -> void:
+	_release_light()
 	var fx := get_parent() as Node3D
 	if fx == null and get_tree() != null:
 		fx = get_tree().current_scene as Node3D
@@ -269,6 +284,8 @@ func _detonate(point: Vector3, direct_collider: Object) -> void:
 		if not is_instance_valid(b) or not (b is Node3D):
 			continue
 		var bike_node := b as Node3D
+		if not bike_node.visible or bike_node.get("is_respawning") == true:
+			continue
 		var dist := bike_node.global_position.distance_to(point)
 		if dist > blast_radius:
 			continue

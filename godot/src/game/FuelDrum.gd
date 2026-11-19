@@ -84,6 +84,8 @@ func ignite(attacker_id: String, token: String = "") -> void:
 			if not is_instance_valid(bike) or not (bike is Node3D):
 				continue
 			var b := bike as Node3D
+			if not b.visible or b.get("is_respawning") == true:
+				continue
 			if b.global_position.distance_to(pos) > blast_radius:
 				continue
 			# take_damage lives on the CombatController child, not on the bike body.
@@ -120,7 +122,8 @@ func ignite(attacker_id: String, token: String = "") -> void:
 			timer.timeout.connect(func() -> void:
 				var target := wo.get_ref() as Node
 				if target != null and target.has_method("ignite"):
-					target.call("ignite", attacker_id, token)
+					var chain_tok := "%s:c%d" % [token, target.get_instance_id()] if token != "" else ""
+					target.call("ignite", attacker_id, chain_tok)
 			)
 
 	if respawn_delay <= 0.0 or tree == null:

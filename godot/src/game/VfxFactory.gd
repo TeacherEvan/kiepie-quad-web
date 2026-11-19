@@ -29,6 +29,7 @@ const MAX_SCORCH := 12
 const MAX_SCAR := 24
 const MAX_IMPACT_LIGHTS := 8
 const MAX_WRECKS := 6
+const MAX_DAMAGE_NUMBERS := 18
 
 static var _soft_tex: GradientTexture2D = null
 static var _streak_tex: ImageTexture = null
@@ -435,7 +436,7 @@ static func _particle(parent: Node3D, pos: Vector3, amount: int, lifetime: float
 	p.one_shot = true
 	p.local_coords = false
 	p.explosiveness = float(opts.get("explosiveness", 0.85))
-	p.visibility_aabb = AABB(Vector3(-8, -6, -8), Vector3(16, 16, 16))
+	p.visibility_aabb = opts.get("aabb", AABB(Vector3(-8, -6, -8), Vector3(16, 16, 16)))
 	var pm := ParticleProcessMaterial.new()
 	pm.direction = dir.normalized() if dir.length_squared() > 0.0001 else Vector3.UP
 	pm.spread = spread
@@ -680,6 +681,7 @@ static func casing(parent: Node3D, pos: Vector3, eject_dir: Vector3) -> void:
 				body.queue_free())
 	else:
 		_casing_count = maxi(0, _casing_count - 1)
+		body.queue_free()
 
 
 static func steam_vent(parent: Node3D, pos: Vector3) -> void:
@@ -899,12 +901,13 @@ static func particle_explosion(parent: Node3D, pos: Vector3, color: Color, scale
 				 "damping": 2.2, "angular": 2.0, "explosiveness": 0.96})
 		# (b) Buoyant thermal stem: narrow 14° column, positive upward acceleration,
 		#     incandescent magma-orange at the base churning to dark volcanic soot.
+		var mushroom_aabb := AABB(Vector3(-18, -6, -18), Vector3(36, 48, 36))
 		_particle(holder, Vector3(0, 0.3, 0), 58, 3.2, Vector3.UP, 14.5, 3.2, 6.8,
 				[Color(1.0, 0.62, 0.10, 0.96), Color(0.85, 0.28, 0.05, 0.88),
 				 Color(0.24, 0.20, 0.19, 0.72), Color(0.12, 0.11, 0.12, 0.0)],
 				1.55, Vector3(0, 4.6, 0), false,
 				{"tex": "fire", "quad": 1.25, "curve": [[0, 0.38], [0.3, 1.05], [1, 1.9]],
-				 "angular": 1.6, "damping": 0.35, "explosiveness": 0.88})
+				 "angular": 1.6, "damping": 0.35, "explosiveness": 0.88, "aabb": mushroom_aabb})
 		# (c) Elevated toroidal cap canopy: two delayed beats billowing outward at
 		#     the stem apex (holder scale lifts local 2.35 m to 2.35 * scale world).
 		var cap_pos := Vector3(0.0, 2.35, 0.0)
@@ -927,13 +930,14 @@ static func particle_explosion(parent: Node3D, pos: Vector3, color: Color, scale
 							{"tex": str(beat["tex"]), "quad": 1.35,
 							 "curve": [[0, 0.45], [0.32, 1.45], [0.75, 1.85], [1, 2.25]],
 							 "box": Vector3(1.15, 0.32, 1.15), "angular": 2.8, "damping": 1.15,
-							 "explosiveness": 0.85}))
+							 "explosiveness": 0.85, "aabb": mushroom_aabb}))
 		# (d) Wilson condensation ring: pale vapor annulus encircling the stem
-		var wt := holder.create_tween()
-		wt.tween_interval(0.10)
-		wt.tween_callback(func() -> void:
-			if is_instance_valid(holder):
-				_ring_quad(holder, Vector3(0, 1.25, 0), 0.85, Color(0.92, 0.94, 0.98, 0.72), 9.5, 0.55, false))
+		if not reduced:
+			var wt := holder.create_tween()
+			wt.tween_interval(0.10)
+			wt.tween_callback(func() -> void:
+				if is_instance_valid(holder):
+					_ring_quad(holder, Vector3(0, 1.25, 0), 0.85, Color(0.92, 0.94, 0.98, 0.72), 9.5, 0.55, false))
 	else:
 		# Stage 2a: Heavy buoyant dark soot mushroom column rising and curling upward
 		_particle(holder, Vector3(0, 0.45, 0), 46, 2.55, Vector3.UP, 36.0, 1.2, 3.8,
@@ -1059,7 +1063,7 @@ static func _build_death_wreck(pos: Vector3, basis: Basis, is_pogo: bool,
 	else:
 		# Charred pogo stick, bent, with a glowing banana-blaster still in its hand
 		_stick_wreck_mesh(wreck, frame_mat, cast_off)
-	wreck.global_transform = Transform3D(basis.orthonormalized(), pos + Vector3(0, 0.55, 0))
+	wreck.transform = Transform3D(basis.orthonormalized(), pos + Vector3(0, 0.55, 0))
 	wreck.linear_velocity = Vector3(rng.randf_range(-4.5, 4.5),
 			rng.randf_range(9.5, 12.8), rng.randf_range(-4.5, 4.5))
 	wreck.angular_velocity = Vector3(rng.randf_range(-14, 14),
@@ -1067,7 +1071,7 @@ static func _build_death_wreck(pos: Vector3, basis: Basis, is_pogo: bool,
 	wreck.add_to_group("death_wreck")
 	# Continuous fire-and-soot plume streaming off the wreck (one_shot = false)
 	var plume := GPUParticles3D.new()
-	plume.amount = 26
+	plume.amount = maxi(4, int(26 * _q()))
 	plume.lifetime = 0.85
 	plume.one_shot = false
 	plume.local_coords = false
@@ -1147,6 +1151,7 @@ static func dramatic_death_explosion(parent: Node3D, pos: Vector3, basis: Basis,
 		return
 	var wreck := _build_death_wreck(pos, basis, is_pogo, rng)
 	parent.add_child(wreck)
+	wreck.global_transform = Transform3D(basis.orthonormalized(), pos + Vector3(0, 0.55, 0))
 	# Beat 3: two staggered mid-air cook-offs tracking the tumbling wreck
 	var cook := func(sz: float) -> void:
 		if not is_instance_valid(wreck):
@@ -1258,8 +1263,7 @@ static func smash_burst(parent: Node3D, pos: Vector3, size: Vector3) -> void:
 	if tree == null:
 		return
 	if Settings.reduced_motion():
-		_ring_quad(parent, Vector3(pos.x, 0.08, pos.z), 1.0,
-				Color(0.68, 0.62, 0.55, 0.5), 4.0, 0.7, true)
+		_static_cue(parent, Vector3(pos.x, 0.25, pos.z), Color(0.75, 0.68, 0.58, 0.85), 1.6, 0.35)
 		return
 	# glass glints
 	_particle(parent, pos + Vector3(0, 1.2, 0), 20, 0.75, Vector3.UP, 80.0, 3.0, 9.0,
@@ -1328,17 +1332,24 @@ static func damage_number(parent: Node3D, pos: Vector3, amount: float, color: Co
 	label.modulate = color
 	# Scatter horizontally so twin-barrel hits don't stack on the same pixel.
 	label.position = pos + Vector3(randf_range(-0.28, 0.28), 0.8, 0.0)
+	label.add_to_group("vfx_dmg_num")
 	parent.add_child(label)
+	_cap_group(parent, "vfx_dmg_num", MAX_DAMAGE_NUMBERS)
+	var cleanup_lbl := func() -> void:
+		if is_instance_valid(label):
+			label.remove_from_group("vfx_dmg_num")
+			label.queue_free()
 	var t := label.create_tween()
 	if Settings.reduced_motion():
 		t.tween_interval(0.75)
-		t.tween_callback(label.queue_free)
+		t.tween_callback(cleanup_lbl)
 		return
 	label.scale = Vector3.ONE * 1.35
 	t.tween_property(label, "scale", Vector3.ONE, 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	t.parallel().tween_property(label, "position", label.position + Vector3(0.0, 1.65, 0.0), 0.75)
 	t.parallel().tween_property(label, "modulate:a", 0.0, 0.75)
-	t.tween_callback(label.queue_free)
+	t.parallel().tween_property(label, "outline_modulate:a", 0.0, 0.75)
+	t.tween_callback(cleanup_lbl)
 
 
 static func underglow(parent: Node3D, color: Color) -> Node3D:

@@ -18,7 +18,6 @@ var _life := 2.2
 var _inert := true  # setup() re-arms; a never-configured bolt dies instantly
 var _trail: GPUParticles3D
 var _tracer: Node3D
-var _light: OmniLight3D
 var _ray_query: PhysicsRayQueryParameters3D
 
 static var _nose_mesh: SphereMesh = null
@@ -158,23 +157,24 @@ func _build_tracer() -> void:
 	# Rapid-fire tracers rely on unshaded additive bloom instead of per-bolt
 	# OmniLight3D nodes so WebGL2 stays within its 8-light-per-surface budget.
 
-	_trail = GPUParticles3D.new()
-	_trail.amount = maxi(4, int(30 * Settings.quality_multiplier()))
-	_trail.lifetime = 0.32
-	_trail.local_coords = false
-	_trail.visibility_aabb = AABB(Vector3(-2, -2, -2), Vector3(4, 4, 4))
-	var pm := ParticleProcessMaterial.new()
-	pm.direction = -velocity.normalized()
-	pm.spread = 9.0
-	pm.initial_velocity_min = 0.3
-	pm.initial_velocity_max = 1.3
-	pm.scale_min = 0.16
-	pm.scale_max = 0.5
-	pm.color_ramp = _get_trail_ramp(hit_color)
-	_trail.process_material = pm
-	_trail.draw_pass_1 = _get_trail_mesh(hit_color)
-	add_child(_trail)
-	_trail.emitting = true
+	if not Settings.reduced_motion():
+		_trail = GPUParticles3D.new()
+		_trail.amount = maxi(4, int(30 * Settings.quality_multiplier()))
+		_trail.lifetime = 0.32
+		_trail.local_coords = false
+		_trail.visibility_aabb = AABB(Vector3(-2, -2, -2), Vector3(4, 4, 4))
+		var pm := ParticleProcessMaterial.new()
+		pm.direction = -velocity.normalized()
+		pm.spread = 9.0
+		pm.initial_velocity_min = 0.3
+		pm.initial_velocity_max = 1.3
+		pm.scale_min = 0.16
+		pm.scale_max = 0.5
+		pm.color_ramp = _get_trail_ramp(hit_color)
+		_trail.process_material = pm
+		_trail.draw_pass_1 = _get_trail_mesh(hit_color)
+		add_child(_trail)
+		_trail.emitting = true
 
 
 func _physics_process(delta: float) -> void:
@@ -186,9 +186,6 @@ func _physics_process(delta: float) -> void:
 	if _age >= _life:
 		queue_free()
 		return
-	# flicker the tracer light — cheap sin, no allocations
-	if _light != null:
-		_light.light_energy = 2.6 + sin(_age * 34.0) * 0.9
 	var world := get_world_3d()
 	if world == null:
 		return
@@ -225,5 +222,6 @@ func _physics_process(delta: float) -> void:
 			if fx == null and get_tree() != null:
 				fx = get_tree().current_scene as Node3D
 			VfxFactory.impact(fx, point, hit_color, velocity.normalized(), surface, n)
-	_trail.emitting = false
+	if _trail != null:
+		_trail.emitting = false
 	queue_free()

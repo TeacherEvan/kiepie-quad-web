@@ -52,6 +52,27 @@ func _measure(sensitivity: float) -> Dictionary:
 	await process_frame
 	return {"heading": heading, "min_up": min_up}
 
+func _measure_reverse() -> Dictionary:
+	var scene := load("res://scenes/TestRide.tscn") as PackedScene
+	var root := scene.instantiate() as Node3D
+	get_root().add_child(root)
+	await physics_frame
+	var bike := root.get_node("KiepieBike") as VehicleBody3D
+	for i in range(30):
+		await physics_frame
+	var p0 := bike.global_position
+	var fwd0 := bike.global_transform.basis.z.normalized()
+	Input.action_press("move_back")
+	var peak_rev := 0.0
+	for i in range(120):
+		await physics_frame
+		peak_rev = maxf(peak_rev, -bike.linear_velocity.dot(fwd0))
+	var disp := (bike.global_position - p0).dot(fwd0)
+	_release_all()
+	root.queue_free()
+	await process_frame
+	return {"disp": disp, "peak_rev": peak_rev}
+
 func _run() -> void:
 	await process_frame
 	# capture the developer's prior before any _set_setting mutates it
@@ -69,6 +90,10 @@ func _run() -> void:
 	_check(float(high["heading"]) > float(low["heading"]) * 1.15,
 			"steer sensitivity changes turn rate (low %.1f vs high %.1f deg)" % [
 					float(low["heading"]), float(high["heading"])])
+	var rev: Dictionary = await _measure_reverse()
+	_check(float(rev["disp"]) < -6.0 and float(rev["peak_rev"]) > 5.0,
+			"reverse driving accelerates past 2 m/s without braking against itself (disp %.2f m, peak %.2f m/s)" % [
+					float(rev["disp"]), float(rev["peak_rev"])])
 	_set_setting("steer_sensitivity", _steer_prior)
 	print("CONTROLS: %d failure(s)" % _fail)
 	quit(1 if _fail > 0 else 0)

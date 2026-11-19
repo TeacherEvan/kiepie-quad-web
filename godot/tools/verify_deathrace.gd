@@ -1,7 +1,7 @@
 extends SceneTree
 ## Gate: Battle Royale & Death Race game modes, Death Race circuit (loops,
 ## hazard pits, ramps, pickups, ordered checkpoints, finish line & lap counter),
-## Victory Splash video, Rocket Launcher (5s CD, 2x dmg, 4.5m blast) &
+## Victory Splash video, Rocket Launcher (1.5s CD, 2x dmg, 4.5m blast) &
 ## Meteor Shower (6s CD, practical ground aim reticle, 2s sky-fall delay,
 ## massive AOE damage), HUD reload bar, and mobile right-analog-back switching.
 
@@ -189,9 +189,18 @@ func _run() -> void:
 		dcol2.shape = dbox2
 		dummy_proxy.add_child(dcol2)
 		dr.add_child(dummy_proxy)
+		# Third dummy: hidden / respawning proxy inside blast radius MUST NOT take
+		# damage or spawn a ghost floating damage number (P1-5).
+		var dummy_ghost := StaticBody3D.new()
+		dummy_ghost.name = "DummyGhostProxy"
+		dummy_ghost.add_to_group("bike")
+		dummy_ghost.set("player_id", "dummy-ghost")
+		dummy_ghost.visible = false
+		dr.add_child(dummy_ghost)
 		var fwd := bike.global_transform.basis.z.normalized()
 		dummy_enemy.global_position = bike.global_position + fwd * 3.2 + Vector3(0.0, 0.6, 0.0)
 		dummy_proxy.global_position = bike.global_position + fwd * 3.6 + Vector3(0.9, 0.6, 0.0)
+		dummy_ghost.global_position = bike.global_position + fwd * 3.4 + Vector3(-1.4, 0.6, 0.0)
 		await physics_frame
 
 		cannons.call("fire")
@@ -205,10 +214,16 @@ func _run() -> void:
 		_check(is_equal_approx(float(enemy_combat.get("last_dmg")), 60.0),
 				"Rocket Launcher deals double MG damage (60.0) in 4.5m blast radius (got %.1f)" % float(enemy_combat.get("last_dmg")))
 		var rocket_number := false
+		var ghost_rocket_num := false
 		for lbl in dr.find_children("*", "Label3D", true, false):
-			if str((lbl as Label3D).text).begins_with("-60"):
-				rocket_number = true
+			var l3 := lbl as Label3D
+			if str(l3.text).begins_with("-60"):
+				if l3.global_position.distance_to(dummy_ghost.global_position) < 1.0:
+					ghost_rocket_num = true
+				else:
+					rocket_number = true
 		_check(rocket_number, "Rocket detonation spawns a floating Label3D damage number on the controller-less dummy")
+		_check(not ghost_rocket_num, "Rocket detonation skips hidden/respawning proxy (no ghost damage number)")
 
 		# Switch to Meteor Shower: 6.0s cooldown, ground aim reticle, 2.0s sky-fall delay, massive 105.0 damage
 		cannons.call("select_weapon", "meteor")
@@ -221,6 +236,7 @@ func _run() -> void:
 		enemy_combat.set("last_dmg", 0.0)
 		dummy_enemy.global_position = aim_pt + Vector3(1.5, 0.5, 0.0)  # inside 7.5m meteor blast radius
 		dummy_proxy.global_position = aim_pt + Vector3(-1.5, 0.5, 0.0)
+		dummy_ghost.global_position = aim_pt + Vector3(0.0, 0.5, 2.2)
 
 		cannons.call("fire")
 		_check(not bool(cannons.call("can_fire")) and float(cannons.call("remaining_cooldown", "meteor")) > 5.4,
@@ -232,12 +248,19 @@ func _run() -> void:
 		_check(float(enemy_combat.get("last_dmg")) >= 95.0,
 				"Meteor impacts after 2.0s sky fall dealing massive damage (%.1f >= 95.0)" % float(enemy_combat.get("last_dmg")))
 		var meteor_number := false
+		var ghost_meteor_num := false
 		for lbl in dr.find_children("*", "Label3D", true, false):
-			if str((lbl as Label3D).text).begins_with("-105"):
-				meteor_number = true
+			var l3 := lbl as Label3D
+			if str(l3.text).begins_with("-105"):
+				if l3.global_position.distance_to(dummy_ghost.global_position) < 1.0:
+					ghost_meteor_num = true
+				else:
+					meteor_number = true
 		_check(meteor_number, "Meteor detonation spawns a floating Label3D damage number on the controller-less dummy")
+		_check(not ghost_meteor_num, "Meteor detonation skips hidden/respawning proxy (no ghost damage number)")
 		dummy_enemy.free()
 		dummy_proxy.free()
+		dummy_ghost.free()
 
 	# ---- 5. Ordered Checkpoint + Finish Line Lap Tracking & Victory Splash Trigger
 	if tracker != null and bike != null and hud != null:

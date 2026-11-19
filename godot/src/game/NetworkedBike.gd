@@ -37,7 +37,8 @@ func setup(id: String, name_text: String, color_hex: String) -> void:
 	col.shape = box
 	col.position = Vector3(0.0, 0.6, 0.0)
 	add_child(col)
-	collision_layer = 1
+	# Unplaced proxy stays intangible until its first live state snapshot places it.
+	collision_layer = 0
 	collision_mask = 0
 
 	_nameplate = Label3D.new()
@@ -134,6 +135,7 @@ func apply_state(data: Dictionary) -> void:
 	if not _initialised:
 		is_respawning = dead_now
 		visible = not dead_now
+		collision_layer = 0 if dead_now else 1
 		global_position = _target_pos
 		global_transform.basis = _target_basis
 		_initialised = true

@@ -12,7 +12,6 @@ const RESPAWN_SEC := 12.0
 @export var kind: String = "repair"
 
 var _visual: MeshInstance3D
-var _glow: OmniLight3D
 var _trigger: CollisionShape3D
 var _t := 0.0
 var _collected := false
@@ -67,10 +66,6 @@ func _ready() -> void:
 	_visual.rotation_degrees.x = 20.0
 	add_child(_visual)
 
-	# Emissive torus provides clear bloom readability without consuming
-	# WebGL2's 8-omni-light-per-surface budget across 8-10 pickups per arena.
-	_glow = null
-
 	body_entered.connect(_on_body_entered)
 	if Match != null:
 		if not Match.lobby_changed.is_connected(_on_lobby_changed):
@@ -78,6 +73,11 @@ func _ready() -> void:
 		_lobby_enabled = _lobby_pickups_enabled()
 		if not _lobby_enabled:
 			_apply_enabled(false)
+
+
+func _exit_tree() -> void:
+	if Match != null and Match.lobby_changed.is_connected(_on_lobby_changed):
+		Match.lobby_changed.disconnect(_on_lobby_changed)
 
 
 func _lobby_pickups_enabled() -> bool:
@@ -103,8 +103,6 @@ func _apply_enabled(v: bool) -> void:
 		_trigger.set_deferred("disabled", not v)
 	if is_instance_valid(_visual):
 		_visual.visible = v
-	if is_instance_valid(_glow):
-		_glow.visible = v
 
 
 func _on_lobby_changed() -> void:
@@ -123,8 +121,6 @@ func _process(delta: float) -> void:
 		else:
 			_visual.rotation.y += delta * 1.6
 			_visual.position.y = sin(_t * 2.0) * 0.12
-	if is_instance_valid(_glow):
-		_glow.light_energy = 1.7 if reduced else (1.7 + sin(_t * 3.0) * 0.35)
 
 
 func _on_body_entered(body: Node) -> void:
@@ -159,8 +155,6 @@ func _collect() -> void:
 		_trigger.set_deferred("disabled", true)
 	if is_instance_valid(_visual):
 		_visual.visible = false
-	if is_instance_valid(_glow):
-		_glow.visible = false
 
 	VFX.pickup_burst(_fx_parent(), global_position, _color())
 

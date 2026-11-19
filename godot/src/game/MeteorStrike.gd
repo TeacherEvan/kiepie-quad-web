@@ -196,23 +196,36 @@ func _build_visual() -> void:
 		_boulder.add_child(_light)
 		VFX._cap_group(_boulder, "vfx_light", VFX.MAX_IMPACT_LIGHTS)
 
-	_trail = GPUParticles3D.new()
-	_trail.amount = maxi(8, int(44 * Settings.quality_multiplier()))
-	_trail.lifetime = 0.55
-	_trail.local_coords = false
-	_trail.visibility_aabb = AABB(Vector3(-8, -8, -8), Vector3(16, 44, 16))
-	var pm := ParticleProcessMaterial.new()
-	pm.direction = Vector3(0.1, 1.0, -0.1).normalized()
-	pm.spread = 18.0
-	pm.initial_velocity_min = 2.0
-	pm.initial_velocity_max = 5.5
-	pm.scale_min = 0.55
-	pm.scale_max = 1.45
-	pm.color_ramp = _trail_ramp
-	_trail.process_material = pm
-	_trail.draw_pass_1 = _trail_mesh
-	_boulder.add_child(_trail)
-	_trail.emitting = true
+	if not Settings.reduced_motion():
+		_trail = GPUParticles3D.new()
+		_trail.amount = maxi(8, int(44 * Settings.quality_multiplier()))
+		_trail.lifetime = 0.55
+		_trail.local_coords = false
+		_trail.visibility_aabb = AABB(Vector3(-8, -8, -8), Vector3(16, 44, 16))
+		var pm := ParticleProcessMaterial.new()
+		pm.direction = Vector3(0.1, 1.0, -0.1).normalized()
+		pm.spread = 18.0
+		pm.initial_velocity_min = 2.0
+		pm.initial_velocity_max = 5.5
+		pm.scale_min = 0.55
+		pm.scale_max = 1.45
+		pm.color_ramp = _trail_ramp
+		_trail.process_material = pm
+		_trail.draw_pass_1 = _trail_mesh
+		_boulder.add_child(_trail)
+		_trail.emitting = true
+
+
+func _release_light() -> void:
+	if is_instance_valid(_light):
+		if _light.is_in_group("vfx_light"):
+			_light.remove_from_group("vfx_light")
+		_light.queue_free()
+	_light = null
+
+
+func _exit_tree() -> void:
+	_release_light()
 
 
 func _physics_process(delta: float) -> void:
@@ -220,15 +233,17 @@ func _physics_process(delta: float) -> void:
 		return
 	_age += delta
 	var t := clampf(_age / fall_duration, 0.0, 1.0)
+	var reduced := Settings.reduced_motion()
 	if _boulder != null:
 		_boulder.global_position = sky_origin.lerp(target_pos, t)
-		_boulder.rotate_x(delta * 4.2)
-		_boulder.rotate_z(delta * 3.1)
+		if not reduced:
+			_boulder.rotate_x(delta * 4.2)
+			_boulder.rotate_z(delta * 3.1)
 	if _inner_ring != null:
 		var r := lerpf(blast_radius * 0.95, 0.35, t)
 		_inner_ring.scale = Vector3(r, 1.0, r)
 	if _outer_ring != null:
-		var pulse := 1.0 + 0.04 * sin(_age * 24.0)
+		var pulse := 1.0 if reduced else (1.0 + 0.04 * sin(_age * 24.0))
 		_outer_ring.scale = Vector3(blast_radius * pulse, 1.0, blast_radius * pulse)
 	if _age >= fall_duration:
 		_detonate()
@@ -239,6 +254,7 @@ func _detonate() -> void:
 	if _detonated:
 		return
 	_detonated = true
+	_release_light()
 	var fx := get_parent() as Node3D
 	if fx == null and get_tree() != null:
 		fx = get_tree().current_scene as Node3D
@@ -267,6 +283,8 @@ func _detonate() -> void:
 		if not is_instance_valid(b) or not (b is Node3D):
 			continue
 		var bike_node := b as Node3D
+		if not bike_node.visible or bike_node.get("is_respawning") == true:
+			continue
 		var dist := bike_node.global_position.distance_to(target_pos)
 		if dist > blast_radius:
 			continue

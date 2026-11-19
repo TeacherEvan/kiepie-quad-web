@@ -72,7 +72,8 @@ func _run() -> void:
 			_check(col_count >= 1, "remote proxy creates CollisionShape3D hitbox")
 			_check(nameplate != null and nameplate.text == "PeerTwo",
 					"remote proxy creates Label3D Nameplate (%s)" % (nameplate.text if nameplate else "null"))
-			_check(not rb2.visible, "remote proxy stays hidden until first live state packet arrives")
+			_check(not rb2.visible and rb2.collision_layer == 0,
+					"remote proxy stays hidden & intangible (layer 0) until first live state packet arrives")
 
 			# Simulate peer-2 state update through the backend bridge
 			var mock: Node = sb.get("mock")
@@ -84,8 +85,21 @@ func _run() -> void:
 				"d": false,
 			})
 			await process_frame
-			_check(rb2.visible and rb2.global_position.distance_to(Vector3(18.0, 0.6, -12.0)) < 0.05,
-					"remote state packet reveals and snaps peer-2 to (18, 0.6, -12)")
+			_check(rb2.visible and rb2.collision_layer == 1 and rb2.global_position.distance_to(Vector3(18.0, 0.6, -12.0)) < 0.05,
+					"remote state packet reveals, enables collider (layer 1), and snaps peer-2 to (18, 0.6, -12)")
+
+			# First state packet with d=true keeps peer-3 hidden and intangible (layer 0)
+			var rb3 := remote_dict.get("peer-3") as StaticBody3D
+			if rb3 != null:
+				mock.call("simulate_remote_state", {
+					"id": "peer-3",
+					"p": [-12.0, 0.6, 12.0],
+					"r": [0.0, 0.0, 0.0, 1.0],
+					"d": true,
+				})
+				await process_frame
+				_check(not rb3.visible and rb3.collision_layer == 0,
+						"dead first state packet keeps peer-3 hidden and collision_layer == 0")
 
 			# Simulate remote shot from near peer-2
 			var before_children := net.get_child_count()

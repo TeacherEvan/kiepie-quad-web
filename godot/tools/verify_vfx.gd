@@ -111,17 +111,37 @@ func _effects() -> void:
 	vf.dust_ring(holder, Vector3(7, 0, 1), 1.2, 4.0)
 	vf.roost(holder, Vector3(8, 0, 1), Vector3.FORWARD)
 	_check(holder.get_child_count() > 0, "all VFX entry points build without script errors")
-	# The delayed beats (Wilson ring t=0.10s, cap canopy t=0.14s & t=0.30s)
-	# must actually fire before the holder is released.
-	await create_timer(0.5).timeout
-	var tree := holder.get_tree()
-	var emitters := 0
-	if tree != null:
-		for c in holder.get_children():
-			if c is GPUParticles3D or c is MeshInstance3D or c is OmniLight3D or c is Node3D:
-				emitters += 1
-	_check(emitters >= 6, "mushroom cloud delayed stem/cap emitters spawn (got %d)" % emitters)
 	holder.free()
+
+	# Isolated mushroom-cloud contract: delayed stem/cap emitters actually spawn
+	# on a clean holder (not counted from sibling effects), and reduced_motion
+	# suppresses both particles and the delayed Wilson condensation ring.
+	_set_setting("gameplay", "reduced_motion", false)
+	var mush_holder := Node3D.new()
+	root.add_child(mush_holder)
+	vf.mushroom_cloud_explosion(mush_holder, Vector3(0, 0, 0), Color(1.0, 0.26, 0.04), 2.65)
+	await create_timer(0.45).timeout
+	var mush_particles := mush_holder.find_children("*", "GPUParticles3D", true, false).size()
+	_check(mush_particles >= 6,
+			"isolated mushroom cloud spawns >= 6 GPUParticles3D emitters incl. delayed cap beats (got %d)" % mush_particles)
+	mush_holder.free()
+
+	_set_setting("gameplay", "reduced_motion", true)
+	var mush_rm := Node3D.new()
+	root.add_child(mush_rm)
+	vf.mushroom_cloud_explosion(mush_rm, Vector3(0, 0, 0), Color(1.0, 0.26, 0.04), 2.65)
+	await create_timer(0.25).timeout
+	var rm_particles := mush_rm.find_children("*", "GPUParticles3D", true, false).size()
+	var rm_meshes := mush_rm.find_children("*", "MeshInstance3D", true, false)
+	var rm_rings := 0
+	for m in rm_meshes:
+		var mi := m as MeshInstance3D
+		if mi.position.y > 0.5:  # Wilson ring spawns at local y = 1.25
+			rm_rings += 1
+	_check(rm_particles == 0 and rm_rings == 0,
+			"reduced_motion suppresses mushroom particles (%d) and delayed Wilson ring (%d)" % [rm_particles, rm_rings])
+	_set_setting("gameplay", "reduced_motion", false)
+	mush_rm.free()
 
 
 func _anchored() -> void:
@@ -215,10 +235,14 @@ func _decal_caps() -> void:
 		vf.scorch(holder, Vector3(float(i), 0.0, 0.0))
 	for i in range(vf.MAX_SCAR + 5):
 		vf.scar(holder, Vector3(float(i), 1.0, 0.0), Vector3.UP, "metal")
+	for i in range(vf.MAX_DAMAGE_NUMBERS + 6):
+		vf.damage_number(holder, Vector3(float(i), 1.5, 0.0), 30.0, Color(1.0, 0.85, 0.22))
 	_check(get_nodes_in_group("vfx_scorch").size() <= vf.MAX_SCORCH,
 			"scorch decals capped at %d" % vf.MAX_SCORCH)
 	_check(get_nodes_in_group("vfx_scar").size() <= vf.MAX_SCAR,
 			"bullet scars capped at %d (exercised at MAX+5)" % vf.MAX_SCAR)
+	_check(get_nodes_in_group("vfx_dmg_num").size() <= vf.MAX_DAMAGE_NUMBERS,
+			"floating damage numbers capped at %d (got %d)" % [vf.MAX_DAMAGE_NUMBERS, get_nodes_in_group("vfx_dmg_num").size()])
 	holder.free()
 
 

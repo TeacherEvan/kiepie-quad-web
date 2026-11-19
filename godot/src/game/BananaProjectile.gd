@@ -16,7 +16,6 @@ var _age := 0.0
 var _life := 2.2
 var _inert := true  # setup() re-arms; a never-configured fruit dies instantly
 var _tracer: Node3D
-var _light: OmniLight3D
 var _ray_query: PhysicsRayQueryParameters3D
 
 static var _banana_mesh: ArrayMesh = null
@@ -184,23 +183,24 @@ func _build_tracer() -> void:
 	# Bananas rely on emissive material + bloom rather than per-shot OmniLight3D
 	# nodes so WebGL2 stays within its 8-light-per-surface budget.
 
-	var trail := GPUParticles3D.new()
-	trail.amount = maxi(3, int(14 * Settings.quality_multiplier()))
-	trail.lifetime = 0.26
-	trail.local_coords = false
-	trail.visibility_aabb = AABB(Vector3(-1.5, -1.5, -1.5), Vector3(3.0, 3.0, 3.0))
-	var pm := ParticleProcessMaterial.new()
-	pm.direction = -velocity.normalized()
-	pm.spread = 7.0
-	pm.initial_velocity_min = 0.2
-	pm.initial_velocity_max = 0.9
-	pm.scale_min = 0.10
-	pm.scale_max = 0.26
-	pm.color_ramp = _get_trail_ramp()
-	trail.process_material = pm
-	trail.draw_pass_1 = _get_trail_puff_mesh()
-	_tracer.add_child(trail)
-	trail.emitting = true
+	if not Settings.reduced_motion():
+		var trail := GPUParticles3D.new()
+		trail.amount = maxi(3, int(14 * Settings.quality_multiplier()))
+		trail.lifetime = 0.26
+		trail.local_coords = false
+		trail.visibility_aabb = AABB(Vector3(-1.5, -1.5, -1.5), Vector3(3.0, 3.0, 3.0))
+		var pm := ParticleProcessMaterial.new()
+		pm.direction = -velocity.normalized()
+		pm.spread = 7.0
+		pm.initial_velocity_min = 0.2
+		pm.initial_velocity_max = 0.9
+		pm.scale_min = 0.10
+		pm.scale_max = 0.26
+		pm.color_ramp = _get_trail_ramp()
+		trail.process_material = pm
+		trail.draw_pass_1 = _get_trail_puff_mesh()
+		_tracer.add_child(trail)
+		trail.emitting = true
 
 
 func _physics_process(delta: float) -> void:
@@ -213,7 +213,7 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 		return
 	# tumble: spin the banana around its flight axis every tick
-	if _tracer != null:
+	if _tracer != null and not Settings.reduced_motion():
 		_tracer.rotate_object_local(Vector3(0.0, 0.0, 1.0), delta * 9.0)
 	var world := get_world_3d()
 	if world == null:

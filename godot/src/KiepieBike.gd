@@ -105,7 +105,7 @@ func _build_flames() -> void:
 		_flames.queue_free()
 	var p := GPUParticles3D.new()
 	p.name = "ExhaustFlames"
-	p.amount = 72
+	p.amount = maxi(8, int(72 * Settings.quality_multiplier()))
 	p.lifetime = 0.10
 	p.one_shot = false
 	p.emitting = false
@@ -364,11 +364,12 @@ func _physics_process(delta: float) -> void:
 		_turbo_sfx_cd = 0.6
 		_play_sfx("turbo")
 	_was_turbo = turbo_active
+	var reduced := Settings.reduced_motion()
 	if _flames:
-		_flames.emitting = turbo_active
+		_flames.emitting = turbo_active and not reduced
 	if _jet_plume != null:
 		var jet_strength := _turbo_blend if turbo_active else (0.55 if (_flames and _flames.emitting) else 0.0)
-		_jet_plume.visible = jet_strength > 0.04
+		_jet_plume.visible = jet_strength > 0.04 and not reduced
 		if _jet_plume.visible:
 			_jet_t += delta
 			var pulse := 0.92 + 0.12 * sin(_jet_t * 68.0)
@@ -467,6 +468,8 @@ func reset_bike() -> void:
 		PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_SLEEPING, false)
 	if _flames:
 		_flames.emitting = false
+	if _jet_plume != null:
+		_jet_plume.visible = false
 
 func speed_kmh() -> float:
 	return linear_velocity.length() * 3.6
