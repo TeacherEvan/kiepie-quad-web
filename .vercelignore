@@ -1,0 +1,7 @@
+# Strict allowlist: ship ONLY the Web runtime bundle and static media to Vercel.
+# Blocks source code, Blender/STL assets, Godot project files, CI, and audit reports.
+*
+!index.*
+!favicon.ico
+!web-assets/
+!web-assets/**
