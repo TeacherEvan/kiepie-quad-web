@@ -16,6 +16,7 @@ var _target_pos := Vector3.ZERO
 var _target_basis := Basis.IDENTITY
 var _last_tick := -1
 var _initialised := false
+var _kill_lock_until := 0.0
 var _nameplate: Label3D
 var _ring: MeshInstance3D
 
@@ -141,11 +142,18 @@ func apply_state(data: Dictionary) -> void:
 		_initialised = true
 		return
 	if is_respawning and not dead_now:
+		if (Time.get_ticks_msec() / 1000.0) < _kill_lock_until:
+			return  # ignore stale pre-death in-flight packet
 		# Snap immediately on respawn instead of lerping across the arena (and
 		# place the respawn shield pulse at the new spawn point, not the death spot).
 		global_position = _target_pos
 		global_transform.basis = _target_basis
 	set_respawning(dead_now)
+
+
+func mark_killed(lock_sec: float = 0.55) -> void:
+	_kill_lock_until = maxf(_kill_lock_until, Time.get_ticks_msec() / 1000.0 + lock_sec)
+	set_respawning(true)
 
 
 func set_respawning(value: bool) -> void:

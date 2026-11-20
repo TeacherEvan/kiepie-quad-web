@@ -31,6 +31,7 @@ var last_kill_reason := ""
 var _used_tokens: Dictionary = {}
 var _issued_tokens: Dictionary = {}
 var _last_kill_at := -100.0
+var _kill_last_base: Dictionary = {}
 var _kill_times: Array = []
 var _lap_timestamps: Dictionary = {}
 const MIN_LAP_SECONDS := 12.0
@@ -60,6 +61,7 @@ func _reset() -> void:
 	_used_tokens = {}
 	_issued_tokens = {}
 	_last_kill_at = -100.0
+	_kill_last_base = {}
 	_kill_times = []
 	_lap_timestamps = {}
 
@@ -121,20 +123,28 @@ func call_rpc(name: String, args: Dictionary = {}) -> Dictionary:
 func _mock_register_kill(args: Dictionary) -> Dictionary:
 	var shooter := str(args.get("p_killer", args.get("p_shooter", "mock-host")))
 	var token := str(args.get("p_token", ""))
-	if token == "" or not _issued_tokens.has(token):
+	var colon := token.find(":")
+	var base_tok := token.substr(0, colon) if colon > 0 else token
+	var is_sub_tok := colon > 0
+	if token == "" or not _issued_tokens.has(base_tok):
 		last_kill_reason = "invalid_token"
 		return {"ok": false, "reason": last_kill_reason}
 	if _used_tokens.has(token):
 		last_kill_reason = "token_consumed"
 		return {"ok": false, "reason": last_kill_reason}
-	if Time.get_ticks_msec() / 1000.0 - float(_issued_tokens[token]) > 10.0:
+	if Time.get_ticks_msec() / 1000.0 - float(_issued_tokens[base_tok]) > 10.0:
 		last_kill_reason = "token_expired"
 		return {"ok": false, "reason": last_kill_reason}
 	if shooter == str(args.get("p_target", "")):
 		last_kill_reason = "self_kill"
 		return {"ok": false, "reason": last_kill_reason}
 	var now := Time.get_ticks_msec() / 1000.0
-	if now - _last_kill_at < 1.0:
+	var burst_ok := false
+	if is_sub_tok and _kill_last_base.has(shooter):
+		var prev_b: Dictionary = _kill_last_base[shooter] as Dictionary
+		if str(prev_b.get("base", "")) == base_tok and (now - float(prev_b.get("at", -10.0))) < 0.6 and int(prev_b.get("count", 0)) < 4:
+			burst_ok = true
+	if now - _last_kill_at < 1.0 and not burst_ok:
 		last_kill_reason = "kill_cooldown"
 		return {"ok": false, "reason": last_kill_reason}
 	_kill_times = _kill_times.filter(func(t): return now - float(t) < 60.0)
@@ -143,6 +153,12 @@ func _mock_register_kill(args: Dictionary) -> Dictionary:
 		return {"ok": false, "reason": last_kill_reason}
 	_used_tokens[token] = true
 	_last_kill_at = now
+	if burst_ok:
+		var pb: Dictionary = _kill_last_base[shooter] as Dictionary
+		pb["count"] = int(pb.get("count", 1)) + 1
+		_kill_last_base[shooter] = pb
+	else:
+		_kill_last_base[shooter] = {"base": base_tok, "count": 1, "at": now}
 	_kill_times.append(now)
 	var s_dict := lobby.get("settings", {}) as Dictionary
 	var gmode := str(s_dict.get("game_mode", "battle_royale"))

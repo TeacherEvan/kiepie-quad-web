@@ -560,8 +560,9 @@ func fire() -> void:
 		var proj := Node3D.new()
 		proj.set_script(proj_script)
 		fx_parent.add_child(proj)
+		var barrel_tok := ("%s:b%d" % [token, i]) if token != "" else ""
 		proj.setup(owner_id, owner_node, muzzle.global_position, dir,
-				speed, dmg, token, _color)
+				speed, dmg, barrel_tok, _color)
 		if hit_callback.is_valid():
 			proj.on_hit = hit_callback
 		if not practice:
@@ -570,6 +571,6 @@ func fire() -> void:
 				"w": "primary",
 				"o": [muzzle.global_position.x, muzzle.global_position.y, muzzle.global_position.z],
 				"d": [dir.x, dir.y, dir.z],
-				"token": token,
+				"token": barrel_tok,
 			})
 	fired.emit(token)

@@ -308,6 +308,18 @@ func _run() -> void:
 	_check(received.size() == 3, "TaloBackend drops out-of-range 'hurt' damage (9999 > 500)")
 
 	tb.free()
+
+	# P1-2 regression: NetworkedBike post-kill death-lock drops stale in-flight d=false packets
+	var nb_script := load("res://src/game/NetworkedBike.gd") as GDScript
+	var nb := nb_script.new() as StaticBody3D
+	root.add_child(nb)
+	nb.call("setup", "peer-lock", "LOCKED", "#40c8ff")
+	nb.call("apply_state", {"id": "peer-lock", "p": [1.0, 0.5, 1.0], "r": [0, 0, 0, 1], "d": false, "n": 10})
+	nb.call("mark_killed", 0.55)
+	nb.call("apply_state", {"id": "peer-lock", "p": [1.2, 0.5, 1.0], "r": [0, 0, 0, 1], "d": false, "n": 11})
+	_check(bool(nb.get("is_respawning")) and not nb.visible,
+			"P1-2: post-kill death-lock drops stale in-flight d=false packet")
+	nb.queue_free()
 	match_node.set("lobby", prev_lobby)
 	match_node.set("players", prev_players)
 	print("MULTIPLAYER: %d failure(s)" % _fail)

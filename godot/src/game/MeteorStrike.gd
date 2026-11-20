@@ -296,7 +296,8 @@ func _detonate() -> void:
 		var applied_dmg := roundf(damage * falloff)
 		var controller := bike_node.get_node_or_null("CombatController")
 		if controller != null and controller.has_method("take_damage"):
-			controller.call("take_damage", applied_dmg, owner_id, bike_node.global_position, token)
+			var hit_tok := ("%s:v%s" % [token, target_id]) if (token != "" and target_id != "") else token
+			controller.call("take_damage", applied_dmg, owner_id, bike_node.global_position, hit_tok)
 		elif owner_id != "" and owner_id == local_uid and target_id != local_uid:
 			# Remote proxy or practice dummy: no local CombatController exists to
 			# pop a number — give the shooter immediate zero-latency feedback.
@@ -311,7 +312,8 @@ func _detonate() -> void:
 			continue
 		var hz := h as Node3D
 		if hz.global_position.distance_to(target_pos) <= blast_radius and hz.has_method("ignite"):
-			hz.call("ignite", owner_id, token)
+			var drum_tok := ("%s:d%d" % [token, hz.get_instance_id()]) if token != "" else ""
+			hz.call("ignite", owner_id, drum_tok)
 			if owner_id != "" and owner_id == local_uid:
 				hit_any_enemy = true
 

@@ -222,7 +222,10 @@ func _hide_remote_briefly(id: String) -> void:
 		return
 	var gen := int(_death_gen.get(id, 0)) + 1
 	_death_gen[id] = gen
-	rb.call("set_respawning", true)
+	if rb.has_method("mark_killed"):
+		rb.call("mark_killed", 0.55)
+	else:
+		rb.call("set_respawning", true)
 	var tree := get_tree()
 	if tree == null:
 		return

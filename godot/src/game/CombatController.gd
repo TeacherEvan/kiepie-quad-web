@@ -248,14 +248,16 @@ func _respawn() -> void:
 	else:
 		var points := tree.get_nodes_in_group("spawn_point") if tree != null else []
 		if not points.is_empty():
-			var pick: Node3D = points[randi_range(0, points.size() - 1)] as Node3D
+			var pick := _pick_safe_spawn(points)
 			pos = pick.global_position + Vector3(0.0, 0.6, 0.0)
+			var t := Transform3D(pick.global_transform.basis.orthonormalized(), pos)
+			bike.set_spawn(t)
 		elif practice_mode:
 			pos = Vector3(0.0, 0.6, 0.0)
+			bike.set_spawn(Transform3D(Basis.IDENTITY, pos))
 		else:
 			pos = Vector3(randf_range(-25.0, 25.0), 0.6, randf_range(-25.0, 25.0))
-		var t := Transform3D(Basis.IDENTITY, pos)
-		bike.set_spawn(t)
+			bike.set_spawn(Transform3D(Basis.IDENTITY, pos))
 	# reset_bike() zeroes wheel force/brake/steer, clears dodge state and pushes
 	# the spawn transform into PhysicsServer3D — direct global_transform writes
 	# get overwritten on the next physics sync step.
@@ -271,6 +273,37 @@ func _respawn() -> void:
 	VFX.shield_pulse(_fx_parent(), pos, player_color)
 	_play_sfx("respawn")
 	respawned.emit()
+
+
+func _pick_safe_spawn(points: Array) -> Node3D:
+	var tree := get_tree()
+	var hazards: Array[Vector3] = []
+	if tree != null:
+		for b in tree.get_nodes_in_group("bike"):
+			if b == bike or not is_instance_valid(b) or not (b is Node3D):
+				continue
+			var bn := b as Node3D
+			if bn.visible and bn.get("is_respawning") != true:
+				hazards.append(bn.global_position)
+	var scored: Array = []
+	var best_dist := -1.0
+	for p in points:
+		var sp := p as Node3D
+		if sp == null:
+			continue
+		var min_d := 1e9
+		for h in hazards:
+			min_d = minf(min_d, sp.global_position.distance_to(h))
+		if min_d > best_dist:
+			best_dist = min_d
+		scored.append({"sp": sp, "d": min_d})
+	var top: Array[Node3D] = []
+	for item in scored:
+		if float(item["d"]) >= best_dist - 3.0:
+			top.append(item["sp"] as Node3D)
+	if top.is_empty():
+		return points[0] as Node3D
+	return top[randi_range(0, top.size() - 1)]
 
 
 func reset_state() -> void:

@@ -205,5 +205,35 @@ func _initialize() -> void:
 			"P1-3: shot/hurt/kill/leave frames are all dropped after leave_lobby_channel")
 	dr_backend.free()
 
-	print("talo backend contract: %d checks, %d failure(s)" % [26, _failures])
+	# P1-1 regression: AOE / twin-barrel multi-kill sub-tokens (:v / :b / :d) score up to 4 victims in 0.6 s
+	var mk: Node = (load("res://src/net/TaloBackend.gd") as GDScript).new() as Node
+	mk.user_id = "1"
+	mk.is_ready = true
+	mk._channel_id = 1
+	mk._lobby = {"id": "1", "host_id": "1", "status": "playing", "settings": {"game_mode": "battle_royale", "kill_target": 10}}
+	mk._roster = {
+		"1": {"user_id": "1", "display_name": "host", "score": 0},
+		"2": {"user_id": "2", "display_name": "p2", "score": 0},
+		"3": {"user_id": "3", "display_name": "p3", "score": 0},
+		"4": {"user_id": "4", "display_name": "p4", "score": 0},
+		"5": {"user_id": "5", "display_name": "p5", "score": 0},
+		"6": {"user_id": "6", "display_name": "p6", "score": 0},
+	}
+	var mk1: Dictionary = await mk.call_rpc("register_kill", {"p_target": "2", "p_token": "meteor-1:v2", "p_killer": "1"})
+	var mk2: Dictionary = await mk.call_rpc("register_kill", {"p_target": "3", "p_token": "meteor-1:v3", "p_killer": "1"})
+	var mk_dup: Dictionary = await mk.call_rpc("register_kill", {"p_target": "3", "p_token": "meteor-1:v3", "p_killer": "1"})
+	var mk3: Dictionary = await mk.call_rpc("register_kill", {"p_target": "4", "p_token": "meteor-1:v4", "p_killer": "1"})
+	var mk4: Dictionary = await mk.call_rpc("register_kill", {"p_target": "5", "p_token": "meteor-1:v5", "p_killer": "1"})
+	var mk5: Dictionary = await mk.call_rpc("register_kill", {"p_target": "6", "p_token": "meteor-1:v6", "p_killer": "1"})
+	_check(bool(mk1.get("ok", false)) and bool(mk2.get("ok", false))
+			and bool(mk3.get("ok", false)) and bool(mk4.get("ok", false))
+			and int(mk4.get("score", -1)) == 4,
+			"P1-1: AOE sub-tokens (:v) score up to 4 unique victims in 0.6 s")
+	_check(not bool(mk_dup.get("ok", true)) and str(mk_dup.get("reason", "")) == "token_consumed",
+			"P1-1: replaying a consumed sub-token is rejected")
+	_check(not bool(mk5.get("ok", true)) and str(mk5.get("reason", "")) == "rate_limited",
+			"P1-1: 5th sub-token in same 0.6 s burst is rate_limited")
+	mk.free()
+
+	print("talo backend contract: %d checks, %d failure(s)" % [29, _failures])
 	quit(1 if _failures > 0 else 0)

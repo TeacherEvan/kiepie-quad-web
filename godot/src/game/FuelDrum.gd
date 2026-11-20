@@ -96,7 +96,9 @@ func ignite(attacker_id: String, token: String = "") -> void:
 						controller = child
 						break
 			if controller != null and controller.has_method("take_damage"):
-				controller.call("take_damage", blast_damage, attacker_id, b.global_position, token)
+				var target_id := str(b.get("player_id")) if "player_id" in b else ""
+				var hit_tok := ("%s:v%s" % [token, target_id]) if (token != "" and target_id != "") else token
+				controller.call("take_damage", blast_damage, attacker_id, b.global_position, hit_tok)
 			else:
 				# Remote proxy: no local CombatController — pop an immediate gold
 				# number for the attacker instead of nothing.

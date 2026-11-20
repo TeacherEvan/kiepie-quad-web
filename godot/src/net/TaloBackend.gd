@@ -694,14 +694,16 @@ func _register_kill(args: Dictionary) -> Dictionary:
 	# server-side lever we actually have.
 	var now_s := Time.get_ticks_msec() / 1000.0
 	var last := float(_kill_cooldowns.get(killer, -10.0))
-	var base_tok := token.split(":c", false, 1)[0]
-	var is_chain := token.find(":c") > 0
+	var colon := token.find(":")
+	var base_tok := token.substr(0, colon) if colon > 0 else token
+	var is_sub_tok := colon > 0
 	var burst_ok := false
-	if is_chain and _kill_last_base.has(killer):
+	if is_sub_tok and _kill_last_base.has(killer):
 		var prev_b: Dictionary = _kill_last_base[killer] as Dictionary
-		# Same-blast chained FuelDrum multi-kills (derived "<base>:c<id>") may score
-		# up to 3 victims within 0.6 s while still consuming unique tokens & 20/min cap.
-		if str(prev_b.get("base", "")) == base_tok and (now_s - float(prev_b.get("at", -10.0))) < 0.6 and int(prev_b.get("count", 0)) < 3:
+		# Same-shot AOE / twin-barrel / chained-drum multi-kills (derived "<base>:<suffix>")
+		# may score up to 4 unique victims within 0.6 s while still consuming unique
+		# sub-tokens & enforcing the 20/min sliding cap.
+		if str(prev_b.get("base", "")) == base_tok and (now_s - float(prev_b.get("at", -10.0))) < 0.6 and int(prev_b.get("count", 0)) < 4:
 			burst_ok = true
 	if now_s - last < 1.0 and not burst_ok:
 		return {"ok": false, "reason": "rate_limited"}
