@@ -346,34 +346,37 @@ func _pooling_and_settings() -> void:
 		settings_node.call("set_value", "video", "glow", prior_glow)
 
 		# DestructibleBuilding reduced_motion debris guard
-		var bldg_script := load("res://src/game/DestructibleBuilding.gd") as GDScript
+		var bldg_script := load("res://src/DestructibleBuilding.gd") as GDScript
 		if bldg_script != null:
-			settings_node.call("set_value", "accessibility", "reduced_motion", true)
+			var bldg_holder := Node3D.new()
+			root.add_child(bldg_holder)
+			settings_node.call("set_value", "gameplay", "reduced_motion", true)
 			var b1 := StaticBody3D.new()
 			b1.set_script(bldg_script)
-			root.add_child(b1)
+			bldg_holder.add_child(b1)
 			b1.call("smash", Vector3.FORWARD)
 			var debris_rm := 0
-			for c in root.get_children():
+			for c in bldg_holder.get_children():
 				if c is RigidBody3D:
 					debris_rm += 1
 			_check(debris_rm == 0, "DestructibleBuilding.smash() spawns 0 debris under reduced_motion=true (got %d)" % debris_rm)
 			b1.queue_free()
 
-			settings_node.call("set_value", "accessibility", "reduced_motion", false)
+			settings_node.call("set_value", "gameplay", "reduced_motion", false)
 			var b2 := StaticBody3D.new()
 			b2.set_script(bldg_script)
-			root.add_child(b2)
+			bldg_holder.add_child(b2)
 			b2.call("smash", Vector3.FORWARD)
 			var debris_full := 0
-			for c in root.get_children():
+			for c in bldg_holder.get_children():
 				if c is RigidBody3D:
 					debris_full += 1
 					c.queue_free()
 			_check(debris_full >= 4, "DestructibleBuilding.smash() spawns >=4 debris under reduced_motion=false (got %d)" % debris_full)
 			b2.queue_free()
+			bldg_holder.queue_free()
 			await process_frame
-		settings_node.call("set_value", "accessibility", "reduced_motion", prior_rm)
+		settings_node.call("set_value", "gameplay", "reduced_motion", prior_rm)
 
 	# SideCannons 30-shot pool cap + bike->pogo swap + muzzle tracking + _exit_tree cleanup
 	var cannons_script := load("res://src/game/SideCannons.gd") as GDScript
@@ -381,15 +384,17 @@ func _pooling_and_settings() -> void:
 		var owner_bike := Node3D.new()
 		root.add_child(owner_bike)
 		var m_l := Node3D.new()
+		m_l.name = "Muzzle_L"
 		m_l.position = Vector3(-0.4, 0.5, 0.5)
 		owner_bike.add_child(m_l)
 		var m_r := Node3D.new()
+		m_r.name = "Muzzle_R"
 		m_r.position = Vector3(0.4, 0.5, 0.5)
 		owner_bike.add_child(m_r)
 		var sc := Node3D.new()
 		sc.set_script(cannons_script)
 		owner_bike.add_child(sc)
-		sc.call("setup", owner_bike, [m_l, m_r] as Array[Node3D], "p1", "bike")
+		sc.call("setup", owner_bike, "p1", Callable(), Color.WHITE, "bike")
 		for _s in range(30):
 			sc.set("_cooldown", 0.0)
 			sc.call("fire")
@@ -402,9 +407,11 @@ func _pooling_and_settings() -> void:
 		_check(all_valid, "SideCannons _proj_pool slots are all valid")
 
 		# Swap bike -> pogo and verify muzzle flash tracking + cleanup
+		m_l.name = "BananaMuzzle_L"
+		m_r.name = "BananaMuzzle_R"
 		m_l.position = Vector3(-0.3, 1.2, 0.4)
 		m_r.position = Vector3(0.3, 1.2, 0.4)
-		sc.call("setup", owner_bike, [m_l, m_r] as Array[Node3D], "p1", "pogo")
+		sc.call("setup", owner_bike, "p1", Callable(), Color.WHITE, "pogo")
 		sc.set("_cooldown", 0.0)
 		sc.call("fire")
 		var flashes: Array = sc.get("_muzzle_flashes")
@@ -440,13 +447,13 @@ func _pooling_and_settings() -> void:
 		bp.queue_free()
 
 	# ArenaNet 40-shot remote pool cap
-	var net_script := load("res://src/net/ArenaNet.gd") as GDScript
+	var net_script := load("res://src/game/ArenaNet.gd") as GDScript
 	if net_script != null:
-		var net := Node.new()
+		var net := Node3D.new()
 		net.set_script(net_script)
 		root.add_child(net)
 		for _r in range(40):
-			net.call("_spawn_remote_shot", "peer-2", Vector3.ZERO, Vector3.FORWARD, "bike", "tok")
+			net.call("_spawn_remote_shot", {"id": "peer-2", "o": [0.0, 0.0, 0.0], "d": [0.0, 0.0, 1.0], "token": "tok"})
 		var rpool: Array = net.get("_remote_proj_pool")
 		_check(rpool.size() <= 32, "ArenaNet 40 remote shots caps _remote_proj_pool <= 32 (got %d)" % rpool.size())
 		net.queue_free()

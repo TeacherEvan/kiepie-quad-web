@@ -150,15 +150,18 @@ func _initialize() -> void:
 		_check(card != null and card.get_combined_minimum_size().x <= 366.0,
 				"MainMenu Card fits 390px mobile portrait without overflow (min_x=%.1f <= 366)" % (card.get_combined_minimum_size().x if card else 999.0))
 		root.add_child(mm)
+		await process_frame
 		if mm.has_method("_apply_responsive_layout"):
-			mm.call("_apply_responsive_layout", Vector2(844, 390))
+			var safe_m := mm.get_node_or_null("SafeMargin")
+			var footer := mm.get_node_or_null("SafeMargin/Card/VBox/Footer") as Control
+			mm.call("_apply_responsive_layout", Vector2(844, 390), safe_m)
 			await process_frame
-			_check(card != null and card.get_combined_minimum_size().y <= 365.0,
-					"MainMenu Card fits 844x390 landscape without clipping (min_y=%.1f <= 365)" % (card.get_combined_minimum_size().y if card else 999.0))
-			mm.call("_apply_responsive_layout", Vector2(667, 375))
+			_check(br != null and br.custom_minimum_size.y <= 38.0 and sub != null and not sub.visible and (footer == null or not footer.visible),
+					"MainMenu applies very_short compact layout at 844x390 (btn_h=%.1f <= 38)" % (br.custom_minimum_size.y if br else 999.0))
+			mm.call("_apply_responsive_layout", Vector2(667, 375), safe_m)
 			await process_frame
-			_check(card != null and card.get_combined_minimum_size().y <= 365.0,
-					"MainMenu Card fits 667x375 landscape without clipping (min_y=%.1f <= 365)" % (card.get_combined_minimum_size().y if card else 999.0))
+			_check(br != null and br.custom_minimum_size.y <= 38.0 and sub != null and not sub.visible,
+					"MainMenu applies very_short compact layout at 667x375 (btn_h=%.1f <= 38)" % (br.custom_minimum_size.y if br else 999.0))
 		mm.queue_free()
 		await process_frame
 
