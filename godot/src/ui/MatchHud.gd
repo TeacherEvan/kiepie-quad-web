@@ -220,11 +220,13 @@ func _on_viewport_resized() -> void:
 	if _relayout_pending:
 		return
 	_relayout_pending = true
+	var w_self: WeakRef = weakref(self)
 	var timer := get_tree().create_timer(0.1)
 	timer.timeout.connect(func() -> void:
-		_relayout_pending = false
-		if is_instance_valid(self) and is_inside_tree():
-			_relayout())
+		var me := w_self.get_ref() as Node
+		if me != null and is_instance_valid(me) and me.is_inside_tree():
+			me.set("_relayout_pending", false)
+			me.call("_relayout"))
 
 
 func _relayout() -> void:
@@ -630,21 +632,27 @@ func add_kill(killer_id: String, victim_id: String) -> void:
 		var old = _kill_lines.pop_front()
 		if is_instance_valid(old):
 			(old as Node).queue_free()
-	var line_ref = line
+	var w_self: WeakRef = weakref(self)
+	var w_line: WeakRef = weakref(line)
 	var timer := get_tree().create_timer(4.0)
 	timer.timeout.connect(func() -> void:
-		if not is_instance_valid(self) or not is_inside_tree() or not is_instance_valid(line_ref):
+		var me := w_self.get_ref() as Node
+		var lbl := w_line.get_ref() as Label
+		if me == null or not is_instance_valid(me) or not me.is_inside_tree() or lbl == null or not is_instance_valid(lbl):
 			return
-		if _reduced_motion():
-			(line_ref as Node).queue_free()
-			_kill_lines.erase(line_ref)
+		if me.call("_reduced_motion"):
+			lbl.queue_free()
+			me.get("_kill_lines").erase(lbl)
 			return
-		var tw := create_tween()
-		tw.tween_property(line_ref, "modulate:a", 0.0, 1.0)
+		var tw: Tween = me.create_tween()
+		tw.tween_property(lbl, "modulate:a", 0.0, 1.0)
 		tw.tween_callback(func() -> void:
-			if is_instance_valid(line_ref):
-				(line_ref as Node).queue_free()
-			_kill_lines.erase(line_ref)))
+			var l2 := w_line.get_ref() as Label
+			if l2 != null and is_instance_valid(l2):
+				l2.queue_free()
+			var m2 := w_self.get_ref() as Node
+			if m2 != null and is_instance_valid(m2):
+				m2.get("_kill_lines").erase(l2)))
 
 
 # ------------------------------------------------------------------ helpers ---

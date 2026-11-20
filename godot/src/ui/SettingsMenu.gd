@@ -231,11 +231,13 @@ func _on_setting_changed(_section: String, _key: String, _value: Variant) -> voi
 	if _refreshing or _refresh_pending:
 		return
 	_refresh_pending = true
+	var w_self: WeakRef = weakref(self)
 	var timer := get_tree().create_timer(0.15)
 	timer.timeout.connect(func() -> void:
-		_refresh_pending = false
-		if is_instance_valid(self) and is_inside_tree():
-			_refresh_all())
+		var me := w_self.get_ref() as Node
+		if me != null and is_instance_valid(me) and me.is_inside_tree():
+			me.set("_refresh_pending", false)
+			me.call("_refresh_all"))
 
 
 # ----------------------------------------------------------------- actions ---

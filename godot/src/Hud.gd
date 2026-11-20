@@ -157,11 +157,13 @@ func _on_viewport_resized() -> void:
 	if _relayout_pending:
 		return
 	_relayout_pending = true
+	var w_self: WeakRef = weakref(self)
 	var timer := get_tree().create_timer(0.1)
 	timer.timeout.connect(func() -> void:
-		_relayout_pending = false
-		if is_instance_valid(self) and is_inside_tree():
-			_relayout())
+		var me := w_self.get_ref() as Node
+		if me != null and is_instance_valid(me) and me.is_inside_tree():
+			me.set("_relayout_pending", false)
+			me.call("_relayout"))
 
 
 func _relayout() -> void:
