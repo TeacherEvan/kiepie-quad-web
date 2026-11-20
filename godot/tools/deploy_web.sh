@@ -41,7 +41,14 @@ cleanup() {
 trap cleanup EXIT
 
 echo "== gates"
+SCENES_CLEAN=0
+if git diff --quiet -- godot/scenes/ && git diff --cached --quiet -- godot/scenes/; then
+	SCENES_CLEAN=1
+fi
 bash godot/tools/run_gates.sh || { echo "DEPLOY ABORTED: gates failed"; exit 1; }
+if [ "$SCENES_CLEAN" -eq 1 ]; then
+	git checkout -- godot/scenes/
+fi
 
 echo "== talo key"
 python3 godot/tools/inject_talo_key.py || { echo "DEPLOY ABORTED: no Talo game key"; exit 1; }
@@ -84,6 +91,8 @@ echo "== sync web/ -> repo root"
 	exit 1
 }
 cp -f "$ROOT/web/"* "$ROOT/" || { echo "DEPLOY ABORTED: sync failed"; exit 1; }
+echo "== web hygiene"
+python3 "$HERE/check_web_hygiene.py" || { echo "DEPLOY ABORTED: web hygiene failed"; exit 1; }
 BUNDLE_FILES=(
 	index.html index.js index.wasm index.pck index.manifest.json index.service.worker.js
 	index.audio.worklet.js index.offline.html index.png favicon.ico index.144x144.png
