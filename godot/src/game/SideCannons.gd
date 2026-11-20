@@ -31,18 +31,16 @@ const METEOR_AIM_MIN_DIST := 12.0
 const METEOR_AIM_MAX_DIST := 44.0
 const METEOR_AIM_DEFAULT_DIST := 25.0
 
-# Per-vehicle primary firing profiles. Bike keeps its historical cooldown/damage.
+# Per-vehicle primary firing profiles. Static geometry/color only; balance stats
+# (cooldown, damage_mult, spread, sfx) are derived from VehicleRegistry as the
+# single source of truth so SideCannons and ArenaNet never diverge.
 const PROFILES := {
 	"bike": {
 		"muzzles": [["Muzzle_L", "Cannon_Bore_L", -0.62], ["Muzzle_R", "Cannon_Bore_R", 0.62]],
-		"cooldown": 0.20, "rapid_cooldown": 0.09, "damage_mult": 1.0,
-		"spread": SHOT_SPREAD, "speed": SHOT_SPEED, "sfx": "fire",
 		"color": Color(1.0, 0.55, 0.15), "banana": false,
 	},
 	"pogo": {
 		"muzzles": [["BananaMuzzle_L", "BananaMuzzle_L", -0.235], ["BananaMuzzle_R", "BananaMuzzle_R", 0.235]],
-		"cooldown": 0.40, "rapid_cooldown": 0.18, "damage_mult": 2.0,
-		"spread": 0.075, "speed": SHOT_SPEED, "sfx": "pop",
 		"color": Color(1.0, 0.9, 0.25), "banana": true,
 	},
 }
@@ -88,6 +86,7 @@ static func _profile_for(profile_id: String) -> Dictionary:
 	base["damage_mult"] = VehicleRegistry.damage_multiplier(veh)
 	base["spread"] = VehicleRegistry.spread(veh)
 	base["sfx"] = VehicleRegistry.fire_sfx(veh)
+	base["speed"] = SHOT_SPEED
 	return base
 
 

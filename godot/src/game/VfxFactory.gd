@@ -31,6 +31,9 @@ const MAX_IMPACT_LIGHTS := 8
 const MAX_WRECKS := 6
 const MAX_DAMAGE_NUMBERS := 18
 
+# Mushroom cloud visibility AABB (tall enough for stem ~45m + cap ~26m at scale=2.65)
+const MUSHROOM_AABB := AABB(Vector3(-18, -6, -18), Vector3(36, 48, 36))
+
 static var _soft_tex: GradientTexture2D = null
 static var _streak_tex: ImageTexture = null
 static var _flare_tex: ImageTexture = null
@@ -1150,7 +1153,7 @@ static func dramatic_death_explosion(parent: Node3D, pos: Vector3, basis: Basis,
 		return
 	var wreck := _build_death_wreck(pos, basis, is_pogo, rng)
 	parent.add_child(wreck)
-	wreck.global_transform = Transform3D(basis.orthonormalized(), pos + Vector3(0, 0.55, 0))
+	wreck.transform = Transform3D(basis.orthonormalized(), pos + Vector3(0, 0.55, 0))
 	# Beat 3: two staggered mid-air cook-offs tracking the tumbling wreck
 	var cook := func(sz: float) -> void:
 		if not is_instance_valid(wreck):
