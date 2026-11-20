@@ -72,6 +72,10 @@ var _aim_ray_query: PhysicsRayQueryParameters3D = null
 var _last_reload_progress := -1.0
 var _last_reload_ready := true
 var _last_weapon_emitted := ""
+const PROJ_POOL_SIZE := 24
+var _proj_pool: Array[Node3D] = []
+var _proj_pool_idx := 0
+var _muzzle_flashes: Array[GPUParticles3D] = []
 
 
 static func _profile_for(profile_id: String) -> Dictionary:
@@ -130,6 +134,11 @@ func _find_named(root: Node, wanted: String) -> Node3D:
 
 
 func _exit_tree() -> void:
+	for p in _proj_pool:
+		if is_instance_valid(p):
+			p.queue_free()
+	_proj_pool.clear()
+	_muzzle_flashes.clear()
 	if _aim_reticle != null and is_instance_valid(_aim_reticle):
 		_aim_reticle.queue_free()
 	_aim_reticle = null
@@ -453,12 +462,14 @@ func fire() -> void:
 
 	var fx_parent := _resolve_fx_parent()
 	var right_vec := owner_node.global_transform.basis.x.normalized()
+	_ensure_muzzle_flashes()
 	for i in range(_muzzles.size()):
 		var muzzle: Node3D = _muzzles[i]
 		if not is_instance_valid(muzzle):
 			continue
-		VFX.muzzle_flash(fx_parent, muzzle.global_position,
-				owner_node.global_transform.basis.z, _color)
+		if i < _muzzle_flashes.size() and is_instance_valid(_muzzle_flashes[i]) and not Settings.reduced_motion():
+			_muzzle_flashes[i].restart()
+			_muzzle_flashes[i].emitting = true
 		if active_weapon == "primary":
 			var side := -1.0 if i == 0 else 1.0
 			VFX.casing(fx_parent, muzzle.global_position, right_vec * side + Vector3(0, 0.35, 0))
@@ -557,9 +568,7 @@ func fire() -> void:
 		var right := owner_node.global_transform.basis.x.normalized()
 		var side := -1.0 if i == 0 else 1.0
 		var dir := (forward + right * side * spread).normalized()
-		var proj := Node3D.new()
-		proj.set_script(proj_script)
-		fx_parent.add_child(proj)
+		var proj := _acquire_pooled_proj(proj_script, fx_parent)
 		var barrel_tok := ("%s:b%d" % [token, i]) if token != "" else ""
 		proj.setup(owner_id, owner_node, muzzle.global_position, dir,
 				speed, dmg, barrel_tok, _color)
@@ -574,3 +583,56 @@ func fire() -> void:
 				"token": barrel_tok,
 			})
 	fired.emit(token)
+
+
+func _ensure_muzzle_flashes() -> void:
+	if _muzzle_flashes.size() == _muzzles.size() and not _muzzle_flashes.is_empty():
+		return
+	_muzzle_flashes.clear()
+	for muzzle in _muzzles:
+		if not is_instance_valid(muzzle):
+			continue
+		var p := GPUParticles3D.new()
+		p.name = "MuzzleFlashPool"
+		p.amount = maxi(4, int(10 * Settings.quality_multiplier()))
+		p.lifetime = 0.12
+		p.one_shot = true
+		p.emitting = false
+		p.local_coords = true
+		p.explosiveness = 0.95
+		p.visibility_aabb = AABB(Vector3(-1.5, -1.5, -1.5), Vector3(3.0, 3.0, 3.0))
+		var pm := ParticleProcessMaterial.new()
+		pm.direction = Vector3(0.0, 0.0, 1.0)
+		pm.spread = 18.0
+		pm.initial_velocity_min = 6.0
+		pm.initial_velocity_max = 14.0
+		pm.scale_min = 0.22
+		pm.scale_max = 0.45
+		pm.color_ramp = VFX._ramp([Color(1, 0.94, 0.65, 1.0), VFX.COL_AMBER, Color(VFX.COL_EMBER.r, VFX.COL_EMBER.g, VFX.COL_EMBER.b, 0.0)])
+		p.process_material = pm
+		p.draw_pass_1 = VFX._sprite_quad(true, "flare", 0.45)
+		muzzle.add_child(p)
+		_muzzle_flashes.append(p)
+
+
+func _acquire_pooled_proj(proj_script: GDScript, fx_parent: Node3D) -> Node3D:
+	if _proj_pool.size() < PROJ_POOL_SIZE:
+		var p := Node3D.new()
+		p.set_script(proj_script)
+		p.set("pooled", true)
+		fx_parent.add_child(p)
+		_proj_pool.append(p)
+		return p
+	var slot := _proj_pool[_proj_pool_idx]
+	_proj_pool_idx = (_proj_pool_idx + 1) % PROJ_POOL_SIZE
+	if not is_instance_valid(slot) or slot.get_script() != proj_script:
+		slot = Node3D.new()
+		slot.set_script(proj_script)
+		slot.set("pooled", true)
+		fx_parent.add_child(slot)
+		_proj_pool[_proj_pool_idx] = slot
+	elif slot.get_parent() != fx_parent:
+		if slot.get_parent() != null:
+			slot.get_parent().remove_child(slot)
+		fx_parent.add_child(slot)
+	return slot

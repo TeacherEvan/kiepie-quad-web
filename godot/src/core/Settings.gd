@@ -92,6 +92,11 @@ func effective_shadows() -> bool:
 	return false if _is_mobile_auto() else on
 
 
+func effective_glow() -> bool:
+	var on := bool(get_value("video", "glow", true))
+	return false if _is_mobile_auto() else on
+
+
 func _install_web_back_bridge() -> void:
 	if _web_back_installed or DisplayServer.get_name() == "headless":
 		return
@@ -263,7 +268,7 @@ func _apply_glow(world_env: WorldEnvironment) -> void:
 	var env := world_env.environment
 	if env == null:
 		return
-	var enabled := bool(get_value("video", "glow", true))
+	var enabled := effective_glow()
 	env.glow_enabled = enabled
 	env.glow_intensity = 0.62
 	env.glow_strength = 1.12

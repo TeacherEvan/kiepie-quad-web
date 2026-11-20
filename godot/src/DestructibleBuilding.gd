@@ -119,14 +119,15 @@ func smash(impulse: Vector3 = Vector3.ZERO) -> void:
 	var parent := get_parent()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(building_name) + int(abs(origin.x * 1000.0)) + int(abs(origin.z * 977.0))
+	var count := 0 if Settings.reduced_motion() else maxi(4, int(debris_pieces * Settings.quality_multiplier()))
 	var chunks: Array[RigidBody3D] = []
-	for i in range(debris_pieces):
+	for i in range(count):
 		var variant := rng.randi_range(0, _debris_meshes.size() - 1)
 		var chunk := RigidBody3D.new()
 		chunk.mass = rng.randf_range(18.0, 55.0)
-		chunk.collision_layer = 1
+		chunk.collision_layer = 0
 		chunk.collision_mask = 1
-		chunk.continuous_cd = true
+		chunk.continuous_cd = false
 		var col := CollisionShape3D.new()
 		col.shape = _debris_shapes[variant]
 		chunk.add_child(col)
@@ -153,9 +154,13 @@ func smash(impulse: Vector3 = Vector3.ZERO) -> void:
 	# fade all chunks in a single timer callback to avoid 14 per-piece closures
 	var fade_tree := Engine.get_main_loop() as SceneTree
 	if fade_tree != null and not chunks.is_empty():
+		var w_chunks: Array[WeakRef] = []
+		for c in chunks:
+			w_chunks.append(weakref(c))
 		fade_tree.create_timer(9.0).timeout.connect(func() -> void:
-			for c in chunks:
-				if is_instance_valid(c) and c.is_inside_tree():
+			for wc in w_chunks:
+				var c := wc.get_ref() as Node
+				if c != null and is_instance_valid(c) and c.is_inside_tree():
 					c.queue_free())
 
 	# collapse sequence — glass flash, ground dust wave, staggered puffs

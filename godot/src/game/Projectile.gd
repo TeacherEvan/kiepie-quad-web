@@ -16,6 +16,7 @@ var on_hit: Callable
 var _age := 0.0
 var _life := 2.2
 var _inert := true  # setup() re-arms; a never-configured bolt dies instantly
+var pooled := false
 var _trail: GPUParticles3D
 var _tracer: Node3D
 var _ray_query: PhysicsRayQueryParameters3D
@@ -117,7 +118,37 @@ func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
 	damage = p_damage
 	token = p_token
 	hit_color = p_color
-	_build_tracer()
+	if _tracer == null:
+		_build_tracer()
+	else:
+		_rearm_tracer()
+
+
+func _rearm_tracer() -> void:
+	visible = true
+	set_physics_process(true)
+	_age = 0.0
+	if _inert:
+		visible = false
+		return
+	var dir := velocity.normalized()
+	var up := Vector3.UP if absf(dir.dot(Vector3.UP)) < 0.99 else Vector3.FORWARD
+	if _tracer != null:
+		_tracer.basis = Basis.looking_at(dir, up)
+	if _ray_query != null and owner_node is CollisionObject3D:
+		_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()]
+	if _trail != null:
+		_trail.emitting = not Settings.reduced_motion()
+
+
+func _recycle() -> void:
+	_inert = true
+	visible = false
+	set_physics_process(false)
+	if _trail != null:
+		_trail.emitting = false
+	if not pooled:
+		queue_free()
 
 
 func _build_tracer() -> void:
@@ -181,10 +212,10 @@ func _physics_process(delta: float) -> void:
 	_age += delta
 	if _inert:
 		if _age >= _life:
-			queue_free()
+			_recycle()
 		return
 	if _age >= _life:
-		queue_free()
+		_recycle()
 		return
 	var world := get_world_3d()
 	if world == null:
@@ -224,4 +255,4 @@ func _physics_process(delta: float) -> void:
 			VfxFactory.impact(fx, point, hit_color, velocity.normalized(), surface, n)
 	if _trail != null:
 		_trail.emitting = false
-	queue_free()
+	_recycle()
