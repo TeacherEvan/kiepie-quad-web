@@ -285,6 +285,9 @@ func _pick_safe_spawn(points: Array) -> Node3D:
 			var bn := b as Node3D
 			if bn.visible and bn.get("is_respawning") != true:
 				hazards.append(bn.global_position)
+		for m in tree.get_nodes_in_group("meteor_strike"):
+			if is_instance_valid(m) and m is Node3D:
+				hazards.append((m as Node3D).global_position)
 	var scored: Array = []
 	var best_dist := -1.0
 	for p in points:

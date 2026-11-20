@@ -153,6 +153,7 @@ func setup(p_owner_id: String, p_owner_node: Node, p_target_pos: Vector3,
 	_age = 0.0
 	_armed = true
 	_detonated = false
+	add_to_group("meteor_strike")
 	_build_visual()
 
 
@@ -254,6 +255,8 @@ func _detonate() -> void:
 	if _detonated:
 		return
 	_detonated = true
+	if is_in_group("meteor_strike"):
+		remove_from_group("meteor_strike")
 	_release_light()
 	var fx := get_parent() as Node3D
 	if fx == null and get_tree() != null:

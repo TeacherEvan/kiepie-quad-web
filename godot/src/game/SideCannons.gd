@@ -99,7 +99,12 @@ func setup(p_owner: Node3D, p_owner_id: String, p_hit_callback: Callable, p_colo
 	weapon_profile = p_profile if PROFILES.has(p_profile) else "bike"
 	_profile = _profile_for(weapon_profile)
 	_color = Color(_profile["color"]) if weapon_profile != "bike" else p_color
-	# purge stale fallback mounts from an earlier setup on the same owner
+	# purge stale fallback mounts & muzzle flashes from an earlier setup on the same owner
+	for mf in _muzzle_flashes:
+		if is_instance_valid(mf):
+			mf.queue_free()
+	_muzzle_flashes.clear()
+	_proj_pool_idx = 0
 	for m in _muzzles:
 		if is_instance_valid(m) and m.name == "MuzzleFallback":
 			m.queue_free()
@@ -587,8 +592,19 @@ func fire() -> void:
 
 func _ensure_muzzle_flashes() -> void:
 	if _muzzle_flashes.size() == _muzzles.size() and not _muzzle_flashes.is_empty():
-		return
+		var all_valid := true
+		for mf in _muzzle_flashes:
+			if not is_instance_valid(mf):
+				all_valid = false
+				break
+		if all_valid:
+			return
+	for mf in _muzzle_flashes:
+		if is_instance_valid(mf):
+			mf.queue_free()
 	_muzzle_flashes.clear()
+	if owner_node == null or not is_instance_valid(owner_node):
+		return
 	for muzzle in _muzzles:
 		if not is_instance_valid(muzzle):
 			continue
@@ -611,7 +627,8 @@ func _ensure_muzzle_flashes() -> void:
 		pm.color_ramp = VFX._ramp([Color(1, 0.94, 0.65, 1.0), VFX.COL_AMBER, Color(VFX.COL_EMBER.r, VFX.COL_EMBER.g, VFX.COL_EMBER.b, 0.0)])
 		p.process_material = pm
 		p.draw_pass_1 = VFX._sprite_quad(true, "flare", 0.45)
-		muzzle.add_child(p)
+		p.position = owner_node.to_local(muzzle.global_position)
+		owner_node.add_child(p)
 		_muzzle_flashes.append(p)
 
 
@@ -623,14 +640,17 @@ func _acquire_pooled_proj(proj_script: GDScript, fx_parent: Node3D) -> Node3D:
 		fx_parent.add_child(p)
 		_proj_pool.append(p)
 		return p
-	var slot := _proj_pool[_proj_pool_idx]
-	_proj_pool_idx = (_proj_pool_idx + 1) % PROJ_POOL_SIZE
+	var idx := _proj_pool_idx
+	_proj_pool_idx = (idx + 1) % PROJ_POOL_SIZE
+	var slot := _proj_pool[idx]
 	if not is_instance_valid(slot) or slot.get_script() != proj_script:
+		if is_instance_valid(slot):
+			slot.queue_free()
 		slot = Node3D.new()
 		slot.set_script(proj_script)
 		slot.set("pooled", true)
 		fx_parent.add_child(slot)
-		_proj_pool[_proj_pool_idx] = slot
+		_proj_pool[idx] = slot
 	elif slot.get_parent() != fx_parent:
 		if slot.get_parent() != null:
 			slot.get_parent().remove_child(slot)

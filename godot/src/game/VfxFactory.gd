@@ -1196,9 +1196,9 @@ static func dust_ring(parent: Node3D, pos: Vector3, radius: float = 1.2,
 	## Ground-hugging dust wave for ramp landings and building collapse.
 	if parent == null or Settings.reduced_motion():
 		return
-	_ring_quad(parent, Vector3(pos.x, 0.10, pos.z), radius,
+	_ring_quad(parent, Vector3(pos.x, pos.y + 0.10, pos.z), radius,
 			Color(0.72, 0.66, 0.57, 0.55), amount, 0.65, true)
-	_particle(parent, Vector3(pos.x, 0.16, pos.z), 16, 0.7, Vector3.UP, 60.0, 1.2, 3.2,
+	_particle(parent, Vector3(pos.x, pos.y + 0.16, pos.z), 16, 0.7, Vector3.UP, 60.0, 1.2, 3.2,
 			[Color(0.72, 0.66, 0.58, 0.6), Color(0.5, 0.46, 0.4, 0.0)], 0.7,
 			Vector3(0, -1.2, 0), false, {"tex": "smoke", "quad": 1.1})
 

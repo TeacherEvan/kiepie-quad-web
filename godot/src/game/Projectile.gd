@@ -115,6 +115,7 @@ func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
 	else:
 		velocity = p_direction.normalized() * p_speed
 		_inert = false
+		_life = 2.2
 	damage = p_damage
 	token = p_token
 	hit_color = p_color
@@ -138,6 +139,9 @@ func _rearm_tracer() -> void:
 	if _ray_query != null and owner_node is CollisionObject3D:
 		_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()]
 	if _trail != null:
+		if _trail.process_material is ParticleProcessMaterial:
+			(_trail.process_material as ParticleProcessMaterial).direction = -dir
+		_trail.restart()
 		_trail.emitting = not Settings.reduced_motion()
 
 

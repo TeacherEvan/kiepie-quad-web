@@ -28,6 +28,9 @@ var _state_tick := 0             # monotonic relay sequence for bike_state
 var _death_gen: Dictionary = {}  # peer_id -> monotonic death generation for respawn timer
 var _local_dmg_shown_at: Dictionary = {}  # victim_id -> sec timestamp of our attacker-side damage number
 const LOCAL_DMG_DEDUP_S := 0.28
+const REMOTE_PROJ_POOL_SIZE := 32
+var _remote_proj_pool: Array[Node3D] = []
+var _remote_proj_idx := 0
 
 
 func _ready() -> void:
@@ -79,6 +82,10 @@ func _exit_tree() -> void:
 	# pending beat's timer cannot clobber the next scene).
 	KT.reset_hitstop()
 	_hitstop = false
+	for p in _remote_proj_pool:
+		if is_instance_valid(p):
+			p.queue_free()
+	_remote_proj_pool.clear()
 	if Supabase != null and Supabase.broadcast_received.is_connected(_on_broadcast):
 		Supabase.broadcast_received.disconnect(_on_broadcast)
 	if Match != null and Match.roster_changed.is_connected(_sync_roster):
@@ -331,14 +338,34 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 	var proj_script: GDScript = BANANA if pogo else PROJECTILE
 	var dmg := Match.damage() * VehicleRegistry.damage_multiplier(vehicle)
 	var shot_color := Color(1.0, 0.9, 0.25) if pogo else Color(1.0, 0.35, 0.25)
-	var proj := Node3D.new()
-	proj.set_script(proj_script)
-	add_child(proj)
+	var proj := _acquire_remote_proj(proj_script)
 	# Keep in sync with SideCannons.SHOT_SPEED.
 	proj.setup(owner_id, _remote.get(owner_id), o, d, 52.0, dmg,
 			str(p.get("token", "")), shot_color)
 	if combat != null and combat.has_method("_on_projectile_hit"):
 		proj.on_hit = Callable(combat, "_on_projectile_hit")
+
+
+func _acquire_remote_proj(proj_script: GDScript) -> Node3D:
+	if _remote_proj_pool.size() < REMOTE_PROJ_POOL_SIZE:
+		var p := Node3D.new()
+		p.set_script(proj_script)
+		p.set("pooled", true)
+		add_child(p)
+		_remote_proj_pool.append(p)
+		return p
+	var idx := _remote_proj_idx
+	_remote_proj_idx = (idx + 1) % REMOTE_PROJ_POOL_SIZE
+	var slot := _remote_proj_pool[idx]
+	if not is_instance_valid(slot) or slot.get_script() != proj_script:
+		if is_instance_valid(slot):
+			slot.queue_free()
+		slot = Node3D.new()
+		slot.set_script(proj_script)
+		slot.set("pooled", true)
+		add_child(slot)
+		_remote_proj_pool[idx] = slot
+	return slot
 
 
 func _sync_roster() -> void:
