@@ -124,6 +124,13 @@ func _apply_safe_area(margin: MarginContainer) -> void:
 	margin.set("theme_override_constants/margin_top", t)
 	margin.set("theme_override_constants/margin_right", r)
 	margin.set("theme_override_constants/margin_bottom", b)
+	_apply_responsive_layout(vp, margin)
+
+
+func _apply_responsive_layout(vp: Vector2, _margin: MarginContainer = null) -> void:
+	var short := vp.y <= 480.0
+	var very_short := vp.y <= 420.0
+	var narrow := vp.x <= 480.0
 
 	var card := get_node_or_null("SafeMargin/Card") as PanelContainer
 	if card != null:
@@ -155,7 +162,7 @@ func _apply_safe_area(margin: MarginContainer) -> void:
 		_btn_join_code.custom_minimum_size.x = 84.0 if narrow else 120.0
 	if _code != null:
 		_code.custom_minimum_size.y = 38.0 if very_short else (44.0 if short else 48.0)
-	_sync_mode_ui()
+	_sync_mode_ui(narrow)
 
 
 func select_game_mode(mode: String) -> void:
@@ -163,10 +170,9 @@ func select_game_mode(mode: String) -> void:
 	_sync_mode_ui()
 
 
-func _apply_mode_pill_style(btn: Button, active: bool, accent: Color) -> void:
+func _apply_mode_pill_style(btn: Button, active: bool, accent: Color, narrow: bool = get_viewport_rect().size.x <= 480.0) -> void:
 	if btn == null:
 		return
-	var narrow := get_viewport_rect().size.x <= 480.0
 	UI.style_button(btn, accent if active else Color(0.32, 0.38, 0.48), 13 if narrow else 16, btn.custom_minimum_size.y)
 	for st in ["normal", "hover", "focus"]:
 		var sb := btn.get_theme_stylebox(st)
@@ -184,13 +190,13 @@ func _apply_mode_pill_style(btn: Button, active: bool, accent: Color) -> void:
 	btn.add_theme_color_override("font_color", UI.GOLD if active else UI.MUTED)
 
 
-func _sync_mode_ui() -> void:
+func _sync_mode_ui(narrow: bool = get_viewport_rect().size.x <= 480.0) -> void:
 	var is_race := selected_game_mode == "death_race"
 	if _btn_mode_br != null:
-		_apply_mode_pill_style(_btn_mode_br, not is_race, UI.ACCENT)
+		_apply_mode_pill_style(_btn_mode_br, not is_race, UI.ACCENT, narrow)
 		_btn_mode_br.text = "BATTLE ROYALE" if is_race else "• BATTLE ROYALE •"
 	if _btn_mode_dr != null:
-		_apply_mode_pill_style(_btn_mode_dr, is_race, UI.GOLD)
+		_apply_mode_pill_style(_btn_mode_dr, is_race, UI.GOLD, narrow)
 		_btn_mode_dr.text = "• DEATH RACE •" if is_race else "DEATH RACE"
 	var subtitle := get_node_or_null("SafeMargin/Card/VBox/Subtitle") as Label
 	if subtitle != null:

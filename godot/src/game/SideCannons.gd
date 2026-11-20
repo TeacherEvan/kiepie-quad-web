@@ -143,6 +143,9 @@ func _exit_tree() -> void:
 		if is_instance_valid(p):
 			p.queue_free()
 	_proj_pool.clear()
+	for mf in _muzzle_flashes:
+		if is_instance_valid(mf):
+			mf.queue_free()
 	_muzzle_flashes.clear()
 	if _aim_reticle != null and is_instance_valid(_aim_reticle):
 		_aim_reticle.queue_free()
@@ -473,6 +476,7 @@ func fire() -> void:
 		if not is_instance_valid(muzzle):
 			continue
 		if i < _muzzle_flashes.size() and is_instance_valid(_muzzle_flashes[i]) and not Settings.reduced_motion():
+			_muzzle_flashes[i].position = owner_node.to_local(muzzle.global_position)
 			_muzzle_flashes[i].restart()
 			_muzzle_flashes[i].emitting = true
 		if active_weapon == "primary":
@@ -607,6 +611,7 @@ func _ensure_muzzle_flashes() -> void:
 		return
 	for muzzle in _muzzles:
 		if not is_instance_valid(muzzle):
+			_muzzle_flashes.append(null)
 			continue
 		var p := GPUParticles3D.new()
 		p.name = "MuzzleFlashPool"

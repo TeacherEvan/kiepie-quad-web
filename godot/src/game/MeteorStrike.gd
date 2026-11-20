@@ -262,7 +262,7 @@ func _detonate() -> void:
 	if fx == null and get_tree() != null:
 		fx = get_tree().current_scene as Node3D
 	VFX.mushroom_cloud_explosion(fx, target_pos, Color(1.0, 0.26, 0.04), 2.65)
-	VFX.dust_ring(fx, Vector3(target_pos.x, 0.05, target_pos.z), 2.8, 11.0)
+	VFX.dust_ring(fx, Vector3(target_pos.x, maxf(0.0, target_pos.y), target_pos.z), 2.8, 11.0)
 	var sfx := get_node_or_null("/root/Sfx")
 	if sfx != null:
 		if sfx.has_method("play_3d"):

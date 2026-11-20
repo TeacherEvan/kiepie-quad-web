@@ -19,6 +19,8 @@ var _inert := true  # setup() re-arms; a never-configured bolt dies instantly
 var pooled := false
 var _trail: GPUParticles3D
 var _tracer: Node3D
+var _shaft: MeshInstance3D
+var _last_color := Color(-1, -1, -1, -1)
 var _ray_query: PhysicsRayQueryParameters3D
 
 static var _nose_mesh: SphereMesh = null
@@ -136,11 +138,23 @@ func _rearm_tracer() -> void:
 	var up := Vector3.UP if absf(dir.dot(Vector3.UP)) < 0.99 else Vector3.FORWARD
 	if _tracer != null:
 		_tracer.basis = Basis.looking_at(dir, up)
-	if _ray_query != null and owner_node is CollisionObject3D:
-		_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()]
+	if _ray_query != null:
+		_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()] if owner_node is CollisionObject3D else []
+	var color_changed := hit_color != _last_color
+	if color_changed:
+		if _shaft != null:
+			_shaft.mesh = _get_shaft_mesh(hit_color)
+		_last_color = hit_color
+	if not Settings.reduced_motion() and _trail == null:
+		_ensure_trail(dir)
 	if _trail != null:
 		if _trail.process_material is ParticleProcessMaterial:
-			(_trail.process_material as ParticleProcessMaterial).direction = -dir
+			var pm := _trail.process_material as ParticleProcessMaterial
+			pm.direction = -dir
+			if color_changed:
+				pm.color_ramp = _get_trail_ramp(hit_color)
+		if color_changed:
+			_trail.draw_pass_1 = _get_trail_mesh(hit_color)
 		_trail.restart()
 		_trail.emitting = not Settings.reduced_motion()
 
@@ -149,6 +163,7 @@ func _recycle() -> void:
 	_inert = true
 	visible = false
 	set_physics_process(false)
+	on_hit = Callable()
 	if _trail != null:
 		_trail.emitting = false
 	if not pooled:
@@ -165,11 +180,12 @@ func _build_tracer() -> void:
 	_tracer = Node3D.new()
 	_tracer.name = "Tracer"
 	add_child(_tracer)
-	var shaft := MeshInstance3D.new()
-	shaft.mesh = _get_shaft_mesh(hit_color)
+	_shaft = MeshInstance3D.new()
+	_shaft.mesh = _get_shaft_mesh(hit_color)
+	_last_color = hit_color
 	# CapsuleMesh long axis is Y; rotate to lie along Z (the tracer basis).
-	shaft.rotation_degrees.x = 90.0
-	_tracer.add_child(shaft)
+	_shaft.rotation_degrees.x = 90.0
+	_tracer.add_child(_shaft)
 	# hot white-hot nose pellet for the leading edge (-Z is forward under looking_at)
 	var nose := MeshInstance3D.new()
 	nose.mesh = _get_nose_mesh()
@@ -193,23 +209,29 @@ func _build_tracer() -> void:
 	# OmniLight3D nodes so WebGL2 stays within its 8-light-per-surface budget.
 
 	if not Settings.reduced_motion():
-		_trail = GPUParticles3D.new()
-		_trail.amount = maxi(4, int(30 * Settings.quality_multiplier()))
-		_trail.lifetime = 0.32
-		_trail.local_coords = false
-		_trail.visibility_aabb = AABB(Vector3(-2, -2, -2), Vector3(4, 4, 4))
-		var pm := ParticleProcessMaterial.new()
-		pm.direction = -velocity.normalized()
-		pm.spread = 9.0
-		pm.initial_velocity_min = 0.3
-		pm.initial_velocity_max = 1.3
-		pm.scale_min = 0.16
-		pm.scale_max = 0.5
-		pm.color_ramp = _get_trail_ramp(hit_color)
-		_trail.process_material = pm
-		_trail.draw_pass_1 = _get_trail_mesh(hit_color)
-		add_child(_trail)
-		_trail.emitting = true
+		_ensure_trail(dir)
+
+
+func _ensure_trail(dir: Vector3) -> void:
+	if _trail != null:
+		return
+	_trail = GPUParticles3D.new()
+	_trail.amount = maxi(4, int(30 * Settings.quality_multiplier()))
+	_trail.lifetime = 0.32
+	_trail.local_coords = false
+	_trail.visibility_aabb = AABB(Vector3(-2, -2, -2), Vector3(4, 4, 4))
+	var pm := ParticleProcessMaterial.new()
+	pm.direction = -dir
+	pm.spread = 9.0
+	pm.initial_velocity_min = 0.3
+	pm.initial_velocity_max = 1.3
+	pm.scale_min = 0.16
+	pm.scale_max = 0.5
+	pm.color_ramp = _get_trail_ramp(hit_color)
+	_trail.process_material = pm
+	_trail.draw_pass_1 = _get_trail_mesh(hit_color)
+	add_child(_trail)
+	_trail.emitting = true
 
 
 func _physics_process(delta: float) -> void:

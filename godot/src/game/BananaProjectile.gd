@@ -177,8 +177,10 @@ func _rearm_tracer() -> void:
 	var up := Vector3.UP if absf(dir.dot(Vector3.UP)) < 0.99 else Vector3.FORWARD
 	if _tracer != null:
 		_tracer.basis = Basis.looking_at(dir, up)
-	if _ray_query != null and owner_node is CollisionObject3D:
-		_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()]
+	if _ray_query != null:
+		_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()] if owner_node is CollisionObject3D else []
+	if not Settings.reduced_motion() and _trail == null:
+		_ensure_trail(dir)
 	if _trail != null:
 		if _trail.process_material is ParticleProcessMaterial:
 			(_trail.process_material as ParticleProcessMaterial).direction = -dir
@@ -190,6 +192,7 @@ func _recycle() -> void:
 	_inert = true
 	visible = false
 	set_physics_process(false)
+	on_hit = Callable()
 	if _trail != null:
 		_trail.emitting = false
 	if not pooled:
@@ -219,23 +222,29 @@ func _build_tracer() -> void:
 	# nodes so WebGL2 stays within its 8-light-per-surface budget.
 
 	if not Settings.reduced_motion():
-		_trail = GPUParticles3D.new()
-		_trail.amount = maxi(3, int(14 * Settings.quality_multiplier()))
-		_trail.lifetime = 0.26
-		_trail.local_coords = false
-		_trail.visibility_aabb = AABB(Vector3(-1.5, -1.5, -1.5), Vector3(3.0, 3.0, 3.0))
-		var pm := ParticleProcessMaterial.new()
-		pm.direction = -velocity.normalized()
-		pm.spread = 7.0
-		pm.initial_velocity_min = 0.2
-		pm.initial_velocity_max = 0.9
-		pm.scale_min = 0.10
-		pm.scale_max = 0.26
-		pm.color_ramp = _get_trail_ramp()
-		_trail.process_material = pm
-		_trail.draw_pass_1 = _get_trail_puff_mesh()
-		_tracer.add_child(_trail)
-		_trail.emitting = true
+		_ensure_trail(dir)
+
+
+func _ensure_trail(dir: Vector3) -> void:
+	if _trail != null:
+		return
+	_trail = GPUParticles3D.new()
+	_trail.amount = maxi(3, int(14 * Settings.quality_multiplier()))
+	_trail.lifetime = 0.26
+	_trail.local_coords = false
+	_trail.visibility_aabb = AABB(Vector3(-1.5, -1.5, -1.5), Vector3(3.0, 3.0, 3.0))
+	var pm := ParticleProcessMaterial.new()
+	pm.direction = -dir
+	pm.spread = 7.0
+	pm.initial_velocity_min = 0.2
+	pm.initial_velocity_max = 0.9
+	pm.scale_min = 0.10
+	pm.scale_max = 0.26
+	pm.color_ramp = _get_trail_ramp()
+	_trail.process_material = pm
+	_trail.draw_pass_1 = _get_trail_puff_mesh()
+	add_child(_trail)
+	_trail.emitting = true
 
 
 func _physics_process(delta: float) -> void:
