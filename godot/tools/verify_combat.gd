@@ -97,6 +97,25 @@ func _run() -> void:
 	_check(Engine.time_scale == 1.0,
 			"overlapping hitstops (kill cam + death) restore Engine.time_scale to 1.0 after 120 ms")
 	# Freeing CombatController mid-hitstop immediately restores 1.0.
+	# P2-1 / BUG-5 regression: _pick_safe_spawn avoids enemy & active MeteorStrike
+	var sp0 := Node3D.new()
+	sp0.global_position = Vector3(0.0, 0.0, 0.0)
+	sp0.add_to_group("spawn_point")
+	var sp1 := Node3D.new()
+	sp1.global_position = Vector3(40.0, 0.0, 40.0)
+	sp1.add_to_group("spawn_point")
+	var meteor_hazard := Node3D.new()
+	meteor_hazard.global_position = Vector3(1.0, 0.0, 1.0)
+	meteor_hazard.add_to_group("meteor_strike")
+	root.add_child(sp0)
+	root.add_child(sp1)
+	root.add_child(meteor_hazard)
+	var picked: Node3D = combat.call("_pick_safe_spawn", [sp0, sp1]) as Node3D
+	_check(picked == sp1, "P2-1/BUG-5: _pick_safe_spawn avoids active MeteorStrike at sp0")
+	sp0.queue_free()
+	sp1.queue_free()
+	meteor_hazard.queue_free()
+
 	# Freeing CombatController mid-beat restores Engine.time_scale to 1.0.
 	KT.trigger_hitstop(root, 0.25, 30.0)
 	combat.call("queue_free")

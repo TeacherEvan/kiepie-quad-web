@@ -315,4 +315,15 @@ func _layout() -> void:
 		var total: Variant = hud.get("_total") if hud != null else null
 		_check(hud != null and int(total) == 4,
 				"TestRide HUD total follows the building count (got %s)" % str(total))
+		var dust_host := Node3D.new()
+		root.add_child(dust_host)
+		var vfx_cls := load("res://src/game/VfxFactory.gd")
+		vfx_cls.call("dust_ring", dust_host, Vector3(5.0, 3.0, 5.0), 1.1, 4.5)
+		var ring_y := 0.0
+		for c in dust_host.get_children():
+			if c is MeshInstance3D:
+				ring_y = (c as Node3D).position.y
+				break
+		_check(ring_y >= 3.05, "P3-1: dust_ring respects elevated pos.y (got y=%.2f >= 3.05)" % ring_y)
+		dust_host.queue_free()
 		ride.free()
