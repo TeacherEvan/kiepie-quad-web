@@ -39,6 +39,7 @@ func _run() -> void:
 	_textures()
 	_scaling()
 	await _effects()
+	_meteor_clamp()
 	await _anchored()
 	_death_vfx()
 	await _bike_world_vfx()
@@ -70,6 +71,40 @@ func _textures() -> void:
 	_check(ramp.gradient.get_point_count() == 3 and
 			is_equal_approx(ramp.gradient.get_offset(2), 1.0),
 			"three-stop particle ramp keeps its transparent fade")
+
+
+func _meteor_clamp() -> void:
+	## MeteorStrike._detonate: the dust ring renders at/above ground even
+	## when target_pos dips below y=0 (MeteorStrike.gd:265 clamps target_pos.y;
+	## the ring quad is at pos.y + 0.10).
+	var meteor_script := load("res://src/game/MeteorStrike.gd") as GDScript
+	var owner := Node3D.new()
+	var m := Node3D.new()
+	m.set_script(meteor_script)
+	owner.add_child(m)
+	root.add_child(owner)
+	m.set("target_pos", Vector3(3.5, -0.5, 2.0))
+	await process_frame
+	m.call("_detonate")
+	await process_frame
+	var ring_quads := []
+	for c in owner.get_children():
+		var mi := c as MeshInstance3D
+		if mi == null:
+			continue
+		var qm := mi.mesh as QuadMesh
+		if qm != null and absf(qm.size.x - 5.6) < 0.01:
+			ring_quads.append(mi)
+	_check(ring_quads.size() >= 1,
+			"MeteorStrike dust ring spawns a QuadMesh of size 5.6 (n=%d)" % ring_quads.size())
+	var above := 0
+	for q in ring_quads:
+		if q.position.y >= 0.05:
+			above += 1
+	_check(above >= 1,
+			"MeteorStrike dust ring spawns at/above ground (y>=0.05, n=%d of %d)" % [above, ring_quads.size()])
+	m.queue_free()
+	owner.queue_free()
 
 
 func _scaling() -> void:

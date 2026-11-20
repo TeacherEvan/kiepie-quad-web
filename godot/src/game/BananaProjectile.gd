@@ -215,8 +215,7 @@ func _build_tracer() -> void:
 	_ray_query = PhysicsRayQueryParameters3D.new()
 	_ray_query.collide_with_areas = false
 	_ray_query.collide_with_bodies = true
-	if owner_node is CollisionObject3D:
-		_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()]
+	_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()] if owner_node is CollisionObject3D else []
 
 	# Bananas rely on emissive material + bloom rather than per-shot OmniLight3D
 	# nodes so WebGL2 stays within its 8-light-per-surface budget.

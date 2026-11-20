@@ -15,7 +15,7 @@ var on_hit: Callable
 
 var _age := 0.0
 var _life := 2.2
-var _inert := true  # setup() re-arms; a never-configured bolt dies instantly
+var _inert := true  # setup() re-arms; a degenerate-direction bolt stays inert
 var pooled := false
 var _trail: GPUParticles3D
 var _tracer: Node3D
@@ -129,11 +129,12 @@ func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
 
 func _rearm_tracer() -> void:
 	visible = true
-	set_physics_process(true)
 	_age = 0.0
 	if _inert:
 		visible = false
+		set_physics_process(false)
 		return
+	set_physics_process(true)
 	var dir := velocity.normalized()
 	var up := Vector3.UP if absf(dir.dot(Vector3.UP)) < 0.99 else Vector3.FORWARD
 	if _tracer != null:
@@ -199,11 +200,10 @@ func _build_tracer() -> void:
 	_ray_query = PhysicsRayQueryParameters3D.new()
 	_ray_query.collide_with_areas = false
 	_ray_query.collide_with_bodies = true
-	if owner_node is CollisionObject3D:
-		# Own chassis never blocks the frame-1 trace: intersect_ray returns only
-		# the first hit, so a point-blank self-hit would otherwise teleport the
-		# bolt past whatever it should have hit.
-		_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()]
+	# Own chassis never blocks the frame-1 trace: intersect_ray returns only
+	# the first hit, so a point-blank self-hit would otherwise teleport the
+	# bolt past whatever it should have hit.
+	_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()] if owner_node is CollisionObject3D else []
 
 	# Rapid-fire tracers rely on unshaded additive bloom instead of per-bolt
 	# OmniLight3D nodes so WebGL2 stays within its 8-light-per-surface budget.
