@@ -99,22 +99,38 @@ func _run() -> void:
 	# Freeing CombatController mid-hitstop immediately restores 1.0.
 	# P2-1 / BUG-5 regression: _pick_safe_spawn avoids enemy & active MeteorStrike
 	var sp0 := Node3D.new()
-	sp0.global_position = Vector3(0.0, 0.0, 0.0)
 	sp0.add_to_group("spawn_point")
-	var sp1 := Node3D.new()
-	sp1.global_position = Vector3(40.0, 0.0, 40.0)
-	sp1.add_to_group("spawn_point")
-	var meteor_hazard := Node3D.new()
-	meteor_hazard.global_position = Vector3(1.0, 0.0, 1.0)
-	meteor_hazard.add_to_group("meteor_strike")
 	root.add_child(sp0)
+	sp0.global_position = Vector3(0.0, 0.0, 0.0)
+	var sp1 := Node3D.new()
+	sp1.add_to_group("spawn_point")
 	root.add_child(sp1)
+	sp1.global_position = Vector3(40.0, 0.0, 40.0)
+	sp1.rotation = Vector3(0.0, 0.75, 0.0)
+	var meteor_hazard := Node3D.new()
+	meteor_hazard.add_to_group("meteor_strike")
 	root.add_child(meteor_hazard)
-	var picked: Node3D = combat.call("_pick_safe_spawn", [sp0, sp1]) as Node3D
-	_check(picked == sp1, "P2-1/BUG-5: _pick_safe_spawn avoids active MeteorStrike at sp0")
-	sp0.queue_free()
-	sp1.queue_free()
+	meteor_hazard.global_position = Vector3(1.0, 0.0, 1.0)
+	var meteor_picks := 0
+	for _i in range(10):
+		if combat.call("_pick_safe_spawn", [sp0, sp1]) == sp1:
+			meteor_picks += 1
+	_check(meteor_picks == 10, "P2-1/BUG-5: _pick_safe_spawn avoids active MeteorStrike at sp0 (10/10)")
 	meteor_hazard.queue_free()
+
+	# Also verify enemy bike avoidance and inward-facing basis preservation.
+	var enemy_bike := Node3D.new()
+	enemy_bike.add_to_group("networked_bike")
+	root.add_child(enemy_bike)
+	enemy_bike.global_position = Vector3(0.5, 0.0, 0.5)
+	var enemy_picks := 0
+	for _i in range(10):
+		if combat.call("_pick_safe_spawn", [sp0, sp1]) == sp1:
+			enemy_picks += 1
+	_check(enemy_picks == 10, "P2-1/BUG-5: _pick_safe_spawn avoids enemy bike at sp0 (10/10)")
+	sp0.queue_free()
+	enemy_bike.queue_free()
+	sp1.queue_free()
 
 	# Freeing CombatController mid-beat restores Engine.time_scale to 1.0.
 	KT.trigger_hitstop(root, 0.25, 30.0)

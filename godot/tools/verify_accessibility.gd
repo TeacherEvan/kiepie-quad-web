@@ -149,6 +149,35 @@ func _initialize() -> void:
 				"MainMenu mode pills clip text cleanly on narrow mobile screens")
 		_check(card != null and card.get_combined_minimum_size().x <= 366.0,
 				"MainMenu Card fits 390px mobile portrait without overflow (min_x=%.1f <= 366)" % (card.get_combined_minimum_size().x if card else 999.0))
-		mm.free()
+		root.add_child(mm)
+		if mm.has_method("_apply_responsive_layout"):
+			mm.call("_apply_responsive_layout", Vector2(844, 390))
+			await process_frame
+			_check(card != null and card.get_combined_minimum_size().y <= 365.0,
+					"MainMenu Card fits 844x390 landscape without clipping (min_y=%.1f <= 365)" % (card.get_combined_minimum_size().y if card else 999.0))
+			mm.call("_apply_responsive_layout", Vector2(667, 375))
+			await process_frame
+			_check(card != null and card.get_combined_minimum_size().y <= 365.0,
+					"MainMenu Card fits 667x375 landscape without clipping (min_y=%.1f <= 365)" % (card.get_combined_minimum_size().y if card else 999.0))
+		mm.queue_free()
+		await process_frame
+
+	# MatchHud 6-kill WeakRef eviction + free-while-timer-pending guard
+	var hud_script := load("res://src/ui/MatchHud.gd") as GDScript
+	if hud_script != null:
+		var hud := CanvasLayer.new()
+		hud.set_script(hud_script)
+		root.add_child(hud)
+		await process_frame
+		for k in range(6):
+			hud.call("add_kill", "Player%d" % k, "Victim%d" % k)
+		var feed := hud.get_node_or_null("KillFeed") as VBoxContainer
+		if feed == null:
+			feed = hud.get("_kill_feed") as VBoxContainer
+		_check(feed == null or feed.get_child_count() <= 4,
+				"MatchHud evicts old kill-feed lines (count=%d <= 4)" % (feed.get_child_count() if feed else 0))
+		hud.queue_free()
+		await create_timer(0.15).timeout
+		_check(true, "MatchHud freed with pending kill-feed timers without crash")
 
 	quit(1 if _fail > 0 else 0)

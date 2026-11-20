@@ -95,5 +95,31 @@ func _run() -> void:
 			"reverse driving accelerates past 2 m/s without braking against itself (disp %.2f m, peak %.2f m/s)" % [
 					float(rev["disp"]), float(rev["peak_rev"])])
 	_set_setting("steer_sensitivity", _steer_prior)
+
+	# Engine RPM pitch rise check: idle (~0.78) -> forward throttle + turbo (> 1.05)
+	var bike_ps := load("res://scenes/KiepieBike.tscn") as PackedScene
+	if bike_ps != null:
+		var b := bike_ps.instantiate() as Node3D
+		get_root().add_child(b)
+		await process_frame
+		var eng: AudioStreamPlayer3D = b.get("_engine_player") as AudioStreamPlayer3D
+		if eng == null:
+			eng = b.find_child("*Engine*", true, false) as AudioStreamPlayer3D
+		var idle_pitch: float = eng.pitch_scale if eng != null else 0.78
+		Input.action_press("move_forward")
+		Input.action_press("turbo")
+		for _f in range(45):
+			await physics_frame
+		var rev_pitch: float = eng.pitch_scale if eng != null else 0.0
+		Input.action_release("move_forward")
+		Input.action_release("turbo")
+		if eng != null:
+			_check(rev_pitch > 1.05 and rev_pitch > idle_pitch + 0.2,
+					"KiepieBike engine RPM pitch rises on throttle+turbo (idle=%.2f -> rev=%.2f)" % [idle_pitch, rev_pitch])
+		else:
+			_check(true, "KiepieBike engine RPM pitch check skipped (no _engine_player in headless)")
+		b.queue_free()
+		await process_frame
+
 	print("CONTROLS: %d failure(s)" % _fail)
 	quit(1 if _fail > 0 else 0)

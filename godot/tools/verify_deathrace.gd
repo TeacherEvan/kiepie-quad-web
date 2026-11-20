@@ -262,6 +262,26 @@ func _run() -> void:
 		dummy_proxy.free()
 		dummy_ghost.free()
 
+		# End-to-end 2-victim AOE sub-token + MockBackend register_kill 2/2 scoring
+		var mock_supa := root.get_node_or_null("Supabase")
+		if mock_supa != null:
+			var backend: Variant = mock_supa.get("_backend")
+			if backend != null and backend.has_method("call_rpc"):
+				var base_tok := "aoe-test-%d" % Time.get_ticks_msec()
+				var r1: Variant = await backend.call("call_rpc", "register_kill", {
+					"killer_id": "p1", "victim_id": "vA", "shot_token": base_tok + ":vA"
+				})
+				var r2: Variant = await backend.call("call_rpc", "register_kill", {
+					"killer_id": "p1", "victim_id": "vB", "shot_token": base_tok + ":vB"
+				})
+				var r3: Variant = await backend.call("call_rpc", "register_kill", {
+					"killer_id": "p1", "victim_id": "vC", "shot_token": base_tok + ":dDrum1"
+				})
+				_check(r1 is Dictionary and bool(r1.get("ok", false))
+						and r2 is Dictionary and bool(r2.get("ok", false))
+						and r3 is Dictionary and bool(r3.get("ok", false)),
+						"AOE/drum sub-tokens (:vA, :vB, :dDrum1) all score via MockBackend register_kill")
+
 	# ---- 5. Ordered Checkpoint + Finish Line Lap Tracking & Victory Splash Trigger
 	if tracker != null and bike != null and hud != null:
 		var finish := dr.get_node("FinishLine") as Area3D
