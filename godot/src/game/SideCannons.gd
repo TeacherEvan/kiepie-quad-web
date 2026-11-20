@@ -488,9 +488,9 @@ func fire() -> void:
 	var token := str(res.get("token", ""))
 	if token == "":
 		push_warning("SideCannons: backend issued no shot token")
-		_cooldowns[active_weapon] = 0.0
+		_cooldowns[active_weapon] = 0.25
 		if current_weapon == active_weapon:
-			_cooldown = 0.0
+			_cooldown = 0.25
 		_emit_reload_status(true)
 		return
 	if not is_instance_valid(fx_parent):

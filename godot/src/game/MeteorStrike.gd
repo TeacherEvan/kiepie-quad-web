@@ -261,8 +261,11 @@ func _detonate() -> void:
 	VFX.mushroom_cloud_explosion(fx, target_pos, Color(1.0, 0.26, 0.04), 2.65)
 	VFX.dust_ring(fx, Vector3(target_pos.x, 0.05, target_pos.z), 2.8, 11.0)
 	var sfx := get_node_or_null("/root/Sfx")
-	if sfx != null and sfx.has_method("play"):
-		sfx.call("play", "explosion", 2.0, 0.78)
+	if sfx != null:
+		if sfx.has_method("play_3d"):
+			sfx.call("play_3d", "explosion", target_pos, 2.0, 0.78)
+		elif sfx.has_method("play"):
+			sfx.call("play", "explosion", 2.0, 0.78)
 	var cam := get_tree().get_first_node_in_group("camera_rig") if get_tree() != null else null
 	if cam != null and cam.has_method("add_shake"):
 		cam.call("add_shake", 0.68)

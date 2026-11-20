@@ -692,15 +692,6 @@ static func casing(parent: Node3D, pos: Vector3, eject_dir: Vector3) -> void:
 		body.queue_free()
 
 
-static func steam_vent(parent: Node3D, pos: Vector3) -> void:
-	if parent == null:
-		return
-	_particle(parent, pos, 12, 0.85, Vector3.UP, 28.0, 1.6, 3.4,
-			[COL_STEAM, Color(COL_STEAM.r, COL_STEAM.g, COL_STEAM.b, 0.0)], 0.34,
-			Vector3(0, -0.4, 0), false,
-			{"tex": "smoke", "quad": 0.9, "curve": [[0, 0.5], [0.5, 1.0], [1, 1.6]]})
-
-
 # ---------------------------------------------------------------- impact -----
 
 static func impact(parent: Node3D, pos: Vector3, color: Color,

@@ -257,8 +257,11 @@ func _detonate(point: Vector3, direct_collider: Object) -> void:
 		fx = get_tree().current_scene as Node3D
 	VFX.particle_explosion(fx, point, Color(1.0, 0.42, 0.10), 1.55, false)
 	var sfx := get_node_or_null("/root/Sfx")
-	if sfx != null and sfx.has_method("play"):
-		sfx.call("play", "explosion")
+	if sfx != null:
+		if sfx.has_method("play_3d"):
+			sfx.call("play_3d", "explosion", point)
+		elif sfx.has_method("play"):
+			sfx.call("play", "explosion")
 	var cam := get_tree().get_first_node_in_group("camera_rig") if get_tree() != null else null
 	if cam != null and cam.has_method("add_shake"):
 		cam.call("add_shake", 0.36)

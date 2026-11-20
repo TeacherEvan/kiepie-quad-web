@@ -166,8 +166,11 @@ func smash(impulse: Vector3 = Vector3.ZERO) -> void:
 	# collapse sequence — glass flash, ground dust wave, staggered puffs
 	VFX.smash_burst(parent, origin, _body_size)
 	var sfx := get_node_or_null("/root/Sfx")
-	if sfx != null and sfx.has_method("play"):
-		sfx.call("play", "explosion", -2.0)
+	if sfx != null:
+		if sfx.has_method("play_3d"):
+			sfx.call("play_3d", "explosion", origin, -2.0)
+		elif sfx.has_method("play"):
+			sfx.call("play", "explosion", -2.0)
 	_shake(0.32)
 
 	emit_signal("smashed", building_name)

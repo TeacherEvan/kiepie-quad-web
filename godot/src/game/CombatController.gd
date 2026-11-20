@@ -338,7 +338,9 @@ func _setup_decorations() -> void:
 	VFX.underglow(bike, player_color)
 	var sfx := get_node_or_null("/root/Sfx")
 	if sfx != null and sfx.has_method("start_engine"):
-		sfx.call("start_engine", bike)
+		var eng: Variant = sfx.call("start_engine", bike)
+		if eng is AudioStreamPlayer3D and "_engine_player" in bike:
+			bike.set("_engine_player", eng)
 
 
 func _touch_overlay() -> Node:

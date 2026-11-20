@@ -74,8 +74,11 @@ func ignite(attacker_id: String, token: String = "") -> void:
 	var pos := global_position
 	VFX.explosion(_fx_parent(), pos, Color(1.0, 0.35, 0.06, 1.0), 1.2)
 	var sfx := get_node_or_null("/root/Sfx")
-	if sfx != null and sfx.has_method("play"):
-		sfx.call("play", "explosion")
+	if sfx != null:
+		if sfx.has_method("play_3d"):
+			sfx.call("play_3d", "explosion", pos)
+		elif sfx.has_method("play"):
+			sfx.call("play", "explosion")
 
 	var tree := get_tree()
 	if tree != null:

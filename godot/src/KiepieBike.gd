@@ -50,6 +50,7 @@ var _dink_cd := 0.0       ## rate-limit the landing ping (dink)
 var _scrape_cd := 0.0     ## rate-limit the handbrake slide rumble (scrape)
 var _was_turbo := false
 var _turbo_sfx_cd := 0.0
+var _engine_player: AudioStreamPlayer3D = null
 ## Set by CombatController while an overdrive pickup is live: counts as boost
 ## for the turbo blend/flames so the flame visual lasts the whole effect, not
 ## one physics frame.
@@ -332,7 +333,7 @@ func _physics_process(delta: float) -> void:
 	var vy := linear_velocity.y
 	if grounded and not _was_grounded and vy < -3.5:
 		var rear: Vector3 = global_position - global_transform.basis.z * 0.66
-		VfxFactory.dust_ring(_fx_parent(), Vector3(rear.x, 0.0, rear.z), 1.1, 4.5)
+		VfxFactory.dust_ring(_fx_parent(), Vector3(rear.x, maxf(0.0, rear.y - 0.25), rear.z), 1.1, 4.5)
 		_shake(0.08)
 		if _dink_cd <= 0.0:
 			_dink_cd = 0.45
@@ -364,6 +365,10 @@ func _physics_process(delta: float) -> void:
 		_turbo_sfx_cd = 0.6
 		_play_sfx("turbo")
 	_was_turbo = turbo_active
+	if is_instance_valid(_engine_player):
+		var speed_ratio := clampf(speed_kmh() / 90.0, 0.0, 1.0)
+		var target_pitch := 0.78 + speed_ratio * 0.65 + (0.18 if turbo_active else 0.0)
+		_engine_player.pitch_scale = lerpf(_engine_player.pitch_scale, target_pitch, 1.0 - exp(-8.0 * delta))
 	var reduced := Settings.reduced_motion()
 	if _flames:
 		_flames.emitting = turbo_active and not reduced
