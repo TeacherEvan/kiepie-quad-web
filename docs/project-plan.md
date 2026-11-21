@@ -20,7 +20,7 @@ Canonical project plan for the single repository `TeacherEvan/kiepie-quad-web`
   gated in `b35bae7`. Web bundles were re-exported and auto-deployed in `f09c80e` and
   `a3ec39c` (live HTTP 200 verified 2026-11-19). Per-finding status:
   [task-status.md](task-status.md).
-- Gate suite: **27 gates**, all green (deploy_web.sh runs the full
+- Gate suite: **28 gates**, all green (deploy_web.sh runs the full
   suite before export and aborts on any failure).
 - **Blocked:** GitHub Actions CI cannot start — the GitHub account is locked for billing
   (run 44373734263 annotation). Code-side CI fixes are already landed; see

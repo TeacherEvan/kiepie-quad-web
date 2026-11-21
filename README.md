@@ -318,7 +318,7 @@ state lives in host-owned channel props, and shots/kills flow over channel socke
 Scoring is host-authoritative client logic (no server-side validation). Lobbies are stamped with a
 `protocol_version` channel prop — clients on a different wire version never get mixed in
 (`join_auto` skips the channel; `join_by_code` reports a version error). Without a key the client
-uses a full offline `MockBackend`, so all 27 gates run without credentials. The old `supabase/`
+uses a full offline `MockBackend`, so all 28 gates run without credentials. The old `supabase/`
 migrations are retained for history only and are not deployed.
 
 **VFX pass:** effects are built by `godot/src/game/VfxFactory.gd` from five tiny sprites
@@ -350,8 +350,8 @@ proportional steer strength, large touch controls and quality presets
 **New gates:** `verify_cannons.gd`, `verify_settings.gd`, `verify_match_rules.gd`,
 `verify_combat.gd`, `verify_kill_flow.gd`, `verify_appeal.gd`, `verify_talo_backend.gd` and
 `verify_audit_regressions.gd`, `verify_controls.gd`, `verify_dodge.gd`, `verify_rollover.gd` and `verify_deathrace.gd` join the existing
-suite — `godot/tools/run_gates.sh` now runs 27 gates offline (24 headless gates plus GdUnit4,
-the `scene_sync` drift check and one xvfb-windowed multi-touch gate, `verify_touch_multitouch.gd`).
+suite — `godot/tools/run_gates.sh` now runs 28 gates offline (24 headless gates plus GdUnit4,
+the `scene_sync` drift check, `web_hygiene` (`check_web_hygiene.py`), and one xvfb-windowed multi-touch gate, `verify_touch_multitouch.gd`).
 The new `verify_pogo.gd` locks the NARDUS vehicle: deterministic FNV-based assignment,
 runtime model swap in `KiepieBike._enter_tree`, pogo weapon profile (0.40 s cooldown, 2×
 damage), Rider/Stick GLB layout, `PogoVisual.gd` belly-wobble attach, and the pogo ground datum.

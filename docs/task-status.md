@@ -4,8 +4,20 @@ Concrete done-vs-pending ledger. Companion to [project-plan.md](project-plan.md)
 navigation in [index.md](index.md). Statuses are evidence-backed: commit hashes,
 gate names, or live checks — not assumptions.
 
-**Last verified:** 2026-11-20 — `scene_sync OK (7 scenes match HEAD)`, full gate suite
-**27/27** green after completing the 2026-11-20 Surgical Audit remediation (`docs/audits/kiepie-quad-surgical-audit-2026-11-20.md`, `4d3c049` → `1c133fd` → `a4cd1ea` → this commit): 0 P0, 0 P1, refcounted hitstop (`KiepieTime`), full post-leave socket drop + join allowlist (`TaloBackend`), synchronous `Match.clear_lobby()` + `RaceTracker` empty-token fail-closed, AOE ghost-hit guard + `NetworkedBike` intangible-until-placed collider, `VfxFactory` mushroom AABB / Wilson ring reduced-motion / `MAX_DAMAGE_NUMBERS = 18` cap, `VehicleRegistry`-unified `SideCannons`, desktop `AnalogSteer` hint-strip clearance, `MobileTextInput` blur-on-teardown, Web `prefers-reduced-motion` first-visit seed, CI SHA-512 + commit-SHA pinning, and `.vercelignore` runtime-only allowlist.
+**Last verified:** 2026-11-22 — `scene_sync OK (7 scenes match HEAD)`, `web_hygiene OK`, full gate suite **28/28** green after completing the 2026-11-21 Surgical Audit v3.0 remediation.
+
+## Audit remediation — Surgical Audit v3.0 (2026-11-21)
+
+| ID | Finding (severity) | Fix | Evidence |
+| --- | --- | --- | --- |
+| P1-1..2 | Invalid `COEP: "none"` in `vercel.json`, flattened `check_web_hygiene.py`, missing `web_hygiene` gate, stale `index.pck` | Removed invalid COEP, route-scoped `check_web_hygiene.py`, added `web_hygiene` to `run_gates.sh` (28 gates), re-exported `index.*` | `vercel.json`, `check_web_hygiene.py`, `run_gates.sh`, `index.pck` |
+| P1-3..6 | `TaloBackend` `_apply_props` drain, `leaving_id` host handoff, `_poll_host_alive`/`_on_socket_closed` gen guards, guest `_register_lap` & `RaceTracker` roster sync | `_apply_drained` signal, `leaving_id` URL binding, gen/channel checks, guest `MIN_LAP_SECONDS` + `RaceTracker._on_roster_changed()` | `TaloBackend.gd`, `RaceTracker.gd` + `verify_talo_backend.gd` |
+| P1-7 | `KiepieTime.trigger_hitstop()` ignores `Node` callers & leaks expired `_scales` | Unwrap `Node.get_tree()`, remove expired `scale` from `_scales` | `KiepieTime.gd` + `verify_combat.gd` |
+| P1-8 | `SettingsMenu._refresh_all()` clobbers 350 ms debounced writes | `_effective_val()` consulting `_pending_writes`; clear on quality preset | `SettingsMenu.gd` + `verify_settings.gd` |
+| P1-9 | `ArenaNet` & `SideCannons` projectile pool thrash on Quad/Nardus swap | Script-matched pool reuse in `ArenaNet._acquire_remote_proj()`; clear `_proj_pool` in `SideCannons.setup()` | `ArenaNet.gd`, `SideCannons.gd` + `verify_vfx.gd` |
+| P1-10 | Inverted `one_pole_lp()` in `generate_sfx.py` | Fixed to `prev + (1.0 - a) * (value - prev)` | `generate_sfx.py` |
+| P2-1..11 | `res is Dictionary` guards, `HazardPit` remote proxy filter, AOE ignited drum skip, `VfxFactory`/`DestructibleBuilding` debris caps & natural group removal, `NetworkedBike.update_identity()` re-tint + `"t"` turbo, `SideCannons.fire()` post-`await` VFX/SFX, `Hud`/`TouchControls`/`FollowCam`/`AmbientVfx` lifecycle & live `Settings.changed`, `repair_and_verify.py` GLB sync, `verify_smash_impact`/`verify_stability` `_check()` + `free()`, `Sfx.play_ui()` menu wiring (`MatchHud`, `FuelDrum`/`DestructibleBuilding` `play_3d`, `deploy_web.sh` SW md5 verified already clean) | All fixes landed and gated | `HazardPit.gd`, `RocketProjectile.gd`, `MeteorStrike.gd`, `VfxFactory.gd`, `DestructibleBuilding.gd`, `NetworkedBike.gd`, `SideCannons.gd`, `Hud.gd`, `TouchControls.gd`, `FollowCam.gd`, `AmbientVfx.gd`, `MainMenu.gd`, `LobbyMenu.gd`, `repair_and_verify.py` + `verify_deathrace.gd`, `verify_multiplayer.gd`, `verify_vfx.gd`, `verify_smash_impact.gd`, `verify_stability.gd` |
+| P3-1..5 | `VfxFactory` `MUSHROOM_AABB` / duplicate `wreck.transform`, dead `_chip`/`_button_style` in builders, `qb_core.apply_modifiers` + `build_quad.finalize`, `build_pogo_nardus` `blend_method` + `main()` guard, atomic `patch_web_html.py` (`P3-6` `docs/plans/review_plan.md` intentionally untouched) | Cleaned up | `VfxFactory.gd`, `build_*.gd`, `qb_core.py`, `build_quad.py`, `build_pogo_nardus.py`, `patch_web_html.py` |
 
 ## Audit remediation — 10 Principal Engineer Surgical Audit (2026-11-20)
 
