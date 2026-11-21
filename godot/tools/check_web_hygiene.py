@@ -36,26 +36,41 @@ def main() -> int:
         if len(shipped) < 13:
             failures.append(f".vercelignore ships too few runtime files ({len(shipped)})")
 
-    # 2. vercel.json must define COOP, COEP, nosniff, Referrer-Policy
+    # 2. vercel.json must define COOP, COEP, nosniff, Referrer-Policy per route rule
     vj = ROOT / "vercel.json"
     if not vj.is_file():
         failures.append("missing vercel.json")
     else:
         try:
             cfg = json.loads(vj.read_text(encoding="utf-8"))
-            keys = {
-                h["key"].lower(): h["value"]
-                for rule in cfg.get("headers", [])
-                for h in rule.get("headers", [])
-            }
-            for req in [
-                "cross-origin-opener-policy",
-                "cross-origin-embedder-policy",
-                "x-content-type-options",
-                "referrer-policy",
-            ]:
-                if req not in keys:
-                    failures.append(f"vercel.json missing header: {req}")
+            headers_rules = cfg.get("headers", [])
+            valid_coep = {"unsafe-none", "require-corp", "credentialless"}
+            root_rule_headers: dict[str, str] | None = None
+            for rule in headers_rules:
+                rmap = {h["key"].lower(): h["value"] for h in rule.get("headers", [])}
+                if "cross-origin-embedder-policy" in rmap and rmap["cross-origin-embedder-policy"] not in valid_coep:
+                    failures.append(
+                        f"vercel.json rule {rule.get('source')} has invalid COEP value: {rmap['cross-origin-embedder-policy']!r}"
+                    )
+                if rule.get("source") == "/(.*)":
+                    root_rule_headers = rmap
+            if root_rule_headers is None:
+                failures.append("vercel.json missing root /(.*) header rule")
+            else:
+                if root_rule_headers.get("cross-origin-opener-policy") != "same-origin":
+                    failures.append(
+                        f"vercel.json /(.*) expected COOP='same-origin', got {root_rule_headers.get('cross-origin-opener-policy')!r}"
+                    )
+                if root_rule_headers.get("cross-origin-embedder-policy") != "require-corp":
+                    failures.append(
+                        f"vercel.json /(.*) expected COEP='require-corp', got {root_rule_headers.get('cross-origin-embedder-policy')!r}"
+                    )
+                if root_rule_headers.get("x-content-type-options") != "nosniff":
+                    failures.append(
+                        f"vercel.json /(.*) expected X-Content-Type-Options='nosniff', got {root_rule_headers.get('x-content-type-options')!r}"
+                    )
+                if "referrer-policy" not in root_rule_headers:
+                    failures.append("vercel.json /(.*) missing header: referrer-policy")
         except Exception as exc:
             failures.append(f"vercel.json parse error: {exc}")
 

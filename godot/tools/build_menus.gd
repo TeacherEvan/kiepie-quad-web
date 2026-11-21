@@ -25,10 +25,6 @@ func _chip(bg := Color(0.075, 0.085, 0.105, 0.80),
 	return UI.chip(bg, border, 12)
 
 
-func _button_style(bg: Color, border: Color, corner := 13) -> StyleBoxFlat:
-	return UI.button_style(bg, border, corner)
-
-
 func _style_button(btn: Button, accent: Color) -> void:
 	# Landscape phone friendly: every touch target stays at least 52 px tall.
 	UI.style_button(btn, accent, 16, 52.0)

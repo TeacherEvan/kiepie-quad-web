@@ -430,25 +430,42 @@ func _pooling_and_settings() -> void:
 		sc.set_script(cannons_script)
 		owner_bike.add_child(sc)
 		sc.call("setup", owner_bike, "p1", Callable(), Color.WHITE, "bike")
+		var match_node := root.get_node_or_null("Match")
+		var prev_lobby: Dictionary = (match_node.get("lobby") as Dictionary).duplicate(true) if match_node != null else {}
+		if match_node != null:
+			match_node.set("lobby", {"status": "waiting", "settings": {}})
+		sc.set("_cooldown", 0.0)
+		sc.call("fire")
+		await process_frame
+		_check((sc.get("_muzzle_flashes") as Array).is_empty() and (sc.get("_proj_pool") as Array).is_empty(),
+				"P2-6: SideCannons.fire emits 0 muzzle flashes/projectiles when Match.is_playing() is false")
+		if match_node != null:
+			match_node.set("lobby", {"status": "playing", "settings": {"damage": 30.0}})
 		for _s in range(30):
 			sc.set("_cooldown", 0.0)
 			sc.call("fire")
+		await process_frame
 		var pool: Array = sc.get("_proj_pool")
-		_check(pool.size() <= 24, "SideCannons 30 rapid shots keeps _proj_pool <= 24 (got %d)" % pool.size())
+		_check(pool.size() > 0 and pool.size() <= 24, "SideCannons 30 rapid shots keeps _proj_pool in 1..24 (got %d)" % pool.size())
 		var all_valid := true
 		for p in pool:
 			if not is_instance_valid(p):
 				all_valid = false
 		_check(all_valid, "SideCannons _proj_pool slots are all valid")
 
-		# Swap bike -> pogo and verify muzzle flash tracking + cleanup
+		# Swap bike -> pogo and verify stale bike slots cleared + muzzle flash tracking + cleanup
 		m_l.name = "BananaMuzzle_L"
 		m_r.name = "BananaMuzzle_R"
 		m_l.position = Vector3(-0.3, 1.2, 0.4)
 		m_r.position = Vector3(0.3, 1.2, 0.4)
 		sc.call("setup", owner_bike, "p1", Callable(), Color.WHITE, "pogo")
+		_check((sc.get("_proj_pool") as Array).is_empty(),
+				"P1-9b: SideCannons.setup(..., 'pogo') clears stale bike Projectile.gd slots")
 		sc.set("_cooldown", 0.0)
 		sc.call("fire")
+		await process_frame
+		if match_node != null:
+			match_node.set("lobby", prev_lobby)
 		var flashes: Array = sc.get("_muzzle_flashes")
 		_check(flashes.size() == 2 and is_instance_valid(flashes[0]),
 				"SideCannons bike->pogo swap rebuilds 2 MuzzleFlashPool nodes")
@@ -491,5 +508,72 @@ func _pooling_and_settings() -> void:
 			net.call("_spawn_remote_shot", {"id": "peer-2", "o": [0.0, 0.0, 0.0], "d": [0.0, 0.0, 1.0], "token": "tok"})
 		var rpool: Array = net.get("_remote_proj_pool")
 		_check(rpool.size() <= 32, "ArenaNet 40 remote shots caps _remote_proj_pool <= 32 (got %d)" % rpool.size())
+
+		# P1-9a: mixed Quad ("user-42") + Nardus ("peer-1") alternating shots reuse pooled slots without thrashing
+		var mix_net := Node3D.new()
+		mix_net.set_script(net_script)
+		root.add_child(mix_net)
+		var stub_gd := GDScript.new()
+		stub_gd.source_code = "extends Node3D\nvar _initialised := true\nvar is_respawning := false\n"
+		stub_gd.reload()
+		var s_quad := Node3D.new()
+		s_quad.set_script(stub_gd)
+		var s_pogo := Node3D.new()
+		s_pogo.set_script(stub_gd)
+		root.add_child(s_quad)
+		root.add_child(s_pogo)
+		mix_net.set("_remote", {"user-42": s_quad, "peer-1": s_pogo})
+		var m_mix := root.get_node_or_null("Match")
+		var prev_players: Dictionary = (m_mix.get("players") as Dictionary).duplicate(true) if m_mix != null else {}
+		if m_mix != null:
+			m_mix.set("players", {"user-42": {}, "peer-1": {}})
+		for _m in range(32):
+			var pid := "user-42" if (_m % 2 == 0) else "peer-1"
+			mix_net.call("_spawn_remote_shot", {"id": pid, "o": [0.0, 0.0, 0.0], "d": [0.0, 0.0, 1.0], "token": "mix-%d" % _m})
+		var mix_pool: Array = mix_net.get("_remote_proj_pool")
+		_check(mix_pool.size() == 32, "P1-9a: 32 mixed remote shots populate full pool (got %d)" % mix_pool.size())
+		var ids_before: Dictionary = {}
+		for p in mix_pool:
+			if is_instance_valid(p):
+				ids_before[p.get_instance_id()] = true
+		(mix_net.get("_shot_log") as Dictionary).clear()
+		for _m2 in range(16):
+			var pid2 := "peer-1" if (_m2 % 2 == 0) else "user-42"
+			mix_net.call("_spawn_remote_shot", {"id": pid2, "o": [0.0, 0.0, 0.0], "d": [0.0, 0.0, 1.0], "token": "mix2-%d" % _m2})
+		var survived := 0
+		for p in (mix_net.get("_remote_proj_pool") as Array):
+			if is_instance_valid(p) and ids_before.has(p.get_instance_id()):
+				survived += 1
+		_check(survived == 32, "P1-9a: mixed Quad/Nardus remote pool reuses slots without thrashing (%d/32 survived)" % survived)
+		if m_mix != null:
+			m_mix.set("players", prev_players)
+		s_quad.queue_free()
+		s_pogo.queue_free()
+		mix_net.queue_free()
 		net.queue_free()
 		await process_frame
+
+	# P2-4: global explosion shard cap (MAX_EXPLOSION_SHARDS = 36)
+	var s_node_cap := root.get_node_or_null("Settings")
+	var prev_rm: Variant = s_node_cap.call("get_value", "gameplay", "reduced_motion", false) if s_node_cap != null else false
+	var prev_pq: Variant = s_node_cap.call("get_value", "video", "particles", 1.0) if s_node_cap != null else 1.0
+	if s_node_cap != null:
+		s_node_cap.call("set_value", "gameplay", "reduced_motion", false)
+		s_node_cap.call("set_value", "video", "particles", 1.0)
+	var shard_holder := Node3D.new()
+	root.add_child(shard_holder)
+	var vfx_gd := load("res://src/game/VfxFactory.gd") as GDScript
+	for _e in range(6):
+		vfx_gd.call("particle_explosion", shard_holder, Vector3.ZERO, Color.ORANGE, 1.0, false)
+	var shard_nodes := get_nodes_in_group("vfx_shard")
+	_check(shard_nodes.size() > 0 and shard_nodes.size() <= 36,
+			"P2-4: 6 explosions cap vfx_shard group <= 36 (got %d)" % shard_nodes.size())
+	for sn in shard_nodes:
+		if is_instance_valid(sn):
+			sn.remove_from_group("vfx_shard")
+			sn.queue_free()
+	shard_holder.queue_free()
+	if s_node_cap != null:
+		s_node_cap.call("set_value", "gameplay", "reduced_motion", prev_rm)
+		s_node_cap.call("set_value", "video", "particles", prev_pq)
+	await process_frame

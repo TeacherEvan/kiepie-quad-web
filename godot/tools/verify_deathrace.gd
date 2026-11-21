@@ -413,6 +413,46 @@ func _run() -> void:
 				"FollowCam survives vertical loop pose with finite transform (F-P1-6)")
 		bike.global_transform = prev_xf
 
+	# P2-2: HazardPit ignores controller-less remote NetworkedBike proxies
+	var pit := dr.get_node_or_null("HazardPit0") as Node3D
+	if pit != null:
+		var nb_gd := load("res://src/game/NetworkedBike.gd") as GDScript
+		var fake_remote := nb_gd.new() as StaticBody3D
+		fake_remote.add_to_group("bike")
+		dr.add_child(fake_remote)
+		pit.call("_on_body_entered", fake_remote)
+		_check(not (pit.get("_occupants") as Array).has(fake_remote),
+				"P2-2: HazardPit ignores controller-less remote NetworkedBike proxy")
+		fake_remote.free()
+
+	# P2-3: RocketProjectile._detonate ignores hidden/ignited FuelDrum for hit_confirmed
+	var drum := dr.get_node_or_null("FuelDrum0") as Node3D
+	if drum != null and combat != null:
+		var hit_cnt := [0]
+		var on_hit := func() -> void: hit_cnt[0] += 1
+		combat.connect("hit_confirmed", on_hit)
+		var prev_vis := drum.visible
+		var prev_ign := bool(drum.get("_ignited"))
+		var prev_pos := drum.global_position
+		drum.global_position = Vector3(200.0, 0.5, 200.0)
+		drum.visible = false
+		drum.set("_ignited", true)
+		var r_gd := load("res://src/game/RocketProjectile.gd") as GDScript
+		var rkt := Node3D.new()
+		rkt.set_script(r_gd)
+		dr.add_child(rkt)
+		rkt.set("owner_id", str(match_node.get("my_user_id")))
+		rkt.set("owner_node", bike)
+		rkt.set("damage", 60.0)
+		rkt.set("blast_radius", 6.0)
+		rkt.call("_detonate", drum.global_position, null)
+		_check(hit_cnt[0] == 0, "P2-3: RocketProjectile ignores hidden/ignited FuelDrum for hit_confirmed")
+		rkt.queue_free()
+		drum.global_position = prev_pos
+		drum.visible = prev_vis
+		drum.set("_ignited", prev_ign)
+		combat.disconnect("hit_confirmed", on_hit)
+
 	dr.free()
 	match_node.set("lobby", prev_lobby)
 	match_node.set("players", prev_players)

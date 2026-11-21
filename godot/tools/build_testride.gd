@@ -9,54 +9,6 @@ const DECOR := preload("res://src/game/BuildingDecor.gd")
 const UI := preload("res://src/ui/UiTheme.gd")
 
 
-func _chip(bg := Color(0.075, 0.085, 0.105, 0.80),
-		border := Color(1.0, 1.0, 1.0, 0.08)) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = bg
-	s.border_color = border
-	s.border_width_top = 1
-	s.border_width_left = 1
-	s.border_width_right = 1
-	s.border_width_bottom = 2
-	s.corner_radius_top_left = 12
-	s.corner_radius_top_right = 12
-	s.corner_radius_bottom_left = 12
-	s.corner_radius_bottom_right = 12
-	s.content_margin_left = 14.0
-	s.content_margin_right = 14.0
-	s.content_margin_top = 7.0
-	s.content_margin_bottom = 7.0
-	s.shadow_color = Color(0.0, 0.0, 0.0, 0.45)
-	s.shadow_size = 10
-	s.shadow_offset = Vector2(0.0, 3.0)
-	return s
-
-
-func _button_style(bg: Color, border: Color, corner := 13) -> StyleBoxFlat:
-	var s := _chip(bg, border)
-	s.corner_radius_top_left = corner
-	s.corner_radius_top_right = corner
-	s.corner_radius_bottom_left = corner
-	s.corner_radius_bottom_right = corner
-	return s
-
-
-func _style_button(btn: Button, accent: Color) -> void:
-	var normal := _button_style(Color(0.090, 0.106, 0.137, 0.88), Color(0.42, 0.50, 0.62, 0.55))
-	var hover := _button_style(Color(0.122, 0.145, 0.184, 0.92), accent)
-	var pressed := _button_style(Color(0.055, 0.063, 0.082, 0.94), Color(1.0, 0.82, 0.42, 0.95))
-	var focus := _button_style(Color(0.090, 0.106, 0.137, 0.88), Color(1.0, 0.75, 0.30, 0.9))
-	btn.add_theme_stylebox_override("normal", normal)
-	btn.add_theme_stylebox_override("hover", hover)
-	btn.add_theme_stylebox_override("pressed", pressed)
-	btn.add_theme_stylebox_override("focus", focus)
-	btn.add_theme_color_override("font_color", Color(0.91, 0.93, 0.97, 1.0))
-	btn.add_theme_color_override("font_hover_color", Color(1.0, 0.82, 0.45, 1.0))
-	btn.add_theme_color_override("font_pressed_color", Color(1.0, 0.93, 0.62, 1.0))
-	btn.add_theme_font_size_override("font_size", 15)
-	btn.custom_minimum_size = Vector2(0.0, 44.0)
-
-
 func _initialize() -> void:
 	var root := Node3D.new()
 	root.name = "TestRide"
@@ -315,11 +267,11 @@ func _initialize() -> void:
 	_add_touch_controls(root)
 
 	# ---------------- buildings: create now so we can wire the smash signal
-	var b1 := _add_building(root, "Workshop", "Workshop",
+	_add_building(root, "Workshop", "Workshop",
 			Vector3(13.0, 0.0, 22.0), Vector3(6.5, 3.4, 5.0), Color(0.44, 0.31, 0.25))
-	var b2 := _add_building(root, "Shed", "Shed",
+	_add_building(root, "Shed", "Shed",
 			Vector3(12.0, 0.0, -14.0), Vector3(4.2, 2.3, 3.6), Color(0.55, 0.55, 0.55))
-	var b3 := _add_building(root, "Store", "Store",
+	_add_building(root, "Store", "Store",
 			Vector3(-12.5, 0.0, 18.0), Vector3(4.8, 4.6, 4.2), Color(0.30, 0.37, 0.47))
 	_add_building(root, "Garage", "Garage",
 			Vector3(-14.0, 0.0, -18.0), Vector3(5.0, 3.0, 4.4), Color(0.48, 0.44, 0.38))

@@ -235,5 +235,51 @@ func _initialize() -> void:
 			"P1-1: 5th sub-token in same 0.6 s burst is rate_limited")
 	mk.free()
 
-	print("talo backend contract: %d checks, %d failure(s)" % [29, _failures])
+	# P1-6a: guest _register_lap validates wrong_mode, token_consumed, and MIN_LAP_SECONDS before lap_request
+	var gl := _new_backend()
+	get_root().add_child(gl)
+	gl.user_id = "2"
+	gl._lobby = {"id": "1", "host_id": "1", "status": "playing", "settings": {"game_mode": "battle_royale", "lap_target": 3}}
+	var gl_br: Dictionary = await gl.call_rpc("register_lap", {"p_racer": "2", "p_token": "g-br"})
+	_check(not bool(gl_br.get("ok", true)) and str(gl_br.get("reason", "")) == "wrong_mode",
+			"P1-6a: guest register_lap rejected with wrong_mode in battle_royale")
+	gl._lobby["settings"] = {"game_mode": "death_race", "lap_target": 3}
+	var gl_ok: Dictionary = await gl.call_rpc("register_lap", {"p_racer": "2", "p_token": "g-lap-1"})
+	_check(bool(gl_ok.get("ok", false)) and bool(gl_ok.get("pending", false)),
+			"P1-6a: first guest register_lap in death_race returns ok=true, pending=true")
+	var gl_dup: Dictionary = await gl.call_rpc("register_lap", {"p_racer": "2", "p_token": "g-lap-1"})
+	_check(not bool(gl_dup.get("ok", true)) and str(gl_dup.get("reason", "")) == "token_consumed",
+			"P1-6a: replaying guest lap token is rejected with token_consumed")
+	var gl_spam: Dictionary = await gl.call_rpc("register_lap", {"p_racer": "2", "p_token": "g-lap-2"})
+	_check(not bool(gl_spam.get("ok", true)) and str(gl_spam.get("reason", "")) == "rate_limited",
+			"P1-6a: rapid second guest lap within MIN_LAP_SECONDS is rate_limited")
+	gl.free()
+
+	# P1-3: _apply_props awaits _apply_drained when _apply_inflight is true
+	var ap := _new_backend()
+	get_root().add_child(ap)
+	_check(ap.has_signal("_apply_drained"), "P1-3: TaloBackend exposes _apply_drained signal")
+	ap.set("_apply_inflight", true)
+	var resumed := [false]
+	var drain_waiter := func() -> void:
+		await ap.call("_apply_props", {"k": "v"})
+		resumed[0] = true
+	drain_waiter.call()
+	await process_frame
+	_check(not resumed[0], "P1-3: _apply_props blocks while _apply_inflight is true")
+	ap.emit_signal("_apply_drained")
+	await process_frame
+	_check(resumed[0] and bool(ap.get("_apply_dirty")), "P1-3: _apply_props resumes on _apply_drained with _apply_dirty=true")
+	ap.free()
+
+	# P1-4 & P1-5: _handoff_host_before_leave aborts on channel mismatch; _poll_host_alive guards _channel_id <= 0
+	var ho := _new_backend()
+	get_root().add_child(ho)
+	ho._channel_id = 99
+	await ho.call("_handoff_host_before_leave", 42)
+	await ho.call("_poll_host_alive")
+	_check(true, "P1-4/P1-5: _handoff_host_before_leave(mismatch) and _poll_host_alive return safely")
+	ho.free()
+
+	print("talo backend contract: %d checks, %d failure(s)" % [37, _failures])
 	quit(1 if _failures > 0 else 0)

@@ -319,6 +319,29 @@ func _run() -> void:
 	nb.call("apply_state", {"id": "peer-lock", "p": [1.2, 0.5, 1.0], "r": [0, 0, 0, 1], "d": false, "n": 11})
 	_check(bool(nb.get("is_respawning")) and not nb.visible,
 			"P1-2: post-kill death-lock drops stale in-flight d=false packet")
+
+	# P2-5: NetworkedBike.update_identity re-tints 3D meshes when color changes on same vehicle
+	nb.call("update_identity", "LOCKED", "#00ff44")
+	var tinted_green := false
+	for m in nb.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		var mat := mi.material_override as StandardMaterial3D
+		if mat == null and mi.mesh != null and mi.mesh.get_surface_count() > 0:
+			mat = mi.get_surface_override_material(0) as StandardMaterial3D
+		if mat != null:
+			var col := mat.albedo_color
+			if col.g > col.r + 0.2 and col.g > col.b + 0.2:
+				tinted_green = true
+				break
+	_check(tinted_green, "P2-5: update_identity re-tints 3D meshes when player color changes on same vehicle")
+
+	# P2-11c: apply_state propagates remote turbo flag 't' when alive
+	nb.set("_death_lock_until", 0.0)
+	nb.call("apply_state", {"id": "peer-lock", "p": [2.0, 0.5, 1.0], "r": [0, 0, 0, 1], "d": false, "t": true, "n": 12})
+	_check(bool(nb.get("turbo_active")), "P2-11c: apply_state sets turbo_active=true when alive and t=true")
+	nb.call("apply_state", {"id": "peer-lock", "p": [2.0, 0.5, 1.0], "r": [0, 0, 0, 1], "d": true, "t": true, "n": 13})
+	_check(not bool(nb.get("turbo_active")), "P2-11c: apply_state clears turbo_active when dead")
+
 	nb.queue_free()
 	match_node.set("lobby", prev_lobby)
 	match_node.set("players", prev_players)

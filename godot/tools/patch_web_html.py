@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Patch Godot's exported index.html so it ships a single WCAG-compliant viewport meta."""
+import os
 import re
 import sys
 from pathlib import Path
@@ -30,7 +31,9 @@ def main() -> int:
     if n != 1:
         print("patch_web_html: could not locate charset meta anchor", file=sys.stderr)
         return 1
-    path.write_text(out, encoding="utf-8")
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(out, encoding="utf-8")
+    os.replace(tmp, path)
     print(f"patch_web_html: consolidated {len(matches)} viewport meta(s) -> 1 accessible tag in {path.name}")
     return 0
 

@@ -179,6 +179,19 @@ else
 	FAILED+=("scene_sync")
 fi
 
+note "== web_hygiene"
+timeout --foreground 30 python3 godot/tools/check_web_hygiene.py >"$LOGDIR/web_hygiene.log" 2>&1
+_hyg_rc=$?
+if [ "$_hyg_rc" -eq 0 ] && ! grep -q "FAIL" "$LOGDIR/web_hygiene.log"; then
+	note "   ok"
+	cat "$LOGDIR/web_hygiene.log" | sed 's/^/     /'
+	PASS=$((PASS + 1))
+else
+	note "   FAIL  (rc=$_hyg_rc; log: $LOGDIR/web_hygiene.log)"
+	cat "$LOGDIR/web_hygiene.log" | sed 's/^/     /'
+	FAILED+=("web_hygiene")
+fi
+
 run_gate truth          truth_test.gd
 run_gate stability      verify_stability.gd
 run_gate touch          verify_touch.gd

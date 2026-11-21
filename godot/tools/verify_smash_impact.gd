@@ -1,5 +1,14 @@
 extends SceneTree
 
+var _fail := 0
+
+
+func _check(cond: bool, msg: String) -> void:
+	if not cond:
+		_fail += 1
+		print("  FAIL: %s" % msg)
+
+
 ## End-to-end impact test: teleport the bike onto the Workshop doorway axis,
 ## drive it into the facade under throttle, and assert the building smashes.
 func _initialize() -> void:
@@ -40,6 +49,9 @@ func _initialize() -> void:
 	print("Workshop _intact=%s" % intact)
 	print("UP_Y_AFTER_SMASH: %.3f (expect > 0.80)" % up_after)
 	print("DEBRIS: %d RigidBody3D children in root (1 is the bike; 14 new debris expected)" % debris)
-	var ok: bool = intact == false and debris >= 15 and up_after > 0.80
-	print("SMASH_IMPACT: %s" % ("PASS" if ok else "FAIL"))
-	quit(0 if ok else 1)
+	_check(intact == false, "Workshop _intact == false after impact")
+	_check(debris >= 15, "debris >= 15 RigidBody3D children (got %d)" % debris)
+	_check(up_after > 0.80, "up_after > 0.80 (got %.3f)" % up_after)
+	root_node.free()
+	print("SMASH_IMPACT: %s" % ("PASS" if _fail == 0 else "FAIL"))
+	quit(1 if _fail > 0 else 0)
