@@ -30,7 +30,7 @@ const REVERSE_RELEASE := 0.25
 # back (DOWN) cycles the active weapon once per gesture.
 const FIRE_ENGAGE := 0.45
 const FIRE_RELEASE := 0.30
-const DODGE_ENGAGE := 0.55
+const DODGE_ENGAGE := 0.66
 const DODGE_RELEASE := 0.32
 const WEAPON_ENGAGE := 0.48
 const WEAPON_RELEASE := 0.28

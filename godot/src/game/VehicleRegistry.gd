@@ -1,20 +1,45 @@
 class_name VehicleRegistry
 extends RefCounted
 ## Deterministic vehicle assignment: every peer derives the same vehicle from
-## the player id (FNV-1a-32 over UTF-8 bytes; the raw low bit is replaced by a
-## high-middle one — see for_player). No new network messages; a future
-## vehicle is one line in VEHICLES (hashes reshuffle across all peers
-## consistently, so mixed-version lobbies must bump PROTOCOL_VERSION as usual).
+## the player id (FNV-1a-32 over UTF-8 bytes; high-middle bit mixer). No new
+## network messages; optional player preference ("vehicle" in lobby row)
+## overrides the deal when valid.
 
 const VEHICLE_BIKE := &"KiepieBike"
 const VEHICLE_POGO := &"PogoNardus"
-const VEHICLES: Array[StringName] = [VEHICLE_BIKE, VEHICLE_POGO]
+const VEHICLE_ASTON := &"AstonMartin"
+const VEHICLES: Array[StringName] = [VEHICLE_BIKE, VEHICLE_POGO, VEHICLE_ASTON]
 const _FNV_OFFSET := 2166136261
 const _FNV_PRIME := 16777619
 
-## Short weapon-profile id consumed by SideCannons/CombatController ("bike"|"pogo").
+## Short weapon-profile id consumed by SideCannons/CombatController ("bike"|"pogo"|"aston").
 static func profile(vehicle: StringName) -> String:
-	return "pogo" if vehicle == VEHICLE_POGO else "bike"
+	match vehicle:
+		VEHICLE_POGO:
+			return "pogo"
+		VEHICLE_ASTON:
+			return "aston"
+		_:
+			return "bike"
+
+
+static func from_profile(profile_id: String) -> StringName:
+	match profile_id:
+		"pogo":
+			return VEHICLE_POGO
+		"aston":
+			return VEHICLE_ASTON
+		_:
+			return VEHICLE_BIKE
+
+
+static func sanitize_preference(raw: String) -> String:
+	match raw:
+		"KiepieBike", "PogoNardus", "AstonMartin":
+			return raw
+		_:
+			return ""
+
 
 static func _fnv32(player_id: String) -> int:
 	var h := _FNV_OFFSET
@@ -22,19 +47,14 @@ static func _fnv32(player_id: String) -> int:
 		h = ((h ^ b) * _FNV_PRIME) & 0xffffffff
 	return h
 
+
 static func for_player(player_id: String) -> StringName:
-	# The raw low bit of FNV-1a is unreliable as a bin on short id strings (the
-	# exact-integer audit measured it ~50/50 over sequential Talo alias ids;
-	# the earlier JS readings were double-precision artifacts). Read a
-	# high-middle bit of the hash instead — measured ~53% pogo over sequential
-	# ids, ~49% over random ints and uuids.
-	if (_fnv32(player_id) >> 15) & 1:
-		return VEHICLE_POGO
-	return VEHICLE_BIKE
+	return VEHICLES[(_fnv32(player_id) >> 12) % VEHICLES.size()]
+
 
 ## Roster-aware deterministic assignment: guarantees AT LEAST ONE player in any
-## non-empty match roster is assigned NARDUS (VEHICLE_POGO), with zero extra
-## wire traffic and 100% agreement across all peers.
+## non-empty match roster is assigned NARDUS (VEHICLE_POGO) when no explicit
+## preference overrides, with zero extra wire traffic and 100% agreement.
 static func for_player_in_roster(player_id: String, roster_ids: Array) -> StringName:
 	var base := for_player(player_id)
 	if base == VEHICLE_POGO or roster_ids.is_empty():
@@ -59,24 +79,41 @@ static func for_player_in_roster(player_id: String, roster_ids: Array) -> String
 		if h > best_hash:
 			best_hash = h
 			promoted = uid
-	return VEHICLE_POGO if player_id == promoted else VEHICLE_BIKE
+	return VEHICLE_POGO if player_id == promoted else base
+
+
+static func resolve_for_player(player_id: String, roster_ids: Array = [], preferred: String = "") -> StringName:
+	var clean := sanitize_preference(preferred)
+	if clean != "":
+		return StringName(clean)
+	if not roster_ids.is_empty():
+		return for_player_in_roster(player_id, roster_ids)
+	return for_player(player_id)
+
 
 static func is_valid(vehicle: StringName) -> bool:
-	return vehicle == VEHICLE_BIKE or vehicle == VEHICLE_POGO
+	return vehicle == VEHICLE_BIKE or vehicle == VEHICLE_POGO or vehicle == VEHICLE_ASTON
+
 
 static func model_path(vehicle: StringName) -> String:
 	match vehicle:
 		VEHICLE_POGO:
 			return "res://assets/Pogo_Nardus.glb"
+		VEHICLE_ASTON:
+			return "res://assets/Aston_Martin.glb"
 		_:
 			return "res://assets/Kiepie_Bike.glb"
+
 
 static func display_name(vehicle: StringName) -> String:
 	match vehicle:
 		VEHICLE_POGO:
 			return "NARDUS"
+		VEHICLE_ASTON:
+			return "BIG-BEN F1"
 		_:
 			return "KIEPIE QUAD"
+
 
 ## Seconds between shots (normal / rapid pickup).
 static func cooldown(vehicle: StringName) -> float:
@@ -86,12 +123,14 @@ static func cooldown(vehicle: StringName) -> float:
 		_:
 			return 0.20
 
+
 static func rapid_cooldown(vehicle: StringName) -> float:
 	match vehicle:
 		VEHICLE_POGO:
 			return 0.18
 		_:
 			return 0.09
+
 
 ## Multiplier applied on top of Match.damage().
 static func damage_multiplier(vehicle: StringName) -> float:
@@ -101,12 +140,16 @@ static func damage_multiplier(vehicle: StringName) -> float:
 		_:
 			return 1.0
 
+
 static func spread(vehicle: StringName) -> float:
 	match vehicle:
 		VEHICLE_POGO:
 			return 0.075
+		VEHICLE_ASTON:
+			return 0.048
 		_:
 			return 0.055
+
 
 static func fire_sfx(vehicle: StringName) -> String:
 	match vehicle:
@@ -115,5 +158,10 @@ static func fire_sfx(vehicle: StringName) -> String:
 		_:
 			return "fire"
 
+
 static func is_pogo(vehicle: StringName) -> bool:
 	return vehicle == VEHICLE_POGO
+
+
+static func is_aston(vehicle: StringName) -> bool:
+	return vehicle == VEHICLE_ASTON

@@ -24,15 +24,6 @@ const DECOR := preload("res://src/game/BuildingDecor.gd")
 const UI := preload("res://src/ui/UiTheme.gd")
 
 
-func _chip(bg := Color(0.075, 0.085, 0.105, 0.80),
-		border := Color(1.0, 1.0, 1.0, 0.08)) -> StyleBoxFlat:
-	return UI.chip(bg, border, 12)
-
-
-func _style_button(btn: Button, accent: Color) -> void:
-	UI.style_button(btn, accent, 15, 44.0)
-
-
 func _outlined(label: Label, color: Color, size: int, outline := 6) -> void:
 	label.add_theme_font_size_override("font_size", size)
 	label.add_theme_color_override("font_color", color)
@@ -121,31 +112,31 @@ func _initialize() -> void:
 	_add_checkpoint(root, 3, Vector3(-38.0, 0.0, -44.0), 90.0)
 
 	# ---------------- 2 Full 360° Vertical Stunt Loops (with LoopZone centripetal normal)
-	# Positioned on the outer loop aprons (z = +-52.0) so racers on the flat
-	# center lanes (z = +-44.0) stay completely outside LoopZone and support pylons.
-	_add_stunt_loop(root, "TrackLoop0", Vector3(26.0, 0.0, -52.0), 90.0, 8.5)
-	_add_stunt_loop(root, "TrackLoop1", Vector3(-14.0, 0.0, 52.0), -90.0, 8.5)
+	# Positioned on dedicated outer stunt-loop aprons (z = +-58.2) so racers on the
+	# flat straightaways (|z| <= 52.0) stay completely clear of LoopZone and pylons.
+	_add_stunt_loop(root, "TrackLoop0", Vector3(26.0, 0.0, -58.2), 90.0, 9.5)
+	_add_stunt_loop(root, "TrackLoop1", Vector3(-14.0, 0.0, 58.2), -90.0, 9.5)
 
 	# ---------------- 3 Molten Hazard Pits (with jump ramps over them)
 	_add_hazard_pit(root, "HazardPit0", Vector3(58.0, 0.0, 10.0), Vector3(10.0, 1.4, 8.0))
 	_add_hazard_pit(root, "HazardPit1", Vector3(14.0, 0.0, 44.0), Vector3(8.0, 1.4, 10.0))
 	_add_hazard_pit(root, "HazardPit2", Vector3(-58.0, 0.0, -10.0), Vector3(10.0, 1.4, 8.0))
 
-	# ---------------- 8 Ramps (pit jump kickers + landing ramps + turn kickers)
+	# ---------------- 8 Ramps (pit jump kickers + double-sided landing ramps + straight kickers)
 	# _add_ramp() raises local +Z as the high launch lip (stand at +stand_z):
 	#   rot_y = 0° launches +Z, rot_y = -90° launches -X, rot_y = 180° launches -Z, rot_y = 90° launches +X.
 	# East straight gap jump over HazardPit0 (clockwise travel +Z)
-	_add_ramp(root, "Ramp0", Vector3(58.0, 0.0, 2.0), Vector3(15.0, 0.0, 0.0))
-	_add_ramp(root, "Ramp1", Vector3(58.0, 0.0, 18.0), Vector3(10.0, 180.0, 0.0))
+	_add_ramp(root, "Ramp0", Vector3(58.0, 0.0, 2.0), Vector3(15.0, 0.0, 0.0), 4.6, false)
+	_add_ramp(root, "Ramp1", Vector3(58.0, 0.0, 18.0), Vector3(10.0, 180.0, 0.0), 4.6, true)
 	# South back-straight gap jump over HazardPit1 (clockwise travel -X)
-	_add_ramp(root, "Ramp2", Vector3(22.0, 0.0, 44.0), Vector3(15.0, -90.0, 0.0))
-	_add_ramp(root, "Ramp3", Vector3(6.0, 0.0, 44.0), Vector3(10.0, 90.0, 0.0))
+	_add_ramp(root, "Ramp2", Vector3(22.0, 0.0, 44.0), Vector3(15.0, -90.0, 0.0), 4.6, false)
+	_add_ramp(root, "Ramp3", Vector3(6.0, 0.0, 44.0), Vector3(10.0, 90.0, 0.0), 4.6, true)
 	# West straight gap jump over HazardPit2 (clockwise travel -Z)
-	_add_ramp(root, "Ramp4", Vector3(-58.0, 0.0, -2.0), Vector3(15.0, 180.0, 0.0))
-	_add_ramp(root, "Ramp5", Vector3(-58.0, 0.0, -18.0), Vector3(10.0, 0.0, 0.0))
-	# Turn exit kicker ramps (clockwise travel: NE -> +X/+Z, SW -> -X/-Z)
-	_add_ramp(root, "Ramp6", Vector3(46.0, 0.0, -34.0), Vector3(12.0, 45.0, 0.0))
-	_add_ramp(root, "Ramp7", Vector3(-46.0, 0.0, 34.0), Vector3(12.0, -135.0, 0.0))
+	_add_ramp(root, "Ramp4", Vector3(-58.0, 0.0, -2.0), Vector3(15.0, 180.0, 0.0), 4.6, false)
+	_add_ramp(root, "Ramp5", Vector3(-58.0, 0.0, -18.0), Vector3(10.0, 0.0, 0.0), 4.6, true)
+	# Straightaway kicker ramps (clear of corner apexes)
+	_add_ramp(root, "Ramp6", Vector3(26.0, 0.0, -44.0), Vector3(10.0, 90.0, 0.0), 3.6, false)
+	_add_ramp(root, "Ramp7", Vector3(-18.0, 0.0, 44.0), Vector3(10.0, -90.0, 0.0), 3.6, false)
 
 	# ---------------- Pickups (10 total: along track apexes + Pit Stop Lane)
 	_add_pickups(root)
@@ -371,6 +362,8 @@ func _build_circuit(root: Node) -> void:
 		["Turn3_SW", Vector3(-52.0, 0.025, 38.0), Vector3(24.0, 0.05, 24.0), 45.0],
 		["Turn4_NW", Vector3(-52.0, 0.025, -38.0), Vector3(24.0, 0.05, 24.0), -45.0],
 		["PitLane", Vector3(0.0, 0.025, 30.0), Vector3(44.0, 0.05, 8.0), 0.0],
+		["LoopApron0", Vector3(26.0, 0.015, -58.2), Vector3(28.0, 0.03, 12.0), 0.0],
+		["LoopApron1", Vector3(-14.0, 0.015, 58.2), Vector3(28.0, 0.03, 12.0), 0.0],
 	]
 	for spec in ribbons:
 		var mi := MeshInstance3D.new()
@@ -436,10 +429,10 @@ func _build_circuit(root: Node) -> void:
 	barrier_mat.uv1_scale = Vector3(18.0, 1.0, 1.0)
 
 	var wall_specs := [
-		["OuterWallN", Vector3(0.0, 0.9, -62.0), Vector3(156.0, 1.8, 1.2)],
-		["OuterWallS", Vector3(0.0, 0.9, 62.0), Vector3(156.0, 1.8, 1.2)],
-		["OuterWallE", Vector3(78.0, 0.9, 0.0), Vector3(1.2, 1.8, 125.0)],
-		["OuterWallW", Vector3(-78.0, 0.9, 0.0), Vector3(1.2, 1.8, 125.0)],
+		["OuterWallN", Vector3(0.0, 0.9, -66.0), Vector3(156.0, 1.8, 1.2)],
+		["OuterWallS", Vector3(0.0, 0.9, 66.0), Vector3(156.0, 1.8, 1.2)],
+		["OuterWallE", Vector3(78.0, 0.9, 0.0), Vector3(1.2, 1.8, 133.2)],
+		["OuterWallW", Vector3(-78.0, 0.9, 0.0), Vector3(1.2, 1.8, 133.2)],
 		["InnerWallN", Vector3(0.0, 0.7, -33.0), Vector3(82.0, 1.4, 1.2)],
 		["InnerWallS", Vector3(0.0, 0.7, 24.0), Vector3(62.0, 1.4, 1.2)],
 		["InnerWallE", Vector3(45.0, 0.7, 0.0), Vector3(1.2, 1.4, 54.0)],
@@ -626,31 +619,37 @@ func _add_stunt_loop(root: Node, name: String, pos: Vector3, rot_y_deg: float, r
 	strut_mat.metallic = 0.72
 	strut_mat.roughness = 0.35
 
-	var seg_count := 22
-	var chord_len := (TAU * radius / float(seg_count)) * 1.18
-	var helical_pitch := 4.4  # lateral offset across 360° so exit clears entry cleanly
+	var seg_count := 40
+	var chord_len := 2.0 * radius * sin(PI / float(seg_count)) + 0.04
+	var helical_pitch := 3.6  # lateral offset across 360° so exit clears entry cleanly
+	var deck_w := 4.8
+	var low_fric := PhysicsMaterial.new()
+	low_fric.friction = 0.02
+	low_fric.bounce = 0.0
 
 	for i in range(seg_count):
 		var frac := (float(i) + 0.5) / float(seg_count)
 		var theta := frac * TAU
 		var x_off := (frac - 0.5) * helical_pitch
-		var y_pos := radius * (1.0 - cos(theta))
-		var z_pos := radius * sin(theta)
+		var r_mid := radius + 0.16
+		var y_pos := radius - r_mid * cos(theta)
+		var z_pos := r_mid * sin(theta)
 
 		var seg := StaticBody3D.new()
 		seg.name = "LoopSeg%d" % i
+		seg.physics_material_override = low_fric
 		seg.position = Vector3(x_off, y_pos, z_pos)
 		seg.rotation.x = -theta
 
 		var col := CollisionShape3D.new()
 		var sh := BoxShape3D.new()
-		sh.size = Vector3(4.0, 0.32, chord_len)
+		sh.size = Vector3(deck_w, 0.32, chord_len)
 		col.shape = sh
 		seg.add_child(col)
 
 		var mi := MeshInstance3D.new()
 		var bm := BoxMesh.new()
-		bm.size = Vector3(4.0, 0.32, chord_len)
+		bm.size = Vector3(deck_w, 0.32, chord_len)
 		bm.material = deck_mat
 		mi.mesh = bm
 		seg.add_child(mi)
@@ -662,13 +661,12 @@ func _add_stunt_loop(root: Node, name: String, pos: Vector3, rot_y_deg: float, r
 			rbm.size = Vector3(0.18, 0.42, chord_len)
 			rbm.material = rail_mat
 			rail.mesh = rbm
-			rail.position = Vector3(sgn * 1.95, 0.08, 0.0)
+			rail.position = Vector3(sgn * (deck_w * 0.5 - 0.05), 0.08, 0.0)
 			seg.add_child(rail)
 
 		loop_root.add_child(seg)
 
-	# Structural steel A-frame support pillars anchoring the loop tightly beside the deck
-	# (width 7.6m keeps inner pylon at z = +-48.2, completely clear of flat lane z = +-44.0)
+	# Structural steel A-frame support pillars anchoring the loop beside the deck
 	for sgn in [-1.0, 1.0]:
 		var strut := MeshInstance3D.new()
 		strut.name = "SupportPylon_%s" % ("L" if sgn < 0.0 else "R")
@@ -678,12 +676,12 @@ func _add_stunt_loop(root: Node, name: String, pos: Vector3, rot_y_deg: float, r
 		cm.height = radius * 2.05
 		cm.material = strut_mat
 		strut.mesh = cm
-		strut.position = Vector3(sgn * 3.8, radius, 0.0)
+		strut.position = Vector3(sgn * 4.4, radius, 0.0)
 		loop_root.add_child(strut)
 
 	var top_beam := MeshInstance3D.new()
 	var tbm := BoxMesh.new()
-	tbm.size = Vector3(8.0, 0.45, 0.55)
+	tbm.size = Vector3(9.2, 0.45, 0.55)
 	tbm.material = strut_mat
 	top_beam.mesh = tbm
 	top_beam.position = Vector3(0.0, radius * 2.05, 0.0)
@@ -694,10 +692,11 @@ func _add_stunt_loop(root: Node, name: String, pos: Vector3, rot_y_deg: float, r
 	zone.name = "LoopZone"
 	zone.set_script(load(LOOP_ZONE))
 	zone.set("loop_radius", radius)
+	zone.set("helical_pitch", helical_pitch)
 	var zcol := CollisionShape3D.new()
 	zcol.name = "ZoneCollider"
 	var zsh := BoxShape3D.new()
-	zsh.size = Vector3(6.2, radius * 2.3, radius * 2.3)
+	zsh.size = Vector3(7.4, radius * 2.25, radius * 2.25)
 	zcol.shape = zsh
 	zcol.position = Vector3(0.0, radius, 0.0)
 	zone.add_child(zcol)
@@ -720,7 +719,8 @@ func _add_hazard_pit(root: Node, name: String, pos: Vector3, pit_sz: Vector3) ->
 
 # -------------------------------------------------- ramps, pickups, drums ---
 
-func _add_ramp(root: Node, ramp_name: String, pos: Vector3, rot_deg: Vector3) -> void:
+func _add_ramp(root: Node, ramp_name: String, pos: Vector3, rot_deg: Vector3,
+		width := 2.7, double_sided := false) -> void:
 	var theta: float = abs(deg_to_rad(rot_deg.x))
 	var rot_x: float = -rot_deg.x
 	var half_len := 1.75
@@ -732,19 +732,12 @@ func _add_ramp(root: Node, ramp_name: String, pos: Vector3, rot_deg: Vector3) ->
 	ramp.name = ramp_name
 
 	var plank_shape := BoxShape3D.new()
-	plank_shape.size = Vector3(2.7, 0.16, 3.5)
+	plank_shape.size = Vector3(width, 0.16, 3.5)
 	var col1 := CollisionShape3D.new()
 	col1.shape = plank_shape
 	col1.position = Vector3(0.0, plank_c, 0.0)
 	col1.rotation_degrees = Vector3(rot_x, 0.0, 0.0)
 	ramp.add_child(col1)
-
-	var stand_shape := BoxShape3D.new()
-	stand_shape.size = Vector3(2.7, stand_h, 0.34)
-	var col2 := CollisionShape3D.new()
-	col2.shape = stand_shape
-	col2.position = Vector3(0.0, stand_h * 0.5, stand_z)
-	ramp.add_child(col2)
 
 	var plank_mesh := BoxMesh.new()
 	plank_mesh.size = plank_shape.size
@@ -758,16 +751,34 @@ func _add_ramp(root: Node, ramp_name: String, pos: Vector3, rot_deg: Vector3) ->
 	mesh1.rotation_degrees = Vector3(rot_x, 0.0, 0.0)
 	ramp.add_child(mesh1)
 
-	var stand_mesh := BoxMesh.new()
-	stand_mesh.size = stand_shape.size
-	var stand_mat := StandardMaterial3D.new()
-	stand_mat.albedo_color = Color(0.80, 0.62, 0.10, 1)
-	stand_mat.roughness = 0.6
-	stand_mesh.material = stand_mat
-	var mesh2 := MeshInstance3D.new()
-	mesh2.mesh = stand_mesh
-	mesh2.position = col2.position
-	ramp.add_child(mesh2)
+	if double_sided:
+		var back_col := CollisionShape3D.new()
+		back_col.shape = plank_shape
+		back_col.position = Vector3(0.0, plank_c, cos(theta) * 2.7)
+		back_col.rotation_degrees = Vector3(-rot_x, 0.0, 0.0)
+		ramp.add_child(back_col)
+		var back_mesh := MeshInstance3D.new()
+		back_mesh.mesh = plank_mesh
+		back_mesh.position = back_col.position
+		back_mesh.rotation_degrees = back_col.rotation_degrees
+		ramp.add_child(back_mesh)
+	else:
+		var stand_shape := BoxShape3D.new()
+		stand_shape.size = Vector3(width, stand_h, 0.34)
+		var col2 := CollisionShape3D.new()
+		col2.shape = stand_shape
+		col2.position = Vector3(0.0, stand_h * 0.5, stand_z)
+		ramp.add_child(col2)
+		var stand_mesh := BoxMesh.new()
+		stand_mesh.size = stand_shape.size
+		var stand_mat := StandardMaterial3D.new()
+		stand_mat.albedo_color = Color(0.80, 0.62, 0.10, 1)
+		stand_mat.roughness = 0.6
+		stand_mesh.material = stand_mat
+		var mesh2 := MeshInstance3D.new()
+		mesh2.mesh = stand_mesh
+		mesh2.position = col2.position
+		ramp.add_child(mesh2)
 
 	ramp.position = Vector3(pos.x, 0.0, pos.z)
 	ramp.rotation_degrees.y = rot_deg.y
@@ -902,9 +913,25 @@ func _add_match_hud(root: Node) -> void:
 	score_toggle.offset_top = 12.0
 	score_toggle.offset_bottom = 56.0
 	score_toggle.focus_mode = Control.FOCUS_NONE
-	_style_button(score_toggle, Color(0.42, 0.50, 0.62, 0.72))
+	UI.style_button(score_toggle, Color(0.42, 0.50, 0.62, 0.72), 15, 44.0)
 	score_toggle.add_theme_font_size_override("font_size", 12)
 	hud.add_child(score_toggle)
+
+	var speed_lbl := Label.new()
+	speed_lbl.name = "SpeedLabel"
+	speed_lbl.text = "0 km/h"
+	speed_lbl.anchor_left = 0.5
+	speed_lbl.anchor_right = 0.5
+	speed_lbl.anchor_top = 1.0
+	speed_lbl.anchor_bottom = 1.0
+	speed_lbl.offset_left = -74.0
+	speed_lbl.offset_right = 74.0
+	speed_lbl.offset_top = -54.0
+	speed_lbl.offset_bottom = -20.0
+	speed_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	speed_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_outlined(speed_lbl, Color(0.92, 0.96, 1.0, 0.95), 20, 6)
+	hud.add_child(speed_lbl)
 
 	var score := RichTextLabel.new()
 	score.name = "Scoreboard"
@@ -917,7 +944,7 @@ func _add_match_hud(root: Node) -> void:
 	score.offset_bottom = 200.0
 	score.scroll_active = false
 	score.add_theme_font_size_override("normal_font_size", 14)
-	score.add_theme_stylebox_override("normal", _chip(Color(0.05, 0.06, 0.09, 0.84)))
+	score.add_theme_stylebox_override("normal", UI.chip(Color(0.05, 0.06, 0.09, 0.84), Color(1.0, 1.0, 1.0, 0.08), 12))
 	hud.add_child(score)
 
 	var feed := VBoxContainer.new()
@@ -1025,7 +1052,7 @@ func _add_match_hud(root: Node) -> void:
 	respawn.vertical_alignment = 1
 	_outlined(respawn, Color(1.0, 0.55, 0.45, 1.0), 30, 9)
 	respawn.add_theme_stylebox_override("normal",
-			_chip(Color(0.14, 0.03, 0.03, 0.9), Color(1.0, 0.30, 0.25, 0.7)))
+			UI.chip(Color(0.14, 0.03, 0.03, 0.9), Color(1.0, 0.30, 0.25, 0.7), 12))
 	hud.add_child(respawn)
 
 	var result := Panel.new()
@@ -1040,7 +1067,7 @@ func _add_match_hud(root: Node) -> void:
 	result.offset_top = -170.0
 	result.offset_bottom = 170.0
 	result.add_theme_stylebox_override("panel",
-			_chip(Color(0.04, 0.05, 0.08, 0.94), Color(1.0, 0.78, 0.30, 0.7)))
+			UI.chip(Color(0.04, 0.05, 0.08, 0.94), Color(1.0, 0.78, 0.30, 0.7), 12))
 	var winner := Label.new()
 	winner.name = "WinnerLabel"
 	winner.text = "RACE OVER"
@@ -1064,7 +1091,7 @@ func _add_match_hud(root: Node) -> void:
 	again.offset_top = 120.0
 	again.offset_bottom = 166.0
 	again.focus_mode = Control.FOCUS_ALL
-	_style_button(again, Color(1.0, 0.70, 0.20, 0.9))
+	UI.style_button(again, Color(1.0, 0.70, 0.20, 0.9), 15, 44.0)
 	result.add_child(again)
 	var leave := Button.new()
 	leave.name = "LeaveBtn"
@@ -1076,7 +1103,7 @@ func _add_match_hud(root: Node) -> void:
 	leave.offset_top = 176.0
 	leave.offset_bottom = 222.0
 	leave.focus_mode = Control.FOCUS_ALL
-	_style_button(leave, Color(0.55, 0.60, 0.70, 0.7))
+	UI.style_button(leave, Color(0.55, 0.60, 0.70, 0.7), 15, 44.0)
 	result.add_child(leave)
 	hud.add_child(result)
 
@@ -1092,7 +1119,7 @@ func _add_match_hud(root: Node) -> void:
 	menu_btn.offset_top = 12.0
 	menu_btn.offset_bottom = 56.0
 	menu_btn.focus_mode = Control.FOCUS_NONE
-	_style_button(menu_btn, Color(0.42, 0.50, 0.62, 0.72))
+	UI.style_button(menu_btn, Color(0.42, 0.50, 0.62, 0.72), 15, 44.0)
 	menu_btn.add_theme_font_size_override("font_size", 12)
 	hud.add_child(menu_btn)
 

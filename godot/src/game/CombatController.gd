@@ -78,8 +78,6 @@ func _physics_process(delta: float) -> void:
 	var overdrive := now < _overdrive_until
 	if bike != null and "overdrive_active" in bike:
 		bike.set("overdrive_active", overdrive)
-	var power := _base_power * (1.35 if overdrive else 1.0)
-	bike.set("engine_power", power)
 
 	var touch := _touch_overlay()
 	if touch != null and not _touch_switch_connected and touch.has_signal("weapon_switch_requested"):
@@ -101,16 +99,6 @@ func _physics_process(delta: float) -> void:
 		var hovered := vp.gui_get_hovered_control() if vp != null else null
 		if not (hovered is BaseButton and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)):
 			cannons.fire()
-
-	# tyre smoke while braking/handbraking at speed
-	if Input.is_action_pressed("brake") and bike.linear_velocity.length() > 3.0:
-		_smoke_accum += delta
-		if _smoke_accum >= 0.06:
-			_smoke_accum = 0.0
-			var basis := bike.global_transform.basis
-			for x in [-0.55, 0.55]:
-				VFX.tire_smoke(_fx_parent(),
-						bike.global_position + basis.x * x + Vector3(0.0, 0.15, 0.0) - basis.z * 0.6)
 
 
 func apply_pickup(kind: String) -> void:
@@ -200,9 +188,10 @@ func _die(by: String) -> void:
 		attributable = ""
 	killer_id = attributable
 	died.emit(attributable)
-	var is_pogo := "vehicle_profile" in bike and str(bike.get("vehicle_profile")) == "pogo"
+	var v_prof := str(bike.get("vehicle_profile")) if "vehicle_profile" in bike else "bike"
+	var is_pogo := v_prof == "pogo"
 	VFX.dramatic_death_explosion(_fx_parent(), bike.global_position,
-			bike.global_transform.basis, player_color, is_pogo)
+			bike.global_transform.basis, player_color, is_pogo, v_prof)
 	_play_sfx("explosion")
 	var sfx := get_node_or_null("/root/Sfx")
 	if sfx != null and sfx.has_method("play"):

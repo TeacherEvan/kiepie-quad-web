@@ -276,6 +276,17 @@ func _build_main() -> void:
 	mode_row.add_child(btn_dr)
 	vbox.add_child(mode_row)
 
+	var vehicle_row := _hbox("VehicleRow")
+	var ride_lbl := _label("RideLabel", "RIDE", 14, MUTED)
+	ride_lbl.custom_minimum_size = Vector2(54.0, 32.0)
+	vehicle_row.add_child(ride_lbl)
+	var veh_opt := _option("VehicleSelect", ["AUTO (DEAL)", "KIEPIE QUAD", "NARDUS", "BIG-BEN F1"])
+	veh_opt.focus_mode = Control.FOCUS_ALL
+	veh_opt.clip_text = true
+	veh_opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vehicle_row.add_child(veh_opt)
+	vbox.add_child(vehicle_row)
+
 	vbox.add_child(_button("BtnPractice", "PRACTICE (FREE RIDE)"))
 	vbox.add_child(_button("BtnCreate", "CREATE LOBBY"))
 	vbox.add_child(_button("BtnJoinAuto", "JOIN AUTO"))

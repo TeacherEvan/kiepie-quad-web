@@ -43,6 +43,10 @@ const PROFILES := {
 		"muzzles": [["BananaMuzzle_L", "BananaMuzzle_L", -0.235], ["BananaMuzzle_R", "BananaMuzzle_R", 0.235]],
 		"color": Color(1.0, 0.9, 0.25), "banana": true,
 	},
+	"aston": {
+		"muzzles": [["AstonMuzzle_L", "Cannon_Bore_L", -0.46], ["AstonMuzzle_R", "Cannon_Bore_R", 0.46]],
+		"color": Color(0.68, 1.0, 0.20), "banana": false,
+	},
 }
 
 var owner_node: Node3D
@@ -80,7 +84,7 @@ static func _profile_for(profile_id: String) -> Dictionary:
 	var key := profile_id if PROFILES.has(profile_id) else "bike"
 	var base: Dictionary = (PROFILES[key] as Dictionary).duplicate(true)
 	# Single source of truth for per-vehicle combat balance lives in VehicleRegistry.
-	var veh := VehicleRegistry.VEHICLE_POGO if key == "pogo" else VehicleRegistry.VEHICLE_BIKE
+	var veh := VehicleRegistry.from_profile(key)
 	base["cooldown"] = VehicleRegistry.cooldown(veh)
 	base["rapid_cooldown"] = VehicleRegistry.rapid_cooldown(veh)
 	base["damage_mult"] = VehicleRegistry.damage_multiplier(veh)
@@ -166,7 +170,11 @@ func weapon_display_name(w_id: String = "") -> String:
 		"meteor":
 			return "METEOR SHOWER"
 		_:
-			return "BANANA CANNON" if weapon_profile == "pogo" else "MACHINE GUN"
+			if weapon_profile == "pogo":
+				return "BANANA CANNON"
+			if weapon_profile == "aston":
+				return "F1 AUTOCANNON"
+			return "MACHINE GUN"
 
 
 func max_cooldown_for(w_id: String = "") -> float:

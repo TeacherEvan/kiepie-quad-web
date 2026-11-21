@@ -23,7 +23,7 @@ func _initialize() -> void:
 	# entirely and derive it from the CollisionShape3D centroid (+0.56 m — top
 	# heavy). CUSTOM (1) serializes and honours the authored CoM below the axles.
 	bike.center_of_mass_mode = VehicleBody3D.CENTER_OF_MASS_MODE_CUSTOM
-	bike.center_of_mass = Vector3(0.0, -0.32, 0.0)
+	bike.center_of_mass = Vector3(0.0, -0.28, 0.10)
 	bike.inertia = Vector3(70.0, 120.0, 150.0)
 	bike.continuous_cd = true
 	bike.add_child(model)
@@ -60,9 +60,10 @@ func _initialize() -> void:
 		w.suspension_travel = 0.20
 		w.suspension_stiffness = 45.0
 		w.suspension_max_force = 1600.0
-		w.damping_compression = 0.5
-		w.damping_relaxation = 0.6
-		w.wheel_friction_slip = 4.0
+		w.damping_compression = 2.2
+		w.damping_relaxation = 2.8
+		w.wheel_roll_influence = 0.06
+		w.wheel_friction_slip = 3.8 if d.steer else 5.8
 		w.use_as_steering = d.steer
 		w.use_as_traction = true
 		bike.add_child(w)

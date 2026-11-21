@@ -345,15 +345,86 @@ func _run() -> void:
 	_check(r4 != null and r4.global_transform.basis.z.normalized().dot(Vector3.FORWARD) > 0.95,
 			"Ramp4 launches along -Z clockwise west straight over HazardPit2 (F-P0-2)")
 
-	# F-P1-8: TrackLoop0/LoopZone does not overlap the flat straightaway center (26, 0.5, -44)
-	var lz0 := dr.get_node_or_null("TrackLoop0/LoopZone") as Area3D
-	var lz0_col := lz0.get_node_or_null("ZoneCollider") as CollisionShape3D if lz0 != null else null
-	_check(lz0_col != null and lz0_col.shape is BoxShape3D, "TrackLoop0/LoopZone/ZoneCollider exists")
-	if lz0_col != null and lz0_col.shape is BoxShape3D:
-		var local_flat := lz0_col.to_local(Vector3(26.0, 0.5, -44.0))
-		var half := (lz0_col.shape as BoxShape3D).size * 0.5
-		var overlaps_flat := absf(local_flat.x) < half.x and absf(local_flat.y) < half.y and absf(local_flat.z) < half.z
-		_check(not overlaps_flat, "TrackLoop0/LoopZone is clear of flat lane center (26,0.5,-44) (F-P1-8)")
+	# F-P1-8: Full-width straightaway clearance — EVERY LoopSeg & LoopZone under TrackLoop0/1
+	# must be completely clear of NorthStraight (z in [-52, -36]) and SouthStraight (z in [36, 52]).
+	var loop_intrudes := false
+	for l_name in ["TrackLoop0", "TrackLoop1"]:
+		var lp_node := dr.get_node_or_null(l_name) as Node3D
+		_check(lp_node != null, "%s exists" % l_name)
+		if lp_node == null:
+			continue
+		for ch in lp_node.get_children():
+			if ch is StaticBody3D and str(ch.name).begins_with("LoopSeg"):
+				var seg_z := (ch as Node3D).global_position.z
+				if absf(seg_z) <= 52.2:
+					loop_intrudes = true
+			elif ch is Area3D and str(ch.name) == "LoopZone":
+				var zc := ch.get_node_or_null("ZoneCollider") as CollisionShape3D
+				if zc != null and zc.shape is BoxShape3D:
+					var half_z := (zc.shape as BoxShape3D).size.x * 0.5  # rotated 90 deg Y -> local X is world Z
+					if absf(zc.global_position.z) - half_z <= 52.2:
+						loop_intrudes = true
+	_check(not loop_intrudes, "TrackLoop0/1 & LoopZones are completely clear of flat straightaways (|z| > 52.2) (F-P1-8)")
+
+	# Tier-2 Death Race Turn 1 navigation @ 26 m/s (release at 85 deg) — no spinout
+	if bike != null:
+		bike.call("set_spawn", Transform3D(Basis(Vector3.UP, deg_to_rad(90.0)), Vector3(25.0, 0.1, -44.0)))
+		bike.call("reset_bike")
+		for _f in range(15):
+			await physics_frame
+		bike.linear_velocity = Vector3(26.0, 0.0, 0.0)
+		Input.action_press("move_forward")
+		Input.action_press("steer_right")
+		var py1 := rad_to_deg(atan2(bike.global_transform.basis.z.x, bike.global_transform.basis.z.z))
+		var tot1 := 0.0
+		var max_x1 := 25.0
+		var peak_slip1 := 0.0
+		for _t in range(100):
+			if absf(tot1) >= 85.0:
+				Input.action_release("steer_right")
+			await physics_frame
+			var b1 := bike.global_transform.basis.orthonormalized()
+			var ny1 := rad_to_deg(atan2(b1.z.x, b1.z.z))
+			tot1 += fmod(ny1 - py1 + 540.0, 360.0) - 180.0
+			py1 = ny1
+			max_x1 = maxf(max_x1, bike.global_position.x)
+			peak_slip1 = maxf(peak_slip1, absf(rad_to_deg(atan2(bike.linear_velocity.dot(b1.x), maxf(bike.linear_velocity.dot(b1.z), 0.5)))))
+		Input.action_release("move_forward")
+		Input.action_release("steer_right")
+		_check(absf(tot1) <= 115.0 and peak_slip1 < 20.0 and max_x1 < 74.0,
+				"DeathRace Turn 1 @26m/s navigates cleanly without spinout (yaw=%.1f° slip=%.1f° max_x=%.1f)" % [tot1, peak_slip1, max_x1])
+
+		# Tier-2 TrackLoop0 360-degree completion + stalled-loop upright recovery
+		bike.call("set_spawn", Transform3D(Basis(Vector3.UP, deg_to_rad(90.0)), Vector3(14.0, 0.1, -56.4)))
+		bike.call("reset_bike")
+		for _f in range(15):
+			await physics_frame
+		bike.linear_velocity = Vector3(24.0, 0.0, 0.0)
+		Input.action_press("move_forward")
+		var loop_max_y := 0.0
+		var loop_min_up := 1.0
+		for _t in range(200):
+			await physics_frame
+			loop_max_y = maxf(loop_max_y, bike.global_position.y)
+			loop_min_up = minf(loop_min_up, bike.global_transform.basis.y.normalized().y)
+		Input.action_release("move_forward")
+		_check(loop_max_y > 14.0 and loop_min_up < -0.5 and bike.global_transform.basis.y.normalized().y > 0.80,
+				"TrackLoop0 completes 360° inversion and lands upright (max_y=%.1f min_up=%.2f end_up=%.2f)" % [
+					loop_max_y, loop_min_up, bike.global_transform.basis.y.normalized().y])
+
+		# Stalled-loop bailout: bike stalled upside-down near top of loop must right itself
+		bike.global_transform = Transform3D(Basis(Vector3.RIGHT, PI), Vector3(26.0, 17.5, -58.2))
+		bike.linear_velocity = Vector3(1.0, 0.0, 0.0)
+		bike.angular_velocity = Vector3.ZERO
+		for _t in range(240):
+			await physics_frame
+		_check(bike.global_transform.basis.y.normalized().y > 0.70,
+				"Stalled loop bike rights itself upright instead of staying inverted (up=%.2f)" % bike.global_transform.basis.y.normalized().y)
+
+	# HUD SpeedLabel check
+	var speed_lbl := hud.get_node_or_null("SpeedLabel") as Label if hud != null else null
+	_check(speed_lbl != null and speed_lbl.text.find("km/h") >= 0,
+			"MatchHud displays Death Race SpeedLabel (text='%s')" % (speed_lbl.text if speed_lbl else "null"))
 
 	# F-P1-7: Idle OmniLight3D count stays within WebGL2 8-light forward budget
 	var omni_cnt := 0
@@ -411,6 +482,32 @@ func _run() -> void:
 		cam_rig.call("_process", 0.016)
 		_check(cam_rig.global_position.is_finite() and cam_rig.global_transform.basis.is_finite(),
 				"FollowCam survives vertical loop pose with finite transform (F-P1-6)")
+		# Tier-2 FollowCam high-speed turn lag bound
+		bike.call("set_spawn", Transform3D(Basis(Vector3.UP, deg_to_rad(90.0)), Vector3(-30.0, 0.1, -44.0)))
+		bike.call("reset_bike")
+		cam_rig.global_position = Vector3(-34.6, 2.5, -44.0)
+		for _f in range(5):
+			await physics_frame
+		bike.linear_velocity = Vector3(35.0, 0.0, 0.0)
+		Input.action_press("move_forward")
+		var max_cam_d := 0.0
+		var max_cam_lag := 0.0
+		for _t in range(60):
+			if _t == 20:
+				Input.action_press("steer_right")
+			await physics_frame
+			cam_rig.call("_process", 1.0 / 60.0)
+			max_cam_d = maxf(max_cam_d, cam_rig.global_position.distance_to(bike.global_position))
+			var to_b := bike.global_position - cam_rig.global_position
+			to_b.y = 0.0
+			var bf := bike.global_transform.basis.z
+			bf.y = 0.0
+			if to_b.length() > 0.1 and bf.length() > 0.1:
+				max_cam_lag = maxf(max_cam_lag, rad_to_deg(to_b.normalized().angle_to(bf.normalized())))
+		Input.action_release("move_forward")
+		Input.action_release("steer_right")
+		_check(max_cam_d <= 6.2 and max_cam_lag <= 22.0,
+				"FollowCam tracks 35 m/s turn tightly (max_dist=%.2fm <= 6.2m, lag=%.1f° <= 22°)" % [max_cam_d, max_cam_lag])
 		bike.global_transform = prev_xf
 
 	# P2-2: HazardPit ignores controller-less remote NetworkedBike proxies

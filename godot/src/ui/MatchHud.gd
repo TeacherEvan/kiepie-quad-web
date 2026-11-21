@@ -8,6 +8,10 @@ const MAIN_MENU := "res://scenes/MainMenu.tscn"
 const UI := preload("res://src/ui/UiTheme.gd")
 
 var _combat: Node = null
+var _bike: Node = null
+var _speed_label: Label = null
+var _last_speed := -1
+var _last_boost := false
 var _dead := false
 var _died_at := 0.0
 var _kill_lines: Array = []
@@ -47,6 +51,10 @@ func _ready() -> void:
 		_combat = combat_nodes[0]
 	if _combat == null:
 		_combat = get_node_or_null("../KiepieBike/CombatController")
+	_bike = get_node_or_null("../KiepieBike")
+	if _bike == null and _combat != null:
+		_bike = _combat.get_parent()
+	_speed_label = get_node_or_null("SpeedLabel") as Label
 	if _combat != null:
 		if _combat.has_signal("health_changed"):
 			_combat.health_changed.connect(_on_health_changed)
@@ -373,6 +381,30 @@ func _relayout() -> void:
 		result.offset_right = pw * 0.5
 		result.offset_top = -ph * 0.5
 		result.offset_bottom = ph * 0.5
+
+	if _speed_label != null:
+		if narrow:
+			_speed_label.anchor_left = 1.0
+			_speed_label.anchor_right = 1.0
+			_speed_label.anchor_top = 0.0
+			_speed_label.anchor_bottom = 0.0
+			_speed_label.offset_left = -204.0
+			_speed_label.offset_right = -110.0
+			_speed_label.offset_top = 60.0
+			_speed_label.offset_bottom = 84.0
+			_speed_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			_speed_label.add_theme_font_size_override("font_size", 15)
+		else:
+			_speed_label.anchor_left = 0.5
+			_speed_label.anchor_right = 0.5
+			_speed_label.anchor_top = 1.0
+			_speed_label.anchor_bottom = 1.0
+			_speed_label.offset_left = -74.0
+			_speed_label.offset_right = 74.0
+			_speed_label.offset_top = -54.0
+			_speed_label.offset_bottom = -20.0
+			_speed_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			_speed_label.add_theme_font_size_override("font_size", 20)
 
 
 func _reduced_motion() -> bool:
@@ -779,6 +811,15 @@ func _process(delta: float) -> void:
 		if overlay != null and text != _last_respawn_text:
 			_last_respawn_text = text
 			overlay.text = text
+	if _speed_label != null and _bike != null and is_instance_valid(_bike) and _bike.has_method("speed_kmh"):
+		var kmh := int(_bike.call("speed_kmh"))
+		var boost := bool(_bike.get("turbo_active")) or bool(_bike.get("overdrive_active"))
+		if kmh != _last_speed or boost != _last_boost:
+			_last_speed = kmh
+			_last_boost = boost
+			_speed_label.text = "%d km/h" % kmh
+			_speed_label.add_theme_color_override("font_color",
+					Color(1.0, 0.84, 0.30, 0.98) if boost else Color(0.92, 0.96, 1.0, 0.95))
 
 
 # ------------------------------------------------------------------- radar ---

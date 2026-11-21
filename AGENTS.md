@@ -43,6 +43,9 @@ blender -b -noaudio -P src/build_quad.py
 # NARDUS (pogo man) vehicle sculpt: rebuild Pogo_Nardus.blend + godot/assets/Pogo_Nardus.glb
 blender -b -noaudio -P src/build_pogo_nardus.py
 
+# Aston Martin ("BIG-BEN") F1 vehicle sculpt: rebuild Aston_Martin.blend + godot/assets/Aston_Martin.glb
+blender -b -noaudio -P src/build_aston_martin.py
+
 # Full model pipeline: rebuild → ground-seat → export .glb/.stl/.blend → round-trip verify
 blender -b -noaudio -P src/repair_and_verify.py
 
@@ -75,9 +78,9 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 - `gdlint` / `gdtoolkit` are **not installed** in this environment — do not rely on them.
   `godot-4.3 --check-only --script <file>` reports false "Identifier not found" for autoloads;
   use `tools/_check_scripts.gd` instead.
-- `run_gates.sh` runs **28 gates**: truth, stability, touch, features, smash_impact, diag2,
+- `run_gates.sh` runs **29 gates**: truth, stability, touch, features, smash_impact, diag2,
   cannons, settings, match_rules, combat, kill_flow, appeal, accessibility, talo_backend,
-  audit_regressions, controls, dodge, rollover, vfx, practice, multiplayer, pogo, deathrace, check_scripts + `touch_multitouch` (runs under xvfb, not headless —
+  audit_regressions, controls, dodge, rollover, vfx, practice, multiplayer, pogo, aston, deathrace, check_scripts + `touch_multitouch` (runs under xvfb, not headless —
   synthesized touch needs a real window) + GdUnit4 + `scene_sync` (tracked `.tscn` must equal
   the builders' output modulo resource-id churn; hand edits to generated scenes fail loudly) + `web_hygiene` (`check_web_hygiene.py`). `audit_regressions` locks the surgical-audit
   defects: forged `state` events, 3-stop VFX gradients, exhaust axis, malformed shot arrays and
@@ -199,7 +202,7 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   `v1.channels.message` socket events. Scoring is **host-authoritative client logic** — Talo has
   no SQL RPC, so the old server-side anti-cheat validation is gone. Don't claim otherwise.
   Every lobby is stamped with a **`protocol_version` channel prop** (`PROTOCOL_VERSION`,
-  wire protocol `2`). Peers mismatched on the version are never mixed into a lobby:
+  wire protocol `3`). Peers mismatched on the version are never mixed into a lobby:
   `join_auto` skips those channels (`is_channel_joinable`), `join_by_code` reports a version
   error. Bump `PROTOCOL_VERSION` only on a wire-breaking change (message kinds, prop keys,
   token semantics) — it is not a content semver.
@@ -234,6 +237,7 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 
 ## Vehicle / gameplay conventions
 
+- **Aston Martin ("BIG-BEN") F1 vehicle** — third playable vehicle in `VehicleRegistry.gd` (`VEHICLE_ASTON = &"AstonMartin"`, `"BIG-BEN F1"`, `res://assets/Aston_Martin.glb`). Players can either let `VehicleRegistry` deal from the 3-vehicle FNV-1a-32 hash pool (`AUTO (DEAL)`) or pick their preferred ride in `MainMenu` (`VehicleSelect`, persisted in `Settings` `gameplay/vehicle` and synced in lobby `join`/roster rows). `src/gen_plate_bigben.py` → `assets/plate_bigben.png` + `src/build_aston_martin.py` → `Aston_Martin.blend` + `godot/assets/Aston_Martin.glb` (177 KB, `minZ = 0.000`, `non_manifold_edges = 0`). Uses `Steer_FL/Wheel_FL`, `Steer_FR/Wheel_FR`, `Wheel_RL`, `Wheel_RR`, `AstonMuzzle_L/R` (`"F1 AUTOCANNON"`), and `Exhaust_Tip`. `verify_aston.gd` locks the GLB, runtime swap, steering/wheel pivots, and MainMenu selector.
 - **NARDUS pogo vehicle** — every player is **dealt** a vehicle; nobody picks. The draw is
   a deterministic hash of the player id (FNV-1a-32 over UTF-8 bytes) in
   `godot/src/game/VehicleRegistry.gd` — the draw takes a high-middle bit of the FNV-1a hash

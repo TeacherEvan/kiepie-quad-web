@@ -1,24 +1,26 @@
 [gd_scene load_steps=4 format=3]
 
-[ext_resource type="Script" path="res://src/KiepieBike.gd" id="1_j4rna"]
-[ext_resource type="PackedScene" path="res://assets/Kiepie_Bike.glb" id="2_sx6we"]
+[ext_resource type="Script" path="res://src/KiepieBike.gd" id="1_4lw0c"]
+[ext_resource type="PackedScene" path="res://assets/Kiepie_Bike.glb" id="2_d4org"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_6gvum"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_3g3e0"]
 size = Vector3(0.86, 0.52, 2.05)
 
 [node name="KiepieBike" type="VehicleBody3D"]
 mass = 185.0
 center_of_mass_mode = 1
-center_of_mass = Vector3(0, -0.32, 0)
+center_of_mass = Vector3(0, -0.28, 0.1)
 inertia = Vector3(70, 120, 150)
 continuous_cd = true
-script = ExtResource("1_j4rna")
-engine_power = 210.0
-turbo_boost = 1.3
-max_steer = 0.62
-steer_speed = 5.0
-brake_force = 2600.0
-coast_brake = 0.01
+script = ExtResource("1_4lw0c")
+engine_power = 235.0
+turbo_boost = 1.24
+overdrive_boost = 1.38
+max_steer = 0.56
+steer_speed = 4.8
+brake_force = 18.0
+handbrake_force = 26.0
+coast_brake = 0.12
 reverse_force = 265.0
 visual_steer_scale = 0.75
 wheel_radius = 0.28
@@ -29,54 +31,58 @@ dodge_spin = 8.5
 dodge_duration = 0.72
 dodge_cooldown = 1.0
 
-[node name="Model" type="Node3D" parent="." instance=ExtResource("2_sx6we")]
+[node name="Model" type="Node3D" parent="." instance=ExtResource("2_d4org")]
 
 [node name="@CollisionShape3D@2" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.56, 0.02)
-shape = SubResource("BoxShape3D_6gvum")
+shape = SubResource("BoxShape3D_3g3e0")
 
 [node name="WheelFL" type="VehicleWheel3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.545, 0.5, 0.68)
 use_as_traction = true
 use_as_steering = true
+wheel_roll_influence = 0.06
 wheel_radius = 0.28
 wheel_rest_length = 0.22
-wheel_friction_slip = 4.0
+wheel_friction_slip = 3.8
 suspension_stiffness = 45.0
 suspension_max_force = 1600.0
-damping_compression = 0.5
-damping_relaxation = 0.6
+damping_compression = 2.2
+damping_relaxation = 2.8
 
 [node name="WheelFR" type="VehicleWheel3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.545, 0.5, 0.68)
 use_as_traction = true
 use_as_steering = true
+wheel_roll_influence = 0.06
 wheel_radius = 0.28
 wheel_rest_length = 0.22
-wheel_friction_slip = 4.0
+wheel_friction_slip = 3.8
 suspension_stiffness = 45.0
 suspension_max_force = 1600.0
-damping_compression = 0.5
-damping_relaxation = 0.6
+damping_compression = 2.2
+damping_relaxation = 2.8
 
 [node name="WheelRL" type="VehicleWheel3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.575, 0.5, -0.66)
 use_as_traction = true
+wheel_roll_influence = 0.06
 wheel_radius = 0.28
 wheel_rest_length = 0.22
-wheel_friction_slip = 4.0
+wheel_friction_slip = 5.8
 suspension_stiffness = 45.0
 suspension_max_force = 1600.0
-damping_compression = 0.5
-damping_relaxation = 0.6
+damping_compression = 2.2
+damping_relaxation = 2.8
 
 [node name="WheelRR" type="VehicleWheel3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.575, 0.5, -0.66)
 use_as_traction = true
+wheel_roll_influence = 0.06
 wheel_radius = 0.28
 wheel_rest_length = 0.22
-wheel_friction_slip = 4.0
+wheel_friction_slip = 5.8
 suspension_stiffness = 45.0
 suspension_max_force = 1600.0
-damping_compression = 0.5
-damping_relaxation = 0.6
+damping_compression = 2.2
+damping_relaxation = 2.8

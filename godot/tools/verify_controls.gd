@@ -35,15 +35,15 @@ func _measure(sensitivity: float) -> Dictionary:
 	await process_frame
 	var bike := root.get_node("KiepieBike") as VehicleBody3D
 	for i in range(30):
-		await process_frame
+		await physics_frame
 	Input.action_press("move_forward")
-	for i in range(120):
-		await process_frame
+	for i in range(90):
+		await physics_frame
 	var h0 := bike.global_transform.basis.z.normalized()
 	Input.action_press("steer_left")
 	var min_up := 1.0
-	for i in range(90):
-		await process_frame
+	for i in range(60):
+		await physics_frame
 		min_up = minf(min_up, bike.global_transform.basis.y.normalized().y)
 	var h1 := bike.global_transform.basis.z.normalized()
 	var heading := rad_to_deg(acos(clampf(h0.dot(h1), -1.0, 1.0)))
@@ -120,6 +120,135 @@ func _run() -> void:
 			_check(true, "KiepieBike engine RPM pitch check skipped (no _engine_player in headless)")
 		b.queue_free()
 		await process_frame
+
+	# Tier-1 pure VehicleHandling math invariants
+	var vh := load("res://src/game/VehicleHandling.gd") as GDScript
+	_check(vh != null, "VehicleHandling.gd loads")
+	if vh != null:
+		var cap_low := float(vh.call("effective_steer_cap", 6.0, 0.56, 1.0))
+		var cap_hi := float(vh.call("effective_steer_cap", 35.0, 0.56, 1.0))
+		var cap_sens2 := float(vh.call("effective_steer_cap", 25.0, 0.56, 2.0))
+		var cap_nan := float(vh.call("effective_steer_cap", NAN, 0.56, NAN))
+		_check(cap_hi < cap_low * 0.5, "VehicleHandling tapers steer cap at 35 m/s (%.3f < %.3f)" % [cap_hi, cap_low])
+		_check(cap_sens2 <= 0.62, "VehicleHandling clamps sens=2.0 below snowplow lock (%.3f <= 0.62)" % cap_sens2)
+		_check(is_finite(cap_nan) and cap_nan > 0.0, "VehicleHandling handles NaN safely")
+		_check(is_equal_approx(float(vh.call("top_speed_cap", 1.0, true)), 36.0),
+				"VehicleHandling Overdrive+Turbo does not stack past 36 m/s")
+		var drag_low: Vector3 = vh.call("aero_drag_accel", Vector3(0, 0, 26.0), 28.0)
+		var drag_hi: Vector3 = vh.call("aero_drag_accel", Vector3(0, 0, 34.0), 28.0)
+		_check(drag_hi.length() > drag_low.length(), "VehicleHandling aero drag scales monotonically past soft cap")
+
+	# Tier-2 drop settle (0 bounces, 0 airborne ticks after landing) on clean flat ground
+	var drop_root := Node3D.new()
+	var flat_g := StaticBody3D.new()
+	var flat_c := CollisionShape3D.new()
+	var flat_b := BoxShape3D.new()
+	flat_b.size = Vector3(2000.0, 1.0, 2000.0)
+	flat_c.shape = flat_b
+	flat_g.add_child(flat_c)
+	flat_g.position = Vector3(0.0, -0.5, 0.0)
+	drop_root.add_child(flat_g)
+	var drop_bike := (load("res://scenes/KiepieBike.tscn") as PackedScene).instantiate() as VehicleBody3D
+	drop_bike.position = Vector3(0.0, 0.6, 0.0)
+	drop_root.add_child(drop_bike)
+	get_root().add_child(drop_root)
+	await process_frame
+	drop_bike.set_spawn(Transform3D(Basis.IDENTITY, Vector3(0.0, 0.6, 0.0)))
+	drop_bike.call("reset_bike")
+	var drop_min_y := 10.0
+	var drop_bounces := 0
+	var prev_c := false
+	var landed := false
+	var air_after_land := 0
+	for _t in range(90):
+		await physics_frame
+		var ic := (drop_bike.get_node("WheelFL") as VehicleWheel3D).is_in_contact()
+		if ic:
+			landed = true
+		if landed and not ic:
+			air_after_land += 1
+		if prev_c and not ic:
+			drop_bounces += 1
+		prev_c = ic
+		drop_min_y = minf(drop_min_y, drop_bike.global_position.y)
+	_check(drop_bounces == 0 and air_after_land == 0 and drop_min_y > -0.26,
+			"drop settle has 0 bounces & 0 airborne ticks (bounces=%d air=%d min_y=%.3f)" % [drop_bounces, air_after_land, drop_min_y])
+
+	# Tier-2 high-speed 30 m/s steering stability matrix (no 180 spinout)
+	var yaw_by_sf := {}
+	for sf in [0.15, 0.50, 1.00]:
+		drop_bike.set_spawn(Transform3D(Basis.IDENTITY, Vector3(0.0, 0.05, 0.0)))
+		drop_bike.call("reset_bike")
+		for _s in range(30):
+			await physics_frame
+		drop_bike.linear_velocity = Vector3(0.0, 0.0, 30.0)
+		Input.action_press("move_forward")
+		Input.action_press("steer_left", sf)
+		var py := rad_to_deg(atan2(drop_bike.global_transform.basis.z.x, drop_bike.global_transform.basis.z.z))
+		var tot := 0.0
+		var max_w := 0.0
+		var max_slip := 0.0
+		var air_t := 0
+		for _t in range(90):
+			if _t == 60:
+				Input.action_release("steer_left")
+			await physics_frame
+			var b := drop_bike.global_transform.basis.orthonormalized()
+			var ny := rad_to_deg(atan2(b.z.x, b.z.z))
+			tot += fmod(ny - py + 540.0, 360.0) - 180.0
+			py = ny
+			max_w = maxf(max_w, absf(drop_bike.angular_velocity.y))
+			var vf := drop_bike.linear_velocity.dot(b.z)
+			var vl := drop_bike.linear_velocity.dot(b.x)
+			if Vector2(vf, vl).length() > 0.5:
+				max_slip = maxf(max_slip, absf(rad_to_deg(atan2(vl, vf))))
+			if not (drop_bike.get_node("WheelFL") as VehicleWheel3D).is_in_contact():
+				air_t += 1
+		_release_all()
+		yaw_by_sf[sf] = absf(tot)
+		_check(absf(tot) <= 125.0 and max_w <= 2.8 and max_slip <= 22.0 and air_t == 0,
+				"30 m/s steer sf=%.2f stable (yaw=%.1f° w=%.2f slip=%.1f° air=%d)" % [sf, tot, max_w, max_slip, air_t])
+	_check(float(yaw_by_sf[1.00]) >= float(yaw_by_sf[0.15]),
+			"30 m/s steering scales proportionally (sf=1.0 %.1f° >= sf=0.15 %.1f°)" % [float(yaw_by_sf[1.00]), float(yaw_by_sf[0.15])])
+
+	# Tier-2 service brake + steer at 30 m/s turns requested direction
+	drop_bike.set_spawn(Transform3D(Basis.IDENTITY, Vector3(0.0, 0.05, 0.0)))
+	drop_bike.call("reset_bike")
+	for _s in range(30):
+		await physics_frame
+	drop_bike.linear_velocity = Vector3(0.0, 0.0, 30.0)
+	Input.action_press("move_back")
+	Input.action_press("steer_left")
+	var bpy := rad_to_deg(atan2(drop_bike.global_transform.basis.z.x, drop_bike.global_transform.basis.z.z))
+	var btot := 0.0
+	var bslip := 0.0
+	for _t in range(45):
+		await physics_frame
+		var b := drop_bike.global_transform.basis.orthonormalized()
+		var ny := rad_to_deg(atan2(b.z.x, b.z.z))
+		btot += fmod(ny - bpy + 540.0, 360.0) - 180.0
+		bpy = ny
+		bslip = maxf(bslip, absf(rad_to_deg(atan2(drop_bike.linear_velocity.dot(b.x), maxf(drop_bike.linear_velocity.dot(b.z), 0.5)))))
+	_release_all()
+	_check(btot > 10.0 and bslip < 20.0 and drop_bike.linear_velocity.length() < 24.0,
+			"brake+steer @30m/s turns left cleanly (yaw=%.1f° slip=%.1f° end_v=%.1f)" % [btot, bslip, drop_bike.linear_velocity.length()])
+
+	# Tier-2 Overdrive+Turbo top-speed cap
+	drop_bike.set_spawn(Transform3D(Basis.IDENTITY, Vector3(0.0, 0.05, 0.0)))
+	drop_bike.call("reset_bike")
+	for _s in range(15):
+		await physics_frame
+	drop_bike.linear_velocity = Vector3(0.0, 0.0, 26.0)
+	drop_bike.set("overdrive_active", true)
+	Input.action_press("move_forward")
+	Input.action_press("turbo")
+	for _t in range(180):
+		await physics_frame
+	var top_od := drop_bike.linear_velocity.length()
+	_release_all()
+	_check(top_od <= 39.0, "Overdrive+Turbo top speed capped <= 39.0 m/s (got %.1f m/s)" % top_od)
+	drop_root.free()
+	await process_frame
 
 	print("CONTROLS: %d failure(s)" % _fail)
 	quit(1 if _fail > 0 else 0)

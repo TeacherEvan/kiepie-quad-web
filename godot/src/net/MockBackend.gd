@@ -82,6 +82,7 @@ func call_rpc(name: String, args: Dictionary = {}) -> Dictionary:
 					"user_id": me,
 					"display_name": str(args.get("p_display_name", "RIDER")),
 					"color": str(args.get("p_color", "#ff7a1a")),
+					"vehicle": VehicleRegistry.sanitize_preference(str(args.get("p_vehicle", ""))),
 					"score": 0,
 					"is_ready": false,
 					"respawn_at": null,

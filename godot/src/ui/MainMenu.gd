@@ -13,6 +13,7 @@ const MOBILE_INPUT := preload("res://src/ui/MobileTextInput.gd")
 const COL_OK := UI.OK
 const COL_WARN := UI.WARN
 const COL_INFO := UI.INFO
+const VEHICLE_IDS := ["auto", "KiepieBike", "PogoNardus", "AstonMartin"]
 
 ## Selected Dashboard game mode: "battle_royale" (default) | "death_race"
 static var selected_game_mode := "battle_royale"
@@ -22,6 +23,7 @@ static var selected_game_mode := "battle_royale"
 @onready var _code: LineEdit = $SafeMargin/Card/VBox/JoinRow/CodeField
 @onready var _btn_mode_br: Button = get_node_or_null("SafeMargin/Card/VBox/ModeRow/BtnModeBattleRoyale")
 @onready var _btn_mode_dr: Button = get_node_or_null("SafeMargin/Card/VBox/ModeRow/BtnModeDeathRace")
+@onready var _vehicle_select: OptionButton = get_node_or_null("SafeMargin/Card/VBox/VehicleRow/VehicleSelect")
 @onready var _btn_practice: Button = $SafeMargin/Card/VBox/BtnPractice
 @onready var _btn_create: Button = $SafeMargin/Card/VBox/BtnCreate
 @onready var _btn_join_auto: Button = $SafeMargin/Card/VBox/BtnJoinAuto
@@ -43,6 +45,14 @@ func _ready() -> void:
 		_btn_mode_dr.pressed.connect(func() -> void:
 			Sfx.play_ui("ui_click")
 			select_game_mode("death_race"))
+	if _vehicle_select != null:
+		var saved_v := str(Settings.get_value("gameplay", "vehicle", "auto"))
+		var v_idx := VEHICLE_IDS.find(saved_v)
+		_vehicle_select.selected = v_idx if v_idx >= 0 else 0
+		_vehicle_select.item_selected.connect(func(i: int) -> void:
+			Sfx.play_ui("ui_click")
+			var vid: String = VEHICLE_IDS[clampi(i, 0, VEHICLE_IDS.size() - 1)]
+			Settings.set_value("gameplay", "vehicle", vid))
 	_btn_practice.pressed.connect(_on_practice)
 	_btn_create.pressed.connect(_on_create)
 	_btn_join_auto.pressed.connect(_on_join_auto)
@@ -159,7 +169,7 @@ func _apply_responsive_layout(vp: Vector2, _margin: MarginContainer = null) -> v
 	if _status != null:
 		_status.custom_minimum_size.y = 20.0 if very_short else (24.0 if short else 44.0)
 	var btn_h := 38.0 if very_short else (44.0 if short else 52.0)
-	for btn in [_btn_mode_br, _btn_mode_dr, _btn_practice, _btn_create, _btn_join_auto, _btn_join_code, _btn_settings]:
+	for btn in [_btn_mode_br, _btn_mode_dr, _vehicle_select, _btn_practice, _btn_create, _btn_join_auto, _btn_join_code, _btn_settings]:
 		if btn != null:
 			btn.custom_minimum_size.y = btn_h
 	if _btn_join_code != null:

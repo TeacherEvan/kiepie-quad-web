@@ -10,12 +10,16 @@ extends VehicleBody3D
 ##   Q / E     dodge left / right: leap into a cartwheel to evade attacks
 ##   R         reset to spawn
 
-@export var engine_power := 210.0
-@export var turbo_boost := 1.30
-@export var max_steer := 0.62
-@export var steer_speed := 5.0
-@export var brake_force := 2600.0
-@export var coast_brake := 0.01      ## rolling drag fraction of brake_force when coasting (no throttle/brake) — keeps the bike gliding instead of scrubbing speed
+const HANDLING := preload("res://src/game/VehicleHandling.gd")
+
+@export var engine_power := 235.0
+@export var turbo_boost := 1.24
+@export var overdrive_boost := 1.38
+@export var max_steer := 0.56
+@export var steer_speed := 4.8
+@export var brake_force := 18.0
+@export var handbrake_force := 26.0
+@export var coast_brake := 0.12      ## rolling drag fraction of brake_force when coasting (no throttle/brake) — keeps the bike gliding instead of scrubbing speed
 @export var reverse_force := 265.0
 @export var visual_steer_scale := 0.75
 @export var wheel_radius := 0.280
@@ -34,6 +38,8 @@ extends VehicleBody3D
 var turbo_active := false
 var player_id := ""   ## set by CombatController for projectile hit attribution
 var loop_up := Vector3.ZERO  ## non-zero inside a 360° LoopZone (local track normal pointing toward loop center)
+var loop_tangent := Vector3.ZERO
+var loop_center_pull := Vector3.ZERO
 var _assigned_vehicle: StringName = &""
 
 var _steer := 0.0
@@ -41,11 +47,15 @@ var _spawn := Transform3D.IDENTITY
 var _turbo_blend := 0.0
 var _steer_sensitivity := 1.0
 var _dodge_time := 0.0
+var _dodge_elapsed := 0.0
 var _dodge_cd := 0.0
 var _ground_coyote := 0.0   ## brief grace so suspension bounce can't eat a dodge
 var _was_grounded := false   ## visual-only landing detector
 var _roost_accum := 0.0
+var _skid_smoke_accum := 0.0
 var _pending_reset := false
+var _throttle_in := 0.0
+var _steer_in := 0.0
 var _dink_cd := 0.0       ## rate-limit the landing ping (dink)
 var _scrape_cd := 0.0     ## rate-limit the handbrake slide rumble (scrape)
 var _was_turbo := false
@@ -60,14 +70,14 @@ var overdrive_active := false
 var _jet_plume: Node3D = null
 var _jet_t := 0.0
 @onready var _wheel_nodes := {
-	"WheelFL": get_node_or_null("Model/Wheel_FL"),
-	"WheelFR": get_node_or_null("Model/Wheel_FR"),
-	"WheelRL": get_node_or_null("Model/Wheel_RL"),
-	"WheelRR": get_node_or_null("Model/Wheel_RR"),
+	"WheelFL": _find_model_node(get_node_or_null("Model"), "Wheel_FL"),
+	"WheelFR": _find_model_node(get_node_or_null("Model"), "Wheel_FR"),
+	"WheelRL": _find_model_node(get_node_or_null("Model"), "Wheel_RL"),
+	"WheelRR": _find_model_node(get_node_or_null("Model"), "Wheel_RR"),
 }
 @onready var _steer_nodes := {
-	"FL": get_node_or_null("Model/Steer_FL"),
-	"FR": get_node_or_null("Model/Steer_FR"),
+	"FL": _find_model_node(get_node_or_null("Model"), "Steer_FL"),
+	"FR": _find_model_node(get_node_or_null("Model"), "Steer_FR"),
 }
 const POGO_VISUAL := preload("res://src/game/PogoVisual.gd")
 @onready var _wheels := {
@@ -148,8 +158,8 @@ func _build_flames() -> void:
 	p.draw_pass_1 = flame_mesh
 
 	# Match the imported rim: (-0.278, 0.487, -0.715) for the bike's exhaust,
-	# and the pogo spring for NARDUS (funny fires from the base — comedy).
-	p.position = Vector3(0.0, 0.30, -0.18) if vehicle_profile == "pogo" else Vector3(-0.278, 0.487, -0.715)
+	# the pogo spring for NARDUS, and Exhaust_Tip for Aston Martin.
+	p.position = _exhaust_position()
 
 	# Inner afterburner jet cone + Mach shock diamonds for unmistakable turbine thrust.
 	var plume := Node3D.new()
@@ -223,6 +233,49 @@ func _build_flames() -> void:
 	add_child(p)
 	_flames = p
 
+func _find_model_node(model: Node, node_name: String) -> Node3D:
+	if model == null:
+		return null
+	var direct := model.get_node_or_null(node_name) as Node3D
+	if direct != null:
+		return direct
+	return model.find_child(node_name, true, false) as Node3D
+
+
+func _resolve_vehicle_pref(lookup_id: String) -> String:
+	if typeof(Match) != TYPE_NIL and Match != null and "players" in Match:
+		var mp: Variant = Match.get("players")
+		if mp is Dictionary and (mp as Dictionary).has(lookup_id):
+			var row: Variant = (mp as Dictionary)[lookup_id]
+			if row is Dictionary:
+				var p_veh := VehicleRegistry.sanitize_preference(str((row as Dictionary).get("vehicle", "")))
+				if p_veh != "":
+					return p_veh
+	if typeof(Settings) != TYPE_NIL and Settings != null and Settings.has_method("preferred_vehicle"):
+		return str(Settings.call("preferred_vehicle"))
+	return ""
+
+
+func _exhaust_position() -> Vector3:
+	var model := get_node_or_null("Model")
+	var tip := _find_model_node(model, "Exhaust_Tip")
+	if tip != null and model != null:
+		var pos := tip.position
+		var cur: Node = tip.get_parent()
+		while cur != null and cur != model:
+			if cur is Node3D:
+				pos = (cur as Node3D).transform * pos
+			cur = cur.get_parent()
+		if model is Node3D:
+			pos = (model as Node3D).transform * pos
+		return pos
+	if vehicle_profile == "pogo":
+		return Vector3(0.0, 0.30, -0.18)
+	if vehicle_profile == "aston":
+		return Vector3(0.0, 0.39, -1.35)
+	return Vector3(-0.278, 0.487, -0.715)
+
+
 func _assign_vehicle() -> StringName:
 	## Remote-player identity rule: the vehicle is a deterministic hash of the
 	## player id (with roster-level guarantee that at least one player in any
@@ -237,8 +290,7 @@ func _assign_vehicle() -> StringName:
 		var mp: Variant = Match.get("players")
 		if mp is Dictionary and not (mp as Dictionary).is_empty():
 			roster_keys = (mp as Dictionary).keys()
-	var assigned := VehicleRegistry.for_player_in_roster(lookup_id, roster_keys) if not roster_keys.is_empty() \
-			else VehicleRegistry.for_player(lookup_id)
+	var assigned := VehicleRegistry.resolve_for_player(lookup_id, roster_keys, _resolve_vehicle_pref(lookup_id))
 	_assigned_vehicle = assigned
 	vehicle_profile = VehicleRegistry.profile(assigned)
 	if assigned != VehicleRegistry.VEHICLE_BIKE:
@@ -256,15 +308,14 @@ func refresh_vehicle_assignment() -> void:
 		var mp: Variant = Match.get("players")
 		if mp is Dictionary and not (mp as Dictionary).is_empty():
 			roster_keys = (mp as Dictionary).keys()
-	var assigned := VehicleRegistry.for_player_in_roster(lookup_id, roster_keys) if not roster_keys.is_empty() \
-			else VehicleRegistry.for_player(lookup_id)
+	var assigned := VehicleRegistry.resolve_for_player(lookup_id, roster_keys, _resolve_vehicle_pref(lookup_id))
 	if assigned == _assigned_vehicle:
 		return
 	_assigned_vehicle = assigned
 	vehicle_profile = VehicleRegistry.profile(assigned)
 	_swap_model(assigned, VehicleRegistry.model_path(assigned))
 	if _flames != null:
-		_flames.position = Vector3(0.0, 0.30, -0.18) if vehicle_profile == "pogo" else Vector3(-0.278, 0.487, -0.715)
+		_flames.position = _exhaust_position()
 	var combat := get_node_or_null("CombatController")
 	if combat != null:
 		var cannons := combat.get_node_or_null("SideCannons")
@@ -293,17 +344,17 @@ func _swap_model(assigned: StringName, glb_path: String) -> void:
 		remove_child(old)
 		old.queue_free()
 	add_child(new_model)
-	# refresh runtime visual lookups — the Pogo has no wheel meshes (raycasts
-	# only), and the dicts here are keyed for the bike GLB
+	# refresh runtime visual lookups — supports both top-level (KiepieBike) and
+	# nested (Aston_Martin Steer_FL/Wheel_FL) wheel hierarchies.
 	_wheel_nodes = {
-		"WheelFL": get_node_or_null("Model/Wheel_FL"),
-		"WheelFR": get_node_or_null("Model/Wheel_FR"),
-		"WheelRL": get_node_or_null("Model/Wheel_RL"),
-		"WheelRR": get_node_or_null("Model/Wheel_RR"),
+		"WheelFL": _find_model_node(new_model, "Wheel_FL"),
+		"WheelFR": _find_model_node(new_model, "Wheel_FR"),
+		"WheelRL": _find_model_node(new_model, "Wheel_RL"),
+		"WheelRR": _find_model_node(new_model, "Wheel_RR"),
 	}
 	_steer_nodes = {
-		"FL": get_node_or_null("Model/Steer_FL"),
-		"FR": get_node_or_null("Model/Steer_FR"),
+		"FL": _find_model_node(new_model, "Steer_FL"),
+		"FR": _find_model_node(new_model, "Steer_FR"),
 	}
 
 
@@ -311,12 +362,17 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("reset_bike"):
 		reset_bike()
 
-	_dodge_time = maxf(0.0, _dodge_time - delta)
+	var grounded := _grounded()
+	if _dodge_time > 0.0:
+		_dodge_elapsed += delta
+		_dodge_time = maxf(0.0, _dodge_time - delta)
+		if _dodge_elapsed > 0.35 and grounded:
+			_dodge_time = 0.0
 	_dodge_cd = maxf(0.0, _dodge_cd - delta)
 	_dink_cd = maxf(0.0, _dink_cd - delta)
 	_scrape_cd = maxf(0.0, _scrape_cd - delta)
 	_turbo_sfx_cd = maxf(0.0, _turbo_sfx_cd - delta)
-	if _grounded():
+	if grounded:
 		_ground_coyote = 0.12
 	else:
 		_ground_coyote = maxf(0.0, _ground_coyote - delta)
@@ -329,12 +385,14 @@ func _physics_process(delta: float) -> void:
 
 	# Visual feedback only: hard landing throws a ground dust ring, fast
 	# cornering kicks a rooster tail off the rear wheels. No physics is touched.
-	var grounded := _grounded()
 	var vy := linear_velocity.y
 	if grounded and not _was_grounded and vy < -3.5:
 		var rear: Vector3 = global_position - global_transform.basis.z * 0.66
 		VfxFactory.dust_ring(_fx_parent(), Vector3(rear.x, maxf(0.0, rear.y - 0.25), rear.z), 1.1, 4.5)
 		_shake(0.08)
+		if not Settings.reduced_motion() and DisplayServer.get_name() != "headless" \
+				and (OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")):
+			Input.vibrate_handheld(28)
 		if _dink_cd <= 0.0:
 			_dink_cd = 0.45
 			_play_sfx("impact", -2.0)
@@ -356,6 +414,8 @@ func _physics_process(delta: float) -> void:
 
 	var throttle := Input.get_axis("move_back", "move_forward")
 	var steer_input := Input.get_axis("steer_right", "steer_left")
+	_throttle_in = throttle
+	_steer_in = steer_input
 
 	# --- turbo: hold Shift while throttling ---
 	var want_turbo := (Input.is_action_pressed("turbo") and throttle > 0.1) or overdrive_active
@@ -366,7 +426,7 @@ func _physics_process(delta: float) -> void:
 		_play_sfx("turbo")
 	_was_turbo = turbo_active
 	if is_instance_valid(_engine_player):
-		var speed_ratio := clampf(speed_kmh() / 90.0, 0.0, 1.0)
+		var speed_ratio := clampf(speed_kmh() / 125.0, 0.0, 1.0)
 		var target_pitch := 0.78 + speed_ratio * 0.65 + (0.18 if turbo_active else 0.0)
 		_engine_player.pitch_scale = lerpf(_engine_player.pitch_scale, target_pitch, 1.0 - exp(-8.0 * delta))
 	var reduced := Settings.reduced_motion()
@@ -381,14 +441,22 @@ func _physics_process(delta: float) -> void:
 			var w := lerpf(0.75, 1.15, jet_strength) * pulse
 			_jet_plume.scale = Vector3(w, w, lerpf(0.45, 1.25, jet_strength) * pulse)
 
-	var steer_cap := max_steer * _steer_sensitivity
-	_steer = move_toward(_steer, steer_input * steer_cap, steer_speed * _steer_sensitivity * delta)
-	_steer = clamp(_steer, -steer_cap, steer_cap)
+	var spd := linear_velocity.length()
+	var steer_cap := HANDLING.effective_steer_cap(spd, max_steer, _steer_sensitivity)
+	var target_steer := steer_input * steer_cap
+	var rate := HANDLING.effective_steer_rate(steer_speed, _steer_sensitivity, absf(target_steer) < absf(_steer))
+	_steer = clampf(move_toward(_steer, target_steer, rate * delta), -steer_cap, steer_cap)
 
 	var braking := Input.is_action_pressed("brake")
-	var power := engine_power * lerpf(1.0, turbo_boost, _turbo_blend)
+	var boost_mult := overdrive_boost if overdrive_active else lerpf(1.0, turbo_boost, _turbo_blend)
+	var max_spd := HANDLING.top_speed_cap(_turbo_blend, overdrive_active)
+	var forward_speed := linear_velocity.dot(global_transform.basis.z)
+	var power := engine_power * boost_mult * HANDLING.power_taper(forward_speed, max_spd)
+	var min_skid := 1.0
 
 	for key in _wheels.keys():
+		var ks := str(key)
+		var is_front: bool = (ks == "FL" or ks == "FR")
 		var w: VehicleWheel3D = _wheels[key]
 		if w == null or not is_instance_valid(w):
 			continue  # test harnesses may strip/free wheel nodes mid-run
@@ -398,26 +466,37 @@ func _physics_process(delta: float) -> void:
 			w.engine_force = power * throttle
 		elif throttle < 0.0:
 			# Signed forward speed, not length(): reversing past 2 m/s must keep
-			# driving in reverse, not slam 2600 N of brake against the motion.
-			var forward_speed := linear_velocity.dot(global_transform.basis.z)
+			# driving in reverse, not slam brake against the motion.
 			if forward_speed < 2.5:
 				w.engine_force = -reverse_force * -throttle
 			else:
-				w.brake = brake_force
+				w.brake = HANDLING.service_brake_for_wheel(brake_force, is_front, w.get_skidinfo(), -throttle)
 		if braking:
-			w.brake = brake_force
+			w.brake = (brake_force * 0.20) if is_front else handbrake_force
 		elif throttle == 0.0:
-			# Light rolling drag only — the old 8% brake scrubbed ~4.5 m/s^2 and
-			# killed all momentum. ~0.5 m/s^2 total lets the quad coast.
 			w.brake = brake_force * coast_brake
+		if w.is_in_contact():
+			min_skid = minf(min_skid, w.get_skidinfo())
 
-		if key == "FL" or key == "FR":
+		if is_front:
 			w.steering = _steer
 
-	# Handbrake on ground: wheels scrape — low-velocity slide rumble (scrape).
-	if braking and grounded and _scrape_cd <= 0.0 and linear_velocity.length() > 2.5:
-		_scrape_cd = 1.6
-		_play_sfx("scrape", -2.5)
+	# Real skid / handbrake feedback: tire smoke + scrape SFX when wheels break traction.
+	var slip_angle := absf(atan2(linear_velocity.dot(global_transform.basis.x), maxf(absf(forward_speed), 1.0)))
+	if grounded and spd > 6.0 and (min_skid < 0.45 or slip_angle > 0.22 or braking):
+		if _scrape_cd <= 0.0:
+			_scrape_cd = 1.2
+			_play_sfx("scrape", -3.0)
+		if not reduced:
+			_skid_smoke_accum += delta
+			if _skid_smoke_accum >= 0.07:
+				_skid_smoke_accum = 0.0
+				var b := global_transform.basis
+				for x in [-0.55, 0.55]:
+					VfxFactory.tire_smoke(_fx_parent(),
+							global_position + b.x * x + Vector3(0.0, 0.15, 0.0) - b.z * 0.6)
+	else:
+		_skid_smoke_accum = 0.0
 
 	# visual feedback: yaw the steering pivots and roll the wheel meshes
 	var steer_alpha := 1.0 - exp(-10.0 * minf(delta, 0.05))
@@ -455,11 +534,17 @@ func reset_bike() -> void:
 	turbo_active = false
 	overdrive_active = false
 	loop_up = Vector3.ZERO
+	loop_tangent = Vector3.ZERO
+	loop_center_pull = Vector3.ZERO
 	_was_turbo = false
 	_turbo_sfx_cd = 0.0
 	_dodge_time = 0.0
+	_dodge_elapsed = 0.0
 	_dodge_cd = 0.0
 	_ground_coyote = 0.0
+	_throttle_in = 0.0
+	_steer_in = 0.0
+	_skid_smoke_accum = 0.0
 	for key in _wheels.keys():
 		var w: VehicleWheel3D = _wheels[key]
 		if w != null and is_instance_valid(w):
@@ -516,6 +601,7 @@ func _try_dodge(dir: float) -> void:
 		return
 	_dodge_cd = dodge_cooldown
 	_dodge_time = dodge_duration
+	_dodge_elapsed = 0.0
 
 	var basis := global_transform.basis.orthonormalized()
 	# The GLB's forward is local +Z; with Y up that makes local +X the bike's
@@ -551,23 +637,42 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	# (2) an active righting spring rotating the chassis back toward level
 	var basis := state.transform.basis.orthonormalized()
 	var up := basis.y.normalized()
-	var in_loop := loop_up.length_squared() > 0.25
-	var ref_up := loop_up.normalized() if in_loop else Vector3.UP
-	if in_loop and state.linear_velocity.length() > 5.0:
-		# Centripetal track adhesion + gravity compensation inside a 360° vertical loop
-		# so raycast wheels stay planted against the loop surface even upside down.
-		state.linear_velocity += (Vector3(0.0, 9.81, 0.0) - ref_up * 24.0) * state.step
+	var spd := state.linear_velocity.length()
+	var dt_scale := clampf(state.step * 60.0, 0.25, 4.0)
+	var in_loop_zone := loop_up.length_squared() > 0.25
+	var loop_active := in_loop_zone and spd > 8.0
+	if not loop_active:
+		var max_spd := HANDLING.top_speed_cap(_turbo_blend, overdrive_active)
+		state.linear_velocity += HANDLING.aero_drag_accel(state.linear_velocity, max_spd) * state.step
+	var ref_up := loop_up.normalized() if loop_active else Vector3.UP
+	if loop_active:
+		# Centripetal track adhesion + gravity compensation + helical climb assist inside 360° loops.
+		state.linear_velocity += (Vector3(0.0, 9.81, 0.0) - ref_up * 12.0 + loop_center_pull) * state.step
+		if _throttle_in > 0.1 and loop_tangent.length_squared() > 0.25:
+			var t_dir := loop_tangent.normalized()
+			var t_spd := state.linear_velocity.dot(t_dir)
+			if t_spd < 24.0:
+				state.linear_velocity += t_dir * ((24.0 - t_spd) * 2.5 * state.step)
 	var av := state.angular_velocity
-	var yaw := av.dot(up) * up
+	var yaw_mag := av.dot(up)
+	var yaw := yaw_mag * up
 	var trans := av - yaw
+	var v_fwd := state.linear_velocity.dot(basis.z)
+	var v_lat := state.linear_velocity.dot(basis.x)
+	if spd > 10.0 and not loop_active:
+		var lim := HANDLING.high_speed_yaw_limits(spd, absf(_steer_in) >= 0.05)
+		yaw_mag = clampf(yaw_mag * pow(lim.y, dt_scale), -lim.x, lim.x)
+		yaw = yaw_mag * up
+		if _grounded() and v_fwd > 4.0:
+			var slip := atan2(v_lat, maxf(v_fwd, 1.0))
+			var lat_k := HANDLING.lateral_slip_keep(spd, slip)
+			if lat_k < 0.999:
+				state.linear_velocity -= basis.x * (v_lat * (1.0 - pow(lat_k, dt_scale)))
 	var lean := clampf(1.0 - up.dot(ref_up), 0.0, 1.0)
 	if _dodge_time > 0.0:
-		# Mid-cartwheel: the spin IS roll — leave it completely undamped.
+		# Mid-cartwheel: keep yaw stabilized, leave roll spin completely undamped.
+		state.angular_velocity = yaw + trans
 		return
-	# Frame-rate invariant: the step is scaled to a 60 Hz reference tick so the
-	# per-tick retention/torque does not over-damp at high physics rates or
-	# under-damp at low ones. pow(keep, dt_scale) is the exponential form.
-	var dt_scale := clampf(state.step * 60.0, 0.25, 4.0)
 	var keep := lerpf(0.10, 0.003, lean)
 	state.angular_velocity = yaw + trans * pow(keep, dt_scale)
 	# (2) righting spring: rotate about the tilt axis (y × ref_up) —
@@ -575,16 +680,12 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var axis := basis.y.cross(ref_up)
 	var tilt := basis.y.angle_to(ref_up)
 	if axis.length() <= 0.0001:
-		# y is parallel to world UP or its negative. Upright is handled by
-		# the deadzone; when fully inverted any horizontal axis fixes the
-		# bike (all great-circle arcs are equal). Pick horizontal projection
-		# of a side or forward vector.
 		axis = Vector3(basis.x.x, 0.0, basis.x.z)
 		if axis.length() <= 0.0001:
 			axis = Vector3(basis.z.x, 0.0, basis.z.z)
 	if tilt > 0.055 and axis.length() > 0.0001:
-		var max_step := 0.24 if in_loop else 0.14
-		var effort := minf(minf(tilt * (0.14 + lean * 1.6 if in_loop else 0.10 + lean * 1.5), max_step) * dt_scale, tilt)
+		var max_step := 0.30 if loop_active else 0.14
+		var effort := minf(minf(tilt * (0.22 + lean * 1.6 if loop_active else 0.10 + lean * 1.5), max_step) * dt_scale, tilt)
 		basis = Basis(Quaternion(axis.normalized(), effort)) * basis
 		basis = basis.orthonormalized()
 		state.transform = Transform3D(basis, state.transform.origin)

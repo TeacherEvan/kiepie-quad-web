@@ -128,7 +128,7 @@ func _initialize() -> void:
 	# Auto-join channel filter: reject 0-member, stale, owner-mismatch, and full channels.
 	var talo_script = load("res://src/net/TaloBackend.gd")
 	var cur_proto := str(talo_script.get("PROTOCOL_VERSION"))
-	_check(cur_proto == "2", "PROTOCOL_VERSION bumped to 2 for Death Race + heavy weapons")
+	_check(cur_proto == "3", "PROTOCOL_VERSION bumped to 3 for 3-vehicle Aston Martin integration")
 	var now := Time.get_unix_time_from_system()
 	var make_ch := func(members: int, owner_id: int, host_id: String, hb: float, roster_obj: Dictionary, status: String = "waiting", proto: String = "") -> RefCounted:
 		var use_proto := cur_proto if proto == "__CURRENT__" else proto
@@ -155,6 +155,8 @@ func _initialize() -> void:
 			"channel missing host in roster is rejected by join_auto")
 	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(4, 10, "10", now - 5.0, live_roster, "waiting", "__CURRENT__"), now)),
 			"full channel is rejected by join_auto")
+	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(1, 10, "10", now - 5.0, live_roster, "waiting", "2"), now)),
+			"protocol-versioned channel with an older version (v2) is rejected")
 	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(1, 10, "10", now - 5.0, live_roster, "waiting", "1"), now)),
 			"protocol-versioned channel with an older version (v1) is rejected")
 	_check(not bool(talo_script.call("is_channel_joinable", make_ch.call(1, 10, "10", now - 5.0, live_roster, "waiting", ""), now)),

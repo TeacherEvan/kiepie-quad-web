@@ -35,6 +35,7 @@ const DEFAULTS := {
 	"gameplay": {
 		"display_name": "RIDER",
 		"color": "#ff7a1a",
+		"vehicle": "auto",
 		"screen_shake": 1.0,
 		"reduced_motion": false,
 		"kill_feed": true,
@@ -439,6 +440,10 @@ func display_name() -> String:
 
 func player_color() -> String:
 	return str(get_value("gameplay", "color", "#ff7a1a"))
+
+
+func preferred_vehicle() -> String:
+	return VehicleRegistry.sanitize_preference(str(get_value("gameplay", "vehicle", "auto")))
 
 
 func quality_multiplier() -> float:

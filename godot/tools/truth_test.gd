@@ -18,8 +18,8 @@ func _initialize() -> void:
 			" travel ", fl.suspension_travel, " radius ", fl.wheel_radius)
 	var min_up := 1.0
 	Input.action_press("move_forward")
-	for i in range(360):
-		await process_frame
+	for i in range(180):
+		await physics_frame
 		min_up = minf(min_up, bike.global_transform.basis.y.normalized().y)
 		if i % 60 == 0:
 			var contact_txt := ""

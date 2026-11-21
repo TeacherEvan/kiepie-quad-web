@@ -1036,7 +1036,7 @@ static func particle_explosion(parent: Node3D, pos: Vector3, color: Color, scale
 # ------------------------------------------------------------- death VFX -----
 
 static func _build_death_wreck(pos: Vector3, basis: Basis, is_pogo: bool,
-		rng: RandomNumberGenerator) -> RigidBody3D:
+		rng: RandomNumberGenerator, vehicle_profile: String = "") -> RigidBody3D:
 	## Cosmetic tumbling wreck: no collision layers/masks, never blocks the track.
 	var wreck := RigidBody3D.new()
 	wreck.mass = 18.0
@@ -1050,7 +1050,25 @@ static func _build_death_wreck(pos: Vector3, basis: Basis, is_pogo: bool,
 	frame_mat.roughness = 0.85
 	frame_mat.metallic = 0.3
 	var cast_off := GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	if not is_pogo:
+	if vehicle_profile == "aston":
+		var tub := BoxMesh.new()
+		tub.size = Vector3(0.46, 0.20, 1.95)
+		tub.material = frame_mat
+		var ti := MeshInstance3D.new()
+		ti.mesh = tub
+		ti.position = Vector3(0.0, 0.04, 0.0)
+		ti.cast_shadow = cast_off
+		wreck.add_child(ti)
+		for wz in [0.95, -0.88]:
+			var wing := BoxMesh.new()
+			wing.size = Vector3(1.25 if wz > 0.0 else 0.85, 0.08, 0.24)
+			wing.material = frame_mat
+			var wi := MeshInstance3D.new()
+			wi.mesh = wing
+			wi.position = Vector3(0.0, 0.0 if wz > 0.0 else 0.24, wz)
+			wi.cast_shadow = cast_off
+			wreck.add_child(wi)
+	elif not is_pogo:
 		# Blackened quad chassis silhouette: central frame box + two axle crossbars
 		var frame := BoxMesh.new()
 		frame.size = Vector3(0.62, 0.22, 1.35)
@@ -1134,7 +1152,7 @@ static func _stick_wreck_mesh(wreck: RigidBody3D, frame_mat: StandardMaterial3D,
 
 
 static func dramatic_death_explosion(parent: Node3D, pos: Vector3, basis: Basis,
-		color: Color, is_pogo: bool = false) -> void:
+		color: Color, is_pogo: bool = false, vehicle_profile: String = "") -> void:
 	## 4-beat death sequence: primary detonation, launch shockwave, tumbling
 	## charred wreck with a fire plume, then two staggered mid-air cook-offs.
 	if parent == null:
@@ -1158,7 +1176,7 @@ static func dramatic_death_explosion(parent: Node3D, pos: Vector3, basis: Basis,
 	var wreck_count := tree.get_nodes_in_group("death_wreck").size() if tree != null else MAX_WRECKS
 	if wreck_count >= MAX_WRECKS:
 		return
-	var wreck := _build_death_wreck(pos, basis, is_pogo, rng)
+	var wreck := _build_death_wreck(pos, basis, is_pogo, rng, vehicle_profile)
 	parent.add_child(wreck)
 	# Beat 3: two staggered mid-air cook-offs tracking the tumbling wreck
 	var cook := func(sz: float) -> void:

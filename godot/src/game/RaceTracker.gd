@@ -75,6 +75,7 @@ func _setup_solo_or_match_mode() -> void:
 				"user_id": uid,
 				"display_name": Settings.display_name(),
 				"color": Settings.player_color(),
+				"vehicle": Settings.preferred_vehicle(),
 				"score": 0,
 				"is_ready": true,
 			}

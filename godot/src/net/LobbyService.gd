@@ -38,6 +38,7 @@ func join_auto(game_mode: String = "battle_royale") -> bool:
 	var res: Dictionary = await Supabase.call_rpc("join_auto", {
 		"p_display_name": Settings.display_name(),
 		"p_color": Settings.player_color(),
+		"p_vehicle": Settings.preferred_vehicle(),
 		"p_game_mode": game_mode,
 	})
 	return _enter(res)
@@ -48,6 +49,7 @@ func join_by_code(code: String) -> bool:
 		"p_code": code.strip_edges().to_upper(),
 		"p_display_name": Settings.display_name(),
 		"p_color": Settings.player_color(),
+		"p_vehicle": Settings.preferred_vehicle(),
 	})
 	return _enter(res)
 
@@ -58,6 +60,7 @@ func create_lobby(name: String, settings: Dictionary) -> bool:
 		"p_settings": settings,
 		"p_display_name": Settings.display_name(),
 		"p_color": Settings.player_color(),
+		"p_vehicle": Settings.preferred_vehicle(),
 	})
 	return _enter(res)
 

@@ -8,7 +8,7 @@ extends Node3D
 @export var height := 1.9
 @export var distance := 4.6
 @export var look_offset := Vector3(0.0, 0.72, 0.0)
-@export var follow_speed := 4.0
+@export var follow_speed := 20.0
 @export var orbit_radius := 6.4
 @export var orbit_height := 2.4
 @export var fov_base := 62.0
@@ -26,6 +26,7 @@ var _spectate_target: Node3D
 var _spectate_until := 0.0
 var _saved_mode := "follow"
 var _cam_up := Vector3.UP
+var _follow_dir := Vector3.ZERO
 
 func add_shake(amount: float) -> void:
 	# Single reduced-motion sink: every caller (CombatController, SideCannons,
@@ -111,7 +112,9 @@ func _process(delta: float) -> void:
 			return
 	var dt := minf(delta, 0.05)
 	var turbo := bool(_target.get("turbo_active")) and not Settings.reduced_motion()
-	var want_fov := fov_base + (fov_kick if turbo else 0.0)
+	var spd := (_target as RigidBody3D).linear_velocity.length() if _target is RigidBody3D else 0.0
+	var speed_fov := clampf((spd - 10.0) / 26.0, 0.0, 1.0) * 5.0 if not Settings.reduced_motion() else 0.0
+	var want_fov := fov_base + speed_fov + (fov_kick if turbo else 0.0)
 	if _cam:
 		_cam.fov = lerpf(_cam.fov, want_fov, 1.0 - exp(-6.0 * dt))
 
@@ -128,8 +131,18 @@ func _process(delta: float) -> void:
 
 	if mode == "follow":
 		var basis := _target.global_transform.basis.orthonormalized()
-		var desired := _target.global_transform.origin - basis.z * distance + _cam_up * height
-		global_position = global_position.lerp(desired, 1.0 - exp(-follow_speed * dt))
+		var fwd := basis.z
+		if _target is RigidBody3D:
+			var lv := (_target as RigidBody3D).linear_velocity
+			var horiz_v := Vector3(lv.x, 0.0, lv.z)
+			if horiz_v.length() > 8.0 and _cam_up.dot(Vector3.UP) > 0.85:
+				fwd = fwd.lerp(horiz_v.normalized(), 0.45).normalized()
+		if _follow_dir.length_squared() < 0.01:
+			_follow_dir = fwd
+		else:
+			_follow_dir = _follow_dir.lerp(fwd, 1.0 - exp(-14.5 * dt)).normalized()
+		var desired := _target.global_transform.origin - _follow_dir * distance + _cam_up * height
+		global_position = global_position.lerp(desired, 1.0 - exp(-maxf(follow_speed, 20.0) * dt))
 	elif mode == "free":
 		var offset := Vector3(sin(_yaw) * cos(_pitch), sin(_pitch), cos(_yaw) * cos(_pitch)) * _radius
 		global_position = _target.global_position + offset

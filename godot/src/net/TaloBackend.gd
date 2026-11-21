@@ -12,7 +12,7 @@ const KT := preload("res://src/core/KiepieTime.gd")
 ## prop keys, kill-token semantics). Lobbies stamp it as the `protocol_version`
 ## channel prop; peers present it too — mismatched peers are never mixed into
 ## the same lobby.
-const PROTOCOL_VERSION := "2"
+const PROTOCOL_VERSION := "3"
 
 signal auth_status(ok: bool, message: String)
 signal connection_state(state: String)
@@ -285,6 +285,7 @@ func _player_row(args: Dictionary) -> Dictionary:
 		"user_id": user_id,
 		"display_name": str(args.get("p_display_name", Settings.display_name())),
 		"color": str(args.get("p_color", Settings.player_color())),
+		"vehicle": VehicleRegistry.sanitize_preference(str(args.get("p_vehicle", ""))),
 		"score": 0,
 		"respawn_at": "",
 	}
@@ -936,6 +937,7 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 						"user_id": uid,
 						"display_name": str(p.get("display_name", "RIDER")).substr(0, 32),
 						"color": col,
+						"vehicle": VehicleRegistry.sanitize_preference(str(p.get("vehicle", ""))),
 						"score": int(prev.get("score", 0)),
 						"kills": int(prev.get("kills", 0)),
 						"laps": int(prev.get("laps", 0)),

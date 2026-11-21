@@ -32,18 +32,19 @@ func _run() -> void:
 		quit(1)
 		return
 
-	# ---- 1. deterministic assignment (FNV-1a-32, high-middle bit mixer)
-	# Godot-verified (exact-integer FNV, matched by VehicleRegistry.gd): mock-host -> bike.
+	# ---- 1. deterministic assignment (FNV-1a-32, 3-vehicle shift=12 mixer)
 	_check(str(registry.call("for_player", "mock-host")) == "KiepieBike",
 			"registry: mock-host -> KiepieBike (gate determinism)")
 	_check(str(registry.call("for_player", "peer-1")) == "PogoNardus",
 			"registry: peer-1 -> PogoNardus")
-	_check(str(registry.call("for_player", "peer-2")) == "PogoNardus",
-			"registry: peer-2 -> PogoNardus")
-	_check(str(registry.call("for_player", "peer-3")) == "PogoNardus",
-			"registry: peer-3 -> PogoNardus")
-	_check(str(registry.call("for_player", "peer-5")) == "PogoNardus",
-			"registry: peer-5 -> PogoNardus")
+	_check(str(registry.call("for_player", "peer-2")) == "AstonMartin",
+			"registry: peer-2 -> AstonMartin")
+	_check(str(registry.call("for_player", "peer-3")) == "KiepieBike",
+			"registry: peer-3 -> KiepieBike")
+	_check(str(registry.call("for_player", "peer-4")) == "PogoNardus",
+			"registry: peer-4 -> PogoNardus")
+	_check(str(registry.call("for_player", "peer-5")) == "AstonMartin",
+			"registry: peer-5 -> AstonMartin")
 	_check(str(registry.call("for_player", "user-42")) == "KiepieBike",
 			"registry: user-42 -> KiepieBike")
 	_check(str(registry.call("profile", &"PogoNardus")) == "pogo",

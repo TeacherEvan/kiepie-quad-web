@@ -55,12 +55,14 @@ func setup(id: String, name_text: String, color_hex: String) -> void:
 
 func _apply_roster_vehicle(force: bool = false) -> void:
 	var roster_keys: Array = []
+	var pref := ""
 	if typeof(Match) != TYPE_NIL and Match != null and "players" in Match:
 		var mp: Variant = Match.get("players")
 		if mp is Dictionary and not (mp as Dictionary).is_empty():
 			roster_keys = (mp as Dictionary).keys()
-	var vehicle := VehicleRegistry.for_player_in_roster(player_id, roster_keys) if not roster_keys.is_empty() \
-			else VehicleRegistry.for_player(player_id)
+			if (mp as Dictionary).has(player_id) and (mp as Dictionary)[player_id] is Dictionary:
+				pref = str(((mp as Dictionary)[player_id] as Dictionary).get("vehicle", ""))
+	var vehicle := VehicleRegistry.resolve_for_player(player_id, roster_keys, pref)
 	if not force and vehicle == _assigned_vehicle:
 		return
 	_assigned_vehicle = vehicle
@@ -89,6 +91,8 @@ func _apply_roster_vehicle(force: bool = false) -> void:
 		for s in range(mi.mesh.get_surface_count()):
 			var mat := mi.get_active_material(s)
 			if mat is StandardMaterial3D:
+				if str((mat as Material).resource_name) == "BigBenPlate":
+					continue
 				var tinted: StandardMaterial3D = tinted_cache.get(mat)
 				if tinted == null:
 					tinted = (mat as StandardMaterial3D).duplicate() as StandardMaterial3D
@@ -176,7 +180,7 @@ func set_respawning(value: bool) -> void:
 	if value:
 		var pogo := VehicleRegistry.is_pogo(_assigned_vehicle)
 		VFX.dramatic_death_explosion(fx_parent, global_position, global_transform.basis,
-				player_color, pogo)
+				player_color, pogo, VehicleRegistry.profile(_assigned_vehicle))
 	else:
 		VFX.shield_pulse(fx_parent, global_position, player_color)
 

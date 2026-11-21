@@ -312,9 +312,12 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 			return
 		_meteor_last[owner_id] = now
 	var roster_keys: Array = Match.players.keys() if Match != null else []
-	var vehicle := VehicleRegistry.for_player_in_roster(owner_id, roster_keys) if not roster_keys.is_empty() \
-			else VehicleRegistry.for_player(owner_id)
+	var pref := ""
+	if Match != null and Match.players.has(owner_id) and Match.players[owner_id] is Dictionary:
+		pref = str((Match.players[owner_id] as Dictionary).get("vehicle", ""))
+	var vehicle := VehicleRegistry.resolve_for_player(owner_id, roster_keys, pref)
 	var pogo := VehicleRegistry.is_pogo(vehicle)
+	var aston := VehicleRegistry.is_aston(vehicle)
 	var combat := get_tree().get_first_node_in_group("local_combat")
 	if weapon_kind == "rocket":
 		var rocket_dmg := Match.damage() * 2.0
@@ -337,7 +340,7 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 		return
 	var proj_script: GDScript = BANANA if pogo else PROJECTILE
 	var dmg := Match.damage() * VehicleRegistry.damage_multiplier(vehicle)
-	var shot_color := Color(1.0, 0.9, 0.25) if pogo else Color(1.0, 0.35, 0.25)
+	var shot_color := Color(1.0, 0.9, 0.25) if pogo else (Color(0.68, 1.0, 0.20) if aston else Color(1.0, 0.35, 0.25))
 	var proj := _acquire_remote_proj(proj_script)
 	# Keep in sync with SideCannons.SHOT_SPEED.
 	proj.setup(owner_id, _remote.get(owner_id), o, d, 52.0, dmg,
