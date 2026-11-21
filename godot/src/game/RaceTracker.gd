@@ -30,14 +30,34 @@ func _ready() -> void:
 	_bike = get_node_or_null(local_bike_path) as Node3D
 	_setup_solo_or_match_mode()
 	_bind_triggers()
+	if Match != null and Match.has_signal("roster_changed") and not Match.is_connected("roster_changed", _on_roster_changed):
+		Match.connect("roster_changed", _on_roster_changed)
 	_sync_hud()
 
 
 func _exit_tree() -> void:
+	if Match != null and Match.has_signal("roster_changed") and Match.is_connected("roster_changed", _on_roster_changed):
+		Match.disconnect("roster_changed", _on_roster_changed)
 	# Never pollute the global Match autoload with synthetic solo-mode rows after leaving.
 	if _injected_solo_uid != "" and Match != null and Match.lobby.is_empty():
 		Match.players.erase(_injected_solo_uid)
 	_injected_solo_uid = ""
+
+
+func _on_roster_changed() -> void:
+	if Match == null or Supabase == null or not Match.is_playing():
+		return
+	var uid := str(Supabase.user_id)
+	if str(Match.lobby.get("host_id", "")) == uid:
+		return
+	if Match.players.has(uid) and Match.players[uid] is Dictionary:
+		var auth_laps := int((Match.players[uid] as Dictionary).get("laps", completed_laps))
+		if auth_laps != completed_laps:
+			completed_laps = auth_laps
+			var target := maxi(1, int(Match.lap_target()))
+			if completed_laps < target:
+				race_finished = false
+			_sync_hud()
 
 
 func _setup_solo_or_match_mode() -> void:

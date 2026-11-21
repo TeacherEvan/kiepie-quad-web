@@ -317,6 +317,8 @@ func _detonate() -> void:
 		if not is_instance_valid(h) or not (h is Node3D):
 			continue
 		var hz := h as Node3D
+		if not hz.visible or bool(hz.get("_ignited")):
+			continue
 		if hz.global_position.distance_to(target_pos) <= blast_radius and hz.has_method("ignite"):
 			var drum_tok := ("%s:d%d" % [token, hz.get_instance_id()]) if token != "" else ""
 			hz.call("ignite", owner_id, drum_tok)

@@ -18,6 +18,7 @@ signal auth_status(ok: bool, message: String)
 signal connection_state(state: String)
 signal broadcast_received(event: String, payload: Variant)
 signal postgres_change(data: Dictionary)
+signal _apply_drained()
 signal backend_error(message: String)
 signal host_lost()
 
@@ -124,11 +125,13 @@ func _process(delta: float) -> void:
 
 
 func _poll_host_alive() -> void:
-	if not is_inside_tree():
+	if not is_inside_tree() or _channel_id <= 0:
 		return
-	var ch: Variant = await Talo.channels.find(_channel_id)
-	if ch == null:
-		return  # transient fetch failure; do not void the match on one poll
+	var polled_id := _channel_id
+	var polled_gen := _prop_gen
+	var ch: Variant = await Talo.channels.find(polled_id)
+	if _channel_id != polled_id or _prop_gen != polled_gen or _channel_id <= 0 or ch == null:
+		return  # transient fetch failure or channel changed; do not void the match on one poll
 	var hb := float(str(ch.get_prop("heartbeat", "0")))
 	if hb <= 0.0:
 		return
@@ -171,7 +174,11 @@ func _on_socket_closed(_code: int, _reason: String) -> void:
 			# host-handoff, or winner transitions — fetch fresh channel props and
 			# re-emit state/roster so converged peers see the current lobby.
 			if _channel_id > 0:
-				var ch = await Talo.channels.find(_channel_id)
+				var closed_id := _channel_id
+				var closed_gen := _prop_gen
+				var ch = await Talo.channels.find(closed_id)
+				if _channel_id != closed_id or _prop_gen != closed_gen or _channel_id <= 0:
+					break
 				if ch != null:
 					_channel = ch
 				_load_state()
@@ -492,14 +499,14 @@ func _leave_lobby() -> void:
 	var leaving_id := _channel_id
 	if _channel_id > 0:
 		if _is_host() and _roster.size() > 1 and str(_lobby.get("status", "")) == "waiting":
-			await _handoff_host_before_leave()
+			await _handoff_host_before_leave(leaving_id)
 		if _channel_id != leaving_id:
 			return  # user already joined a new lobby — never wipe it
 		_send("leave", {"user_id": user_id})
 	leave_lobby_channel()
 
 
-func _handoff_host_before_leave() -> void:
+func _handoff_host_before_leave(leaving_id: int) -> void:
 	var keys: Array = _roster.keys()
 	keys.sort()
 	var next_host := ""
@@ -526,18 +533,24 @@ func _handoff_host_before_leave() -> void:
 		{"key": "roster", "value": JSON.stringify(new_roster)},
 	]
 	for attempt in range(2):
+		if _channel_id != leaving_id or leaving_id <= 0:
+			return
 		var res: Variant = await Talo.channels.client.make_request(
-				HTTPClient.METHOD_PUT, "/%s" % _channel_id,
+				HTTPClient.METHOD_PUT, "/%s" % leaving_id,
 				{"ownerAliasId": int(next_host), "props": prop_array})
-		if int((res as Dictionary).get("status", 0)) == 200:
+		if _channel_id != leaving_id:
+			return
+		var status_code := int((res as Dictionary).get("status", 0)) if res is Dictionary else -1
+		if status_code == 200:
 			# Broadcast the new host only AFTER Talo commits ownerAliasId, so
 			# guests never switch to a host whose channel PUTs fail with 403.
 			_send("state", {"lobby": new_lobby, "roster": new_roster})
 			return
 		if attempt == 0:
 			continue  # one retry for transient failures
+		var err_status := str((res as Dictionary).get("status", "?")) if res is Dictionary else "null"
 		backend_error.emit(
-				"Host hand-off failed (%s) — the lobby may be abandoned" % str((res as Dictionary).get("status", "?")))
+				"Host hand-off failed (%s) — the lobby may be abandoned" % err_status)
 
 
 func _load_state() -> void:
@@ -569,6 +582,7 @@ func _apply_props(extra: Dictionary = {}) -> void:
 		_apply_extra[k] = extra[k]
 	_apply_dirty = true
 	if _apply_inflight:
+		await _apply_drained
 		return
 	_apply_inflight = true
 	while _apply_dirty:
@@ -577,6 +591,7 @@ func _apply_props(extra: Dictionary = {}) -> void:
 		_apply_extra = {}
 		await _write_props(payload_extra)
 	_apply_inflight = false
+	_apply_drained.emit()
 
 
 func _write_props(extra: Dictionary) -> void:
@@ -607,12 +622,14 @@ func _write_props(extra: Dictionary) -> void:
 			HTTPClient.METHOD_PUT, "/%s" % _channel_id, {"props": prop_array})
 	if gen != _prop_gen or _channel_id <= 0:
 		return  # a newer write or leave_lobby_channel() superseded this one
-	if int(res.get("status", 0)) == 200:
-		var body: Dictionary = res.get("body", {})
+	var code := int((res as Dictionary).get("status", 0)) if res is Dictionary else -1
+	if code == 200:
+		var body: Dictionary = (res as Dictionary).get("body", {}) as Dictionary
 		if body.has("channel"):
 			_channel = TaloChannel.new(body["channel"])
 	else:
-		backend_error.emit("Talo channel update failed: %s" % str(res.get("status", "?")))
+		var status_str := str((res as Dictionary).get("status", "?")) if res is Dictionary else "null"
+		backend_error.emit("Talo channel update failed: %s" % status_str)
 
 
 func _emit_state() -> void:
@@ -770,11 +787,6 @@ func _register_lap(args: Dictionary) -> Dictionary:
 	var racer := str(args.get("p_racer", user_id))
 	if token == "" or racer == "":
 		return {}
-	if not _is_host():
-		_send("lap_request", {"racer": racer, "token": token})
-		return {"ok": true, "pending": true,
-				"lobby_status": str(_lobby.get("status", "")),
-				"winner_id": str(_lobby.get("winner_id", ""))}
 	var s_dict := _lobby.get("settings", {}) as Dictionary
 	if str(s_dict.get("game_mode", "battle_royale")) != "death_race":
 		return {"ok": false, "reason": "wrong_mode"}
@@ -782,12 +794,19 @@ func _register_lap(args: Dictionary) -> Dictionary:
 		return {"ok": false, "reason": "token_consumed"}
 	if str(_lobby.get("status", "")) != "playing":
 		return {"ok": false, "reason": "lobby_not_playing"}
-	if not _roster.has(racer):
-		return {"ok": false, "reason": "not_in_lobby"}
 	var now_s := Time.get_ticks_msec() / 1000.0
 	var last_lap := float(_lap_timestamps.get(racer, -MIN_LAP_SECONDS))
 	if now_s - last_lap < MIN_LAP_SECONDS:
 		return {"ok": false, "reason": "rate_limited"}
+	if not _is_host():
+		_lap_timestamps[racer] = now_s
+		_used_tokens[token] = true
+		_send("lap_request", {"racer": racer, "token": token})
+		return {"ok": true, "pending": true,
+				"lobby_status": str(_lobby.get("status", "")),
+				"winner_id": str(_lobby.get("winner_id", ""))}
+	if not _roster.has(racer):
+		return {"ok": false, "reason": "not_in_lobby"}
 	_lap_timestamps[racer] = now_s
 	_used_tokens[token] = true
 	while _used_tokens.size() > MAX_USED_TOKENS:

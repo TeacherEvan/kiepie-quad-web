@@ -116,9 +116,17 @@ func _ready() -> void:
 	if _touch_toggle != null:
 		_style_toggle(_touch_toggle)
 	get_viewport().size_changed.connect(_relayout)
+	var s_node := get_node_or_null("/root/Settings")
+	if s_node != null and s_node.has_signal("changed") and not s_node.is_connected("changed", _on_settings_changed):
+		s_node.connect("changed", _on_settings_changed)
 	_relayout()
 	_sync_toggle_text()
 	_apply_visibility()
+
+
+func _on_settings_changed(section: String, _key: String, _val: Variant) -> void:
+	if section == "controls":
+		_relayout()
 
 
 ## Polled by CombatController: manual fire comes only from the right pad's UP
@@ -545,6 +553,11 @@ func _notification(what: int) -> void:
 		_update_drive_pad(0.0, 0.0, false, false, false, false)
 
 func _exit_tree() -> void:
+	if get_viewport() != null and get_viewport().size_changed.is_connected(_relayout):
+		get_viewport().size_changed.disconnect(_relayout)
+	var s_node := get_node_or_null("/root/Settings")
+	if s_node != null and s_node.has_signal("changed") and s_node.is_connected("changed", _on_settings_changed):
+		s_node.disconnect("changed", _on_settings_changed)
 	_release_all()
 	_release_analog_side()
 

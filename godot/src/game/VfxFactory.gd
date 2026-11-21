@@ -30,6 +30,7 @@ const MAX_SCAR := 24
 const MAX_IMPACT_LIGHTS := 8
 const MAX_WRECKS := 6
 const MAX_DAMAGE_NUMBERS := 18
+const MAX_EXPLOSION_SHARDS := 36
 
 # Mushroom cloud visibility AABB (tall enough for stem ~45m + cap ~26m at scale=2.65)
 const MUSHROOM_AABB := AABB(Vector3(-18, -6, -18), Vector3(36, 48, 36))
@@ -773,7 +774,10 @@ static func scar(parent: Node3D, pos: Vector3, normal: Vector3,
 	var t := inst.create_tween()
 	t.tween_interval(4.0)
 	t.tween_property(m, "albedo_color:a", 0.0, 3.0)
-	t.tween_callback(inst.queue_free)
+	t.tween_callback(func() -> void:
+		if is_instance_valid(inst):
+			inst.remove_from_group("vfx_scar")
+			inst.queue_free())
 
 
 static func shield_block(parent: Node3D, pos: Vector3, color: Color) -> void:
@@ -903,7 +907,7 @@ static func particle_explosion(parent: Node3D, pos: Vector3, color: Color, scale
 				 "damping": 2.2, "angular": 2.0, "explosiveness": 0.96})
 		# (b) Buoyant thermal stem: narrow 14° column, positive upward acceleration,
 		#     incandescent magma-orange at the base churning to dark volcanic soot.
-		var mushroom_aabb := AABB(Vector3(-18, -6, -18), Vector3(36, 48, 36))
+		var mushroom_aabb := MUSHROOM_AABB
 		_particle(holder, Vector3(0, 0.3, 0), 58, 3.2, Vector3.UP, 14.5, 3.2, 6.8,
 				[Color(1.0, 0.62, 0.10, 0.96), Color(0.85, 0.28, 0.05, 0.88),
 				 Color(0.24, 0.20, 0.19, 0.72), Color(0.12, 0.11, 0.12, 0.0)],
@@ -987,7 +991,9 @@ static func particle_explosion(parent: Node3D, pos: Vector3, color: Color, scale
 			mesh.material_override = mat
 			mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			chunk.add_child(mesh)
+			chunk.add_to_group("vfx_shard")
 			parent.add_child(chunk)
+			_cap_group(parent, "vfx_shard", MAX_EXPLOSION_SHARDS)
 			debris_chunks.append(chunk)
 			chunk.global_position = pos + Vector3(rng.randf_range(-0.45, 0.45),
 					rng.randf_range(0.25, 0.95), rng.randf_range(-0.45, 0.45)) * scale
@@ -1021,6 +1027,7 @@ static func particle_explosion(parent: Node3D, pos: Vector3, color: Color, scale
 	cleanup.tween_callback(func() -> void:
 		for c in debris_chunks:
 			if is_instance_valid(c):
+				c.remove_from_group("vfx_shard")
 				c.queue_free()
 		if is_instance_valid(holder):
 			holder.queue_free())
@@ -1153,7 +1160,6 @@ static func dramatic_death_explosion(parent: Node3D, pos: Vector3, basis: Basis,
 		return
 	var wreck := _build_death_wreck(pos, basis, is_pogo, rng)
 	parent.add_child(wreck)
-	wreck.transform = Transform3D(basis.orthonormalized(), pos + Vector3(0, 0.55, 0))
 	# Beat 3: two staggered mid-air cook-offs tracking the tumbling wreck
 	var cook := func(sz: float) -> void:
 		if not is_instance_valid(wreck):
@@ -1251,7 +1257,10 @@ static func scorch(parent: Node3D, pos: Vector3, blast_scale: float = 1.0) -> vo
 	var t := disc.create_tween()
 	t.tween_interval(7.0)
 	t.tween_property(m, "albedo_color:a", 0.0, 4.0)
-	t.tween_callback(disc.queue_free)
+	t.tween_callback(func() -> void:
+		if is_instance_valid(disc):
+			disc.remove_from_group("vfx_scorch")
+			disc.queue_free())
 
 
 # ---------------------------------------------------------------- smash ------

@@ -255,21 +255,11 @@ def preview(views=None, res=(760, 540), suffix="_prev"):
 def finalize(coll):
     """Apply every modifier so the saved scene is watertight."""
     import bpy
+    import qb_core
     objs = [ob for c in coll.children_recursive for ob in c.objects if ob.type == 'MESH']
     for ob in objs:
-        if not ob.modifiers:
-            continue
-        bpy.ops.object.select_all(action='DESELECT')
-        ob.select_set(True)
-        bpy.context.view_layer.objects.active = ob
-        for m in list(ob.modifiers):
-            try:
-                bpy.ops.object.modifier_apply(modifier=m.name)
-            except Exception:
-                try:
-                    ob.modifiers.remove(m)
-                except Exception:
-                    pass
+        if ob.modifiers:
+            qb_core.apply_modifiers(ob)
     bpy.ops.object.select_all(action='DESELECT')
     return coll
 

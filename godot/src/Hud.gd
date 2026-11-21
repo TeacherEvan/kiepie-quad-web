@@ -71,6 +71,11 @@ func _ready() -> void:
 	_relayout()
 
 
+func _exit_tree() -> void:
+	if get_viewport() != null and get_viewport().size_changed.is_connected(_on_viewport_resized):
+		get_viewport().size_changed.disconnect(_on_viewport_resized)
+
+
 func _process(_delta: float) -> void:
 	if _bike == null:
 		return

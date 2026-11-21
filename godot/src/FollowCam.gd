@@ -47,9 +47,21 @@ func spectate(target: Node3D, seconds: float) -> void:
 func _ready() -> void:
 	add_to_group("camera_rig")
 	fov_base = float(Settings.get_value("video", "fov", 62.0))
+	if Settings.has_signal("changed") and not Settings.is_connected("changed", _on_settings_changed):
+		Settings.connect("changed", _on_settings_changed)
 	_target = get_node_or_null(target_path) as Node3D
 	_cam = get_node_or_null("Camera3D") as Camera3D
 	_radius = orbit_radius
+
+
+func _exit_tree() -> void:
+	if Settings != null and Settings.has_signal("changed") and Settings.is_connected("changed", _on_settings_changed):
+		Settings.disconnect("changed", _on_settings_changed)
+
+
+func _on_settings_changed(section: String, key: String, value: Variant) -> void:
+	if section == "video" and key == "fov":
+		fov_base = float(value)
 
 func toggle_view() -> void:
 	mode = "free" if mode == "follow" else "follow"

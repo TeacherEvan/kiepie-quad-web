@@ -36,9 +36,13 @@ func _ready() -> void:
 	_apply_safe_area(_safe)
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	if _btn_mode_br != null:
-		_btn_mode_br.pressed.connect(func() -> void: select_game_mode("battle_royale"))
+		_btn_mode_br.pressed.connect(func() -> void:
+			Sfx.play_ui("ui_click")
+			select_game_mode("battle_royale"))
 	if _btn_mode_dr != null:
-		_btn_mode_dr.pressed.connect(func() -> void: select_game_mode("death_race"))
+		_btn_mode_dr.pressed.connect(func() -> void:
+			Sfx.play_ui("ui_click")
+			select_game_mode("death_race"))
 	_btn_practice.pressed.connect(_on_practice)
 	_btn_create.pressed.connect(_on_create)
 	_btn_join_auto.pressed.connect(_on_join_auto)
@@ -208,6 +212,7 @@ func _sync_mode_ui(narrow: bool = get_viewport_rect().size.x <= 480.0) -> void:
 # --------------------------------------------------------------- actions ---
 
 func _on_practice() -> void:
+	Sfx.play_ui("ui_click")
 	if selected_game_mode == "death_race":
 		get_tree().change_scene_to_file(SCENE_DEATH_RACE)
 	else:
@@ -215,6 +220,7 @@ func _on_practice() -> void:
 
 
 func _on_create() -> void:
+	Sfx.play_ui("ui_click")
 	if _busy:
 		return
 	if not Supabase.is_ready:
@@ -230,6 +236,7 @@ func _on_create() -> void:
 
 
 func _on_join_auto() -> void:
+	Sfx.play_ui("ui_click")
 	if _busy:
 		return
 	if not Supabase.is_ready:
@@ -245,6 +252,7 @@ func _on_join_auto() -> void:
 
 
 func _on_join_code(_text: String = "") -> void:
+	Sfx.play_ui("ui_click")
 	if _busy:
 		return
 	var code := _code.text.strip_edges()
@@ -262,6 +270,7 @@ func _on_join_code(_text: String = "") -> void:
 
 
 func _on_settings() -> void:
+	Sfx.play_ui("ui_click")
 	get_tree().change_scene_to_file(SCENE_SETTINGS)
 
 

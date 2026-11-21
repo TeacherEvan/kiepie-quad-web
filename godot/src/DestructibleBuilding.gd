@@ -4,6 +4,7 @@ extends StaticBody3D
 ## physics debris (boxes) plus a dust puff, and reports via `smashed`.
 
 const VFX := preload("res://src/game/VfxFactory.gd")
+const MAX_BUILDING_DEBRIS := 56
 
 signal smashed(building_name: String)
 
@@ -135,6 +136,7 @@ func smash(impulse: Vector3 = Vector3.ZERO) -> void:
 		mesh.mesh = _debris_meshes[variant]
 		mesh.material_override = _debris_mats[rng.randi_range(0, _debris_mats.size() - 1)]
 		chunk.add_child(mesh)
+		chunk.add_to_group("building_debris")
 		parent.add_child(chunk)
 		chunks.append(chunk)
 		# scatter within the building volume (chunk must be in the tree first)
@@ -151,6 +153,19 @@ func smash(impulse: Vector3 = Vector3.ZERO) -> void:
 				+ impulse * 0.30)
 		chunk.angular_velocity = Vector3(rng.randf_range(-6.0, 6.0),
 				rng.randf_range(-6.0, 6.0), rng.randf_range(-6.0, 6.0))
+	if parent != null and parent.is_inside_tree():
+		var d_tree := parent.get_tree()
+		if d_tree != null:
+			var existing := d_tree.get_nodes_in_group("building_debris")
+			var excess := existing.size() - MAX_BUILDING_DEBRIS
+			var ei := 0
+			while excess > 0 and ei < existing.size():
+				var victim = existing[ei]
+				if is_instance_valid(victim):
+					(victim as Node).remove_from_group("building_debris")
+					(victim as Node).queue_free()
+					excess -= 1
+				ei += 1
 	# fade all chunks in a single timer callback to avoid 14 per-piece closures
 	var fade_tree := Engine.get_main_loop() as SceneTree
 	if fade_tree != null and not chunks.is_empty():
@@ -161,6 +176,7 @@ func smash(impulse: Vector3 = Vector3.ZERO) -> void:
 			for wc in w_chunks:
 				var c := wc.get_ref() as Node
 				if c != null and is_instance_valid(c) and c.is_inside_tree():
+					c.remove_from_group("building_debris")
 					c.queue_free())
 
 	# collapse sequence — glass flash, ground dust wave, staggered puffs

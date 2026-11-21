@@ -41,7 +41,7 @@ TAU = 2.0 * math.pi
 def one_pole_lp(prev, value, cutoff_hz):
     """One-pole low-pass step; cutoff may vary per sample."""
     a = math.exp(-TAU * max(20.0, cutoff_hz) / SR)
-    return prev + a * (value - prev)
+    return prev + (1.0 - a) * (value - prev)
 
 
 def clamp(v):

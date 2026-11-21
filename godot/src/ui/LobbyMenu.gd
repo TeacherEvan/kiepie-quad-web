@@ -354,6 +354,7 @@ func _push_settings() -> void:
 # ----------------------------------------------------------------- actions ---
 
 func _on_ready_toggled() -> void:
+	Sfx.play_ui("ui_click")
 	_ready_state = not _ready_state
 	_btn_ready.text = "READY •" if _ready_state else "NOT READY"
 	_btn_ready.add_theme_color_override(
@@ -364,6 +365,7 @@ func _on_ready_toggled() -> void:
 
 
 func _on_start() -> void:
+	Sfx.play_ui("ui_click")
 	if not _is_host():
 		return
 	if Match.is_playing():
@@ -388,6 +390,7 @@ func _on_match_started() -> void:
 
 
 func _on_leave() -> void:
+	Sfx.play_ui("ui_click")
 	if _transitioning:
 		return
 	_transitioning = true
@@ -412,6 +415,7 @@ func _on_left_elsewhere() -> void:
 
 
 func _on_copy() -> void:
+	Sfx.play_ui("ui_click")
 	var code := _code_field.text.strip_edges()
 	if code == "" or not DisplayServer.has_method("clipboard_set"):
 		return

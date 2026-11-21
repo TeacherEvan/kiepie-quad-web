@@ -44,6 +44,10 @@ func _connect_controls() -> void:
 		quality.item_selected.connect(func(i):
 			if _refreshing:
 				return
+			Sfx.play_ui("ui_click")
+			_pending_writes.clear()
+			if _flush_timer != null and is_instance_valid(_flush_timer):
+				_flush_timer.stop()
 			Settings.apply_quality(QUALITIES[i])
 		)
 
@@ -165,11 +169,20 @@ func _bind_line(path: String, section: String, key: String) -> void:
 
 # ----------------------------------------------------------------- refresh ---
 
+func _effective_val(section: String, key: String, fallback: Variant) -> Variant:
+	var composite := "%s.%s" % [section, key]
+	if _pending_writes.has(composite):
+		var entry: Array = _pending_writes[composite] as Array
+		if entry.size() >= 3:
+			return entry[2]
+	return Settings.get_value(section, key, fallback)
+
+
 func _set_slider(path: String, value_path: String, section: String, key: String, fmt: String) -> void:
 	var slider := _c(path) as HSlider
 	if slider == null:
 		return
-	slider.value = float(Settings.get_value(section, key, slider.value))
+	slider.value = float(_effective_val(section, key, slider.value))
 	var lbl := _c(value_path) as Label
 	if lbl:
 		var v := slider.value
@@ -179,13 +192,13 @@ func _set_slider(path: String, value_path: String, section: String, key: String,
 func _set_check(path: String, section: String, key: String) -> void:
 	var cb := _c(path) as CheckBox
 	if cb:
-		cb.set_pressed_no_signal(bool(Settings.get_value(section, key, false)))
+		cb.set_pressed_no_signal(bool(_effective_val(section, key, false)))
 
 
 func _set_line(path: String, section: String, key: String, fallback: String) -> void:
 	var le := _c(path) as LineEdit
 	if le:
-		le.text = str(Settings.get_value(section, key, fallback))
+		le.text = str(_effective_val(section, key, fallback))
 
 
 func _refresh_all() -> void:
@@ -217,7 +230,7 @@ func _refresh_all() -> void:
 	_set_line("DisplayNameRow/DisplayName", "gameplay", "display_name", "RIDER")
 	var color := _c("ColorRow/Color") as ColorPickerButton
 	if color:
-		color.color = Color.from_string(Settings.player_color(), Color(1.0, 0.48, 0.10))
+		color.color = Color.from_string(str(_effective_val("gameplay", "color", Settings.player_color())), Color(1.0, 0.48, 0.10))
 	_set_slider("ScreenShakeRow/ScreenShake", "ScreenShakeRow/ScreenShakeValue", "gameplay", "screen_shake", "%.2f")
 	_set_check("ReducedMotionRow/ReducedMotion", "gameplay", "reduced_motion")
 
@@ -243,6 +256,7 @@ func _on_setting_changed(_section: String, _key: String, _value: Variant) -> voi
 # ----------------------------------------------------------------- actions ---
 
 func _on_defaults() -> void:
+	Sfx.play_ui("ui_click")
 	_pending_writes.clear()
 	if _flush_timer != null and is_instance_valid(_flush_timer):
 		_flush_timer.stop()
@@ -251,6 +265,7 @@ func _on_defaults() -> void:
 
 
 func _on_back() -> void:
+	Sfx.play_ui("ui_click")
 	var target := return_scene
 	return_scene = ""
 	if target == "" or not ResourceLoader.exists(target):

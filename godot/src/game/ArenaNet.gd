@@ -347,6 +347,13 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 
 
 func _acquire_remote_proj(proj_script: GDScript) -> Node3D:
+	var n := _remote_proj_pool.size()
+	for offset in range(n):
+		var idx := (_remote_proj_idx + offset) % n
+		var cand: Node3D = _remote_proj_pool[idx]
+		if is_instance_valid(cand) and cand.get_script() == proj_script and not cand.is_physics_processing():
+			_remote_proj_idx = (idx + 1) % REMOTE_PROJ_POOL_SIZE
+			return cand
 	if _remote_proj_pool.size() < REMOTE_PROJ_POOL_SIZE:
 		var p := Node3D.new()
 		p.set_script(proj_script)
@@ -354,17 +361,22 @@ func _acquire_remote_proj(proj_script: GDScript) -> Node3D:
 		add_child(p)
 		_remote_proj_pool.append(p)
 		return p
+	for offset in range(n):
+		var idx := (_remote_proj_idx + offset) % n
+		var cand: Node3D = _remote_proj_pool[idx]
+		if is_instance_valid(cand) and cand.get_script() == proj_script:
+			_remote_proj_idx = (idx + 1) % REMOTE_PROJ_POOL_SIZE
+			return cand
 	var idx := _remote_proj_idx
 	_remote_proj_idx = (idx + 1) % REMOTE_PROJ_POOL_SIZE
 	var slot := _remote_proj_pool[idx]
-	if not is_instance_valid(slot) or slot.get_script() != proj_script:
-		if is_instance_valid(slot):
-			slot.queue_free()
-		slot = Node3D.new()
-		slot.set_script(proj_script)
-		slot.set("pooled", true)
-		add_child(slot)
-		_remote_proj_pool[idx] = slot
+	if is_instance_valid(slot):
+		slot.queue_free()
+	slot = Node3D.new()
+	slot.set_script(proj_script)
+	slot.set("pooled", true)
+	add_child(slot)
+	_remote_proj_pool[idx] = slot
 	return slot
 
 

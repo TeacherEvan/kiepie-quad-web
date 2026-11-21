@@ -13,6 +13,7 @@ Steps:
 """
 import sys
 import os
+import shutil
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
@@ -60,6 +61,9 @@ def main():
     bpy.context.view_layer.update()
     bpy.ops.wm.save_as_mainfile(filepath=BLEND)
     build_quad.export_glb(coll)
+    godot_glb = os.path.join(PROJECT, 'godot', 'assets', 'Kiepie_Bike.glb')
+    if os.path.isdir(os.path.dirname(godot_glb)):
+        shutil.copy2(GLB, godot_glb)
     build_quad.export_glb(coll, filepath=DRACO, draco=True)
 
     # ---- re-export the STL (bike collection meshes only) for the QA gate ----

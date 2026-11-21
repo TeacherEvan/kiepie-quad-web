@@ -386,7 +386,11 @@ def apply_modifiers(ob):
     for m in list(ob.modifiers):
         try:
             bpy.ops.object.modifier_apply(modifier=m.name)
-        except RuntimeError:
+        except RuntimeError as exc:
+            warnings.warn(
+                f"qb_core.apply_modifiers: failed to apply {m.name} on {ob.name}: {exc}",
+                RuntimeWarning,
+            )
             ob.modifiers.remove(m)
     return ob
 

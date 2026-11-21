@@ -103,6 +103,10 @@ func setup(p_owner: Node3D, p_owner_id: String, p_hit_callback: Callable, p_colo
 		if is_instance_valid(mf):
 			mf.queue_free()
 	_muzzle_flashes.clear()
+	for old_p in _proj_pool:
+		if is_instance_valid(old_p):
+			old_p.queue_free()
+	_proj_pool.clear()
 	_proj_pool_idx = 0
 	for m in _muzzles:
 		if is_instance_valid(m) and m.name == "MuzzleFallback":
@@ -451,37 +455,6 @@ func fire() -> void:
 	_cooldown = cd
 	_emit_reload_status(true)
 
-	var sfx := get_node_or_null("/root/Sfx")
-	if sfx != null and sfx.has_method("play"):
-		match active_weapon:
-			"rocket":
-				sfx.call("play", "fire", 1.5, 0.65)
-			"meteor":
-				sfx.call("play", "turbo", 1.5, 0.72)
-			_:
-				sfx.call("play", str(_profile["sfx"]))
-	var cam := get_tree().get_first_node_in_group("camera_rig") if get_tree() != null else null
-	if cam != null and cam.has_method("add_shake"):
-		cam.call("add_shake", 0.22 if active_weapon != "primary" else 0.10)
-	var pogo_rider := owner_node.get_node_or_null("Model/Rider") if owner_node != null else null
-	if pogo_rider != null and pogo_rider.has_method("trigger_recoil"):
-		pogo_rider.call("trigger_recoil", 1.35 if active_weapon != "primary" else 0.75)
-
-	var fx_parent := _resolve_fx_parent()
-	var right_vec := owner_node.global_transform.basis.x.normalized()
-	_ensure_muzzle_flashes()
-	for i in range(_muzzles.size()):
-		var muzzle: Node3D = _muzzles[i]
-		if not is_instance_valid(muzzle):
-			continue
-		if i < _muzzle_flashes.size() and is_instance_valid(_muzzle_flashes[i]) and not Settings.reduced_motion():
-			_muzzle_flashes[i].position = owner_node.to_local(muzzle.global_position)
-			_muzzle_flashes[i].restart()
-			_muzzle_flashes[i].emitting = true
-		if active_weapon == "primary":
-			var side := -1.0 if i == 0 else 1.0
-			VFX.casing(fx_parent, muzzle.global_position, right_vec * side + Vector3(0, 0.35, 0))
-
 	var meteor_target := compute_meteor_target() if active_weapon == "meteor" else Vector3.ZERO
 
 	var res: Dictionary = await Match.issue_shot()
@@ -501,10 +474,39 @@ func fire() -> void:
 			_cooldown = 0.25
 		_emit_reload_status(true)
 		return
-	if not is_instance_valid(fx_parent):
-		fx_parent = _resolve_fx_parent()
+	var fx_parent := _resolve_fx_parent()
 	if fx_parent == null:
 		return
+
+	var sfx := get_node_or_null("/root/Sfx")
+	if sfx != null and sfx.has_method("play"):
+		match active_weapon:
+			"rocket":
+				sfx.call("play", "fire", 1.5, 0.65)
+			"meteor":
+				sfx.call("play", "turbo", 1.5, 0.72)
+			_:
+				sfx.call("play", str(_profile["sfx"]))
+	var cam := get_tree().get_first_node_in_group("camera_rig") if get_tree() != null else null
+	if cam != null and cam.has_method("add_shake"):
+		cam.call("add_shake", 0.22 if active_weapon != "primary" else 0.10)
+	var pogo_rider := owner_node.get_node_or_null("Model/Rider") if owner_node != null else null
+	if pogo_rider != null and pogo_rider.has_method("trigger_recoil"):
+		pogo_rider.call("trigger_recoil", 1.35 if active_weapon != "primary" else 0.75)
+
+	var right_vec := owner_node.global_transform.basis.x.normalized()
+	_ensure_muzzle_flashes()
+	for i in range(_muzzles.size()):
+		var muzzle: Node3D = _muzzles[i]
+		if not is_instance_valid(muzzle):
+			continue
+		if i < _muzzle_flashes.size() and is_instance_valid(_muzzle_flashes[i]) and not Settings.reduced_motion():
+			_muzzle_flashes[i].position = owner_node.to_local(muzzle.global_position)
+			_muzzle_flashes[i].restart()
+			_muzzle_flashes[i].emitting = true
+		if active_weapon == "primary":
+			var side := -1.0 if i == 0 else 1.0
+			VFX.casing(fx_parent, muzzle.global_position, right_vec * side + Vector3(0, 0.35, 0))
 
 	if active_weapon == "rocket":
 		# Rocket Launcher: single center-forward finned rocket, 2x MG damage, 4.5m blast radius

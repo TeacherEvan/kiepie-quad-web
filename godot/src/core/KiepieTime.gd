@@ -50,6 +50,8 @@ static var _gen := 0
 static func trigger_hitstop(tree, scale: float, duration_s: float) -> void:
 	# Untyped: callers pass SceneTree (ArenaNet/CombatController get_tree()) or
 	# the root node (verify scripts); SceneTree scripts have no is_inside_tree().
+	if tree is Node:
+		tree = (tree as Node).get_tree()
 	if tree == null or not tree.has_method("create_timer") or scale <= 0.0 or duration_s <= 0.0:
 		return
 	var my_gen := _gen
@@ -58,6 +60,9 @@ static func trigger_hitstop(tree, scale: float, duration_s: float) -> void:
 	tree.create_timer(duration_s, true, false, true).timeout.connect(func() -> void:
 		if _gen != my_gen or _active <= 0:
 			return
+		var idx := _scales.find(scale)
+		if idx >= 0:
+			_scales.remove_at(idx)
 		_active -= 1
 		if _active == 0:
 			_scales.clear()

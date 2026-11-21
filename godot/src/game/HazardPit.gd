@@ -104,6 +104,9 @@ func _build_visual() -> void:
 func _on_body_entered(body: Node) -> void:
 	if body is Node3D and body.is_in_group("bike"):
 		var b := body as Node3D
+		var combat := b.get_node_or_null("CombatController")
+		if combat == null or not combat.has_method("take_damage"):
+			return
 		if not _occupants.has(b):
 			_occupants.append(b)
 		_damage_bike(b)
@@ -132,10 +135,12 @@ func _physics_process(delta: float) -> void:
 
 func _damage_bike(bike_node: Node3D) -> void:
 	var combat := bike_node.get_node_or_null("CombatController")
-	if combat != null:
-		if "alive" in combat and not bool(combat.get("alive")):
-			return
-		if combat.has_method("take_damage"):
-			combat.call("take_damage", tick_damage, "hazard-pit", bike_node.global_position, "", true)
+	if combat == null or not combat.has_method("take_damage"):
+		return
+	if "alive" in combat and not bool(combat.get("alive")):
+		return
+	combat.call("take_damage", tick_damage, "hazard-pit", bike_node.global_position, "", true)
+	if "alive" in combat and not bool(combat.get("alive")):
+		return
 	var fx := get_tree().current_scene as Node3D if (get_tree() != null and get_tree().current_scene is Node3D) else get_parent() as Node3D
 	VFX.explosion(fx, bike_node.global_position, Color(1.0, 0.32, 0.05), 0.95)

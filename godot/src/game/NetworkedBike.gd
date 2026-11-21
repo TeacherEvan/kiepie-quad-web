@@ -102,14 +102,17 @@ func update_identity(name_text: String, color_hex: String) -> void:
 		display_name = name_text
 		if _nameplate != null:
 			_nameplate.text = name_text
+	var color_changed := false
 	if color_hex.is_valid_html_color():
 		var col := Color.html(color_hex)
 		if not col.is_equal_approx(player_color):
 			player_color = col
+			color_changed = true
 			if _nameplate != null:
 				_nameplate.modulate = player_color
-	# Re-evaluate roster-aware Nardus promotion when peers join or leave.
-	_apply_roster_vehicle(false)
+	var prev_vehicle := _assigned_vehicle
+	# Re-evaluate roster-aware Nardus promotion when peers join or leave, or force re-tint on color change.
+	_apply_roster_vehicle(color_changed)
 
 
 func apply_state(data: Dictionary) -> void:
