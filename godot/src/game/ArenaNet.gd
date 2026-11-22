@@ -324,8 +324,9 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 		var rocket := Node3D.new()
 		rocket.set_script(ROCKET)
 		add_child(rocket)
+		var rocket_style := "cash_bag" if aston else "rocket"
 		rocket.setup(owner_id, _remote.get(owner_id), o, d, 38.0, rocket_dmg,
-				str(p.get("token", "")), Color(1.0, 0.38, 0.10), 4.5)
+				str(p.get("token", "")), Color(1.0, 0.38, 0.10), 4.5, rocket_style)
 		return
 	elif weapon_kind == "meteor":
 		if d.length() > 65.0:
@@ -335,8 +336,9 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 		var strike := Node3D.new()
 		strike.set_script(METEOR)
 		add_child(strike)
+		var meteor_style := "cash_bag" if aston else ("meteor" if pogo else "lightning")
 		strike.setup(owner_id, _remote.get(owner_id), target_pos, meteor_dmg,
-				str(p.get("token", "")), Color(1.0, 0.28, 0.06), 2.0, 7.5)
+				str(p.get("token", "")), Color(1.0, 0.28, 0.06), 2.0, 7.5, meteor_style)
 		return
 	var proj_script: GDScript = BANANA if pogo else PROJECTILE
 	var dmg := Match.damage() * VehicleRegistry.damage_multiplier(vehicle)

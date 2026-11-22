@@ -19,6 +19,7 @@ var blast_radius := BLAST_RADIUS
 var fall_duration := FALL_DURATION
 var token := ""
 var hit_color := Color(1.0, 0.28, 0.06)
+var visual_style := "meteor"
 
 var _age := 0.0
 var _armed := false
@@ -26,6 +27,7 @@ var _detonated := false
 var _boulder: Node3D
 var _outer_ring: MeshInstance3D
 var _inner_ring: MeshInstance3D
+var _ion_shaft: MeshInstance3D
 var _trail: GPUParticles3D
 var _light: OmniLight3D
 
@@ -139,13 +141,15 @@ func _note_local_damage_shown(target_id: String) -> void:
 
 func setup(p_owner_id: String, p_owner_node: Node, p_target_pos: Vector3,
 		p_damage: float, p_token: String, p_color: Color = Color(1.0, 0.28, 0.06),
-		p_fall_duration: float = FALL_DURATION, p_blast_radius: float = BLAST_RADIUS) -> void:
+		p_fall_duration: float = FALL_DURATION, p_blast_radius: float = BLAST_RADIUS,
+		p_visual_style: String = "meteor") -> void:
 	owner_id = p_owner_id
 	owner_node = p_owner_node
 	target_pos = p_target_pos
 	damage = p_damage
 	token = p_token
 	hit_color = p_color
+	visual_style = p_visual_style if p_visual_style in ["meteor", "lightning", "cash_bag"] else "meteor"
 	fall_duration = maxf(0.1, p_fall_duration)
 	blast_radius = p_blast_radius
 	global_position = target_pos
@@ -174,47 +178,152 @@ func _build_visual() -> void:
 	_inner_ring.scale = Vector3(blast_radius * 0.95, 1.0, blast_radius * 0.95)
 	add_child(_inner_ring)
 
-	# Falling meteor boulder in the sky
-	_boulder = Node3D.new()
-	_boulder.name = "MeteorBoulder"
-	add_child(_boulder)
-	_boulder.global_position = sky_origin
+	if visual_style == "lightning":
+		_outer_ring.material_override = VFX._additive(Color(0.32, 0.85, 1.0, 0.48), 3.6)
+		_inner_ring.material_override = VFX._additive(Color(0.85, 0.97, 1.0, 0.60), 4.5)
+	elif visual_style == "cash_bag":
+		_outer_ring.material_override = VFX._additive(Color(0.18, 0.88, 0.42, 0.46), 3.4)
+		_inner_ring.material_override = VFX._additive(Color(1.0, 0.84, 0.22, 0.58), 4.2)
 
-	var rock := MeshInstance3D.new()
-	rock.mesh = _boulder_mesh
-	_boulder.add_child(rock)
+	if visual_style == "lightning":
+		# Overhead Storm Vortex Cloud at y+32m with narrowing ionized shaft
+		_boulder = Node3D.new()
+		_boulder.name = "StormVortex"
+		add_child(_boulder)
+		_boulder.position = Vector3(0.0, 32.0, 0.0)
 
-	var corona := MeshInstance3D.new()
-	corona.mesh = _core_mesh
-	_boulder.add_child(corona)
+		var cloud_mesh := CylinderMesh.new()
+		cloud_mesh.top_radius = 5.5
+		cloud_mesh.bottom_radius = 3.2
+		cloud_mesh.height = 2.2
+		cloud_mesh.radial_segments = 16
+		var cmat := StandardMaterial3D.new()
+		cmat.albedo_color = Color(0.14, 0.20, 0.30, 0.88)
+		cmat.emission_enabled = true
+		cmat.emission = Color(0.28, 0.72, 1.0)
+		cmat.emission_energy_multiplier = 1.8
+		cmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		cloud_mesh.material = cmat
+		var cloud := MeshInstance3D.new()
+		cloud.mesh = cloud_mesh
+		_boulder.add_child(cloud)
 
-	if Settings.quality_multiplier() >= 0.5:
-		_light = OmniLight3D.new()
-		_light.light_color = Color(1.0, 0.42, 0.10)
-		_light.light_energy = 7.5
-		_light.omni_range = 12.0
-		_light.add_to_group("vfx_light")
-		_boulder.add_child(_light)
-		VFX._cap_group(_boulder, "vfx_light", VFX.MAX_IMPACT_LIGHTS)
+		var shaft_mesh := CylinderMesh.new()
+		shaft_mesh.top_radius = 0.65
+		shaft_mesh.bottom_radius = 0.22
+		shaft_mesh.height = 32.0
+		shaft_mesh.radial_segments = 10
+		shaft_mesh.material = VFX._additive(Color(0.45, 0.88, 1.0, 0.35), 3.2)
+		_ion_shaft = MeshInstance3D.new()
+		_ion_shaft.mesh = shaft_mesh
+		_ion_shaft.position = Vector3(0.0, 16.0, 0.0)
+		add_child(_ion_shaft)
 
-	if not Settings.reduced_motion():
-		_trail = GPUParticles3D.new()
-		_trail.amount = maxi(8, int(44 * Settings.quality_multiplier()))
-		_trail.lifetime = 0.55
-		_trail.local_coords = false
-		_trail.visibility_aabb = AABB(Vector3(-8, -8, -8), Vector3(16, 44, 16))
-		var pm := ParticleProcessMaterial.new()
-		pm.direction = Vector3(0.1, 1.0, -0.1).normalized()
-		pm.spread = 18.0
-		pm.initial_velocity_min = 2.0
-		pm.initial_velocity_max = 5.5
-		pm.scale_min = 0.55
-		pm.scale_max = 1.45
-		pm.color_ramp = _trail_ramp
-		_trail.process_material = pm
-		_trail.draw_pass_1 = _trail_mesh
-		_boulder.add_child(_trail)
-		_trail.emitting = true
+		if Settings.quality_multiplier() >= 0.5:
+			_light = OmniLight3D.new()
+			_light.light_color = Color(0.45, 0.88, 1.0)
+			_light.light_energy = 5.5
+			_light.omni_range = 14.0
+			_light.add_to_group("vfx_light")
+			_boulder.add_child(_light)
+			VFX._cap_group(_boulder, "vfx_light", VFX.MAX_IMPACT_LIGHTS)
+
+		if not Settings.reduced_motion():
+			_trail = GPUParticles3D.new()
+			_trail.amount = maxi(8, int(36 * Settings.quality_multiplier()))
+			_trail.lifetime = 0.65
+			_trail.visibility_aabb = AABB(Vector3(-6, -2, -6), Vector3(12, 36, 12))
+			var pm := ParticleProcessMaterial.new()
+			pm.direction = Vector3.UP
+			pm.spread = 14.0
+			pm.initial_velocity_min = 6.0
+			pm.initial_velocity_max = 14.0
+			pm.scale_min = 0.2
+			pm.scale_max = 0.45
+			pm.color_ramp = VFX._ramp([
+				Color(0.90, 0.98, 1.0, 0.95),
+				Color(0.32, 0.82, 1.0, 0.70),
+				Color(0.35, 0.35, 0.95, 0.0),
+			])
+			_trail.process_material = pm
+			_trail.draw_pass_1 = VFX._sprite_quad(true, "streak", 0.35)
+			add_child(_trail)
+			_trail.emitting = true
+	elif visual_style == "cash_bag":
+		_boulder = CashBagVisual.build_bag(4.6)
+		add_child(_boulder)
+		_boulder.global_position = sky_origin
+
+		if Settings.quality_multiplier() >= 0.5:
+			_light = OmniLight3D.new()
+			_light.light_color = Color(0.95, 0.84, 0.24)
+			_light.light_energy = 7.0
+			_light.omni_range = 12.0
+			_light.add_to_group("vfx_light")
+			_boulder.add_child(_light)
+			VFX._cap_group(_boulder, "vfx_light", VFX.MAX_IMPACT_LIGHTS)
+
+		if not Settings.reduced_motion():
+			_trail = GPUParticles3D.new()
+			_trail.amount = maxi(8, int(38 * Settings.quality_multiplier()))
+			_trail.lifetime = 0.75
+			_trail.local_coords = false
+			_trail.visibility_aabb = AABB(Vector3(-8, -8, -8), Vector3(16, 44, 16))
+			var pm := ParticleProcessMaterial.new()
+			pm.direction = Vector3(0.1, 1.0, -0.1).normalized()
+			pm.spread = 28.0
+			pm.initial_velocity_min = 2.5
+			pm.initial_velocity_max = 6.5
+			pm.angular_velocity_min = -180.0
+			pm.angular_velocity_max = 180.0
+			pm.scale_min = 1.2
+			pm.scale_max = 1.8
+			_trail.process_material = pm
+			_trail.draw_pass_1 = CashBagVisual.get_bill_mesh()
+			_boulder.add_child(_trail)
+			_trail.emitting = true
+	else:
+		# Falling meteor boulder in the sky
+		_boulder = Node3D.new()
+		_boulder.name = "MeteorBoulder"
+		add_child(_boulder)
+		_boulder.global_position = sky_origin
+
+		var rock := MeshInstance3D.new()
+		rock.mesh = _boulder_mesh
+		_boulder.add_child(rock)
+
+		var corona := MeshInstance3D.new()
+		corona.mesh = _core_mesh
+		_boulder.add_child(corona)
+
+		if Settings.quality_multiplier() >= 0.5:
+			_light = OmniLight3D.new()
+			_light.light_color = Color(1.0, 0.42, 0.10)
+			_light.light_energy = 7.5
+			_light.omni_range = 12.0
+			_light.add_to_group("vfx_light")
+			_boulder.add_child(_light)
+			VFX._cap_group(_boulder, "vfx_light", VFX.MAX_IMPACT_LIGHTS)
+
+		if not Settings.reduced_motion():
+			_trail = GPUParticles3D.new()
+			_trail.amount = maxi(8, int(44 * Settings.quality_multiplier()))
+			_trail.lifetime = 0.55
+			_trail.local_coords = false
+			_trail.visibility_aabb = AABB(Vector3(-8, -8, -8), Vector3(16, 44, 16))
+			var pm := ParticleProcessMaterial.new()
+			pm.direction = Vector3(0.1, 1.0, -0.1).normalized()
+			pm.spread = 18.0
+			pm.initial_velocity_min = 2.0
+			pm.initial_velocity_max = 5.5
+			pm.scale_min = 0.55
+			pm.scale_max = 1.45
+			pm.color_ramp = _trail_ramp
+			_trail.process_material = pm
+			_trail.draw_pass_1 = _trail_mesh
+			_boulder.add_child(_trail)
+			_trail.emitting = true
 
 
 func _release_light() -> void:
@@ -236,10 +345,17 @@ func _physics_process(delta: float) -> void:
 	var t := clampf(_age / fall_duration, 0.0, 1.0)
 	var reduced := Settings.reduced_motion()
 	if _boulder != null:
-		_boulder.global_position = sky_origin.lerp(target_pos, t)
-		if not reduced:
-			_boulder.rotate_x(delta * 4.2)
-			_boulder.rotate_z(delta * 3.1)
+		if visual_style == "lightning":
+			if not reduced:
+				_boulder.rotate_y(delta * 2.6)
+			if _ion_shaft != null:
+				var w := lerpf(1.4, 0.25, t)
+				_ion_shaft.scale = Vector3(w, 1.0, w)
+		else:
+			_boulder.global_position = sky_origin.lerp(target_pos, t)
+			if not reduced:
+				_boulder.rotate_x(delta * 4.2)
+				_boulder.rotate_z(delta * 3.1)
 	if _inner_ring != null:
 		var r := lerpf(blast_radius * 0.95, 0.35, t)
 		_inner_ring.scale = Vector3(r, 1.0, r)
@@ -261,17 +377,35 @@ func _detonate() -> void:
 	var fx := get_parent() as Node3D
 	if fx == null and get_tree() != null:
 		fx = get_tree().current_scene as Node3D
-	VFX.mushroom_cloud_explosion(fx, target_pos, Color(1.0, 0.26, 0.04), 2.65)
-	VFX.dust_ring(fx, Vector3(target_pos.x, maxf(0.0, target_pos.y), target_pos.z), 2.8, 11.0)
 	var sfx := get_node_or_null("/root/Sfx")
-	if sfx != null:
-		if sfx.has_method("play_3d"):
-			sfx.call("play_3d", "explosion", target_pos, 2.0, 0.78)
-		elif sfx.has_method("play"):
-			sfx.call("play", "explosion", 2.0, 0.78)
+	if visual_style == "lightning":
+		VFX.lightning_strike_explosion(fx, target_pos, 1.35)
+		if sfx != null:
+			if sfx.has_method("play_3d"):
+				sfx.call("play_3d", "explosion", target_pos, 2.2, 0.58)
+			elif sfx.has_method("play"):
+				sfx.call("play", "explosion", 2.2, 0.58)
+	elif visual_style == "cash_bag":
+		VFX.cash_explosion(fx, target_pos, true)
+		if sfx != null:
+			if sfx.has_method("play_3d"):
+				sfx.call("play_3d", "explosion", target_pos, 1.8, 0.92)
+				sfx.call("play_3d", "pickup", target_pos, 1.6, 0.85)
+			elif sfx.has_method("play"):
+				sfx.call("play", "explosion", 1.8, 0.92)
+	else:
+		VFX.mushroom_cloud_explosion(fx, target_pos, Color(1.0, 0.26, 0.04), 2.65)
+		VFX.dust_ring(fx, Vector3(target_pos.x, maxf(0.0, target_pos.y), target_pos.z), 2.8, 11.0)
+		if sfx != null:
+			if sfx.has_method("play_3d"):
+				sfx.call("play_3d", "explosion", target_pos, 2.0, 0.78)
+			elif sfx.has_method("play"):
+				sfx.call("play", "explosion", 2.0, 0.78)
 	var cam := get_tree().get_first_node_in_group("camera_rig") if get_tree() != null else null
 	if cam != null and cam.has_method("add_shake"):
-		cam.call("add_shake", 0.68)
+		var cam_dist := (cam as Node3D).global_position.distance_to(target_pos) if cam is Node3D else 0.0
+		var shake := 0.68 * clampf(1.0 - cam_dist / 65.0, 0.15, 1.0)
+		cam.call("add_shake", shake)
 
 	impacted.emit(target_pos)
 

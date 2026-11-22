@@ -15,6 +15,7 @@ var damage := 60.0
 var blast_radius := BLAST_RADIUS
 var token := ""
 var hit_color := Color(1.0, 0.36, 0.10)
+var visual_style := "rocket"
 
 var _age := 0.0
 var _life := 3.2
@@ -30,6 +31,7 @@ static var _fin_mesh: BoxMesh = null
 static var _plume_mesh: SphereMesh = null
 static var _trail_mesh: SphereMesh = null
 static var _trail_ramp: GradientTexture1D = null
+static var _cash_trail_ramp: GradientTexture1D = null
 
 
 static func _ensure_meshes() -> void:
@@ -104,6 +106,12 @@ static func _ensure_meshes() -> void:
 			Color(1.0, 0.44, 0.10, 0.68),
 			Color(0.28, 0.24, 0.22, 0.0),
 		])
+	if _cash_trail_ramp == null:
+		_cash_trail_ramp = VFX._ramp([
+			Color(1.0, 0.90, 0.32, 0.95),
+			Color(0.18, 0.85, 0.42, 0.72),
+			Color(0.08, 0.42, 0.18, 0.0),
+		])
 
 
 func _arena_net() -> Node:
@@ -121,11 +129,13 @@ func _note_local_damage_shown(target_id: String) -> void:
 
 func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
 		p_direction: Vector3, p_speed: float, p_damage: float,
-		p_token: String, p_color: Color, p_blast_radius: float = BLAST_RADIUS) -> void:
+		p_token: String, p_color: Color, p_blast_radius: float = BLAST_RADIUS,
+		p_visual_style: String = "rocket") -> void:
 	owner_id = p_owner_id
 	owner_node = p_owner_node
 	global_position = p_origin
 	blast_radius = p_blast_radius
+	visual_style = p_visual_style if p_visual_style in ["rocket", "cash_bag"] else "rocket"
 	if p_direction.length_squared() < 1e-8 or not is_finite(p_direction.x + p_direction.y + p_direction.z):
 		velocity = Vector3.ZERO
 		_inert = true
@@ -143,32 +153,36 @@ func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
 
 func _build_visual() -> void:
 	_ensure_meshes()
-	_visual = Node3D.new()
-	_visual.name = "Rocket"
-	add_child(_visual)
+	if visual_style == "cash_bag":
+		_visual = CashBagVisual.build_bag(1.15)
+		add_child(_visual)
+	else:
+		_visual = Node3D.new()
+		_visual.name = "Rocket"
+		add_child(_visual)
 
-	var body := MeshInstance3D.new()
-	body.mesh = _body_mesh
-	body.rotation_degrees.x = 90.0
-	_visual.add_child(body)
+		var body := MeshInstance3D.new()
+		body.mesh = _body_mesh
+		body.rotation_degrees.x = 90.0
+		_visual.add_child(body)
 
-	var nose := MeshInstance3D.new()
-	nose.mesh = _nose_mesh
-	nose.rotation_degrees.x = -90.0
-	nose.position.z = -0.36
-	_visual.add_child(nose)
+		var nose := MeshInstance3D.new()
+		nose.mesh = _nose_mesh
+		nose.rotation_degrees.x = -90.0
+		nose.position.z = -0.36
+		_visual.add_child(nose)
 
-	for rot_z in [0.0, 90.0]:
-		var fin := MeshInstance3D.new()
-		fin.mesh = _fin_mesh
-		fin.position.z = 0.20
-		fin.rotation_degrees.z = float(rot_z)
-		_visual.add_child(fin)
+		for rot_z in [0.0, 90.0]:
+			var fin := MeshInstance3D.new()
+			fin.mesh = _fin_mesh
+			fin.position.z = 0.20
+			fin.rotation_degrees.z = float(rot_z)
+			_visual.add_child(fin)
 
-	var plume := MeshInstance3D.new()
-	plume.mesh = _plume_mesh
-	plume.position.z = 0.30
-	_visual.add_child(plume)
+		var plume := MeshInstance3D.new()
+		plume.mesh = _plume_mesh
+		plume.position.z = 0.30
+		_visual.add_child(plume)
 
 	var dir := velocity.normalized()
 	var up := Vector3.UP if absf(dir.dot(Vector3.UP)) < 0.99 else Vector3.FORWARD
@@ -182,7 +196,7 @@ func _build_visual() -> void:
 
 	if Settings.quality_multiplier() >= 0.5:
 		_light = OmniLight3D.new()
-		_light.light_color = Color(1.0, 0.52, 0.14)
+		_light.light_color = Color(0.32, 0.92, 0.48) if visual_style == "cash_bag" else Color(1.0, 0.52, 0.14)
 		_light.light_energy = 4.2
 		_light.omni_range = 4.5
 		_light.add_to_group("vfx_light")
@@ -202,7 +216,7 @@ func _build_visual() -> void:
 		pm.initial_velocity_max = 2.6
 		pm.scale_min = 0.24
 		pm.scale_max = 0.65
-		pm.color_ramp = _trail_ramp
+		pm.color_ramp = _cash_trail_ramp if visual_style == "cash_bag" else _trail_ramp
 		_trail.process_material = pm
 		_trail.draw_pass_1 = _trail_mesh
 		add_child(_trail)
@@ -228,7 +242,10 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 		return
 	if _visual != null and not Settings.reduced_motion():
-		_visual.rotate_object_local(Vector3(0.0, 0.0, 1.0), delta * 12.0)
+		if visual_style == "cash_bag":
+			_visual.rotate_object_local(Vector3(1.0, 0.7, 0.4).normalized(), delta * 10.0)
+		else:
+			_visual.rotate_object_local(Vector3(0.0, 0.0, 1.0), delta * 12.0)
 	var world := get_world_3d()
 	if world == null:
 		return
@@ -255,7 +272,10 @@ func _detonate(point: Vector3, direct_collider: Object) -> void:
 	var fx := get_parent() as Node3D
 	if fx == null and get_tree() != null:
 		fx = get_tree().current_scene as Node3D
-	VFX.particle_explosion(fx, point, Color(1.0, 0.42, 0.10), 1.55, false)
+	if visual_style == "cash_bag":
+		VFX.cash_explosion(fx, point, false)
+	else:
+		VFX.particle_explosion(fx, point, Color(1.0, 0.42, 0.10), 1.55, false)
 	var sfx := get_node_or_null("/root/Sfx")
 	if sfx != null:
 		if sfx.has_method("play_3d"):
@@ -264,7 +284,9 @@ func _detonate(point: Vector3, direct_collider: Object) -> void:
 			sfx.call("play", "explosion")
 	var cam := get_tree().get_first_node_in_group("camera_rig") if get_tree() != null else null
 	if cam != null and cam.has_method("add_shake"):
-		cam.call("add_shake", 0.36)
+		var cam_dist := (cam as Node3D).global_position.distance_to(point) if cam is Node3D else 0.0
+		var shake := 0.36 * clampf(1.0 - cam_dist / 55.0, 0.15, 1.0)
+		cam.call("add_shake", shake)
 
 	hit.emit(direct_collider as Node, point)
 

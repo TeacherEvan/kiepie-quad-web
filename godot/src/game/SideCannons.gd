@@ -167,8 +167,14 @@ func weapon_display_name(w_id: String = "") -> String:
 	var w := current_weapon if w_id == "" else w_id
 	match w:
 		"rocket":
+			if weapon_profile == "aston":
+				return "CASH BAG LAUNCHER"
 			return "ROCKET LAUNCHER"
 		"meteor":
+			if weapon_profile == "bike":
+				return "LIGHTNING STRIKE"
+			if weapon_profile == "aston":
+				return "CASH BAG DROP"
 			return "METEOR SHOWER"
 		_:
 			if weapon_profile == "pogo":
@@ -435,8 +441,15 @@ func _update_aim_reticle(delta: float = 0.0) -> void:
 		_aim_reticle.rotate_y(2.1 * minf(delta, 0.05))
 	if _aim_mat != null:
 		var rdy := can_fire()
-		_aim_mat.albedo_color = Color(0.28, 1.0, 0.52, 0.55) if rdy else Color(1.0, 0.42, 0.10, 0.30)
-		_aim_mat.emission = Color(0.32, 1.0, 0.55) if rdy else Color(1.0, 0.38, 0.10)
+		if weapon_profile == "bike":
+			_aim_mat.albedo_color = Color(0.32, 0.88, 1.0, 0.58) if rdy else Color(0.28, 0.45, 0.65, 0.30)
+			_aim_mat.emission = Color(0.45, 0.92, 1.0) if rdy else Color(0.30, 0.50, 0.72)
+		elif weapon_profile == "aston":
+			_aim_mat.albedo_color = Color(0.18, 0.88, 0.42, 0.58) if rdy else Color(0.75, 0.62, 0.16, 0.30)
+			_aim_mat.emission = Color(0.95, 0.84, 0.24) if rdy else Color(0.68, 0.55, 0.14)
+		else:
+			_aim_mat.albedo_color = Color(0.28, 1.0, 0.52, 0.55) if rdy else Color(1.0, 0.42, 0.10, 0.30)
+			_aim_mat.emission = Color(0.32, 1.0, 0.55) if rdy else Color(1.0, 0.38, 0.10)
 
 
 func _resolve_fx_parent() -> Node3D:
@@ -513,7 +526,7 @@ func fire() -> void:
 			_muzzle_flashes[i].position = owner_node.to_local(muzzle.global_position)
 			_muzzle_flashes[i].restart()
 			_muzzle_flashes[i].emitting = true
-		if active_weapon == "primary":
+		if active_weapon == "primary" and not bool(_profile["banana"]):
 			var side := -1.0 if i == 0 else 1.0
 			VFX.casing(fx_parent, muzzle.global_position, right_vec * side + Vector3(0, 0.35, 0))
 
@@ -530,8 +543,9 @@ func fire() -> void:
 		var rocket := Node3D.new()
 		rocket.set_script(ROCKET)
 		fx_parent.add_child(rocket)
+		var rocket_style := "cash_bag" if weapon_profile == "aston" else "rocket"
 		rocket.setup(owner_id, owner_node, muzzle_pos, dir, ROCKET_SPEED,
-				rocket_dmg, token, Color(1.0, 0.38, 0.10), ROCKET_BLAST_RADIUS)
+				rocket_dmg, token, Color(1.0, 0.38, 0.10), ROCKET_BLAST_RADIUS, rocket_style)
 		if not practice:
 			Supabase.broadcast("shot", {
 				"id": owner_id,
@@ -559,8 +573,9 @@ func fire() -> void:
 		var strike := Node3D.new()
 		strike.set_script(METEOR)
 		fx_parent.add_child(strike)
+		var meteor_style := "lightning" if weapon_profile == "bike" else ("cash_bag" if weapon_profile == "aston" else "meteor")
 		strike.setup(owner_id, owner_node, meteor_target, meteor_dmg, token,
-				Color(1.0, 0.28, 0.06), METEOR_FALL_TIME, METEOR_BLAST_RADIUS)
+				Color(1.0, 0.28, 0.06), METEOR_FALL_TIME, METEOR_BLAST_RADIUS, meteor_style)
 		# Keep 'o' at the bike muzzle (<= 5m from sender) and encode target offset in 'd' (<= 60m)
 		# so ArenaNet._spawn_remote_shot's anti-cheat validation accepts and reconstructs it!
 		if not practice:

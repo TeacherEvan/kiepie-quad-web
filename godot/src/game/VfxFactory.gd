@@ -657,7 +657,7 @@ static func muzzle_flash(parent: Node3D, pos: Vector3, dir: Vector3, color: Colo
 
 
 static func casing(parent: Node3D, pos: Vector3, eject_dir: Vector3) -> void:
-	if parent == null:
+	if parent == null or Settings.reduced_motion() or _q() <= 0.0:
 		return
 	# Hard cap on live ejection bodies — a per-shot RigidBody3D is the one
 	# VFX node that exercises the physics solver; the Web budget is finite.
@@ -729,11 +729,20 @@ static func impact(parent: Node3D, pos: Vector3, color: Color,
 		light.omni_range = 2.6
 		light.add_to_group("vfx_light")
 		holder.add_child(light)
+		var release_light := func() -> void:
+			if is_instance_valid(light):
+				if light.is_in_group("vfx_light"):
+					light.remove_from_group("vfx_light")
+				light.queue_free()
 		if Settings.reduced_motion():
 			light.light_energy = 1.6
+			var lt := holder.create_tween()
+			lt.tween_interval(0.14)
+			lt.tween_callback(release_light)
 		else:
 			var lt := holder.create_tween()
 			lt.tween_property(light, "light_energy", 0.0, 0.12)
+			lt.tween_callback(release_light)
 	var t := holder.create_tween()
 	t.tween_interval(0.7)
 	t.tween_callback(func() -> void:
@@ -1430,3 +1439,230 @@ static func shield_pulse(parent: Node3D, pos: Vector3, color: Color) -> void:
 		t.tween_property(ring, "scale", Vector3(grow, grow, grow), 0.7)
 		t.parallel().tween_property(m, "albedo_color:a", 0.0, 0.7)
 		t.tween_callback(ring.queue_free)
+
+
+static func _build_bolt_segment(parent: Node3D, p0: Vector3, p1: Vector3,
+		core_r: float, sheath_r: float, core_mat: StandardMaterial3D,
+		sheath_mat: StandardMaterial3D) -> void:
+	var diff := p1 - p0
+	var length := diff.length()
+	if length < 0.01:
+		return
+	var mid := (p0 + p1) * 0.5
+	var up := diff / length
+	var ref := Vector3.FORWARD if absf(up.dot(Vector3.FORWARD)) < 0.95 else Vector3.RIGHT
+	var right := up.cross(ref).normalized()
+	var fwd := right.cross(up).normalized()
+	var seg_basis := Basis(right, up, fwd)
+
+	var core := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = core_r * 0.85
+	cm.bottom_radius = core_r
+	cm.height = length
+	cm.radial_segments = 6
+	cm.material = core_mat
+	core.mesh = cm
+	core.position = mid
+	core.basis = seg_basis
+	parent.add_child(core)
+
+	var sheath := MeshInstance3D.new()
+	var sm := CylinderMesh.new()
+	sm.top_radius = sheath_r * 0.85
+	sm.bottom_radius = sheath_r
+	sm.height = length
+	sm.radial_segments = 6
+	sm.material = sheath_mat
+	sheath.mesh = sm
+	sheath.position = mid
+	sheath.basis = seg_basis
+	parent.add_child(sheath)
+
+
+static func _populate_lightning_bolt(bolt_root: Node3D, height: float,
+		core_mat: StandardMaterial3D, sheath_mat: StandardMaterial3D) -> void:
+	var steps := 10
+	var prev := Vector3(randf_range(-1.8, 1.8), height, randf_range(-1.8, 1.8))
+	for i in range(1, steps + 1):
+		var frac := float(i) / float(steps)
+		var jitter := (1.0 - frac) * 2.4
+		var next := Vector3(
+			randf_range(-jitter, jitter),
+			lerpf(height, 0.0, frac),
+			randf_range(-jitter, jitter)
+		)
+		if i == steps:
+			next = Vector3.ZERO
+		_build_bolt_segment(bolt_root, prev, next, 0.16, 0.42, core_mat, sheath_mat)
+		if i < steps - 1 and randf() < 0.55:
+			var b_end := next + Vector3(randf_range(-5.5, 5.5), -randf_range(3.5, 8.0), randf_range(-5.5, 5.5))
+			_build_bolt_segment(bolt_root, next, b_end, 0.07, 0.20, core_mat, sheath_mat)
+		prev = next
+
+
+static func lightning_strike_explosion(parent: Node3D, pos: Vector3,
+		scale: float = 1.35) -> void:
+	if parent == null:
+		return
+	var holder := Node3D.new()
+	holder.position = pos
+	parent.add_child(holder)
+
+	var core_mat := _additive(Color(0.95, 0.99, 1.0, 1.0), 7.5)
+	var sheath_mat := _additive(Color(0.32, 0.78, 1.0, 0.65), 4.2)
+	var reduced := Settings.reduced_motion()
+
+	var bolt_root := Node3D.new()
+	bolt_root.name = "MegaBolt"
+	holder.add_child(bolt_root)
+	_populate_lightning_bolt(bolt_root, 42.0, core_mat, sheath_mat)
+
+	var light := OmniLight3D.new()
+	light.light_color = Color(0.68, 0.92, 1.0)
+	light.light_energy = 11.0 * scale
+	light.omni_range = 18.0 * scale
+	light.add_to_group("vfx_light")
+	holder.add_child(light)
+	_cap_group(parent, "vfx_light", MAX_IMPACT_LIGHTS)
+
+	var release_light := func() -> void:
+		if is_instance_valid(light):
+			if light.is_in_group("vfx_light"):
+				light.remove_from_group("vfx_light")
+			light.queue_free()
+
+	if reduced:
+		_static_cue(holder, Vector3(0.0, 0.3, 0.0), Color(0.45, 0.88, 1.0), 3.4 * scale, 0.25)
+		var lt := holder.create_tween()
+		lt.tween_property(light, "light_energy", 0.0, 0.22)
+		lt.tween_callback(release_light)
+	else:
+		# 3 rapid flicker beats
+		var bt := holder.create_tween()
+		bt.tween_interval(0.06)
+		bt.tween_callback(func() -> void:
+			if is_instance_valid(bolt_root):
+				bolt_root.visible = false)
+		bt.tween_interval(0.04)
+		bt.tween_callback(func() -> void:
+			if is_instance_valid(bolt_root):
+				bolt_root.visible = true
+				bolt_root.rotation_degrees.y = 75.0)
+		bt.tween_interval(0.06)
+		bt.tween_callback(func() -> void:
+			if is_instance_valid(bolt_root):
+				bolt_root.visible = false)
+		bt.tween_interval(0.04)
+		bt.tween_callback(func() -> void:
+			if is_instance_valid(bolt_root):
+				bolt_root.visible = true
+				bolt_root.rotation_degrees.y = -65.0)
+		bt.tween_interval(0.07)
+		bt.tween_callback(func() -> void:
+			if is_instance_valid(bolt_root):
+				bolt_root.queue_free())
+
+		var lt := holder.create_tween()
+		lt.tween_property(light, "light_energy", 0.0, 0.34)
+		lt.tween_callback(release_light)
+
+		# Twin electric shockwave rings
+		_ring_quad(holder, Vector3(0.0, 0.08, 0.0), 3.2 * scale, Color(0.65, 0.95, 1.0, 0.9), 2.3, 0.38)
+		_ring_quad(holder, Vector3(0.0, 0.14, 0.0), 2.4 * scale, Color(0.58, 0.45, 1.0, 0.85), 2.2, 0.28)
+
+		# 64 radial electric arc sparks
+		_particle(holder, Vector3(0.0, 0.3, 0.0), 64, 0.48, Vector3.UP, 88.0,
+				9.0 * scale, 20.0 * scale,
+				[Color(1.0, 1.0, 1.0, 1.0), Color(0.38, 0.86, 1.0, 0.9), Color(0.45, 0.35, 1.0, 0.0)],
+				0.24, Vector3(0.0, -14.0, 0.0), true,
+				{"tex": "streak", "align": true, "quad": 0.42})
+
+		# Ozone mist
+		_particle(holder, Vector3(0.0, 0.6, 0.0), 22, 0.95, Vector3.UP, 75.0,
+				1.6, 4.2,
+				[Color(0.52, 0.82, 1.0, 0.45), Color(0.35, 0.48, 0.72, 0.25), Color(0.18, 0.22, 0.30, 0.0)],
+				0.4, Vector3(0.0, 1.2, 0.0), false,
+				{"tex": "smoke", "quad": 1.6 * scale})
+
+	scorch(parent, pos, scale)
+	var cleanup := holder.create_tween()
+	cleanup.tween_interval(1.25)
+	cleanup.tween_callback(holder.queue_free)
+
+
+static func cash_explosion(parent: Node3D, pos: Vector3, big: bool = false) -> void:
+	if parent == null:
+		return
+	var holder := Node3D.new()
+	holder.position = pos
+	parent.add_child(holder)
+	var scale := 2.0 if big else 1.15
+	var reduced := Settings.reduced_motion()
+
+	var light := OmniLight3D.new()
+	light.light_color = Color(0.92, 0.84, 0.26)
+	light.light_energy = (9.5 if big else 5.5)
+	light.omni_range = (14.0 if big else 7.5)
+	light.add_to_group("vfx_light")
+	holder.add_child(light)
+	_cap_group(parent, "vfx_light", MAX_IMPACT_LIGHTS)
+
+	var release_light := func() -> void:
+		if is_instance_valid(light):
+			if light.is_in_group("vfx_light"):
+				light.remove_from_group("vfx_light")
+			light.queue_free()
+
+	var lt := holder.create_tween()
+	lt.tween_property(light, "light_energy", 0.0, 0.28 if not reduced else 0.16)
+	lt.tween_callback(release_light)
+
+	if reduced:
+		_static_cue(holder, Vector3(0.0, 0.3, 0.0), Color(0.22, 0.85, 0.38), 2.2 * scale, 0.28)
+		_ring_quad(holder, Vector3(0.0, 0.08, 0.0), 2.0 * scale, Color(1.0, 0.85, 0.22, 0.85), 1.9, 0.26)
+	else:
+		# Twin gold / emerald shockwave rings
+		_ring_quad(holder, Vector3(0.0, 0.08, 0.0), 2.4 * scale, Color(1.0, 0.84, 0.22, 0.90), 2.0, 0.40)
+		_ring_quad(holder, Vector3(0.0, 0.12, 0.0), 1.8 * scale, Color(0.18, 0.88, 0.42, 0.85), 2.0, 0.32)
+
+		# Exploding fountain of fluttering dollar-bill quads
+		var bill_count := maxi(8, int((110 if big else 42) * _q()))
+		var bills := GPUParticles3D.new()
+		bills.amount = bill_count
+		bills.lifetime = 1.35 if big else 1.05
+		bills.one_shot = true
+		bills.explosiveness = 0.92
+		bills.visibility_aabb = AABB(Vector3(-14, -4, -14), Vector3(28, 22, 28))
+		var pm := ParticleProcessMaterial.new()
+		pm.direction = Vector3.UP
+		pm.spread = 72.0
+		pm.initial_velocity_min = 6.5 if big else 4.2
+		pm.initial_velocity_max = 16.0 if big else 10.5
+		pm.gravity = Vector3(0.0, -7.5, 0.0)
+		pm.damping_min = 1.6
+		pm.damping_max = 3.2
+		pm.angular_velocity_min = -260.0
+		pm.angular_velocity_max = 260.0
+		pm.scale_min = 1.1 if big else 0.85
+		pm.scale_max = 1.7 if big else 1.25
+		pm.color_ramp = _ramp([
+			Color(1.0, 1.0, 1.0, 1.0),
+			Color(0.95, 1.0, 0.95, 0.95),
+			Color(0.85, 0.95, 0.85, 0.0),
+		])
+		bills.process_material = pm
+		bills.draw_pass_1 = CashBagVisual.get_bill_mesh()
+		holder.add_child(bills)
+		bills.emitting = true
+
+		# Gold sparkles
+		_particle(holder, Vector3(0.0, 0.25, 0.0), 36 if big else 20, 0.55, Vector3.UP, 82.0,
+				5.0 * scale, 12.0 * scale,
+				[Color(1.0, 0.96, 0.62, 1.0), Color(1.0, 0.82, 0.18, 0.9), Color(0.18, 0.78, 0.34, 0.0)],
+				0.22, Vector3(0.0, -9.0, 0.0), true,
+				{"tex": "flare", "quad": 0.45})
+
+	var cleanup := holder.create_tween()
+	cleanup.tween_interval(1.6)
+	cleanup.tween_callback(holder.queue_free)
