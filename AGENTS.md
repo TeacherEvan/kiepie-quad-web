@@ -152,8 +152,8 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   `all_resources`, so a plain `.cfg` is otherwise dropped and the plugin silently falls back to
   MockBackend. `html/head_include` carries the fullscreen-on-launch bridge
   and the web-shell splash: inline CSS/JS injecting `#splash` (autoplay-muted
-  `web-assets/kiepie-quad-splash.mp4`, click/touch/`Esc` skip,
-  `localStorage['kiepie_splash_seen_v3']` for returning visitors, `?splash=1` force-replay override, instant removal under
+  `web-assets/kiepie-quad-splash.mp4`, click/touch/`Esc`/`Space`/`Enter` skip,
+  plays on every launch (no localStorage suppression or query-param override), instant removal under
   `prefers-reduced-motion`). Root `index.html` ships the identical markup and the preset
   embeds it, so re-exports keep it. `web-assets/` (dashboard background + splash) lives
   **outside** `godot/` so the pck stays small — do not move those files into `godot/assets/`.
@@ -166,7 +166,7 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   `renders/`, `.blend`/`.stl`, or `vercel.json`). Root `vercel.json` supplies edge security +
   native `COOP`/`COEP`/`CORP` headers (`same-origin` / `require-corp`) and immutable `/web-assets/*`
   caching; `patch_web_html.py` consolidates exported `index.html` to a single accessible viewport
-  meta (no `user-scalable=no`); `check_web_hygiene.py` locks all three in CI.
+  meta (no `user-scalable=no`); `check_web_hygiene.py` locks all four checks (including every-launch splash) in CI.
 - The Talo **game** key (JWT, `eyJ…`) is injected from root `.env` `TALO_API_GAME` and ships in the
   public pck by design. `TALO_API_ADMIN` (`ta_…`) is rejected by the v1 API — never use it here.
 - Vercel project `kiepie-quad-web` (team `teacher-evans-projects`, Hobby). Auth/password

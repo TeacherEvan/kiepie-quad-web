@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify Web deploy hygiene: .vercelignore allowlist, vercel.json security headers, and index.html viewport."""
+"""Verify Web deploy hygiene: .vercelignore allowlist, vercel.json security headers, index.html viewport, and every-launch splash."""
 import json
 import re
 import subprocess
@@ -96,11 +96,19 @@ def main() -> int:
         elif "user-scalable=no" in metas[0].lower():
             failures.append(f"index.html viewport meta still contains user-scalable=no: {metas[0]}")
 
+        # 4. index.html must play the intro splash on every launch (no localStorage suppression or ?splash=1 hack)
+        if "web-assets/kiepie-quad-splash.mp4" not in html:
+            failures.append("index.html missing intro splash video reference")
+        if "kiepie_splash_seen" in html:
+            failures.append("index.html still suppresses intro splash via localStorage (kiepie_splash_seen)")
+        if "splash=1" in html:
+            failures.append("index.html still contains ?splash=1 query workaround")
+
     if failures:
         for f in failures:
             print(f"FAIL web_hygiene: {f}", file=sys.stderr)
         return 1
-    print(f"web_hygiene OK (.vercelignore={len(shipped)} runtime files, vercel.json headers, single WCAG viewport)")
+    print(f"web_hygiene OK (.vercelignore={len(shipped)} runtime files, vercel.json headers, single WCAG viewport, every-launch splash)")
     return 0
 
 

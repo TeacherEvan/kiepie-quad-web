@@ -3,7 +3,7 @@
 Canonical project plan for the single repository `TeacherEvan/kiepie-quad-web`
 (Blender source + Godot 4.3 game + Vercel-served Web build at the repo root).
 
-- **Live:** https://kiepie-quad-web.vercel.app · mirror: https://kiepie-bike.vercel.app
+- **Live:** https://kiepie-quad-web.vercel.app
 - **Navigation hub:** [docs/index.md](index.md) · **Task ledger:** [docs/task-status.md](task-status.md)
 - **Toolchain invariants / agent rules:** [AGENTS.md](../AGENTS.md) (authoritative for build/gate/deploy rules)
 - **Player-facing overview:** [README.md](../README.md) · **Model/QA source doc:** [SOURCE.md](../SOURCE.md)

@@ -4,7 +4,7 @@ Drive the Kiepie Bike (sport quad, Yamaha Blaster class) in your browser, or fig
 other players in the combat arena. Built with Godot 4.3, exported to HTML/WASM,
 hosted on Vercel and installable as a PWA.
 
-▶ **Live: https://kiepie-quad-web.vercel.app** · mirror: **https://kiepie-bike.vercel.app**
+▶ **Live: https://kiepie-quad-web.vercel.app**
 
 ## Modes
 
@@ -382,11 +382,11 @@ auto-deploy to Vercel** (verified 2026-11-18, ~5 s per production deploy). The g
 runs on every PR via `.github/workflows/gates.yml`.
 
 The web shell carries a **themed loading surface**: `web-assets/dashboard_bg.jpg` (navy quad
-ghost + grid, behind the progress bar) and `web-assets/kiepie-quad-splash.mp4` (8 s, 1280x720,
-1.9 MB — Blender hero plates of the KIEPIE QUAD + kinetic HUD + pad/whoosh audio, rendered via
-the `surgical-media` pipeline). The splash autoplays **muted**, is skippable by click/touch,
-`Esc`, or when the clip ends; returning visitors skip it via `localStorage`
-(`kiepie_splash_seen_v1`), and `prefers-reduced-motion` removes it instantly. The same markup
+ghost + grid, behind the progress bar) and `web-assets/kiepie-quad-splash.mp4` (12.5 s, 1280x720,
+3.55 MB — Blender showcase of all 3 vehicles + their signature abilities, rendered via
+the `surgical-media` pipeline). The splash autoplays **muted on every launch** (no `localStorage`
+once-only suppression or query-param workaround), is skippable by click/touch, `Esc`, `Space`,
+`Enter`, or when the clip ends, and `prefers-reduced-motion` removes it instantly. The same markup
 is embedded in `html/head_include` so a re-export reproduces it; root `index.html` ships it
 directly. `web-assets/` lives outside `godot/` so the pck stays ~2.7 MB. `index.png` is the
 themed 1200x900 (4:3) loading card (replacing the default Godot logo).
