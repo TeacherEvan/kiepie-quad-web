@@ -360,7 +360,10 @@ func _swap_model(assigned: StringName, glb_path: String) -> void:
 
 func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("reset_bike"):
-		reset_bike()
+		var combat := get_node_or_null("CombatController")
+		var is_practice := combat != null and bool(combat.get("practice_mode"))
+		if Match == null or not Match.is_playing() or is_practice:
+			reset_bike()
 
 	var grounded := _grounded()
 	if _dodge_time > 0.0:

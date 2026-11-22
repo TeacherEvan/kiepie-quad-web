@@ -54,7 +54,8 @@ def main():
         # World-space datum: move origins, not local vertices, so rotated
         # meshes are lifted straight up instead of drifting sideways.
         for ob in bike_meshes:
-            ob.location.z += dz
+            if ob.parent is None:
+                ob.location.z += dz
         bpy.context.view_layer.update()
 
     studio, cam, target = build_quad.build_studio()

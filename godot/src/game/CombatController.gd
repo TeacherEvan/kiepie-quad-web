@@ -31,7 +31,6 @@ var _last_hit_token := ""
 var _rapid_until := 0.0
 var _overdrive_until := 0.0
 var _shield_until := 0.0
-var _base_power := 210.0
 var _touch_ctrl: Node = null
 var _touch_switch_connected := false
 
@@ -48,7 +47,6 @@ func setup(p_bike: VehicleBody3D) -> void:
 	# Projectile hit attribution reads player_id from the collider; remote bikes
 	# get theirs in NetworkedBike.setup, the local bike needs it here.
 	bike.set("player_id", Supabase.user_id)
-	_base_power = float(bike.get("engine_power"))
 	cannons = Node3D.new()
 	cannons.name = "SideCannons"
 	cannons.set_script(CANNON)
@@ -319,7 +317,6 @@ func reset_state() -> void:
 		cannons.call("set_rapid", false)
 	if "overdrive_active" in bike:
 		bike.set("overdrive_active", false)
-	bike.set("engine_power", _base_power)
 	bike.freeze = false
 	var ep: Variant = bike.get("_engine_player")
 	if ep is AudioStreamPlayer3D:

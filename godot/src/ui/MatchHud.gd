@@ -88,12 +88,19 @@ func _ready() -> void:
 	# --- result & top-right navigation + scoreboard dropdown
 	var menu_btn := get_node_or_null("MenuBtn") as Button
 	if menu_btn != null:
-		menu_btn.pressed.connect(_on_leave_match)
+		menu_btn.pressed.connect(func() -> void:
+			Sfx.play_ui("ui_click")
+			_on_leave_match())
 		_compact_btn(menu_btn, 12, 6.0)
 	var score_toggle := get_node_or_null("ScoreToggle") as Button
 	if score_toggle != null:
-		score_toggle.pressed.connect(_on_toggle_scores)
+		score_toggle.pressed.connect(func() -> void:
+			Sfx.play_ui("ui_click")
+			_on_toggle_scores())
 		_compact_btn(score_toggle, 12, 6.0)
+	if _fps_label != null:
+		_fps_label.position = Vector2(12.0, 56.0 if short else 272.0)
+
 	var score := get_node_or_null("Scoreboard") as Control
 	if score != null:
 		score.visible = false
@@ -101,10 +108,14 @@ func _ready() -> void:
 	Settings.call_deferred("sync_back_handler")
 	var again := get_node_or_null("ResultPanel/PlayAgainBtn") as Button
 	if again != null:
-		again.pressed.connect(_on_play_again)
+		again.pressed.connect(func() -> void:
+			Sfx.play_ui("ui_click")
+			_on_play_again())
 	var leave := get_node_or_null("ResultPanel/LeaveBtn") as Button
 	if leave != null:
-		leave.pressed.connect(_on_leave_match)
+		leave.pressed.connect(func() -> void:
+			Sfx.play_ui("ui_click")
+			_on_leave_match())
 
 	# --- radar: builder creates a plain Control; this script gives it a custom
 	# _draw implementation (inner class) so no second .gd file is needed.
@@ -215,6 +226,9 @@ func _sync_score_toggle() -> void:
 	var btn := get_node_or_null("ScoreToggle") as Button
 	if btn != null:
 		btn.text = "SCORES ^" if _scores_open else "SCORES v"
+	if _fps_label != null:
+		_fps_label.position = Vector2(12.0, 56.0 if short else 272.0)
+
 	var score := get_node_or_null("Scoreboard") as Control
 	if score != null:
 		score.visible = _scores_open
@@ -331,6 +345,9 @@ func _relayout() -> void:
 			score_toggle.offset_right = -116.0
 			score_toggle.offset_top = 12.0
 			score_toggle.offset_bottom = 56.0
+
+	if _fps_label != null:
+		_fps_label.position = Vector2(12.0, 56.0 if short else 272.0)
 
 	var score := get_node_or_null("Scoreboard") as Control
 	if score != null:
@@ -798,10 +815,10 @@ func _process(delta: float) -> void:
 		if _fps_label == null:
 			_fps_label = Label.new()
 			_fps_label.name = "FpsLabel"
-			_fps_label.position = Vector2(12, 272)
 			_fps_label.add_theme_font_size_override("font_size", 14)
 			_fps_label.add_theme_color_override("font_color", Color(0.6, 1.0, 0.7))
 			add_child(_fps_label)
+			_relayout()
 		_fps_label.visible = true
 		_fps_accum += delta
 		_fps_frames += 1
@@ -833,8 +850,8 @@ func _process(delta: float) -> void:
 
 # ------------------------------------------------------------------- radar ---
 
-## Mini-radar drawn as a Control subclass. World X/Z map to screen right/down;
-## the local bike sits at the centre. Redraws at ~10 Hz via queue_redraw().
+## Mini-radar drawn as a Control subclass. Rotated relative to the local bike's
+## heading (up = forward, right = starboard). Redraws at ~10 Hz via queue_redraw().
 class RadarControl extends Control:
 	var local_bike_path: NodePath = ^""
 	var _local: Node3D = null

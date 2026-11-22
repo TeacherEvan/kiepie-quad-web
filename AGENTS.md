@@ -153,13 +153,13 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   MockBackend. `html/head_include` carries the fullscreen-on-launch bridge
   and the web-shell splash: inline CSS/JS injecting `#splash` (autoplay-muted
   `web-assets/kiepie-quad-splash.mp4`, click/touch/`Esc` skip,
-  `localStorage['kiepie_splash_seen_v1']` for returning visitors, instant removal under
+  `localStorage['kiepie_splash_seen_v2']` for returning visitors, instant removal under
   `prefers-reduced-motion`). Root `index.html` ships the identical markup and the preset
   embeds it, so re-exports keep it. `web-assets/` (dashboard background + splash) lives
   **outside** `godot/` so the pck stays small — do not move those files into `godot/assets/`.
   (`window.__kiepieSetFullscreen`) that `Settings.gd` drives via `JavaScriptBridge` on Web
   (fullscreen is now default-on; `Settings` schema v2 migrates v1 configs) — don't clobber it
-  when editing the preset. Expect root `index.pck` ≈ **3.4 MB**; `deploy_web.sh` aborts above **4 MB**,
+  when editing the preset. Expect root `index.pck` ≈ **3.54 MB**; `deploy_web.sh` aborts above **4 MB**,
   so check the printed size after adding assets (and update the script's expected-size note if it changes).
   Root `.vercelignore` uses a strict allowlist (`*`, `!index.*`, `!favicon.ico`, `!web-assets/`,
   `!web-assets/**`) so only Web runtime assets ship to Vercel (never `docs/`, `src/`, `godot/`,

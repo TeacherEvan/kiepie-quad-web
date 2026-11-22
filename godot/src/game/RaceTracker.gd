@@ -53,16 +53,19 @@ func _on_roster_changed() -> void:
 	if str(Match.lobby.get("host_id", "")) == uid:
 		return
 	if Match.players.has(uid) and Match.players[uid] is Dictionary:
-		var auth_laps := int((Match.players[uid] as Dictionary).get("laps", completed_laps))
+		var auth_laps := int((Match.players[uid] as Dictionary).get("laps", 0))
 		if auth_laps != completed_laps:
+			if _lap_pending and auth_laps < completed_laps:
+				return
 			completed_laps = auth_laps
 			var target := maxi(1, int(Match.lap_target()))
 			current_lap = mini(completed_laps + 1, target)
 			if completed_laps < target:
 				race_finished = false
-			_lap_pending = false
+			if auth_laps >= completed_laps:
+				_lap_pending = false
 			_sync_hud()
-		elif _lap_pending:
+		elif _lap_pending and auth_laps >= completed_laps:
 			_lap_pending = false
 
 

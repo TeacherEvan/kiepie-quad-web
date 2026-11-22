@@ -124,9 +124,10 @@ func _ready() -> void:
 	_apply_visibility()
 
 
-func _on_settings_changed(section: String, key: String, _val: Variant) -> void:
+func _on_settings_changed(section: String, key: String, val: Variant) -> void:
 	if section == "controls":
 		if key == "touch_force":
+			_force = bool(val)
 			_apply_visibility()
 			_sync_toggle_text()
 		_relayout()
@@ -514,6 +515,7 @@ func _apply_visibility() -> void:
 		_update_drive_pad(0.0, 0.0, false, false, false, false)
 
 func _on_toggle() -> void:
+	Sfx.play_ui("ui_click")
 	_force = not _force
 	Settings.set_value("controls", "touch_force", _force)
 	_sync_toggle_text()

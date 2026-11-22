@@ -176,6 +176,9 @@ func _recycle() -> void:
 
 
 func _build_tracer() -> void:
+	visible = true
+	set_physics_process(true)
+	_age = 0.0
 	if _inert:
 		# No visuals for a degenerate bolt — it dies in 0.05 s.
 		return

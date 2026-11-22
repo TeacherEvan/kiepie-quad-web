@@ -50,8 +50,11 @@ func _connect_controls() -> void:
 			if _flush_timer != null and is_instance_valid(_flush_timer):
 				_flush_timer.stop()
 			for entry in keep_pending.values():
-				if str(entry[0]) != "video":
-					Settings.set_value(entry[0], entry[1], entry[2])
+				var sec := str(entry[0])
+				var k := str(entry[1])
+				if sec == "video" and k in ["resolution_scale", "particles", "shadows", "glow", "quality"]:
+					continue
+				Settings.set_value(entry[0], entry[1], entry[2])
 			Settings.apply_quality(QUALITIES[i])
 		)
 

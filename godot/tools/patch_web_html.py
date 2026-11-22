@@ -32,8 +32,15 @@ def main() -> int:
         print("patch_web_html: could not locate charset meta anchor", file=sys.stderr)
         return 1
     tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(out, encoding="utf-8")
-    os.replace(tmp, path)
+    try:
+        with tmp.open("w", encoding="utf-8") as fh:
+            fh.write(out)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
     print(f"patch_web_html: consolidated {len(matches)} viewport meta(s) -> 1 accessible tag in {path.name}")
     return 0
 
