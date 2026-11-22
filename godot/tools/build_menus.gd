@@ -225,6 +225,19 @@ func _build_main() -> void:
 	var margin := _margin()
 	root.add_child(margin)
 
+	var scroll := ScrollContainer.new()
+	scroll.name = "Scroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	margin.add_child(scroll)
+
+	var scroll_box := _vbox("ScrollBox")
+	scroll_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	scroll_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.add_child(scroll_box)
+
 	var card := PanelContainer.new()
 	card.name = "Card"
 	var card_style := _chip(Color(0.06, 0.075, 0.10, 0.94), Color(1.0, 0.78, 0.30, 0.28))
@@ -239,8 +252,9 @@ func _build_main() -> void:
 	card_style.content_margin_bottom = 22.0
 	card.add_theme_stylebox_override("panel", card_style)
 	card.custom_minimum_size = Vector2(0.0, 0.0)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	margin.add_child(card)
+	scroll_box.add_child(card)
 
 	var vbox := _vbox("VBox")
 	card.add_child(vbox)
@@ -260,6 +274,10 @@ func _build_main() -> void:
 	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	status.custom_minimum_size = Vector2(0.0, 44.0)
 	vbox.add_child(status)
+
+	var btn_retry := _button("BtnRetry", "RETRY CONNECTION", UI.WARN)
+	btn_retry.visible = false
+	vbox.add_child(btn_retry)
 
 	var sep := HSeparator.new()
 	sep.name = "Sep"
@@ -471,11 +489,15 @@ func _verify() -> void:
 		{
 			"path": OUT_MAIN,
 			"script": "res://src/ui/MainMenu.gd",
-			"nodes": ["SafeMargin", "SafeMargin/Card/VBox/Status", "SafeMargin/Card/VBox/JoinRow/CodeField",
-					"SafeMargin/Card/VBox/ModeRow/BtnModeBattleRoyale", "SafeMargin/Card/VBox/ModeRow/BtnModeDeathRace",
-					"SafeMargin/Card/VBox/BtnPractice", "SafeMargin/Card/VBox/BtnCreate",
-					"SafeMargin/Card/VBox/BtnJoinAuto", "SafeMargin/Card/VBox/JoinRow/BtnJoinCode",
-					"SafeMargin/Card/VBox/BtnSettings"],
+			"nodes": ["SafeMargin", "SafeMargin/Scroll", "SafeMargin/Scroll/ScrollBox/Card/VBox/Status",
+					"SafeMargin/Scroll/ScrollBox/Card/VBox/BtnRetry",
+					"SafeMargin/Scroll/ScrollBox/Card/VBox/JoinRow/CodeField",
+					"SafeMargin/Scroll/ScrollBox/Card/VBox/ModeRow/BtnModeBattleRoyale",
+					"SafeMargin/Scroll/ScrollBox/Card/VBox/ModeRow/BtnModeDeathRace",
+					"SafeMargin/Scroll/ScrollBox/Card/VBox/VehicleRow/VehicleSelect",
+					"SafeMargin/Scroll/ScrollBox/Card/VBox/BtnPractice", "SafeMargin/Scroll/ScrollBox/Card/VBox/BtnCreate",
+					"SafeMargin/Scroll/ScrollBox/Card/VBox/BtnJoinAuto", "SafeMargin/Scroll/ScrollBox/Card/VBox/JoinRow/BtnJoinCode",
+					"SafeMargin/Scroll/ScrollBox/Card/VBox/BtnSettings"],
 		},
 		{
 			"path": OUT_LOBBY,
@@ -546,12 +568,13 @@ func _verify() -> void:
 		# free of dummy-renderer RID leaks while still proving every named node
 		# was actually saved into the .tscn.
 		var state := packed.get_state()
-		var saved_names := {}
+		var saved_paths := {}
 		for i in range(state.get_node_count()):
-			saved_names[str(state.get_node_name(i))] = true
+			var rel := str(state.get_node_path(i)).trim_prefix("./")
+			if rel != "":
+				saved_paths[rel] = true
 		for node_path in check["nodes"]:
-			var leaf := str(node_path).get_file()
-			if not saved_names.has(leaf):
+			if not saved_paths.has(str(node_path)):
 				printerr("MISSING NODE ", path, " :: ", node_path)
 				_failed = true
 

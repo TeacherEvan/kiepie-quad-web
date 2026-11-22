@@ -31,7 +31,6 @@ var _last_hit_token := ""
 var _rapid_until := 0.0
 var _overdrive_until := 0.0
 var _shield_until := 0.0
-var _smoke_accum := 0.0
 var _base_power := 210.0
 var _touch_ctrl: Node = null
 var _touch_switch_connected := false
@@ -122,10 +121,6 @@ func apply_pickup(kind: String) -> void:
 	_play_sfx("pickup")
 
 
-func _flames() -> Node:
-	return bike.get_node_or_null("ExhaustFlames")
-
-
 func _play_sfx(name: String) -> void:
 	var sfx := get_node_or_null("/root/Sfx")
 	if sfx != null and sfx.has_method("play"):
@@ -198,6 +193,7 @@ func _die(by: String) -> void:
 		sfx.call("play", "explosion", 2.5, 0.58)
 	_shake(0.82)
 	if not Settings.reduced_motion():
+		Input.vibrate_handheld(35)
 		# 55 ms death hitstop via the shared refcounted slow-mo coordinator:
 		# overlapping kill-cam (ArenaNet) beats cannot leave it slow-mo'd.
 		KT.trigger_hitstop(get_tree(), 0.25, 0.055)
@@ -210,6 +206,12 @@ func _die(by: String) -> void:
 		})
 	bike.visible = false
 	bike.set_physics_process(false)
+	bike.freeze = true
+	bike.linear_velocity = Vector3.ZERO
+	bike.angular_velocity = Vector3.ZERO
+	var ep: Variant = bike.get("_engine_player")
+	if ep is AudioStreamPlayer3D:
+		(ep as AudioStreamPlayer3D).stream_paused = true
 	# A dead body left on layer 1 keeps eating live projectiles and blocking
 	# bikes for the whole respawn window, though it is invisible and inert.
 	bike.collision_layer = 0
@@ -250,6 +252,10 @@ func _respawn() -> void:
 	# reset_bike() zeroes wheel force/brake/steer, clears dodge state and pushes
 	# the spawn transform into PhysicsServer3D — direct global_transform writes
 	# get overwritten on the next physics sync step.
+	bike.freeze = false
+	var ep: Variant = bike.get("_engine_player")
+	if ep is AudioStreamPlayer3D:
+		(ep as AudioStreamPlayer3D).stream_paused = false
 	bike.reset_bike()
 	bike.collision_layer = 1
 	bike.collision_mask = 1
@@ -314,6 +320,10 @@ func reset_state() -> void:
 	if "overdrive_active" in bike:
 		bike.set("overdrive_active", false)
 	bike.set("engine_power", _base_power)
+	bike.freeze = false
+	var ep: Variant = bike.get("_engine_player")
+	if ep is AudioStreamPlayer3D:
+		(ep as AudioStreamPlayer3D).stream_paused = false
 	bike.set_physics_process(true)
 	bike.visible = true
 	health = MAX_HEALTH

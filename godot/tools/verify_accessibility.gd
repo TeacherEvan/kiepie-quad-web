@@ -139,10 +139,13 @@ func _initialize() -> void:
 	var mm_ps := load("res://scenes/MainMenu.tscn") as PackedScene
 	if mm_ps != null:
 		var mm := mm_ps.instantiate() as Control
-		var sub := mm.get_node_or_null("SafeMargin/Card/VBox/Subtitle") as Label
-		var br := mm.get_node_or_null("SafeMargin/Card/VBox/ModeRow/BtnModeBattleRoyale") as Button
-		var dr := mm.get_node_or_null("SafeMargin/Card/VBox/ModeRow/BtnModeDeathRace") as Button
-		var card := mm.get_node_or_null("SafeMargin/Card") as Control
+		var scroll := mm.get_node_or_null("SafeMargin/Scroll") as ScrollContainer
+		var sub := mm.get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/Subtitle") as Label
+		var br := mm.get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/ModeRow/BtnModeBattleRoyale") as Button
+		var dr := mm.get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/ModeRow/BtnModeDeathRace") as Button
+		var card := mm.get_node_or_null("SafeMargin/Scroll/ScrollBox/Card") as Control
+		_check(scroll != null and card != null and scroll.is_ancestor_of(card),
+				"P1-10: MainMenu Card sits inside ScrollContainer for mobile viewports")
 		_check(sub != null and sub.autowrap_mode != TextServer.AUTOWRAP_OFF,
 				"MainMenu.Subtitle wraps on narrow mobile screens")
 		_check(br != null and br.clip_text and dr != null and dr.clip_text,
@@ -153,32 +156,43 @@ func _initialize() -> void:
 		await process_frame
 		if mm.has_method("_apply_responsive_layout"):
 			var safe_m := mm.get_node_or_null("SafeMargin")
-			var footer := mm.get_node_or_null("SafeMargin/Card/VBox/Footer") as Control
 			mm.call("_apply_responsive_layout", Vector2(844, 390), safe_m)
 			await process_frame
-			_check(br != null and br.custom_minimum_size.y <= 38.0 and sub != null and not sub.visible and (footer == null or not footer.visible),
-					"MainMenu applies very_short compact layout at 844x390 (btn_h=%.1f <= 38)" % (br.custom_minimum_size.y if br else 999.0))
+			_check(br != null and br.custom_minimum_size.y >= 44.0 and sub != null and not sub.visible,
+					"MainMenu keeps >=44px touch targets in compact 844x390 layout (btn_h=%.1f)" % (br.custom_minimum_size.y if br else 0.0))
 			mm.call("_apply_responsive_layout", Vector2(667, 375), safe_m)
 			await process_frame
-			_check(br != null and br.custom_minimum_size.y <= 38.0 and sub != null and not sub.visible,
-					"MainMenu applies very_short compact layout at 667x375 (btn_h=%.1f <= 38)" % (br.custom_minimum_size.y if br else 999.0))
+			_check(br != null and br.custom_minimum_size.y >= 44.0 and sub != null and not sub.visible,
+					"MainMenu keeps >=44px touch targets in compact 667x375 layout (btn_h=%.1f)" % (br.custom_minimum_size.y if br else 0.0))
 		mm.queue_free()
 		await process_frame
 
-	# MatchHud 6-kill WeakRef eviction + free-while-timer-pending guard
+	# MatchHud 6-kill real KillFeed eviction (cap 5) + free-while-timer-pending + solo Death Race banner
 	var hud_script := load("res://src/ui/MatchHud.gd") as GDScript
 	if hud_script != null:
 		var hud := CanvasLayer.new()
 		hud.set_script(hud_script)
+		var feed_box := VBoxContainer.new()
+		feed_box.name = "KillFeed"
+		hud.add_child(feed_box)
+		var vbanner := Label.new()
+		vbanner.name = "VictoryBanner"
+		hud.add_child(vbanner)
+		var rt_stub := Node.new()
+		rt_stub.add_to_group("race_tracker")
+		root.add_child(rt_stub)
 		root.add_child(hud)
 		await process_frame
 		for k in range(6):
 			hud.call("add_kill", "Player%d" % k, "Victim%d" % k)
-		var feed := hud.get_node_or_null("KillFeed") as VBoxContainer
-		if feed == null:
-			feed = hud.get("_kill_feed") as VBoxContainer
-		_check(feed == null or feed.get_child_count() <= 4,
-				"MatchHud evicts old kill-feed lines (count=%d <= 4)" % (feed.get_child_count() if feed else 0))
+		await process_frame
+		_check(feed_box.get_child_count() == 5,
+				"MatchHud evicts old kill-feed lines to cap=5 (count=%d)" % feed_box.get_child_count())
+		hud.set("_victory_banner", vbanner)
+		hud.call("_play_victory_splash", "CHAMP")
+		_check(vbanner.text.begins_with("DEATH RACE CHAMPION"),
+				"P2-2: solo Death Race victory banner reads DEATH RACE CHAMPION (got %s)" % vbanner.text)
+		rt_stub.queue_free()
 		hud.queue_free()
 		await create_timer(0.15).timeout
 		_check(true, "MatchHud freed with pending kill-feed timers without crash")

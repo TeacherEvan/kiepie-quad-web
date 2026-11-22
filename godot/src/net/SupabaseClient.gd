@@ -98,3 +98,10 @@ func _on_broadcast(event: String, payload: Variant) -> void:
 
 func _on_pg_change(data: Dictionary) -> void:
 	postgres_change.emit(data)
+
+
+func reconnect() -> void:
+	if use_mock or talo == null:
+		return
+	if talo.has_method("reconnect"):
+		talo.call("reconnect")

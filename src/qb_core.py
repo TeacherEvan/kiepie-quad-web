@@ -454,6 +454,7 @@ def _cap_holes(ob):
                     current_vert = nxt.verts[0]
                 loop_verts.append(current_vert)
                 current_edge = nxt
+            used_edges.update(used)
             if len(loop_verts) >= 3 and current_vert == start_vert:
                 try:
                     bm.faces.new(loop_verts)

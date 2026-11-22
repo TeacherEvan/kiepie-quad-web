@@ -280,7 +280,7 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 	var sender: Node3D = _remote.get(owner_id)
 	if sender == null or not is_instance_valid(sender) or not bool(sender.get("_initialised")) or bool(sender.get("is_respawning")):
 		return
-	if sender.global_position.distance_to(o) > 5.0:
+	if sender.global_position.distance_to(o) > 16.0:
 		return
 	if d.length_squared() < 1e-8:
 		return

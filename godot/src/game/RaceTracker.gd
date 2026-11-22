@@ -23,6 +23,8 @@ var _checkpoints: Array[Area3D] = []
 var _finish_line: Area3D = null
 var _injected_solo_uid := ""
 var _finishing_lap := false
+var _lap_pending := false
+var _lap_retry_gen := 0
 
 
 func _ready() -> void:
@@ -55,9 +57,13 @@ func _on_roster_changed() -> void:
 		if auth_laps != completed_laps:
 			completed_laps = auth_laps
 			var target := maxi(1, int(Match.lap_target()))
+			current_lap = mini(completed_laps + 1, target)
 			if completed_laps < target:
 				race_finished = false
+			_lap_pending = false
 			_sync_hud()
+		elif _lap_pending:
+			_lap_pending = false
 
 
 func _setup_solo_or_match_mode() -> void:
@@ -175,15 +181,33 @@ func _on_finish_line_entered(body: Node) -> void:
 	lap_completed.emit(completed_laps, target)
 	_finishing_lap = false
 
+	_lap_pending = lap_pending
 	if completed_laps >= target:
-		race_finished = true
 		current_lap = target
 		_sync_hud()
 		var uid := str(Supabase.user_id) if (Supabase != null and str(Supabase.user_id) != "") else "mock-host"
+		if lap_pending:
+			_lap_retry_gen += 1
+			var gen := _lap_retry_gen
+			var w_self: WeakRef = weakref(self)
+			if get_tree() != null:
+				get_tree().create_timer(3.0).timeout.connect(func() -> void:
+					var me := w_self.get_ref() as Node
+					if me == null or not is_instance_valid(me) or not me.is_inside_tree():
+						return
+					if int(me.get("_lap_retry_gen")) != gen or not bool(me.get("_lap_pending")):
+						return
+					if Match != null and Match.is_playing() and not Match.is_finished():
+						me.set("completed_laps", maxi(0, target - 1))
+						me.set("next_checkpoint", int(me.get("total_checkpoints")))
+						me.set("_lap_pending", false)
+						me.call("_sync_hud"))
+			return
+		race_finished = true
 		race_won.emit(uid)
 		# In solo/practice mode (never on a pending guest RPC where the host arbitrates
 		# photo-finish winners), fire HUD finish + victory splash directly.
-		if not lap_pending and (Match == null or not Match.is_finished()):
+		if Match == null or not Match.is_finished():
 			var hud := get_tree().get_first_node_in_group("match_hud") if get_tree() != null else null
 			if hud != null and hud.has_method("_on_match_finished"):
 				hud.call("_on_match_finished", uid)

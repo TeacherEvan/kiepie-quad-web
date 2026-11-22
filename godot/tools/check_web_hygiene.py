@@ -14,27 +14,37 @@ def main() -> int:
 
     # 1. .vercelignore must allow ONLY index.*, favicon.ico, web-assets/**
     vi = ROOT / ".vercelignore"
+    shipped: list[str] = []
     if not vi.is_file():
         failures.append("missing .vercelignore")
     else:
-        files = subprocess.check_output(["git", "ls-files"], cwd=ROOT).decode().splitlines()
-        p = subprocess.run(
-            ["git", "-c", f"core.excludesfile={vi}", "check-ignore", "--no-index", "--stdin"],
-            cwd=ROOT,
-            input="\n".join(files) + "\n",
-            text=True,
-            capture_output=True,
-        )
-        ignored = set(p.stdout.splitlines())
-        shipped = [f for f in files if f not in ignored]
-        disallowed = [
-            f for f in shipped
-            if not (f.startswith("index.") or f == "favicon.ico" or f.startswith("web-assets/"))
-        ]
-        if disallowed:
-            failures.append(f".vercelignore leaks non-runtime files: {disallowed[:5]}")
-        if len(shipped) < 13:
-            failures.append(f".vercelignore ships too few runtime files ({len(shipped)})")
+        try:
+            files = subprocess.check_output(["git", "ls-files"], cwd=ROOT, stderr=subprocess.DEVNULL).decode().splitlines()
+            p = subprocess.run(
+                ["git", "-c", f"core.excludesfile={vi}", "check-ignore", "--no-index", "--stdin"],
+                cwd=ROOT,
+                input="\n".join(files) + "\n",
+                text=True,
+                capture_output=True,
+            )
+            ignored = set(p.stdout.splitlines())
+            shipped = [f for f in files if f not in ignored]
+            disallowed = [
+                f for f in shipped
+                if not (f.startswith("index.") or f == "favicon.ico" or f.startswith("web-assets/"))
+            ]
+            if disallowed:
+                failures.append(f".vercelignore leaks non-runtime files: {disallowed[:5]}")
+            if len(shipped) < 13:
+                failures.append(f".vercelignore ships too few runtime files ({len(shipped)})")
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            # Outside a .git worktree (e.g., git archive export): verify runtime files exist on disk.
+            shipped = [
+                p.relative_to(ROOT).as_posix()
+                for p in ROOT.rglob("*")
+                if p.is_file() and (p.name.startswith("index.") or p.name == "favicon.ico" or "web-assets/" in p.relative_to(ROOT).as_posix())
+            ]
+            print("web_hygiene NOTE: not a git worktree; skipped git check-ignore")
 
     # 2. vercel.json must define COOP, COEP, nosniff, Referrer-Policy per route rule
     vj = ROOT / "vercel.json"

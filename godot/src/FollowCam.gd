@@ -136,7 +136,9 @@ func _process(delta: float) -> void:
 			var lv := (_target as RigidBody3D).linear_velocity
 			var horiz_v := Vector3(lv.x, 0.0, lv.z)
 			if horiz_v.length() > 8.0 and _cam_up.dot(Vector3.UP) > 0.85:
-				fwd = fwd.lerp(horiz_v.normalized(), 0.45).normalized()
+				var vel_dir := horiz_v.normalized()
+				if fwd.dot(vel_dir) > 0.25:
+					fwd = fwd.lerp(vel_dir, 0.45).normalized()
 		if _follow_dir.length_squared() < 0.01:
 			_follow_dir = fwd
 		else:

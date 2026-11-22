@@ -530,7 +530,7 @@ static func _ring_quad(parent: Node3D, pos: Vector3, radius: float,
 static func _plane_basis(normal: Vector3) -> Basis:
 	## Orient a quad so its flat face lies on the given surface normal. Using
 	## World Up directly blows up when the normal *is* up (ground hits).
-	var n := normal.normalized()
+	var n := normal.normalized() if normal.length_squared() > 1e-8 else Vector3.UP
 	var up := Vector3.UP
 	if absf(n.dot(up)) > 0.98:
 		up = Vector3.FORWARD
@@ -1266,7 +1266,7 @@ static func scorch(parent: Node3D, pos: Vector3, blast_scale: float = 1.0) -> vo
 	quad.material = m
 	var disc := MeshInstance3D.new()
 	disc.mesh = quad
-	disc.position = Vector3(pos.x, 0.024, pos.z)
+	disc.position = Vector3(pos.x, maxf(0.024, pos.y + 0.024), pos.z)
 	disc.rotation_degrees.x = -90.0
 	disc.rotation_degrees.z = randf_range(0.0, 360.0)
 	disc.add_to_group("vfx_scorch")

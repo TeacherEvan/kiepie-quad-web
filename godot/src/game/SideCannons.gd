@@ -113,7 +113,7 @@ func setup(p_owner: Node3D, p_owner_id: String, p_hit_callback: Callable, p_colo
 	_proj_pool.clear()
 	_proj_pool_idx = 0
 	for m in _muzzles:
-		if is_instance_valid(m) and m.name == "MuzzleFallback":
+		if is_instance_valid(m) and (bool(m.get_meta("fallback_muzzle", false)) or str(m.name).begins_with("MuzzleFallback")):
 			m.queue_free()
 	_muzzles.clear()
 	# Prefer the authored muzzle empties/meshes, with a per-side fallback so one
@@ -129,6 +129,7 @@ func setup(p_owner: Node3D, p_owner_id: String, p_hit_callback: Callable, p_colo
 		else:
 			var anchor := Node3D.new()
 			anchor.name = "MuzzleFallback"
+			anchor.set_meta("fallback_muzzle", true)
 			anchor.position = Vector3(spec[2], 0.62, 0.78)
 			p_owner.add_child(anchor)
 			_muzzles.append(anchor)

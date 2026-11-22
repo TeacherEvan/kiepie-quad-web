@@ -26,10 +26,10 @@ const PRESETS := {
 		"toggle_font_override": 11,
 	},
 	"testride": {
-		"toggle_offset_left": -146.0,
+		"toggle_offset_left": -150.0,
 		"toggle_offset_right": -14.0,
-		"toggle_offset_top": 166.0,
-		"toggle_offset_bottom": 210.0,
+		"toggle_offset_top": 184.0,
+		"toggle_offset_bottom": 236.0,
 		"toggle_accent": UI.TEXT,
 		"toggle_style_font": 16,   # UI.style_button default
 		"toggle_style_min_h": 52.0, # UI.style_button default

@@ -39,9 +39,9 @@ func _run() -> void:
 		var main_menu := main_packed.instantiate() as Control
 		root.add_child(main_menu)
 		await process_frame
-		var btn_br := main_menu.get_node_or_null("SafeMargin/Card/VBox/ModeRow/BtnModeBattleRoyale") as Button
-		var btn_dr := main_menu.get_node_or_null("SafeMargin/Card/VBox/ModeRow/BtnModeDeathRace") as Button
-		var btn_prac := main_menu.get_node_or_null("SafeMargin/Card/VBox/BtnPractice") as Button
+		var btn_br := main_menu.get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/ModeRow/BtnModeBattleRoyale") as Button
+		var btn_dr := main_menu.get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/ModeRow/BtnModeDeathRace") as Button
+		var btn_prac := main_menu.get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/BtnPractice") as Button
 		_check(btn_br != null and btn_dr != null, "Dashboard displays Battle Royale & Death Race mode buttons")
 		_check(str(main_menu.get("selected_game_mode")) == "battle_royale",
 				"Battle Royale is the default game mode on the Dashboard")
@@ -262,25 +262,27 @@ func _run() -> void:
 		dummy_proxy.free()
 		dummy_ghost.free()
 
-		# End-to-end 2-victim AOE sub-token + MockBackend register_kill 2/2 scoring
+		# End-to-end 3-victim AOE sub-token + MockBackend register_kill 3/3 scoring
 		var mock_supa := root.get_node_or_null("Supabase")
 		if mock_supa != null:
-			var backend: Variant = mock_supa.get("_backend")
-			if backend != null and backend.has_method("call_rpc"):
-				var base_tok := "aoe-test-%d" % Time.get_ticks_msec()
-				var r1: Variant = await backend.call("call_rpc", "register_kill", {
-					"killer_id": "p1", "victim_id": "vA", "shot_token": base_tok + ":vA"
-				})
-				var r2: Variant = await backend.call("call_rpc", "register_kill", {
-					"killer_id": "p1", "victim_id": "vB", "shot_token": base_tok + ":vB"
-				})
-				var r3: Variant = await backend.call("call_rpc", "register_kill", {
-					"killer_id": "p1", "victim_id": "vC", "shot_token": base_tok + ":dDrum1"
-				})
-				_check(r1 is Dictionary and bool(r1.get("ok", false))
-						and r2 is Dictionary and bool(r2.get("ok", false))
-						and r3 is Dictionary and bool(r3.get("ok", false)),
-						"AOE/drum sub-tokens (:vA, :vB, :dDrum1) all score via MockBackend register_kill")
+			var shot_res: Variant = await mock_supa.call("call_rpc", "issue_shot", {})
+			var base_tok := str((shot_res as Dictionary).get("token", "")) if shot_res is Dictionary else ""
+			var mock_b: Node = mock_supa.get("mock") as Node
+			if mock_b != null and mock_b.has_method("reset_cooldown_for_test"):
+				mock_b.call("reset_cooldown_for_test")
+			var r1: Variant = await mock_supa.call("call_rpc", "register_kill", {
+				"p_killer": "mock-host", "p_target": "vA", "p_token": base_tok + ":vA"
+			})
+			var r2: Variant = await mock_supa.call("call_rpc", "register_kill", {
+				"p_killer": "mock-host", "p_target": "vB", "p_token": base_tok + ":vB"
+			})
+			var r3: Variant = await mock_supa.call("call_rpc", "register_kill", {
+				"p_killer": "mock-host", "p_target": "vC", "p_token": base_tok + ":dDrum1"
+			})
+			_check(base_tok != "" and r1 is Dictionary and bool(r1.get("ok", false))
+					and r2 is Dictionary and bool(r2.get("ok", false))
+					and r3 is Dictionary and bool(r3.get("ok", false)),
+					"AOE/drum sub-tokens (:vA, :vB, :dDrum1) all score via MockBackend register_kill")
 
 	# ---- 5. Ordered Checkpoint + Finish Line Lap Tracking & Victory Splash Trigger
 	if tracker != null and bike != null and hud != null:
@@ -296,6 +298,22 @@ func _run() -> void:
 		await tracker.call("_on_finish_line_entered", bike)
 		_check(int(tracker.get("completed_laps")) == 1,
 				"Clearing all 4 checkpoints + FinishLine counts Lap 1")
+		# P1-5: guest _on_roster_changed() rollback recomputes current_lap = completed_laps + 1
+		var m_node := root.get_node_or_null("Match")
+		if m_node != null:
+			var saved_lobby: Dictionary = (m_node.get("lobby") as Dictionary).duplicate(true)
+			var saved_players: Dictionary = (m_node.get("players") as Dictionary).duplicate(true)
+			m_node.set("lobby", {"id": "1", "host_id": "other-host", "status": "playing", "settings": {"game_mode": "death_race", "lap_target": 3}})
+			m_node.set("players", {"mock-host": {"user_id": "mock-host", "laps": 0, "score": 0}})
+			tracker.set("completed_laps", 1)
+			tracker.set("current_lap", 2)
+			tracker.call("_on_roster_changed")
+			_check(int(tracker.get("completed_laps")) == 0 and int(tracker.get("current_lap")) == 1,
+					"P1-5: guest RaceTracker._on_roster_changed() rollback recomputes current_lap=1")
+			m_node.set("lobby", saved_lobby)
+			m_node.set("players", saved_players)
+			tracker.set("completed_laps", 1)
+			tracker.set("current_lap", 2)
 		# Regression B-P0-1: immediate second lap inside MIN_LAP_SECONDS is rejected
 		for cp_i in range(4):
 			var cp_area := dr.get_node("Checkpoint%d" % cp_i) as Area3D

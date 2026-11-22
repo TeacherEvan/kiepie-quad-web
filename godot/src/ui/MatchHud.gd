@@ -572,6 +572,7 @@ func _on_match_started() -> void:
 
 
 func _exit_tree() -> void:
+	_drop_web_victory_splash()
 	if Match != null:
 		if Match.score_updated.is_connected(_on_score_updated):
 			Match.score_updated.disconnect(_on_score_updated)
@@ -618,7 +619,10 @@ func _on_match_finished(winner_id: String) -> void:
 func _play_victory_splash(winner_name: String) -> void:
 	victory_splash_shown = true
 	if _victory_banner != null:
-		var mode_str := "DEATH RACE" if (Match != null and Match.has_method("game_mode") and str(Match.call("game_mode")) == "death_race") else "BATTLE ROYALE"
+		var in_race := (Match != null and Match.has_method("game_mode") and str(Match.call("game_mode")) == "death_race") \
+				or _race_banner_override != "" \
+				or (get_tree() != null and get_tree().get_first_node_in_group("race_tracker") != null)
+		var mode_str := "DEATH RACE" if in_race else "BATTLE ROYALE"
 		_victory_banner.text = "%s CHAMPION · %s" % [mode_str, winner_name]
 		_victory_banner.visible = true
 	if OS.has_feature("web") and Engine.has_singleton("JavaScriptBridge") and not _reduced_motion():
@@ -758,7 +762,13 @@ func _refresh_scoreboard() -> void:
 			box.add_child(lbl)
 
 
+func _drop_web_victory_splash() -> void:
+	if OS.has_feature("web") and Engine.has_singleton("JavaScriptBridge"):
+		JavaScriptBridge.eval("window.__kiepieDropVictory && window.__kiepieDropVictory();", true)
+
+
 func _on_play_again() -> void:
+	_drop_web_victory_splash()
 	if Match == null or Match.lobby.is_empty():
 		get_tree().reload_current_scene()
 		return
@@ -766,8 +776,7 @@ func _on_play_again() -> void:
 
 
 func _on_leave_match() -> void:
-	if OS.has_feature("web") and Engine.has_singleton("JavaScriptBridge"):
-		JavaScriptBridge.eval("window.__kiepieDropVictory && window.__kiepieDropVictory();", true)
+	_drop_web_victory_splash()
 	if Lobby != null:
 		Lobby.leave()
 	get_tree().change_scene_to_file(MAIN_MENU)
@@ -857,6 +866,10 @@ class RadarControl extends Control:
 		if _local == null or get_tree() == null:
 			return
 		var origin := _local.global_position
+		var fwd3 := _local.global_transform.basis.z
+		var fwd := Vector2(fwd3.x, fwd3.z)
+		fwd = fwd.normalized() if fwd.length_squared() > 1e-6 else Vector2(0.0, 1.0)
+		var right := Vector2(-fwd.y, fwd.x)
 		for b in get_tree().get_nodes_in_group("bike"):
 			if b == _local or not (b is Node3D):
 				continue
@@ -864,7 +877,8 @@ class RadarControl extends Control:
 			if not node.visible:
 				continue  # respawning proxies are hidden
 			var d := node.global_position - origin
-			var offset := Vector2(d.x, d.z) / WORLD_RANGE * r
+			var local_2d := Vector2(d.x * right.x + d.z * right.y, -(d.x * fwd.x + d.z * fwd.y))
+			var offset := local_2d / WORLD_RANGE * r
 			if offset.length() > r:
 				offset = offset.normalized() * r
 			var col := Color(1.0, 0.35, 0.25, 1.0)

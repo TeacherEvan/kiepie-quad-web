@@ -82,7 +82,7 @@ func test_main_menu_attaches_mobile_text_input() -> void:
 	_roots.append(menu)
 	add_child(menu)
 	await get_tree().process_frame
-	var code_field := menu.get_node_or_null("SafeMargin/Card/VBox/JoinRow/CodeField") as LineEdit
+	var code_field := menu.get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/JoinRow/CodeField") as LineEdit
 	assert_object(code_field).is_not_null()
 	assert_object(code_field.get_node_or_null("MobileTextInput")).is_not_null()
 

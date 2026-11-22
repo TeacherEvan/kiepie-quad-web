@@ -39,6 +39,7 @@ var _lap_timestamps: Dictionary = {}  # racer -> sec timestamp of last scored la
 const HEARTBEAT_INTERVAL_S := 20.0
 const STALE_LOBBY_S := 90.0
 const HOST_ACK_TIMEOUT_MS := 2000
+const SOCKET_IDENTIFY_TIMEOUT_MS := 10000
 const HOST_POLL_INTERVAL_S := 15.0
 const MAX_USED_TOKENS := 512
 const MIN_LAP_SECONDS := 12.0
@@ -54,9 +55,28 @@ var _apply_inflight := false          # single-writer lock for channel props
 var _apply_dirty := false             # a write was requested while one was in flight
 var _apply_extra: Dictionary = {}     # merged one-shot prop overrides
 var _host_lost_emitted := false       # emit host_lost once per lobby, not every poll
+var _state_seq := 0                   # monotonic host state sequence
+var _last_state_seq := -1             # last applied host state sequence on guest
 
 
 # ------------------------------------------------------------------ lifecycle ---
+
+func _promote_online() -> void:
+	if is_ready:
+		return
+	is_ready = true
+	_starting = false
+	_reconnect_attempts = 0
+	connection_state.emit("connected")
+	var ident := str(Talo.current_alias.identifier) if (Talo != null and Talo.current_alias != null) else user_id
+	auth_status.emit(true, "talo online · " + ident)
+
+
+func reconnect() -> void:
+	if is_ready or _starting:
+		return
+	start()
+
 
 func start() -> void:
 	if _starting:
@@ -68,6 +88,9 @@ func start() -> void:
 		auth_status.emit(false, "Talo game key missing — set TALO_API_GAME in .env")
 		return
 	await Talo.players.identify("anonymous", Talo.players.generate_identifier())
+	if not is_inside_tree():
+		_starting = false
+		return
 	if Talo.current_alias == null:
 		_starting = false
 		auth_status.emit(false, "Talo identify failed — check key scopes")
@@ -78,21 +101,21 @@ func start() -> void:
 	if not Talo.socket.connection_closed.is_connected(_on_socket_closed):
 		Talo.socket.connection_closed.connect(_on_socket_closed)
 	await Talo.socket.open_connection()
-	var sock_deadline := Time.get_ticks_msec() + 2500
-	while not bool(Talo.socket.get("_identified")) and Time.get_ticks_msec() < sock_deadline:
-		await get_tree().process_frame
-	if not bool(Talo.socket.get("_identified")):
-		# Wall-clock deadline, no server verdict: report failure, never a
-		# false "online" that silently drops every send.
-		is_ready = false
+	if not is_inside_tree():
 		_starting = false
-		auth_status.emit(false, "Talo socket timed out — check your connection")
 		return
-	is_ready = true
+	var sock_deadline := Time.get_ticks_msec() + SOCKET_IDENTIFY_TIMEOUT_MS
+	while is_inside_tree() and not bool(Talo.socket.get("_identified")) and Time.get_ticks_msec() < sock_deadline:
+		await get_tree().process_frame
+	if bool(Talo.socket.get("_identified")):
+		_promote_online()
+		return
+	# Wall-clock deadline, no server verdict: report failure, never a
+	# false "online" that silently drops every send.
+	is_ready = false
 	_starting = false
-	_reconnect_attempts = 0
-	connection_state.emit("connected")
-	auth_status.emit(true, "talo online · " + str(Talo.current_alias.identifier))
+	auth_status.emit(false, "Talo socket timed out — tap Retry or any multiplayer mode")
+	return
 
 
 func _process(delta: float) -> void:
@@ -113,9 +136,9 @@ func _process(delta: float) -> void:
 			_heartbeat_accum = 0.0
 			_apply_props()
 		return
-	# Non-host: watch for host silence mid-match (tab kill, network drop).
-	# One failed poll is not a verdict; only a stale heartbeat ends the match.
-	if status == "playing":
+	# Non-host: watch for host silence mid-match or in waiting lobby (tab kill, network drop).
+	# One failed poll is not a verdict; only a stale heartbeat or missing host ends the lobby.
+	if status == "playing" or status == "waiting":
 		_host_poll_accum += delta
 		if _host_poll_accum >= HOST_POLL_INTERVAL_S:
 			_host_poll_accum = 0.0
@@ -132,10 +155,19 @@ func _poll_host_alive() -> void:
 	var ch: Variant = await Talo.channels.find(polled_id)
 	if _channel_id != polled_id or _prop_gen != polled_gen or _channel_id <= 0 or ch == null:
 		return  # transient fetch failure or channel changed; do not void the match on one poll
+	var ch_host := str(ch.get_prop("host_id", ""))
+	if ch_host != "" and ch_host != str(_lobby.get("host_id", "")):
+		_channel = ch
+		_load_state()
+		_emit_state()
+		_emit_roster()
+		return
 	var hb := float(str(ch.get_prop("heartbeat", "0")))
 	if hb <= 0.0:
 		return
-	if Time.get_unix_time_from_system() - hb > STALE_LOBBY_S:
+	var ch_roster := _parse_dict(str(ch.get_prop("roster", "{}")))
+	var host_missing := not ch_roster.is_empty() and not ch_roster.has(str(_lobby.get("host_id", "")))
+	if Time.get_unix_time_from_system() - hb > STALE_LOBBY_S or host_missing:
 		if _host_lost_emitted:
 			return  # one verdict per lobby; MatchState already ended the match
 		_host_lost_emitted = true
@@ -163,7 +195,7 @@ func _on_socket_closed(_code: int, _reason: String) -> void:
 		if not is_inside_tree() or not is_ready:
 			break
 		await Talo.socket.open_connection()
-		var sock_deadline := Time.get_ticks_msec() + 2500
+		var sock_deadline := Time.get_ticks_msec() + SOCKET_IDENTIFY_TIMEOUT_MS
 		while is_inside_tree() and not bool(Talo.socket.get("_identified")) and Time.get_ticks_msec() < sock_deadline:
 			await get_tree().process_frame
 		if bool(Talo.socket.get("_identified")):
@@ -240,12 +272,15 @@ func join_lobby_channel(lobby_id: String) -> void:
 		_load_state()
 		_send("join", {"user_id": user_id,
 				"display_name": Settings.display_name(),
-				"color": Settings.player_color()})
+				"color": Settings.player_color(),
+				"vehicle": Settings.preferred_vehicle()})
 
 
 func leave_lobby_channel() -> void:
 	# Bump _prop_gen so any in-flight _write_props() response cannot resurrect _channel.
 	_prop_gen += 1
+	_state_seq = 0
+	_last_state_seq = -1
 	_apply_dirty = false
 	_apply_extra.clear()
 	if _channel_id > 0 and _channel != null:
@@ -326,6 +361,8 @@ func _create_lobby(args: Dictionary) -> Dictionary:
 		return {}
 	_channel = channel
 	_channel_id = int(channel.id)
+	_state_seq = 0
+	_last_state_seq = -1
 	_heartbeat_accum = 0.0
 	_roster = {user_id: _player_row(args)}
 	_make_lobby(code, str(props["name"]), settings)
@@ -413,7 +450,7 @@ func _join_auto(args: Dictionary) -> Dictionary:
 			if _is_host():
 				return {"lobby": _lobby, "player": _roster.get(user_id, {})}
 			var deadline := Time.get_ticks_msec() + HOST_ACK_TIMEOUT_MS
-			while not _host_ack and Time.get_ticks_msec() < deadline:
+			while is_inside_tree() and not _host_ack and Time.get_ticks_msec() < deadline:
 				await get_tree().process_frame
 			if _host_ack:
 				return {"lobby": _lobby, "player": _roster.get(user_id, {})}
@@ -459,7 +496,7 @@ func _join_by_code(args: Dictionary) -> Dictionary:
 			# Guests must prove the host is alive before committing, exactly like
 			# join_auto — otherwise every ready_request goes unanswered forever.
 			var deadline := Time.get_ticks_msec() + HOST_ACK_TIMEOUT_MS
-			while not _host_ack and Time.get_ticks_msec() < deadline:
+			while is_inside_tree() and not _host_ack and Time.get_ticks_msec() < deadline:
 				await get_tree().process_frame
 			if _host_ack:
 				return {"lobby": _lobby, "player": _roster.get(user_id, {})}
@@ -487,6 +524,8 @@ func _try_join(channel, args: Dictionary) -> bool:
 		return false
 	_channel = joined
 	_channel_id = int(channel.id)
+	_state_seq = 0
+	_last_state_seq = -1
 	_load_state()
 	if not _roster.has(user_id):
 		_roster[user_id] = _player_row(args)
@@ -545,7 +584,7 @@ func _handoff_host_before_leave(leaving_id: int) -> void:
 		if status_code == 200:
 			# Broadcast the new host only AFTER Talo commits ownerAliasId, so
 			# guests never switch to a host whose channel PUTs fail with 403.
-			_send("state", {"lobby": new_lobby, "roster": new_roster})
+			_broadcast_state(new_lobby, new_roster)
 			return
 		if attempt == 0:
 			continue  # one retry for transient failures
@@ -658,7 +697,7 @@ func _start_match() -> Dictionary:
 	_lobby["status"] = "playing"
 	_lobby["started_at"] = _now_iso()
 	await _apply_props()
-	_send("state", {"lobby": _lobby, "roster": _roster})
+	_broadcast_state(_lobby, _roster)
 	return _lobby.duplicate(true)
 
 
@@ -667,7 +706,7 @@ func _set_settings(args: Dictionary) -> Dictionary:
 		return {}
 	_lobby["settings"] = (args.get("p_settings", {}) as Dictionary).duplicate(true)
 	await _apply_props()
-	_send("state", {"lobby": _lobby, "roster": _roster})
+	_broadcast_state(_lobby, _roster)
 	return _lobby.duplicate(true)
 
 
@@ -679,7 +718,7 @@ func _set_ready(args: Dictionary) -> Dictionary:
 		_roster[user_id] = row
 		await _apply_props()
 		_emit_roster()
-		_send("state", {"lobby": _lobby, "roster": _roster})
+		_broadcast_state(_lobby, _roster)
 		return {"players": _roster.duplicate(true)}
 	# Guests ask the host to update the authoritative roster.
 	_send("ready_request", {"user_id": user_id, "ready": ready})
@@ -741,10 +780,7 @@ func _register_kill(args: Dictionary) -> Dictionary:
 	else:
 		_kill_last_base[killer] = {"base": base_tok, "count": 1, "at": now_s}
 	_kill_window[killer] = kept
-	_used_tokens[token] = true
-	while _used_tokens.size() > MAX_USED_TOKENS:
-		# Dictionary preserves insertion order: drop the oldest consumed token.
-		_used_tokens.erase(_used_tokens.keys()[0])
+	_record_used_token(token)
 	var s_dict := _lobby.get("settings", {}) as Dictionary
 	var gmode := str(s_dict.get("game_mode", "battle_royale"))
 	var row: Dictionary = _roster.get(killer, {})
@@ -777,7 +813,7 @@ func _register_kill(args: Dictionary) -> Dictionary:
 	# CombatController already broadcasts the "kill" event for the feed; send the
 	# authoritative state too so guests' scoreboards converge. Never re-send a
 	# "kill" here — its echo would re-enter register_kill and loop.
-	_send("state", {"lobby": _lobby, "roster": _roster})
+	_broadcast_state(_lobby, _roster)
 	return {"ok": true, "score": score, "kills": kills,
 			"lobby_status": status,
 			"winner_id": winner}
@@ -801,7 +837,7 @@ func _register_lap(args: Dictionary) -> Dictionary:
 		return {"ok": false, "reason": "rate_limited"}
 	if not _is_host():
 		_lap_timestamps[racer] = now_s
-		_used_tokens[token] = true
+		_record_used_token(token)
 		_send("lap_request", {"racer": racer, "token": token})
 		return {"ok": true, "pending": true,
 				"lobby_status": str(_lobby.get("status", "")),
@@ -809,9 +845,7 @@ func _register_lap(args: Dictionary) -> Dictionary:
 	if not _roster.has(racer):
 		return {"ok": false, "reason": "not_in_lobby"}
 	_lap_timestamps[racer] = now_s
-	_used_tokens[token] = true
-	while _used_tokens.size() > MAX_USED_TOKENS:
-		_used_tokens.erase(_used_tokens.keys()[0])
+	_record_used_token(token)
 	var row: Dictionary = _roster.get(racer, {})
 	var laps := int(row.get("laps", 0)) + 1
 	row["laps"] = laps
@@ -828,7 +862,7 @@ func _register_lap(args: Dictionary) -> Dictionary:
 	await _apply_props()
 	_emit_roster()
 	_emit_state()
-	_send("state", {"lobby": _lobby, "roster": _roster})
+	_broadcast_state(_lobby, _roster)
 	return {"ok": true, "score": laps, "laps": laps,
 			"lobby_status": status,
 			"winner_id": winner}
@@ -855,11 +889,23 @@ func _time_up() -> Dictionary:
 	_lobby["status"] = "finished"
 	_lobby["winner_id"] = best
 	await _apply_props()
-	_send("state", {"lobby": _lobby, "roster": _roster})
+	_broadcast_state(_lobby, _roster)
 	return _lobby.duplicate(true)
 
 
 # ------------------------------------------------------------------ socket in ---
+
+func _record_used_token(token: String) -> void:
+	_used_tokens[token] = true
+	while _used_tokens.size() > MAX_USED_TOKENS:
+		# Dictionary preserves insertion order: drop the oldest consumed token.
+		_used_tokens.erase(_used_tokens.keys()[0])
+
+
+func _broadcast_state(lobby_dict: Dictionary = _lobby, roster_dict: Dictionary = _roster) -> void:
+	_state_seq += 1
+	_send("state", {"seq": _state_seq, "lobby": lobby_dict, "roster": roster_dict})
+
 
 func _send(kind: String, payload: Dictionary) -> void:
 	# Offline-safe: offline tests stage _channel_id = 1, _channel = null.
@@ -869,6 +915,17 @@ func _send(kind: String, payload: Dictionary) -> void:
 
 
 func _on_socket_message(res: String, data: Dictionary) -> void:
+	if res == "v1.players.identify.success":
+		if not is_ready:
+			if Talo != null and Talo.current_alias != null:
+				user_id = str(Talo.current_alias.id)
+			elif user_id == "":
+				var pa: Variant = data.get("playerAlias", null)
+				if pa is Dictionary and int((pa as Dictionary).get("id", -1)) > 0:
+					user_id = str(int((pa as Dictionary).get("id", -1)))
+			if user_id != "":
+				_promote_online()
+		return
 	if res != "v1.channels.message":
 		return
 	if _channel_id <= 0:
@@ -903,8 +960,15 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 			if sender_id == "" or sender_id != str(_lobby.get("host_id", "")):
 				return
 			_host_ack = true
+			if _is_host() and sender_id == user_id:
+				return
 			if payload is Dictionary:
 				var p := payload as Dictionary
+				var seq := int(p.get("seq", -1))
+				if seq >= 0:
+					if seq <= _last_state_seq:
+						return
+					_last_state_seq = seq
 				if p.has("lobby") and p["lobby"] is Dictionary:
 					_lobby = (p["lobby"] as Dictionary).duplicate(true)
 				if p.has("roster") and p["roster"] is Dictionary:
@@ -933,11 +997,12 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 					# Allowlist: join rows carry ONLY the keys below, so forged
 					# frames cannot inject arbitrary lobby state; prior score/kills/
 					# laps/readiness are re-seeded from trusted roster state.
+					var raw_veh := str(p.get("vehicle", prev.get("vehicle", ""))) if p.has("vehicle") else str(prev.get("vehicle", ""))
 					var row: Dictionary = {
 						"user_id": uid,
 						"display_name": str(p.get("display_name", "RIDER")).substr(0, 32),
 						"color": col,
-						"vehicle": VehicleRegistry.sanitize_preference(str(p.get("vehicle", ""))),
+						"vehicle": VehicleRegistry.sanitize_preference(raw_veh),
 						"score": int(prev.get("score", 0)),
 						"kills": int(prev.get("kills", 0)),
 						"laps": int(prev.get("laps", 0)),
@@ -947,17 +1012,18 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 					_roster[uid] = row
 				else:
 					_roster.erase(uid)
-					# The host is gone mid-match: void the game now instead of
-					# waiting up to ~105 s for the heartbeat poll to notice.
+					# The host is gone mid-match or in waiting lobby: void cleanly now
+					# instead of waiting up to ~105 s for the heartbeat poll to notice.
+					var st := str(_lobby.get("status", ""))
 					if not _host_lost_emitted and uid == str(_lobby.get("host_id", "")) \
-							and str(_lobby.get("status", "")) == "playing":
+							and (st == "playing" or st == "waiting"):
 						_host_lost_emitted = true
 						connection_state.emit("host_lost")
 						host_lost.emit()
 				_emit_roster()
 				if _is_host():
 					await _apply_props()
-					_send("state", {"lobby": _lobby, "roster": _roster})
+					_broadcast_state(_lobby, _roster)
 		"ready_request":
 			if _is_host() and payload is Dictionary:
 				var p := payload as Dictionary
@@ -971,7 +1037,7 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 				_roster[uid] = row
 				await _apply_props()
 				_emit_roster()
-				_send("state", {"lobby": _lobby, "roster": _roster})
+				_broadcast_state(_lobby, _roster)
 		"kill_request":
 			if _is_host() and payload is Dictionary:
 				var p := payload as Dictionary

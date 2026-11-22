@@ -101,6 +101,13 @@ func _run() -> void:
 			await create_timer(0.20).timeout
 			_check(is_equal_approx(sens.value, 1.65),
 					"P1-8: pending slider drag (1.65) is not overwritten by 150ms _refresh_all (got %.2f)" % sens.value)
+		# P2-4: changing quality preset within 350 ms flushes non-video pending writes
+		sm.call("_queue_write", "controls", "steer_sensitivity", 1.55)
+		var q_opt := sm.get_node_or_null("SafeMargin/VBox/Scroll/Rows/QualityRow/Quality") as OptionButton
+		if q_opt != null:
+			q_opt.item_selected.emit(1)
+		_check(is_equal_approx(float(settings.call("get_value", "controls", "steer_sensitivity", 1.0)), 1.55),
+				"P2-4: quality preset flushes pending non-video writes (steer_sensitivity=1.55)")
 		sm.free()
 
 	_restore()

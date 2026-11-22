@@ -268,6 +268,14 @@ func _decal_caps() -> void:
 	root.add_child(holder)
 	for i in range(20):
 		vf.scorch(holder, Vector3(float(i), 0.0, 0.0))
+	vf.scorch(holder, Vector3(5.0, 4.0, 5.0))
+	var max_scorch_y := 0.0
+	for sc_n in get_nodes_in_group("vfx_scorch"):
+		if sc_n is Node3D:
+			max_scorch_y = maxf(max_scorch_y, (sc_n as Node3D).position.y)
+	_check(max_scorch_y >= 4.0, "P3-3: VfxFactory.scorch() respects elevated pos.y (max_y=%.2f)" % max_scorch_y)
+	var zero_b: Basis = vf.call("_plane_basis", Vector3.ZERO)
+	_check(zero_b.is_finite() and zero_b.determinant() > 0.5, "P2-8: VfxFactory._plane_basis(ZERO) returns finite basis")
 	for i in range(vf.MAX_SCAR + 5):
 		vf.scar(holder, Vector3(float(i), 1.0, 0.0), Vector3.UP, "metal")
 	for i in range(vf.MAX_DAMAGE_NUMBERS + 6):
@@ -350,6 +358,16 @@ func _layout() -> void:
 		var total: Variant = hud.get("_total") if hud != null else null
 		_check(hud != null and int(total) == 4,
 				"TestRide HUD total follows the building count (got %s)" % str(total))
+		# P2-12: no TestRide cone may impale any Ramp*
+		var min_cone_ramp_gap := 1e9
+		for c in ride.get_children():
+			if c is StaticBody3D and str(c.name).begins_with("Cone"):
+				for r in ramps:
+					min_cone_ramp_gap = minf(min_cone_ramp_gap, _clearance(
+							AABB((c as Node3D).global_position - Vector3(0.3, 0.3, 0.3), Vector3(0.6, 0.6, 0.6)),
+							_footprint(r as Node3D)))
+		_check(min_cone_ramp_gap >= 1.5,
+				"P2-12: TestRide cones clear all ramps by >= 1.5 m (min %.2f m)" % min_cone_ramp_gap)
 		var dust_host := Node3D.new()
 		root.add_child(dust_host)
 		var vfx_cls := load("res://src/game/VfxFactory.gd")

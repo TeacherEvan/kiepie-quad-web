@@ -274,14 +274,52 @@ func _initialize() -> void:
 	_check(resumed[0] and bool(ap.get("_apply_dirty")), "P1-3: _apply_props resumes on _apply_drained with _apply_dirty=true")
 	ap.free()
 
-	# P1-4 & P1-5: _handoff_host_before_leave aborts on channel mismatch; _poll_host_alive guards _channel_id <= 0
+	# P1-7 & P1-4/P1-5: _handoff_host_before_leave aborts on channel mismatch; _poll_host_alive guards _channel_id <= 0
 	var ho := _new_backend()
 	get_root().add_child(ho)
+	var ho_lost := [false]
+	ho.connect("host_lost", func() -> void: ho_lost[0] = true)
 	ho._channel_id = 99
 	await ho.call("_handoff_host_before_leave", 42)
+	ho._channel_id = 0
 	await ho.call("_poll_host_alive")
-	_check(true, "P1-4/P1-5: _handoff_host_before_leave(mismatch) and _poll_host_alive return safely")
+	_check(not ho_lost[0], "P1-7: _handoff_host_before_leave(mismatch) and _poll_host_alive(_channel_id=0) do not emit host_lost")
 	ho.free()
 
-	print("talo backend contract: %d checks, %d failure(s)" % [37, _failures])
+	# P1-8: checked-in addons/talo/settings.cfg keeps auto_connect_socket=false
+	var talo_cfg := ConfigFile.new()
+	var cfg_ok := talo_cfg.load("res://addons/talo/settings.cfg") == OK
+	_check(cfg_ok and not bool(talo_cfg.get_value("", "auto_connect_socket", true)),
+			"P1-8: addons/talo/settings.cfg ships auto_connect_socket=false")
+
+	# P0-1: late v1.players.identify.success promotes timed-out TaloBackend online
+	var late_b := _new_backend()
+	get_root().add_child(late_b)
+	late_b.is_ready = false
+	late_b.user_id = "42"
+	var promoted := [false]
+	late_b.connect("auth_status", func(ok: bool, _m: String) -> void:
+		if ok:
+			promoted[0] = true)
+	await late_b.call("_on_socket_message", "v1.players.identify.success", {})
+	_check(bool(late_b.is_ready) and promoted[0],
+			"P0-1: late v1.players.identify.success promotes timed-out TaloBackend to is_ready=true")
+	late_b.free()
+
+	# P1-9: waiting-lobby host leave emits host_lost for guests
+	var wl := _new_backend()
+	get_root().add_child(wl)
+	wl.user_id = "2"
+	wl._lobby["status"] = "waiting"
+	wl._lobby["host_id"] = "1"
+	var wl_lost := [false]
+	wl.connect("host_lost", func() -> void: wl_lost[0] = true)
+	await wl.call("_on_socket_message", "v1.channels.message", {
+		"playerAlias": {"id": 1},
+		"message": JSON.stringify({"k": "leave", "p": {"user_id": "1"}}),
+	})
+	_check(wl_lost[0], "P1-9: host leave in waiting lobby emits host_lost")
+	wl.free()
+
+	print("talo backend contract: %d checks, %d failure(s)" % [41, _failures])
 	quit(1 if _failures > 0 else 0)

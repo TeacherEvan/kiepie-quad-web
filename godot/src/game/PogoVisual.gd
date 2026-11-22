@@ -188,7 +188,9 @@ func _physics_process(delta: float) -> void:
 		dodging = dt_dodge != null and float(dt_dodge) > 0.0
 	elif _host_node != null and _host_node.is_inside_tree():
 		var cur_pos := _host_node.global_position
-		var cur_yaw := _host_node.global_rotation.y
+		var h_fwd := _host_node.global_transform.basis.z
+		var has_h := Vector2(h_fwd.x, h_fwd.z).length_squared() > 0.04
+		var cur_yaw := atan2(h_fwd.x, h_fwd.z) if has_h else _prev_host_yaw
 		if _has_prev_host_pos:
 			var disp := cur_pos - _prev_host_pos
 			if disp.length() < 8.0:  # ignore respawn teleports

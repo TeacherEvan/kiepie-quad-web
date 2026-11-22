@@ -45,9 +45,13 @@ func _connect_controls() -> void:
 			if _refreshing:
 				return
 			Sfx.play_ui("ui_click")
-			_pending_writes.clear()
+			var keep_pending := _pending_writes
+			_pending_writes = {}
 			if _flush_timer != null and is_instance_valid(_flush_timer):
 				_flush_timer.stop()
+			for entry in keep_pending.values():
+				if str(entry[0]) != "video":
+					Settings.set_value(entry[0], entry[1], entry[2])
 			Settings.apply_quality(QUALITIES[i])
 		)
 

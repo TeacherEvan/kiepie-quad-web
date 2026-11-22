@@ -335,12 +335,35 @@ func _run() -> void:
 				break
 	_check(tinted_green, "P2-5: update_identity re-tints 3D meshes when player color changes on same vehicle")
 
-	# P2-11c: apply_state propagates remote turbo flag 't' when alive
-	nb.set("_death_lock_until", 0.0)
-	nb.call("apply_state", {"id": "peer-lock", "p": [2.0, 0.5, 1.0], "r": [0, 0, 0, 1], "d": false, "t": true, "n": 12})
+	# P1-6 & P2-11c: _kill_lock_until blocks turbo_active/pos mutation BEFORE unlock;
+	# once unlocked, apply_state propagates remote turbo flag 't' when alive
+	nb.call("apply_state", {"id": "peer-lock", "p": [9.0, 0.5, 9.0], "r": [0, 0, 0, 1], "d": false, "t": true, "n": 12})
+	_check(not bool(nb.get("turbo_active")), "P1-6: _kill_lock_until prevents stale d=false,t=true from setting turbo_active")
+	nb.set("_kill_lock_until", 0.0)
+	nb.call("apply_state", {"id": "peer-lock", "p": [2.0, 0.5, 1.0], "r": [0, 0, 0, 1], "d": false, "t": true, "n": 13})
 	_check(bool(nb.get("turbo_active")), "P2-11c: apply_state sets turbo_active=true when alive and t=true")
-	nb.call("apply_state", {"id": "peer-lock", "p": [2.0, 0.5, 1.0], "r": [0, 0, 0, 1], "d": true, "t": true, "n": 13})
+	nb.call("apply_state", {"id": "peer-lock", "p": [2.0, 0.5, 1.0], "r": [0, 0, 0, 1], "d": true, "t": true, "n": 14})
 	_check(not bool(nb.get("turbo_active")), "P2-11c: apply_state clears turbo_active when dead")
+
+	# P1-3: ArenaNet._spawn_remote_shot accepts 8.0 m high-speed lag offset and rejects 25.0 m spoof
+	var net_lag := Node3D.new()
+	net_lag.set_script(load("res://src/game/ArenaNet.gd"))
+	root.add_child(net_lag)
+	var lag_stub := StaticBody3D.new()
+	lag_stub.set_script(load("res://src/game/NetworkedBike.gd"))
+	root.add_child(lag_stub)
+	lag_stub.set("_initialised", true)
+	lag_stub.set("is_respawning", false)
+	lag_stub.global_position = Vector3.ZERO
+	net_lag.set("_remote", {"peer-lag": lag_stub})
+	var before_lag := net_lag.get_child_count()
+	net_lag.call("_spawn_remote_shot", {"id": "peer-lag", "o": [8.0, 0.5, 0.0], "d": [0.0, 0.0, 1.0], "token": "lag-ok"})
+	_check(net_lag.get_child_count() > before_lag, "P1-3: ArenaNet accepts 8.0 m high-speed lag muzzle offset")
+	var after_lag := net_lag.get_child_count()
+	net_lag.call("_spawn_remote_shot", {"id": "peer-lag", "o": [25.0, 0.5, 0.0], "d": [0.0, 0.0, 1.0], "token": "lag-spoof"})
+	_check(net_lag.get_child_count() == after_lag, "P1-3: ArenaNet still rejects 25.0 m spoofed shot origin")
+	lag_stub.queue_free()
+	net_lag.queue_free()
 
 	nb.queue_free()
 	match_node.set("lobby", prev_lobby)

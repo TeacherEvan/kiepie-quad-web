@@ -19,22 +19,28 @@ const VEHICLE_IDS := ["auto", "KiepieBike", "PogoNardus", "AstonMartin"]
 static var selected_game_mode := "battle_royale"
 
 @onready var _safe: MarginContainer = $SafeMargin
-@onready var _status: Label = $SafeMargin/Card/VBox/Status
-@onready var _code: LineEdit = $SafeMargin/Card/VBox/JoinRow/CodeField
-@onready var _btn_mode_br: Button = get_node_or_null("SafeMargin/Card/VBox/ModeRow/BtnModeBattleRoyale")
-@onready var _btn_mode_dr: Button = get_node_or_null("SafeMargin/Card/VBox/ModeRow/BtnModeDeathRace")
-@onready var _vehicle_select: OptionButton = get_node_or_null("SafeMargin/Card/VBox/VehicleRow/VehicleSelect")
-@onready var _btn_practice: Button = $SafeMargin/Card/VBox/BtnPractice
-@onready var _btn_create: Button = $SafeMargin/Card/VBox/BtnCreate
-@onready var _btn_join_auto: Button = $SafeMargin/Card/VBox/BtnJoinAuto
-@onready var _btn_join_code: Button = $SafeMargin/Card/VBox/JoinRow/BtnJoinCode
-@onready var _btn_settings: Button = $SafeMargin/Card/VBox/BtnSettings
+@onready var _scroll: ScrollContainer = get_node_or_null("SafeMargin/Scroll")
+@onready var _status: Label = $SafeMargin/Scroll/ScrollBox/Card/VBox/Status
+@onready var _btn_retry: Button = get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/BtnRetry")
+@onready var _code: LineEdit = $SafeMargin/Scroll/ScrollBox/Card/VBox/JoinRow/CodeField
+@onready var _btn_mode_br: Button = get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/ModeRow/BtnModeBattleRoyale")
+@onready var _btn_mode_dr: Button = get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/ModeRow/BtnModeDeathRace")
+@onready var _vehicle_select: OptionButton = get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/VehicleRow/VehicleSelect")
+@onready var _btn_practice: Button = $SafeMargin/Scroll/ScrollBox/Card/VBox/BtnPractice
+@onready var _btn_create: Button = $SafeMargin/Scroll/ScrollBox/Card/VBox/BtnCreate
+@onready var _btn_join_auto: Button = $SafeMargin/Scroll/ScrollBox/Card/VBox/BtnJoinAuto
+@onready var _btn_join_code: Button = $SafeMargin/Scroll/ScrollBox/Card/VBox/JoinRow/BtnJoinCode
+@onready var _btn_settings: Button = $SafeMargin/Scroll/ScrollBox/Card/VBox/BtnSettings
 
 var _busy := false
+var _card_style: StyleBoxFlat = null
+var _pill_cache: Dictionary = {}
 
 
 func _ready() -> void:
 	Settings.call_deferred("sync_back_handler")
+	if _scroll != null:
+		UI.style_scroll(_scroll)
 	_apply_safe_area(_safe)
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	if _btn_mode_br != null:
@@ -58,6 +64,8 @@ func _ready() -> void:
 	_btn_join_auto.pressed.connect(_on_join_auto)
 	_btn_join_code.pressed.connect(_on_join_code)
 	_btn_settings.pressed.connect(_on_settings)
+	if _btn_retry != null:
+		_btn_retry.pressed.connect(_on_retry)
 	_code.text_submitted.connect(_on_join_code)
 	_sync_mode_ui()
 	MOBILE_INPUT.attach(_code, {
@@ -146,36 +154,40 @@ func _apply_responsive_layout(vp: Vector2, _margin: MarginContainer = null) -> v
 	var very_short := vp.y <= 420.0
 	var narrow := vp.x <= 480.0
 
-	var card := get_node_or_null("SafeMargin/Card") as PanelContainer
+	var card := get_node_or_null("SafeMargin/Scroll/ScrollBox/Card") as PanelContainer
 	if card != null:
-		var ps := card.get_theme_stylebox("panel")
-		if ps != null:
-			ps.content_margin_left = 14.0 if narrow else 28.0
-			ps.content_margin_right = 14.0 if narrow else 28.0
-			ps.content_margin_top = 6.0 if very_short else (10.0 if short else 22.0)
-			ps.content_margin_bottom = 6.0 if very_short else (10.0 if short else 22.0)
-	var vbox := get_node_or_null("SafeMargin/Card/VBox") as VBoxContainer
+		if _card_style == null:
+			var ps := card.get_theme_stylebox("panel")
+			if ps is StyleBoxFlat:
+				_card_style = (ps as StyleBoxFlat).duplicate() as StyleBoxFlat
+				card.add_theme_stylebox_override("panel", _card_style)
+		if _card_style != null:
+			_card_style.content_margin_left = 14.0 if narrow else 28.0
+			_card_style.content_margin_right = 14.0 if narrow else 28.0
+			_card_style.content_margin_top = 8.0 if very_short else (12.0 if short else 22.0)
+			_card_style.content_margin_bottom = 8.0 if very_short else (12.0 if short else 22.0)
+	var vbox := get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox") as VBoxContainer
 	if vbox != null:
-		vbox.add_theme_constant_override("separation", 4 if very_short else (5 if short else 12))
-	var subtitle := get_node_or_null("SafeMargin/Card/VBox/Subtitle") as Control
+		vbox.add_theme_constant_override("separation", 6 if very_short else (8 if short else 12))
+	var subtitle := get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/Subtitle") as Control
 	if subtitle != null:
 		subtitle.visible = not short
-	var footer := get_node_or_null("SafeMargin/Card/VBox/Footer") as Control
+	var footer := get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/Footer") as Control
 	if footer != null:
-		footer.visible = not short
-	var title := get_node_or_null("SafeMargin/Card/VBox/Title") as Label
+		footer.visible = true
+	var title := get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/Title") as Label
 	if title != null and title.label_settings != null:
 		title.label_settings.font_size = 22 if very_short else (26 if short else (30 if narrow else 38))
 	if _status != null:
-		_status.custom_minimum_size.y = 20.0 if very_short else (24.0 if short else 44.0)
-	var btn_h := 38.0 if very_short else (44.0 if short else 52.0)
-	for btn in [_btn_mode_br, _btn_mode_dr, _vehicle_select, _btn_practice, _btn_create, _btn_join_auto, _btn_join_code, _btn_settings]:
+		_status.custom_minimum_size.y = 24.0 if very_short else (28.0 if short else 44.0)
+	var btn_h := 44.0 if short else 52.0
+	for btn in [_btn_mode_br, _btn_mode_dr, _vehicle_select, _btn_retry, _btn_practice, _btn_create, _btn_join_auto, _btn_join_code, _btn_settings]:
 		if btn != null:
 			btn.custom_minimum_size.y = btn_h
 	if _btn_join_code != null:
 		_btn_join_code.custom_minimum_size.x = 84.0 if narrow else 120.0
 	if _code != null:
-		_code.custom_minimum_size.y = 38.0 if very_short else (44.0 if short else 48.0)
+		_code.custom_minimum_size.y = 44.0 if short else 48.0
 	_sync_mode_ui(narrow)
 
 
@@ -187,20 +199,28 @@ func select_game_mode(mode: String) -> void:
 func _apply_mode_pill_style(btn: Button, active: bool, accent: Color, narrow: bool = get_viewport_rect().size.x <= 480.0) -> void:
 	if btn == null:
 		return
-	UI.style_button(btn, accent if active else Color(0.32, 0.38, 0.48), 13 if narrow else 16, btn.custom_minimum_size.y)
-	for st in ["normal", "hover", "focus"]:
-		var sb := btn.get_theme_stylebox(st)
-		if sb is StyleBoxFlat:
-			var dup := (sb as StyleBoxFlat).duplicate() as StyleBoxFlat
-			if active:
-				dup.bg_color = Color(accent.r * 0.24, accent.g * 0.20, accent.b * 0.10, 0.96)
-				dup.border_color = Color(accent.r, accent.g, accent.b, 0.98)
-				dup.set_border_width_all(2)
-			else:
-				dup.bg_color = Color(0.055, 0.065, 0.085, 0.76)
-				dup.border_color = Color(0.35, 0.40, 0.50, 0.35)
-				dup.set_border_width_all(1)
-			btn.add_theme_stylebox_override(st, dup)
+	var cache_key := "%s_%s_%s" % [btn.name, str(active), str(narrow)]
+	if not _pill_cache.has(cache_key):
+		UI.style_button(btn, accent if active else Color(0.32, 0.38, 0.48), 13 if narrow else 16, btn.custom_minimum_size.y)
+		var styles := {}
+		for st in ["normal", "hover", "focus"]:
+			var sb := btn.get_theme_stylebox(st)
+			if sb is StyleBoxFlat:
+				var dup := (sb as StyleBoxFlat).duplicate() as StyleBoxFlat
+				if active:
+					dup.bg_color = Color(accent.r * 0.24, accent.g * 0.20, accent.b * 0.10, 0.96)
+					dup.border_color = Color(accent.r, accent.g, accent.b, 0.98)
+					dup.set_border_width_all(2)
+				else:
+					dup.bg_color = Color(0.055, 0.065, 0.085, 0.76)
+					dup.border_color = Color(0.35, 0.40, 0.50, 0.35)
+					dup.set_border_width_all(1)
+				styles[st] = dup
+		_pill_cache[cache_key] = styles
+	var cached: Dictionary = _pill_cache[cache_key]
+	for st in cached.keys():
+		btn.add_theme_stylebox_override(st, cached[st])
+	btn.add_theme_font_size_override("font_size", 13 if narrow else 16)
 	btn.add_theme_color_override("font_color", UI.GOLD if active else UI.MUTED)
 
 
@@ -212,7 +232,7 @@ func _sync_mode_ui(narrow: bool = get_viewport_rect().size.x <= 480.0) -> void:
 	if _btn_mode_dr != null:
 		_apply_mode_pill_style(_btn_mode_dr, is_race, UI.GOLD, narrow)
 		_btn_mode_dr.text = "• DEATH RACE •" if is_race else "DEATH RACE"
-	var subtitle := get_node_or_null("SafeMargin/Card/VBox/Subtitle") as Label
+	var subtitle := get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/Subtitle") as Label
 	if subtitle != null:
 		subtitle.text = "DEATH RACE  ·  3 LAPS · LOOPS, PITS & FULL ARSENAL" if is_race else "BATTLE ROYALE  ·  ARENA COMBAT · ROCKETS & METEORS"
 	if _btn_practice != null:
@@ -234,7 +254,10 @@ func _on_create() -> void:
 	if _busy:
 		return
 	if not Supabase.is_ready:
-		_set_status("Still connecting to the backend…", COL_WARN)
+		if _btn_retry != null:
+			_btn_retry.visible = false
+		_set_status("Reconnecting to backend…", COL_INFO)
+		Supabase.reconnect()
 		return
 	# Static var on the LobbyMenu script survives the scene change (no new autoload).
 	var lobby_script = load("res://src/ui/LobbyMenu.gd")
@@ -250,7 +273,10 @@ func _on_join_auto() -> void:
 	if _busy:
 		return
 	if not Supabase.is_ready:
-		_set_status("Still connecting to the backend…", COL_WARN)
+		if _btn_retry != null:
+			_btn_retry.visible = false
+		_set_status("Reconnecting to backend…", COL_INFO)
+		Supabase.reconnect()
 		return
 	# Joining lands in the lobby room: the host must start the match there.
 	var lobby_script = load("res://src/ui/LobbyMenu.gd")
@@ -270,7 +296,10 @@ func _on_join_code(_text: String = "") -> void:
 		_set_status("Enter a room code first.", COL_WARN)
 		return
 	if not Supabase.is_ready:
-		_set_status("Still connecting to the backend…", COL_WARN)
+		if _btn_retry != null:
+			_btn_retry.visible = false
+		_set_status("Reconnecting to backend…", COL_INFO)
+		Supabase.reconnect()
 		return
 	var lobby_script = load("res://src/ui/LobbyMenu.gd")
 	if lobby_script:
@@ -279,12 +308,22 @@ func _on_join_code(_text: String = "") -> void:
 	get_tree().change_scene_to_file(SCENE_LOBBY)
 
 
+func _on_retry() -> void:
+	Sfx.play_ui("ui_click")
+	if _btn_retry != null:
+		_btn_retry.visible = false
+	_set_status("Reconnecting to backend…", COL_INFO)
+	Supabase.reconnect()
+
+
 func _on_settings() -> void:
 	Sfx.play_ui("ui_click")
 	get_tree().change_scene_to_file(SCENE_SETTINGS)
 
 
 func _on_auth_status(ok: bool, message: String) -> void:
+	if _btn_retry != null:
+		_btn_retry.visible = not ok
 	if ok:
 		var label := "offline mock" if Supabase.use_mock else "online"
 		_set_status("Ready · %s · %s" % [label, Settings.display_name()], COL_OK)

@@ -612,7 +612,9 @@ func _try_dodge(dir: float) -> void:
 	# Cartwheel about the forward axis, top rolling INTO the leap. Positive
 	# rotation about +Z sends +Y toward -X; negate for a left (+X) roll.
 	angular_velocity += basis.z * (dir * dodge_spin)
-	VfxFactory.dust_puff(self, Vector3.ZERO, 28)
+	VfxFactory.dust_puff(_fx_parent(), global_position, 28)
+	if not Settings.reduced_motion():
+		Input.vibrate_handheld(15)
 
 
 func _on_settings_changed(section: String, key: String, _value: Variant) -> void:
@@ -643,7 +645,10 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var loop_active := in_loop_zone and spd > 8.0
 	if not loop_active:
 		var max_spd := HANDLING.top_speed_cap(_turbo_blend, overdrive_active)
-		state.linear_velocity += HANDLING.aero_drag_accel(state.linear_velocity, max_spd) * state.step
+		var drag_dv := HANDLING.aero_drag_accel(state.linear_velocity, max_spd) * state.step
+		if drag_dv.length() > spd:
+			drag_dv = drag_dv.normalized() * spd
+		state.linear_velocity += drag_dv
 	var ref_up := loop_up.normalized() if loop_active else Vector3.UP
 	if loop_active:
 		# Centripetal track adhesion + gravity compensation + helical climb assist inside 360° loops.

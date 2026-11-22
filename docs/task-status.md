@@ -4,7 +4,20 @@ Concrete done-vs-pending ledger. Companion to [project-plan.md](project-plan.md)
 navigation in [index.md](index.md). Statuses are evidence-backed: commit hashes,
 gate names, or live checks — not assumptions.
 
-**Last verified:** 2026-11-22 — `scene_sync OK (7 scenes match HEAD)`, `web_hygiene OK`, full gate suite **28/28** green after completing the 2026-11-21 Surgical Audit v3.0 remediation.
+**Last verified:** 2026-11-22 — `scene_sync OK`, `web_hygiene OK`, full gate suite **29/29** green after completing the 2026-11-22 Rev 2 Surgical Audit remediation.
+
+## Audit remediation — Surgical Audit Rev 2 (2026-11-22)
+
+Source report: [audits/kiepie-quad-surgical-audit-2026-11-22.md](audits/kiepie-quad-surgical-audit-2026-11-22.md) + [SARIF 2.1.0](audits/kiepie-quad-surgical-audit-2026-11-22.sarif).
+
+| ID | Finding (severity) | Fix | Evidence |
+| --- | --- | --- | --- |
+| P0-1 | `2.5 s` cold-boot Talo socket timeout permanently bricks multiplayer | `10 s` timeout, late `v1.players.identify.success` promotion, `Supabase.reconnect()`, `MainMenu` `BtnRetry` | `TaloBackend.gd`, `SupabaseClient.gd`, `MainMenu.gd` + `verify_talo_backend.gd` |
+| P1-1..2 | Host self-echo `"state"` rollback; `LobbyService` ghost-lobby leak on cancel | `_state_seq` monotonic sequence + host echo skip; `_session_gen` bumped unconditionally in `LobbyService.leave()` + `_enter_if_current()` | `TaloBackend.gd`, `LobbyService.gd` + `verify_audit_regressions.gd` |
+| P1-3..6 | `5.0 m` muzzle lag drop; unfrozen dead bike free-fall; `RaceTracker` guest rollback; `NetworkedBike` pre-`_kill_lock_until` mutation | `16.0 m` lag window; `bike.freeze = true` in `_die()`; `current_lap` recomputed + 3 s final-lap recovery; `_kill_lock_until` checked before mutation | `ArenaNet.gd`, `CombatController.gd`, `RaceTracker.gd`, `NetworkedBike.gd` + gates |
+| P1-7..10 | 5 hollow gate checks; `auto_connect_socket=true` live `401`s in offline gates; waiting-lobby host-loss soft-lock; `MainMenu` mobile clipping | Repaired all 5 gate blocks; `auto_connect_socket=false` in `settings.cfg`; waiting-lobby `_poll_host_alive` + `LobbyMenu._on_host_lost`; `MainMenu` `ScrollContainer` | `settings.cfg`, `LobbyMenu.gd`, `build_menus.gd` + `verify_*.gd` |
+| P2-1..13 | `join_lobby_channel` missing `"vehicle"`, solo Death Race banner & PlayAgain DOM leak, inverted radar, `SettingsMenu` preset flush, `LoopZone` stall/leak, `KiepieTime` `NaN`, `PogoVisual` Euler yaw, `SideCannons`/`Projectile` pooling, `TestRide` `Cone#24` impaling `RampRight` + HUD contrast/gaps, `FollowCam` 180° reverse snap, world-anchored dodge dust, `qb_core._cap_holes` `used_edges`, doc sync | All remediated and gated | `MatchHud.gd`, `SettingsMenu.gd`, `LoopZone.gd`, `KiepieTime.gd`, `PogoVisual.gd`, `SideCannons.gd`, `Projectile.gd`, `build_testride.gd`, `TouchOverlayKit.gd`, `FollowCam.gd`, `KiepieBike.gd`, `qb_core.py`, docs |
+| P3-1..6 | Dead fields, `FuelDrum` `_ignited` skip, `scorch` elevated `pos.y`, `TouchControls` `touch_force` reactivity & StyleBox cache, `Hud` click SFX, `check_web_hygiene.py` outside `.git`, `build_menus._verify` full paths | Cleaned up and verified | `FuelDrum.gd`, `VfxFactory.gd`, `TouchControls.gd`, `Hud.gd`, `check_web_hygiene.py`, `build_menus.gd` |
 
 ## Audit remediation — Surgical Audit v3.0 (2026-11-21)
 

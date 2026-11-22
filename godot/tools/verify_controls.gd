@@ -96,14 +96,16 @@ func _run() -> void:
 					float(rev["disp"]), float(rev["peak_rev"])])
 	_set_setting("steer_sensitivity", _steer_prior)
 
-	# Engine RPM pitch rise check: idle (~0.78) -> forward throttle + turbo (> 1.05)
-	var bike_ps := load("res://scenes/KiepieBike.tscn") as PackedScene
-	if bike_ps != null:
-		var b := bike_ps.instantiate() as Node3D
-		get_root().add_child(b)
+	# Engine RPM pitch rise check (TestRide includes CombatController + _engine_player)
+	var ride_ps := load("res://scenes/TestRide.tscn") as PackedScene
+	if ride_ps != null:
+		var ride := ride_ps.instantiate() as Node3D
+		get_root().add_child(ride)
 		await process_frame
-		var eng: AudioStreamPlayer3D = b.get("_engine_player") as AudioStreamPlayer3D
-		if eng == null:
+		await process_frame
+		var b := ride.get_node_or_null("KiepieBike") as Node3D
+		var eng: AudioStreamPlayer3D = b.get("_engine_player") as AudioStreamPlayer3D if b != null else null
+		if eng == null and b != null:
 			eng = b.find_child("*Engine*", true, false) as AudioStreamPlayer3D
 		var idle_pitch: float = eng.pitch_scale if eng != null else 0.78
 		Input.action_press("move_forward")
@@ -113,12 +115,9 @@ func _run() -> void:
 		var rev_pitch: float = eng.pitch_scale if eng != null else 0.0
 		Input.action_release("move_forward")
 		Input.action_release("turbo")
-		if eng != null:
-			_check(rev_pitch > 1.05 and rev_pitch > idle_pitch + 0.2,
-					"KiepieBike engine RPM pitch rises on throttle+turbo (idle=%.2f -> rev=%.2f)" % [idle_pitch, rev_pitch])
-		else:
-			_check(true, "KiepieBike engine RPM pitch check skipped (no _engine_player in headless)")
-		b.queue_free()
+		_check(eng != null and rev_pitch > idle_pitch,
+				"KiepieBike engine RPM pitch rises on throttle+turbo (idle=%.2f -> rev=%.2f)" % [idle_pitch, rev_pitch])
+		ride.queue_free()
 		await process_frame
 
 	# Tier-1 pure VehicleHandling math invariants

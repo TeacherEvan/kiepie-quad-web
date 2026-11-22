@@ -121,6 +121,10 @@ func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
 	damage = p_damage
 	token = p_token
 	hit_color = p_color
+	_age = 0.0
+	if _inert and pooled:
+		_recycle()
+		return
 	if _tracer == null:
 		_build_tracer()
 	else:

@@ -238,17 +238,7 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 ## Vehicle / gameplay conventions
 
 - **Aston Martin ("BIG-BEN") F1 vehicle** — third playable vehicle in `VehicleRegistry.gd` (`VEHICLE_ASTON = &"AstonMartin"`, `"BIG-BEN F1"`, `res://assets/Aston_Martin.glb`). Players can either let `VehicleRegistry` deal from the 3-vehicle FNV-1a-32 hash pool (`AUTO (DEAL)`) or pick their preferred ride in `MainMenu` (`VehicleSelect`, persisted in `Settings` `gameplay/vehicle` and synced in lobby `join`/roster rows). `src/gen_plate_bigben.py` → `assets/plate_bigben.png` + `src/build_aston_martin.py` → `Aston_Martin.blend` + `godot/assets/Aston_Martin.glb` (177 KB, `minZ = 0.000`, `non_manifold_edges = 0`). Uses `Steer_FL/Wheel_FL`, `Steer_FR/Wheel_FR`, `Wheel_RL`, `Wheel_RR`, `AstonMuzzle_L/R` (`"F1 AUTOCANNON"`), and `Exhaust_Tip`. `verify_aston.gd` locks the GLB, runtime swap, steering/wheel pivots, and MainMenu selector.
-- **NARDUS pogo vehicle** — every player is **dealt** a vehicle; nobody picks. The draw is
-  a deterministic hash of the player id (FNV-1a-32 over UTF-8 bytes) in
-  `godot/src/game/VehicleRegistry.gd` — the draw takes a high-middle bit of the FNV-1a hash
-  (`for_player`); the exact-integer audit measured the raw low bit ~50/50 over sequential
-  Talo alias ids, so the mixer reads bit 15 instead (measured ~53% pogo over sequential
-  ids, ~49% over random ids and uuids). Do NOT randomize on the client, do NOT add
-  per-player scenes, and do NOT special-case peers — the hash keeps every peer in agreement
-  with zero extra wire traffic (`mock-host` draws the bike, `peer-5` draws the pogo).
-  `KiepieBike.gd` swaps the visual shell in `_enter_tree` (parent-first, so
-  CombatController caches the post-swap muzzle anchors); physics, wheels, mass and collision
-  are identical to the bike.
+- **NARDUS pogo vehicle** — second playable vehicle in `VehicleRegistry.gd` (`VEHICLE_POGO = &"PogoNardus"`, `"NARDUS"`, `res://assets/Pogo_Nardus.glb`). Players can either let `VehicleRegistry` deal from the 3-vehicle FNV-1a-32 hash pool (`AUTO (DEAL)`, with roster-level guaranteed Nardus assignment via `VehicleRegistry.for_player_in_roster`) or pick their preferred ride in `MainMenu` (`VehicleSelect`). `KiepieBike.gd` swaps the visual shell in `_enter_tree` (parent-first, so CombatController caches the post-swap muzzle anchors); physics, wheels, mass and collision are identical to the bike. `SideCannons` `PROFILES` is keyed `bike` / `pogo` / `aston`.
   - `Pogo_Nardus.blend` → `src/build_pogo_nardus.py` → `godot/assets/Pogo_Nardus.glb`
     (never hand-edit; the back-print decal is generated via `src/gen_decal_nardus.py` →
     `assets/decal_nardus.png`). NARDUS wears a hot-pink Borat mankini with cute, plump,
@@ -261,8 +251,8 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
     symmetric wing-flap + banana recoil) using sub-stepped secondary springs (`MAX_FRAME_DT = 0.1`,
     `MAX_SUB_DT = 0.00833`) and `expDecay`. Weapon is bananas (`BananaProjectile.gd`, procedural
     crescent; 60 dmg, 0.40 s / 0.18 s rapid, `pop` SFX) — twice the cannon damage at half the rate.
-    `vehicle_profile` on `KiepieBike.gd` carries `bike|pogo`; `SideCannons` PROFILES is
-    keyed `bike`/`pogo` only.
+    `vehicle_profile` on `KiepieBike.gd` carries `bike|pogo|aston`; `SideCannons` PROFILES is
+    keyed `bike`/`pogo`/`aston`.
   - `verify_pogo.gd` locks assignment determinism, roster-level guaranteed Nardus assignment (`VehicleRegistry.for_player_in_roster`), identical vehicle stats, the runtime swap, modular pivots (`Rider/Head`, `Stick/StickLower|SpringCoil|StickUpper`), live `SpringCoil` compression & `Head` follow-through, shoulder-pivoted `Rider/Arm_L` & `Rider/Arm_R` bird-wing flapping during turbo, weapon profile and the pogo ground datum (minZ = 0.000).
   - `verify_deathrace.gd` locks Dashboard Battle Royale (default) & Death Race mode selection, `DeathRace.tscn` circuit (4 kerbed turns, 2 360° stunt loops with `LoopZone` centripetal adhesion, 3 molten hazard pits, pit stop lane, 8 jump ramps, pickups, 4 ordered checkpoints, checkered `FinishLine`, `RaceTracker` lap counter, and `web-assets/kiepie-victory-splash.mp4` victory splash), plus Rocket Launcher (1.5s cooldown, 2× MG damage, 4.5m small blast radius), Meteor Shower (6.0s cooldown, 3D ground aiming reticle, 2.0s sky-fall delay, massive 3.5× AOE damage), `HUD/ReloadBar` & `HUD/WeaponLabel` reload status, and mobile right-analog-back weapon switching.
 - Forward axis is local **+Z** (positive `engine_force` drives +Z; GLB import already flips the

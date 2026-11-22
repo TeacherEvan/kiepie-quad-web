@@ -118,6 +118,8 @@ func ignite(attacker_id: String, token: String = "") -> void:
 			if other == self or not is_instance_valid(other) or not (other is Node3D):
 				continue
 			var o := other as Node3D
+			if bool(o.get("_ignited")):
+				continue
 			if o.global_position.distance_to(pos) > blast_radius:
 				continue
 			if not o.has_method("ignite"):

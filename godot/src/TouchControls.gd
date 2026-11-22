@@ -124,8 +124,11 @@ func _ready() -> void:
 	_apply_visibility()
 
 
-func _on_settings_changed(section: String, _key: String, _val: Variant) -> void:
+func _on_settings_changed(section: String, key: String, _val: Variant) -> void:
 	if section == "controls":
+		if key == "touch_force":
+			_apply_visibility()
+			_sync_toggle_text()
 		_relayout()
 
 
@@ -582,6 +585,8 @@ func _set_btn_compact(btn: Button, font_sz: int, h_margin: float) -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var sb := btn.get_theme_stylebox(state)
 		if sb is StyleBoxFlat:
+			if is_equal_approx((sb as StyleBoxFlat).content_margin_left, h_margin) and is_equal_approx((sb as StyleBoxFlat).content_margin_right, h_margin):
+				continue
 			var dup := sb.duplicate() as StyleBoxFlat
 			dup.content_margin_left = h_margin
 			dup.content_margin_right = h_margin

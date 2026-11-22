@@ -123,10 +123,11 @@ func _run() -> void:
 			meteor_picks += 1
 	_check(meteor_picks == 10, "P2-1/BUG-5: _pick_safe_spawn avoids active MeteorStrike at sp0 (10/10)")
 	meteor_hazard.queue_free()
+	await process_frame
 
 	# Also verify enemy bike avoidance and inward-facing basis preservation.
 	var enemy_bike := Node3D.new()
-	enemy_bike.add_to_group("networked_bike")
+	enemy_bike.add_to_group("bike")
 	root.add_child(enemy_bike)
 	enemy_bike.global_position = Vector3(0.5, 0.0, 0.5)
 	var enemy_picks := 0
@@ -137,6 +138,20 @@ func _run() -> void:
 	sp0.queue_free()
 	enemy_bike.queue_free()
 	sp1.queue_free()
+
+	# P1-4: dead local bike freezes so it never falls through the floor into the void
+	combat.set("_invuln_until", 0.0)
+	combat.call("take_damage", 200.0, "void-test", Vector3.ZERO)
+	_check(bool(bike.get("freeze")), "P1-4: dead local bike sets freeze=true")
+	for _f in range(60):
+		await physics_frame
+	_check(bike.global_position.y > -1.0, "P1-4: dead local bike stays above floor after 60 frames (y=%.2f)" % bike.global_position.y)
+	combat.call("reset_state")
+	_check(not bool(bike.get("freeze")), "P1-4: reset_state() unfreezes local bike")
+
+	# P2-6: NaN hitstop scale is rejected safely
+	KT.trigger_hitstop(root, NAN, 0.1)
+	_check(is_equal_approx(Engine.time_scale, 1.0), "P2-6: KiepieTime.trigger_hitstop(NAN) leaves time_scale == 1.0")
 
 	# Freeing CombatController mid-beat restores Engine.time_scale to 1.0.
 	KT.trigger_hitstop(root, 0.25, 30.0)

@@ -52,7 +52,7 @@ static func trigger_hitstop(tree, scale: float, duration_s: float) -> void:
 	# the root node (verify scripts); SceneTree scripts have no is_inside_tree().
 	if tree is Node:
 		tree = (tree as Node).get_tree()
-	if tree == null or not tree.has_method("create_timer") or scale <= 0.0 or duration_s <= 0.0:
+	if tree == null or not tree.has_method("create_timer") or not is_finite(scale) or not is_finite(duration_s) or scale <= 0.0 or duration_s <= 0.0:
 		return
 	var my_gen := _gen
 	_scales.append(scale)

@@ -106,16 +106,37 @@ func _state_spoof() -> void:
 	_check(str(lobby.get("status", "")) == "playing" and
 			int((roster["2"] as Dictionary).get("score", 0)) == 0,
 			"guest cannot forge authoritative state")
-	# positive control: an authentic host state message MUST be applied —
-	# a one-sided lock would stay green even if the state branch were deleted
+	# P1-1: host ignores its own stale state echo; guest applies monotonic host state
+	var host_echo := JSON.stringify({"k": "state", "p": {
+		"seq": 1,
+		"lobby": {"status": "playing", "settings": {}},
+		"roster": {"2": {"user_id": "2", "score": 99}}}})
+	await b.call("_on_socket_message", "v1.channels.message",
+			{"playerAlias": {"id": 1}, "message": host_echo})
+	var roster_host: Dictionary = b.get("_roster")
+	_check(int((roster_host["2"] as Dictionary).get("score", 0)) == 0,
+			"P1-1: host ignores its own echoed state frame")
+
+	b.set("user_id", "2")
 	var auth := JSON.stringify({"k": "state", "p": {
+		"seq": 2,
 		"lobby": {"status": "playing", "settings": {}},
 		"roster": {"2": {"user_id": "2", "score": 7}}}})
 	await b.call("_on_socket_message", "v1.channels.message",
 			{"playerAlias": {"id": 1}, "message": auth})
 	var roster2: Dictionary = b.get("_roster")
 	_check(int((roster2["2"] as Dictionary).get("score", 0)) == 7,
-			"authentic host state is applied (positive control)")
+			"authentic host state is applied on guest (positive control)")
+	var stale_seq := JSON.stringify({"k": "state", "p": {
+		"seq": 1,
+		"lobby": {"status": "playing", "settings": {}},
+		"roster": {"2": {"user_id": "2", "score": 1}}}})
+	await b.call("_on_socket_message", "v1.channels.message",
+			{"playerAlias": {"id": 1}, "message": stale_seq})
+	var roster2_after: Dictionary = b.get("_roster")
+	_check(int((roster2_after["2"] as Dictionary).get("score", 0)) == 7,
+			"P1-1: guest drops out-of-order host state (seq 1 <= 2)")
+	b.set("user_id", "1")
 	# forged join: payload names a user_id that is not the sender's alias
 	var forged_join := JSON.stringify({"k": "join", "p": {
 		"user_id": "999", "display_name": "forger", "color": "#ff0000", "score": 9999}})
@@ -220,6 +241,26 @@ func _net_security_and_roster() -> void:
 	var m_players3: Dictionary = m.get("players")
 	_check(not m_players3.has("1") and m_players3.has("9"),
 			"F-04: MatchState.set_lobby clears prior players when switching lobby IDs")
+	# P1-2: Lobby.leave() bumps _session_gen even when current_lobby_id == ""
+	var lobby_node: Node = root.get_node_or_null("Lobby")
+	if lobby_node != null:
+		lobby_node.set("current_lobby_id", "")
+		var gen_before := int(lobby_node.get("_session_gen"))
+		lobby_node.call("leave")
+		var gen_after := int(lobby_node.get("_session_gen"))
+		_check(gen_after > gen_before, "P1-2: Lobby.leave() increments _session_gen even when current_lobby_id is empty")
+		var ghost_ok: bool = await lobby_node.call("_enter_if_current", gen_before, {"lobby": {"id": "ghost-1"}})
+		_check(not ghost_ok and str(lobby_node.get("current_lobby_id")) == "",
+				"P1-2: stale in-flight join/create is rejected without entering ghost lobby")
+	# P2-1: host join omitting "vehicle" preserves existing "AstonMartin" preference
+	b.set("_roster", {"2": {"user_id": "2", "vehicle": "AstonMartin", "score": 0}})
+	await b.call("_on_socket_message", "v1.channels.message", {
+		"playerAlias": {"id": 2},
+		"message": JSON.stringify({"k": "join", "p": {"user_id": "2", "display_name": "RIDER"}}),
+	})
+	var row_veh: Dictionary = b.get("_roster")["2"] as Dictionary
+	_check(str(row_veh.get("vehicle", "")) == "AstonMartin",
+			"P2-1: join omitting vehicle preserves existing AstonMartin preference")
 	m.set("lobby", prev_lobby)
 	m.set("players", prev_players)
 	b.free()

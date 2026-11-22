@@ -112,6 +112,8 @@ func _connect_signals() -> void:
 	Match.error_message.connect(_on_error)
 	Lobby.error_message.connect(_on_error)
 	Lobby.left.connect(_on_left_elsewhere)
+	if Supabase != null and Supabase.has_signal("host_lost"):
+		Supabase.host_lost.connect(_on_host_lost)
 
 
 # ------------------------------------------------------------- lobby entry ---
@@ -219,6 +221,8 @@ func _exit_tree() -> void:
 			Lobby.error_message.disconnect(_on_error)
 		if Lobby.left.is_connected(_on_left_elsewhere):
 			Lobby.left.disconnect(_on_left_elsewhere)
+	if Supabase != null and Supabase.has_signal("host_lost") and Supabase.host_lost.is_connected(_on_host_lost):
+		Supabase.host_lost.disconnect(_on_host_lost)
 
 
 func _on_lobby_changed() -> void:
@@ -272,6 +276,11 @@ func _refresh_players() -> void:
 		row.add_child(sc)
 
 		_player_list.add_child(row)
+	if Match.players.has(Match.my_user_id) and Match.players[Match.my_user_id] is Dictionary:
+		_ready_state = bool((Match.players[Match.my_user_id] as Dictionary).get("is_ready", _ready_state))
+		_btn_ready.text = "READY •" if _ready_state else "NOT READY"
+		_btn_ready.add_theme_color_override(
+			"font_color", COL_OK if _ready_state else Color(1.0, 0.82, 0.45))
 	if not Match.lobby.is_empty():
 		_refresh_status(board)
 	_check_auto_start()
@@ -412,6 +421,20 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func _on_left_elsewhere() -> void:
 	if not _transitioning:
 		_on_leave()
+
+
+func _on_host_lost() -> void:
+	if _transitioning or _is_host():
+		return
+	_transitioning = true
+	_set_status("Host disconnected — leaving lobby…", COL_WARN)
+	Lobby.leave()
+	var w_self: WeakRef = weakref(self)
+	if get_tree() != null:
+		get_tree().create_timer(0.6).timeout.connect(func() -> void:
+			var me := w_self.get_ref() as Node
+			if me != null and is_instance_valid(me) and me.is_inside_tree():
+				me.get_tree().change_scene_to_file(SCENE_MAIN))
 
 
 func _on_copy() -> void:

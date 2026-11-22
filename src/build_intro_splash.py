@@ -177,6 +177,7 @@ def encode_video(frames_dir: Path) -> None:
     wav_path = frames_dir / "splash_audio.wav"
     synthesize_audio(wav_path)
     OUT_MP4.parent.mkdir(parents=True, exist_ok=True)
+    tmp_mp4 = OUT_MP4.with_suffix(".tmp.mp4")
     cmd = [
         "ffmpeg",
         "-y",
@@ -191,9 +192,10 @@ def encode_video(frames_dir: Path) -> None:
         "-c:a", "aac",
         "-b:a", "160k",
         "-shortest",
-        str(OUT_MP4),
+        str(tmp_mp4),
     ]
-    subprocess.run(cmd, check=True)
+    subprocess.run(cmd, check=True, timeout=120)
+    os.replace(tmp_mp4, OUT_MP4)
     print(f"Encoded {OUT_MP4} ({OUT_MP4.stat().st_size / 1024:.1f} KiB)")
 
 
@@ -439,6 +441,7 @@ def build_and_render(args: argparse.Namespace) -> None:
             t = f / 59.0
             quad_root.location = (-3.5 + 7.0 * t, -2.0 + 4.0 * t, 0.0)
             quad_root.rotation_euler = (0.0, math.radians(-8.0 * math.sin(t * math.pi)), math.radians(155.0 - 30.0 * t))
+            bpy.context.view_layer.update()
             cam_obj.location = (quad_root.location.x + 3.2, quad_root.location.y - 4.2, 1.85)
             cam_target.location = (quad_root.location.x, quad_root.location.y, 0.65)
             for i, tr in enumerate(tracers):

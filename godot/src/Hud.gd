@@ -101,16 +101,19 @@ func _update_smash_label() -> void:
 		_smash_label.text = "%s: %d / %d" % [prefix, _smashed, _total]
 
 func _on_restart() -> void:
+	Sfx.play_ui("ui_click")
 	if _bike and _bike.has_method("reset_bike"):
 		_bike.call("reset_bike")
 	if _combat and _combat.has_method("reset_state"):
 		_combat.call("reset_state")
 
 func _on_view() -> void:
+	Sfx.play_ui("ui_click")
 	if _cam_rig and _cam_rig.has_method("toggle_view"):
 		_cam_rig.toggle_view()
 
 func _on_menu() -> void:
+	Sfx.play_ui("ui_click")
 	get_tree().change_scene_to_file(SCENE_MAIN)
 
 func _on_back_requested() -> void:

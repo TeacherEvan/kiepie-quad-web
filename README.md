@@ -30,9 +30,7 @@ Captured live from the practice track under the real renderer (WebGL2 via xvfb) 
 
 ## Vehicles
 
-Every rider is **dealt** their machine — you don't pick. The draw is a deterministic hash
-(FNV-1a-32) of the player id, so every peer in the lobby computes the same assignment with
-no extra wire traffic:
+Pick your preferred ride in `MainMenu` (`VehicleSelect`, persisted in Settings) or leave it on **AUTO (DEAL)** for a deterministic FNV-1a-32 hash draw:
 
 - **Kiepie QUAD** — the blast quad. Photo-anchored dimensions, 22-inch tyres, twin side
   cannons (30 damage, 0.20 s cooldown; rapid-fire pickup shaves it to 0.09 s).
@@ -42,6 +40,7 @@ no extra wire traffic:
   thong strap). Guaranteed to be assigned to **at least one player** in every match (`VehicleRegistry.for_player_in_roster`), and **flaps his arms like a bird** whenever turbo is active. He fires **bananas** (60 damage — twice the cannon — at 0.40 s / 0.18 s
   rapid cooldown). Identical top speed, acceleration, handling, armour and cartwheel dodge stats to the
   QUAD — different attitude, same fight.
+- **BIG-BEN F1** — Aston Martin F1 car (`Aston_Martin.glb`) with F1 autocannons (`AstonMuzzle_L/R`) and rear `BIG-BEN` plate.
 
 ## Quick facts — controls
 

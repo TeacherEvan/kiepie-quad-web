@@ -17,7 +17,7 @@ Navigation hub for every doc in this repository. Start here.
 | Doc | What it covers |
 | --- | --- |
 | [audits/10 Principal Engineer.txt](audits/10%20Principal%20Engineer.txt) | External 10-principal-engineer audit, 2026-11-18 (81 files, score 78/100). Remediation status: [task-status.md](task-status.md) |
-| [audits/kiepie-quad-surgical-audit-2026-11-18.md](audits/kiepie-quad-surgical-audit-2026-11-18.md) | Surgical audit 2026-11-18; its defects are locked by `godot/tools/verify_audit_regressions.gd` |
+| [audits/kiepie-quad-surgical-audit-2026-11-22.md](audits/kiepie-quad-surgical-audit-2026-11-22.md) | Surgical audit 2026-11-22 (Rev 2: static + live Chrome/29-gate probe); SARIF companion: [kiepie-quad-surgical-audit-2026-11-22.sarif](audits/kiepie-quad-surgical-audit-2026-11-22.sarif) |
 | [plans/audit/opencode/inkling 2 small/kiepie-quad-surgical-audit-2026-11-17.md](plans/audit/opencode/inkling%202%20small/kiepie-quad-surgical-audit-2026-11-17.md) | Earlier surgical audit pass (2026-11-17, historical) |
 
 Scratch remediation notes (`docs/.scratch-audit/`) are git-ignored run artifacts;
@@ -33,7 +33,7 @@ their durable content is distilled into [task-status.md](task-status.md).
 - Constants: the single canonical table lives in
   [project-plan.md](project-plan.md#canonical-constants-table); README/AGENTS
   mention values by reference and must be swept together when a value changes.
-- Requirements ↔ gates: gameplay contracts are locked by the 25-gate suite
+- Requirements ↔ gates: gameplay contracts are locked by the 29-gate suite
   (`godot/tools/run_gates.sh`); AGENTS.md "Verification quirks" lists what each gate locks.
 
 ## Maintenance checklist

@@ -104,7 +104,8 @@ def main() -> int:
             print(f"scene_sync SKIP {scene} (not tracked in HEAD / git unavailable)")
             continue
         checked += 1
-        work = normalize(open(path, encoding="utf-8").read())
+        with open(path, encoding="utf-8") as fh:
+            work = normalize(fh.read())
         base = normalize(head)
         if work != base:
             offenders.append(scene)

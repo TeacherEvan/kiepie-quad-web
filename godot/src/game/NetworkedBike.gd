@@ -18,7 +18,6 @@ var _last_tick := -1
 var _initialised := false
 var _kill_lock_until := 0.0
 var _nameplate: Label3D
-var _ring: MeshInstance3D
 
 
 func setup(id: String, name_text: String, color_hex: String) -> void:
@@ -114,7 +113,6 @@ func update_identity(name_text: String, color_hex: String) -> void:
 			color_changed = true
 			if _nameplate != null:
 				_nameplate.modulate = player_color
-	var prev_vehicle := _assigned_vehicle
 	# Re-evaluate roster-aware Nardus promotion when peers join or leave, or force re-tint on color change.
 	_apply_roster_vehicle(color_changed)
 
@@ -124,9 +122,13 @@ func apply_state(data: Dictionary) -> void:
 	# snap a proxy backwards between 80–150 ms jitter windows. Peers without the
 	# "n" field (older builds) are accepted unconditionally.
 	var n := int(data.get("n", -1))
+	if n >= 0 and n <= _last_tick:
+		return
+	var dead_now := bool(data.get("d", false))
+	if _initialised and is_respawning and not dead_now:
+		if (Time.get_ticks_msec() / 1000.0) < _kill_lock_until:
+			return  # ignore stale pre-death in-flight packet
 	if n >= 0:
-		if n <= _last_tick:
-			return
 		_last_tick = n
 	var p: Variant = data.get("p", null)
 	if p is Array and (p as Array).size() >= 3:
@@ -138,7 +140,6 @@ func apply_state(data: Dictionary) -> void:
 		var q := Quaternion(float(r[0]), float(r[1]), float(r[2]), float(r[3]))
 		if is_finite(q.x) and is_finite(q.y) and is_finite(q.z) and is_finite(q.w) and q.length_squared() > 1e-8:
 			_target_basis = Basis(q.normalized()).orthonormalized()
-	var dead_now := bool(data.get("d", false))
 	turbo_active = bool(data.get("t", false)) and not dead_now
 	if not _initialised:
 		is_respawning = dead_now
@@ -149,8 +150,6 @@ func apply_state(data: Dictionary) -> void:
 		_initialised = true
 		return
 	if is_respawning and not dead_now:
-		if (Time.get_ticks_msec() / 1000.0) < _kill_lock_until:
-			return  # ignore stale pre-death in-flight packet
 		# Snap immediately on respawn instead of lerping across the arena (and
 		# place the respawn shield pulse at the new spawn point, not the death spot).
 		global_position = _target_pos
@@ -167,6 +166,8 @@ func set_respawning(value: bool) -> void:
 	if value == is_respawning:
 		return
 	is_respawning = value
+	if value:
+		turbo_active = false
 	visible = not value
 	# A hidden respawning proxy must not eat projectiles mid-flight.
 	set_deferred("collision_layer", 0 if value else 1)

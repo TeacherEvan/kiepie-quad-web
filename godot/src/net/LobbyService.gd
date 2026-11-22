@@ -34,27 +34,39 @@ func _enter(result: Dictionary) -> bool:
 	return true
 
 
+func _enter_if_current(gen: int, res: Dictionary) -> bool:
+	if gen != _session_gen:
+		if not res.is_empty() and res.has("lobby"):
+			await Supabase.call_rpc("leave_lobby", {})
+			Supabase.leave_lobby_channel()
+		return false
+	return _enter(res)
+
+
 func join_auto(game_mode: String = "battle_royale") -> bool:
+	var gen := _session_gen
 	var res: Dictionary = await Supabase.call_rpc("join_auto", {
 		"p_display_name": Settings.display_name(),
 		"p_color": Settings.player_color(),
 		"p_vehicle": Settings.preferred_vehicle(),
 		"p_game_mode": game_mode,
 	})
-	return _enter(res)
+	return await _enter_if_current(gen, res)
 
 
 func join_by_code(code: String) -> bool:
+	var gen := _session_gen
 	var res: Dictionary = await Supabase.call_rpc("join_by_code", {
 		"p_code": code.strip_edges().to_upper(),
 		"p_display_name": Settings.display_name(),
 		"p_color": Settings.player_color(),
 		"p_vehicle": Settings.preferred_vehicle(),
 	})
-	return _enter(res)
+	return await _enter_if_current(gen, res)
 
 
 func create_lobby(name: String, settings: Dictionary) -> bool:
+	var gen := _session_gen
 	var res: Dictionary = await Supabase.call_rpc("create_lobby", {
 		"p_name": name.strip_edges().substr(0, 32),
 		"p_settings": settings,
@@ -62,13 +74,13 @@ func create_lobby(name: String, settings: Dictionary) -> bool:
 		"p_color": Settings.player_color(),
 		"p_vehicle": Settings.preferred_vehicle(),
 	})
-	return _enter(res)
+	return await _enter_if_current(gen, res)
 
 
 func leave() -> void:
+	_session_gen += 1
 	if current_lobby_id == "":
 		return
-	_session_gen += 1
 	var gen := _session_gen
 	# Synchronous reset: a Leave→Create race must never see stale Match.lobby
 	# or stale Match._settings_cache, and LobbyMenu double-leave is a no-op.

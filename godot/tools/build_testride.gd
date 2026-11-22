@@ -74,8 +74,8 @@ func _initialize() -> void:
 
 	# ---------------- cones (ring + a slalom pair)
 	_add_cone_ring(root, 30.0, 24)
-	_add_cones(root, [Vector3(8, 0.35, 14), Vector3(-8, 0.35, 14),
-						Vector3(8, 0.35, -6), Vector3(-8, 0.35, -6)])
+	_add_cones(root, [Vector3(4.2, 0.35, 18), Vector3(-4.2, 0.35, 18),
+						Vector3(4.2, 0.35, -6), Vector3(-4.2, 0.35, -6)])
 
 	# ---------------- start line
 	var pad := MeshInstance3D.new()
@@ -139,9 +139,9 @@ func _initialize() -> void:
 
 	var help := Label.new()
 	help.name = "Help"
-	help.text = ("KIEPIE QUAD\nW/Up throttle   S/Down brake   A/D steer\n"
-			+ "Q/E dodge left/right   SHIFT = turbo\n"
-			+ "Space handbrake   C = camera   R = restart")
+	help.text = ("KIEPIE QUAD\nW/S throttle/brake · A/D steer · SHIFT turbo\n"
+			+ "Q/E dodge · SPACE handbrake · F/Click fire\n"
+			+ "TAB/1-3 weapon · C camera · R restart")
 	help.position = Vector2(16, 14)
 	help.offset_right = 340.0
 	help.offset_bottom = 114.0
@@ -184,6 +184,10 @@ func _initialize() -> void:
 	weapon_label.offset_bottom = 248.0
 	weapon_label.add_theme_font_size_override("font_size", 13)
 	weapon_label.add_theme_color_override("font_color", UI.INFO)
+	weapon_label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.95))
+	weapon_label.add_theme_constant_override("outline_size", 5)
+	weapon_label.add_theme_stylebox_override("normal",
+			UI.chip(Color(0.04, 0.06, 0.10, 0.78), Color(UI.INFO.r, UI.INFO.g, UI.INFO.b, 0.28), 6))
 	weapon_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(weapon_label)
 
@@ -242,8 +246,8 @@ func _initialize() -> void:
 	view.anchor_left = 1.0
 	view.offset_right = -14.0
 	view.offset_left = -150.0
-	view.offset_top = 62.0
-	view.offset_bottom = 108.0
+	view.offset_top = 68.0
+	view.offset_bottom = 120.0
 	view.focus_mode = Control.FOCUS_NONE
 	UI.style_button(view, UI.ACCENT)
 	layer.add_child(view)
@@ -255,8 +259,8 @@ func _initialize() -> void:
 	menu_btn.anchor_left = 1.0
 	menu_btn.offset_right = -14.0
 	menu_btn.offset_left = -150.0
-	menu_btn.offset_top = 114.0
-	menu_btn.offset_bottom = 160.0
+	menu_btn.offset_top = 126.0
+	menu_btn.offset_bottom = 178.0
 	menu_btn.focus_mode = Control.FOCUS_NONE
 	UI.style_button(menu_btn, UI.MUTED)
 	layer.add_child(menu_btn)

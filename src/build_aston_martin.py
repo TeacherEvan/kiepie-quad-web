@@ -672,8 +672,9 @@ def build_aston_martin(previews_dir=""):
         try:
             scene.view_settings.view_transform = "AgX"
             scene.view_settings.look = "AgX - Medium High Contrast"
-        except Exception:
-            pass
+        except Exception as exc:
+            import warnings
+            warnings.warn(f"build_aston_martin: AgX view transform unavailable: {exc}")
 
         views = {
             "aston_front34.png": ((2.4, -3.2, 1.15), 42, (0.0, -0.1, 0.30)),

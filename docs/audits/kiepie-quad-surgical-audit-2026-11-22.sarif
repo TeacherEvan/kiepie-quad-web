@@ -1,0 +1,5894 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "surgical-audit-preflight",
+          "version": "3.0.0",
+          "informationUri": "https://github.com/TeacherEvan/surgical-audit",
+          "rules": [
+            {
+              "id": "SA-GOD-FILE",
+              "name": "GodFileThresholdExceeded",
+              "shortDescription": {
+                "text": "File exceeds 400 effective lines of code"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "SA-HIGH-COMPLEXITY",
+              "name": "HighComplexityHotspot",
+              "shortDescription": {
+                "text": "Function or file exceeds complexity (CC >= 10), nesting (> 5), or span LOC (>= 60)"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "SA-SILENT-CATCH",
+              "name": "SilentExceptionHandler",
+              "shortDescription": {
+                "text": "Empty or pass-only exception catch handler swallows errors"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "SA-HOT-LOOP",
+              "name": "HotLoopAllocationMarker",
+              "shortDescription": {
+                "text": "Per-frame or hot-loop allocation/callback marker detected"
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              }
+            },
+            {
+              "id": "SA-PARSE-ERROR",
+              "name": "SyntaxParseError",
+              "shortDescription": {
+                "text": "Syntax error prevented full AST inspection"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            }
+          ]
+        }
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "properties": {
+            "tree_integrity_sha256": "c39cfed0ca7295d2555e3cfe668900de0e020ecb28c155a69f80f040ce301e96",
+            "skipped_dirs_count": 4,
+            "files_scanned": 353,
+            "effective_loc_total": 43894
+          }
+        }
+      ],
+      "results": [
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/VfxFactory.gd has 1191 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/VfxFactory.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 1191
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/VfxFactory.gd:701 impact exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/VfxFactory.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 701,
+                  "endLine": 748
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 13,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/VfxFactory.gd:587 muzzle_flash exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/VfxFactory.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 587,
+                  "endLine": 658
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 13,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/VfxFactory.gd:811 particle_explosion exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/VfxFactory.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 811,
+                  "endLine": 930
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 13,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/VfxFactory.gd:1038 _build_death_wreck exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/VfxFactory.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1038,
+                  "endLine": 1125
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 13,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/TaloBackend.gd has 918 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 918
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/TaloBackend.gd:871 _on_socket_message exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 871,
+                  "endLine": 990
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 46,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/TaloBackend.gd:689 _register_kill exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 689,
+                  "endLine": 785
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 46,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/TaloBackend.gd:146 _on_socket_closed exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 146,
+                  "endLine": 197
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 46,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/TaloBackend.gd:390 _join_auto exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 390,
+                  "endLine": 437
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 46,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/TaloBackend.gd:344 is_channel_joinable exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 344,
+                  "endLine": 372
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 46,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/TaloBackend.gd:438 _join_by_code exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 438,
+                  "endLine": 474
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 46,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/TaloBackend.gd:510 _handoff_host_before_leave exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 510,
+                  "endLine": 556
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 46,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/TaloBackend.gd:786 _register_lap exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 786,
+                  "endLine": 836
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 46,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/TaloBackend.gd:127 _poll_host_alive exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 127,
+                  "endLine": 145
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 46,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/TaloBackend.gd:598 _write_props exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 598,
+                  "endLine": 635
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 46,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/TaloBackend.gd:1096 _is_hex_color exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1096,
+                  "endLine": 1104
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 46,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/net/TaloBackend.gd:98 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 98
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_deathrace.gd has 949 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_deathrace.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 949
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_deathrace.gd:461 _add_finish_line exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_deathrace.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 461,
+                  "endLine": 550
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_deathrace.gd:277 _add_backdrop exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_deathrace.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 277,
+                  "endLine": 341
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_deathrace.gd:342 _build_circuit exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_deathrace.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 342,
+                  "endLine": 460
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_deathrace.gd:602 _add_stunt_loop exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_deathrace.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 602,
+                  "endLine": 709
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_deathrace.gd:722 _add_ramp exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_deathrace.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 722,
+                  "endLine": 787
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_deathrace.gd:34 _initialize exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_deathrace.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 34,
+                  "endLine": 153
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_deathrace.gd:882 _add_match_hud exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_deathrace.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 882,
+                  "endLine": 1001
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/MatchHud.gd has 736 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MatchHud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 736
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/MatchHud.gd:240 _relayout exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MatchHud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 240,
+                  "endLine": 359
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 37,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/MatchHud.gd:46 _ready exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MatchHud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 46,
+                  "endLine": 165
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 37,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/MatchHud.gd:787 _process exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MatchHud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 787,
+                  "endLine": 835
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 37,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/MatchHud.gd:647 add_kill exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MatchHud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 647,
+                  "endLine": 691
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 37,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/MatchHud.gd:714 _refresh_scoreboard exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MatchHud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 714,
+                  "endLine": 760
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 37,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/MatchHud.gd:574 _exit_tree exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MatchHud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 574,
+                  "endLine": 592
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 37,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/ui/MatchHud.gd:787 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MatchHud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 787
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/ui/MatchHud.gd:836 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MatchHud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 836
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "src/build_pogo_nardus.py has 702 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_pogo_nardus.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 702
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/build_pogo_nardus.py:45 build_pogo_nardus exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_pogo_nardus.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 45,
+                  "endLine": 887
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 50,
+            "nesting_depth": 3,
+            "max_function_loc": 843
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/build_pogo_nardus.py:83 loft_tube exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_pogo_nardus.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 83,
+                  "endLine": 164
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 50,
+            "nesting_depth": 3,
+            "max_function_loc": 843
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_pogo_nardus.py:79 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_pogo_nardus.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 79
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_pogo_nardus.py:245 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_pogo_nardus.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 245
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_pogo_nardus.py:396 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_pogo_nardus.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 396
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_pogo_nardus.py:850 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_pogo_nardus.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 850
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_arena.gd has 700 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_arena.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 700
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_arena.gd:541 _add_backdrop exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_arena.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 541,
+                  "endLine": 609
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 5,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_arena.gd:758 _add_building exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_arena.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 758,
+                  "endLine": 830
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 5,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_arena.gd:37 _initialize exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_arena.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 37,
+                  "endLine": 156
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 5,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_arena.gd:240 _add_match_hud exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_arena.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 240,
+                  "endLine": 359
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 5,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_arena.gd:669 _add_ramp exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_arena.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 669,
+                  "endLine": 739
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 5,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "src/build_aston_martin.py has 584 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_aston_martin.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 584
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/build_aston_martin.py:346 build_aston_martin exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_aston_martin.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 346,
+                  "endLine": 690
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 31,
+            "nesting_depth": 4,
+            "max_function_loc": 345
+          }
+        },
+        {
+          "ruleId": "SA-SILENT-CATCH",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "src/build_aston_martin.py:675 silent catch handler swallows errors."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_aston_martin.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 675
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_aston_martin.py:92 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_aston_martin.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 92
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_aston_martin.py:135 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_aston_martin.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 135
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_aston_martin.py:211 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_aston_martin.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 211
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_aston_martin.py:490 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_aston_martin.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 490
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_aston_martin.py:505 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_aston_martin.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 505
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_aston_martin.py:514 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_aston_martin.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 514
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_aston_martin.py:568 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_aston_martin.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 568
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_aston_martin.py:604 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_aston_martin.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 604
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_aston_martin.py:690 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_aston_martin.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 690
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/SideCannons.gd has 578 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/SideCannons.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 578
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/SideCannons.gd:457 fire exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/SideCannons.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 457,
+                  "endLine": 576
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 46,
+            "nesting_depth": 2,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/SideCannons.gd:270 compute_meteor_target exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/SideCannons.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 270,
+                  "endLine": 354
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 46,
+            "nesting_depth": 2,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/SideCannons.gd:355 _update_aim_reticle exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/SideCannons.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 355,
+                  "endLine": 440
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 46,
+            "nesting_depth": 2,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/SideCannons.gd:97 setup exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/SideCannons.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 97,
+                  "endLine": 137
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 46,
+            "nesting_depth": 2,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/SideCannons.gd:606 _ensure_muzzle_flashes exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/SideCannons.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 606,
+                  "endLine": 648
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 46,
+            "nesting_depth": 2,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/game/SideCannons.gd:242 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/SideCannons.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 242
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/KiepieBike.gd has 562 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/KiepieBike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 562
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/KiepieBike.gd:361 _physics_process exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/KiepieBike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 361,
+                  "endLine": 480
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 53,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/KiepieBike.gd:623 _integrate_forces exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/KiepieBike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 623,
+                  "endLine": 691
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 53,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/KiepieBike.gd:301 refresh_vehicle_assignment exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/KiepieBike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 301,
+                  "endLine": 326
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 53,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/KiepieBike.gd:245 _resolve_vehicle_pref exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/KiepieBike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 245,
+                  "endLine": 258
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 53,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/KiepieBike.gd:279 _assign_vehicle exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/KiepieBike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 279,
+                  "endLine": 300
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 53,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/KiepieBike.gd:114 _build_flames exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/KiepieBike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 114,
+                  "endLine": 233
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 53,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/MobileTextInput.gd:153 compute_clipped_norm_rect exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MobileTextInput.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 153,
+                  "endLine": 174
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 14,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/MobileTextInput.gd:94 _on_le_gui_input exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MobileTextInput.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 94,
+                  "endLine": 115
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 14,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/MobileTextInput.gd:184 apply_dom_state exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MobileTextInput.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 184,
+                  "endLine": 208
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 14,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/MobileTextInput.gd:68 _process exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MobileTextInput.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 68,
+                  "endLine": 87
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 14,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/MobileTextInput.gd:209 _install_js_bridge exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MobileTextInput.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 209,
+                  "endLine": 328
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 14,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-SILENT-CATCH",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "godot/src/ui/MobileTextInput.gd:305 silent catch handler swallows errors."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MobileTextInput.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 305
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-SILENT-CATCH",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "godot/src/ui/MobileTextInput.gd:315 silent catch handler swallows errors."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MobileTextInput.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 315
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-SILENT-CATCH",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "godot/src/ui/MobileTextInput.gd:316 silent catch handler swallows errors."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MobileTextInput.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 316
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-SILENT-CATCH",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "godot/src/ui/MobileTextInput.gd:421 silent catch handler swallows errors."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MobileTextInput.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 421
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/ui/MobileTextInput.gd:68 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MobileTextInput.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 68
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_vfx.gd has 501 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_vfx.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 501
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_vfx.gd:369 _pooling_and_settings exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_vfx.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 369,
+                  "endLine": 488
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 23,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_vfx.gd:302 _layout exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_vfx.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 302,
+                  "endLine": 368
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 23,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/TouchControls.gd has 491 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/TouchControls.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 491
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/TouchControls.gd:331 _sync_drive exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/TouchControls.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 331,
+                  "endLine": 413
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 30,
+            "nesting_depth": 0,
+            "max_function_loc": 83
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/TouchControls.gd:274 _sync_analog exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/TouchControls.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 274,
+                  "endLine": 330
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 30,
+            "nesting_depth": 0,
+            "max_function_loc": 83
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/TouchControls.gd:414 _update_drive_pad exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/TouchControls.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 414,
+                  "endLine": 447
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 30,
+            "nesting_depth": 0,
+            "max_function_loc": 83
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/TouchControls.gd:268 _process exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/TouchControls.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 268,
+                  "endLine": 273
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 30,
+            "nesting_depth": 0,
+            "max_function_loc": 83
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/TouchControls.gd:591 _relayout exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/TouchControls.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 591,
+                  "endLine": 632
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 30,
+            "nesting_depth": 0,
+            "max_function_loc": 83
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/TouchControls.gd:268 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/TouchControls.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 268
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_body.py has 497 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_body.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 497
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_body.py:211 build_plastics exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_body.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 211,
+                  "endLine": 358
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 15,
+            "nesting_depth": 3,
+            "max_function_loc": 148
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_body.py:419 build_controls exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_body.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 419,
+                  "endLine": 492
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 15,
+            "nesting_depth": 3,
+            "max_function_loc": 148
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_deathrace.gd has 477 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_deathrace.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 477
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_deathrace.gd:23 _run exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_deathrace.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 23,
+                  "endLine": 142
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 33,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_core.py has 492 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_core.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 492
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_core.py:415 _cap_holes exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_core.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 415,
+                  "endLine": 464
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 18,
+            "nesting_depth": 5,
+            "max_function_loc": 54
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_core.py:186 cylinder exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_core.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 186,
+                  "endLine": 208
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 18,
+            "nesting_depth": 5,
+            "max_function_loc": 54
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_core.py:252 tube exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_core.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 252,
+                  "endLine": 289
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 18,
+            "nesting_depth": 5,
+            "max_function_loc": 54
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_core.py:529 make_image_material exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_core.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 529,
+                  "endLine": 560
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 18,
+            "nesting_depth": 5,
+            "max_function_loc": 54
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/qb_core.py:295 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_core.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 295
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/qb_core.py:405 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_core.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 405
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/qb_core.py:464 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_core.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 464
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/qb_core.py:504 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_core.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 504
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "src/build_intro_splash.py has 432 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_intro_splash.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 432
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/build_intro_splash.py:204 build_and_render exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_intro_splash.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 204,
+                  "endLine": 537
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 19,
+            "nesting_depth": 2,
+            "max_function_loc": 334
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/build_intro_splash.py:432 apply_frame exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_intro_splash.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 432,
+                  "endLine": 526
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 19,
+            "nesting_depth": 2,
+            "max_function_loc": 334
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/build_intro_splash.py:102 synthesize_audio exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_intro_splash.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 102,
+                  "endLine": 173
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 19,
+            "nesting_depth": 2,
+            "max_function_loc": 334
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_intro_splash.py:537 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_intro_splash.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 537
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_menus.gd has 441 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_menus.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 441
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_menus.gd:461 _verify exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_menus.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 461,
+                  "endLine": 558
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 9,
+            "nesting_depth": 1,
+            "max_function_loc": 98
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_menus.gd:218 _build_main exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_menus.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 218,
+                  "endLine": 312
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 9,
+            "nesting_depth": 1,
+            "max_function_loc": 98
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_menus.gd:313 _build_lobby exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_menus.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 313,
+                  "endLine": 383
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 9,
+            "nesting_depth": 1,
+            "max_function_loc": 98
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_menus.gd:384 _build_settings exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_menus.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 384,
+                  "endLine": 460
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 9,
+            "nesting_depth": 1,
+            "max_function_loc": 98
+          }
+        },
+        {
+          "ruleId": "SA-GOD-FILE",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_testride.gd has 443 effective LOC (> 400)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_testride.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "effective_loc": 443
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_testride.gd:450 _add_building exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_testride.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 450,
+                  "endLine": 527
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 2,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_testride.gd:12 _initialize exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_testride.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 12,
+                  "endLine": 131
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 2,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_testride.gd:364 _add_ramp exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_testride.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 364,
+                  "endLine": 435
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 2,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/core/Settings.gd:398 _apply exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/core/Settings.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 398,
+                  "endLine": 435
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 18,
+            "nesting_depth": 2,
+            "max_function_loc": 39
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/core/Settings.gd:202 _sync_mobile_scale_now exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/core/Settings.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 202,
+                  "endLine": 226
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 18,
+            "nesting_depth": 2,
+            "max_function_loc": 39
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/core/Settings.gd:293 _load exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/core/Settings.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 293,
+                  "endLine": 322
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 18,
+            "nesting_depth": 2,
+            "max_function_loc": 39
+          }
+        },
+        {
+          "ruleId": "SA-SILENT-CATCH",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "godot/src/core/Settings.gd:118 silent catch handler swallows errors."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/core/Settings.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 118
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/core/Settings.gd:153 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/core/Settings.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 153
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/ArenaNet.gd:259 _spawn_remote_shot exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/ArenaNet.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 259,
+                  "endLine": 351
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 42,
+            "nesting_depth": 1,
+            "max_function_loc": 93
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/ArenaNet.gd:133 _on_broadcast exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/ArenaNet.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 133,
+                  "endLine": 197
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 42,
+            "nesting_depth": 1,
+            "max_function_loc": 93
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/ArenaNet.gd:44 _place_local_bike_at_roster_slot exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/ArenaNet.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 44,
+                  "endLine": 78
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 42,
+            "nesting_depth": 1,
+            "max_function_loc": 93
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/ArenaNet.gd:226 _hide_remote_briefly exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/ArenaNet.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 226,
+                  "endLine": 247
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 42,
+            "nesting_depth": 1,
+            "max_function_loc": 93
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/ArenaNet.gd:352 _acquire_remote_proj exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/ArenaNet.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 352,
+                  "endLine": 385
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 42,
+            "nesting_depth": 1,
+            "max_function_loc": 93
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/game/ArenaNet.gd:95 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/ArenaNet.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 95
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/CombatController.gd:65 _physics_process exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/CombatController.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 65,
+                  "endLine": 103
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 24,
+            "nesting_depth": 1,
+            "max_function_loc": 42
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/CombatController.gd:267 _pick_safe_spawn exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/CombatController.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 267,
+                  "endLine": 300
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 24,
+            "nesting_depth": 1,
+            "max_function_loc": 42
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/CombatController.gd:355 _unhandled_key_input exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/CombatController.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 355,
+                  "endLine": 378
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 24,
+            "nesting_depth": 1,
+            "max_function_loc": 42
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/CombatController.gd:412 _on_projectile_hit exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/CombatController.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 412,
+                  "endLine": 440
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 24,
+            "nesting_depth": 1,
+            "max_function_loc": 42
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/CombatController.gd:146 take_damage exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/CombatController.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 146,
+                  "endLine": 179
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 24,
+            "nesting_depth": 1,
+            "max_function_loc": 42
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/CombatController.gd:180 _die exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/CombatController.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 180,
+                  "endLine": 221
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 24,
+            "nesting_depth": 1,
+            "max_function_loc": 42
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/LobbyMenu.gd:199 _exit_tree exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/LobbyMenu.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 199,
+                  "endLine": 223
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 12,
+            "nesting_depth": 1,
+            "max_function_loc": 46
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_touch_multitouch.gd:85 _run exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_touch_multitouch.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 85,
+                  "endLine": 204
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 14,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/MeteorStrike.gd:254 _detonate exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/MeteorStrike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 254,
+                  "endLine": 338
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 51,
+            "nesting_depth": 0,
+            "max_function_loc": 87
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/MeteorStrike.gd:40 _ensure_meshes exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/MeteorStrike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 40,
+                  "endLine": 126
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 51,
+            "nesting_depth": 0,
+            "max_function_loc": 87
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/MeteorStrike.gd:160 _build_visual exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/MeteorStrike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 160,
+                  "endLine": 219
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 51,
+            "nesting_depth": 0,
+            "max_function_loc": 87
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/RocketProjectile.gd:253 _detonate exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/RocketProjectile.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 253,
+                  "endLine": 336
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 52,
+            "nesting_depth": 0,
+            "max_function_loc": 84
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/RocketProjectile.gd:35 _ensure_meshes exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/RocketProjectile.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 35,
+                  "endLine": 108
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 52,
+            "nesting_depth": 0,
+            "max_function_loc": 84
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/RocketProjectile.gd:144 _build_visual exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/RocketProjectile.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 144,
+                  "endLine": 211
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 52,
+            "nesting_depth": 0,
+            "max_function_loc": 84
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/PogoVisual.gd:161 _physics_process exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/PogoVisual.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 161,
+                  "endLine": 280
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 21,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/MatchState.gd:336 _on_pg_change exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/MatchState.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 336,
+                  "endLine": 391
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 20,
+            "nesting_depth": 1,
+            "max_function_loc": 56
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/MatchState.gd:53 _process exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/MatchState.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 53,
+                  "endLine": 78
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 20,
+            "nesting_depth": 1,
+            "max_function_loc": 56
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/net/MatchState.gd:53 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/MatchState.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 53
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_multiplayer.gd:27 _run exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_multiplayer.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 27,
+                  "endLine": 146
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 18,
+            "nesting_depth": 2,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/patch_web_sw.py:28 patch_service_worker exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/patch_web_sw.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 28,
+                  "endLine": 233
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 2,
+            "max_function_loc": 206
+          }
+        },
+        {
+          "ruleId": "SA-SILENT-CATCH",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "godot/tools/patch_web_sw.py:247 silent catch handler swallows errors."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/patch_web_sw.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 247
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/tools/patch_web_sw.py:24 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/patch_web_sw.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 24
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/build_quad.py:33 build_bike exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_quad.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 33,
+                  "endLine": 132
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 19,
+            "nesting_depth": 4,
+            "max_function_loc": 100
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/build_quad.py:294 stats exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_quad.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 294,
+                  "endLine": 312
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 19,
+            "nesting_depth": 4,
+            "max_function_loc": 100
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_quad.py:129 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_quad.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 129
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_quad.py:199 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_quad.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 199
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_quad.py:224 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_quad.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 224
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_quad.py:249 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_quad.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 249
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_quad.py:287 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_quad.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 287
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_quad.py:319 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_quad.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 319
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/MainMenu.gd:144 _apply_responsive_layout exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MainMenu.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 144,
+                  "endLine": 181
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 31,
+            "nesting_depth": 1,
+            "max_function_loc": 46
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/MainMenu.gd:116 _apply_safe_area exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/MainMenu.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 116,
+                  "endLine": 143
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 31,
+            "nesting_depth": 1,
+            "max_function_loc": 46
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/BananaProjectile.gd:249 _physics_process exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/BananaProjectile.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 249,
+                  "endLine": 297
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 17,
+            "nesting_depth": 0,
+            "max_function_loc": 54
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/MockBackend.gd:124 _mock_register_kill exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/MockBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 124,
+                  "endLine": 203
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 19,
+            "nesting_depth": 1,
+            "max_function_loc": 80
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/net/MockBackend.gd:69 call_rpc exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/MockBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 69,
+                  "endLine": 123
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 19,
+            "nesting_depth": 1,
+            "max_function_loc": 80
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/Projectile.gd:237 _physics_process exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/Projectile.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 237,
+                  "endLine": 284
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 16,
+            "nesting_depth": 0,
+            "max_function_loc": 48
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/Projectile.gd:130 _rearm_tracer exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/Projectile.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 130,
+                  "endLine": 162
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 16,
+            "nesting_depth": 0,
+            "max_function_loc": 48
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_talo_backend.gd:52 _initialize exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_talo_backend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 52,
+                  "endLine": 171
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 12,
+            "nesting_depth": 1,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_controls.gd:76 _run exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_controls.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 76,
+                  "endLine": 195
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 24,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_audit_regressions.gd:128 _net_security_and_roster exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_audit_regressions.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 128,
+                  "endLine": 226
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 2,
+            "max_function_loc": 99
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_pogo.gd:20 _run exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_pogo.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 20,
+                  "endLine": 139
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 29,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_engine.py:138 build_belt exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_engine.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 138,
+                  "endLine": 226
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 2,
+            "max_function_loc": 121
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_engine.py:229 build_exhaust exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_engine.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 229,
+                  "endLine": 296
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 2,
+            "max_function_loc": 121
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_engine.py:15 build_engine exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_engine.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 15,
+                  "endLine": 135
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 2,
+            "max_function_loc": 121
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/qb_engine.py:215 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_engine.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 215
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/qb_engine.py:225 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_engine.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 225
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/qb_engine.py:277 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_engine.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 277
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/run_gates.sh flagged for complexity (CC=40, nesting=1, max_function_loc=0)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/run_gates.sh",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 40,
+            "nesting_depth": 1,
+            "max_function_loc": 0
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_wheels.py:71 build_rim exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_wheels.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 71,
+                  "endLine": 142
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 8,
+            "nesting_depth": 2,
+            "max_function_loc": 72
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/DestructibleBuilding.gd:93 smash exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/DestructibleBuilding.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 93,
+                  "endLine": 194
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 31,
+            "nesting_depth": 0,
+            "max_function_loc": 102
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/DestructibleBuilding.gd:195 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/DestructibleBuilding.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 195
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/ui/UiTheme.gd:152 slider_grabber_texture exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/ui/UiTheme.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 152,
+                  "endLine": 174
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 12,
+            "nesting_depth": 0,
+            "max_function_loc": 37
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_practice.gd:67 _run exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_practice.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 67,
+                  "endLine": 186
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 32,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/AnalogDrive.gd:84 _draw exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/AnalogDrive.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 84,
+                  "endLine": 193
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 37,
+            "nesting_depth": 0,
+            "max_function_loc": 110
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/AnalogDrive.gd:55 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/AnalogDrive.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 55
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/Hud.gd:174 _relayout exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/Hud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 174,
+                  "endLine": 207
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 20,
+            "nesting_depth": 0,
+            "max_function_loc": 39
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/Hud.gd:35 _ready exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/Hud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 35,
+                  "endLine": 73
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 20,
+            "nesting_depth": 0,
+            "max_function_loc": 39
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/Hud.gd:79 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/Hud.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 79
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_aston.gd:48 _run exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_aston.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 48,
+                  "endLine": 167
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 43,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_accessibility.gd:42 _initialize exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_accessibility.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 42,
+                  "endLine": 161
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 40,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/RaceTracker.gd:134 _on_finish_line_entered exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/RaceTracker.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 134,
+                  "endLine": 197
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 32,
+            "nesting_depth": 1,
+            "max_function_loc": 64
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/RaceTracker.gd:113 _on_checkpoint_entered exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/RaceTracker.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 113,
+                  "endLine": 133
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 32,
+            "nesting_depth": 1,
+            "max_function_loc": 64
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/RaceTracker.gd:63 _setup_solo_or_match_mode exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/RaceTracker.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 63,
+                  "endLine": 86
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 32,
+            "nesting_depth": 1,
+            "max_function_loc": 64
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/FuelDrum.gd:69 ignite exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/FuelDrum.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 69,
+                  "endLine": 149
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 40,
+            "nesting_depth": 0,
+            "max_function_loc": 81
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/AnalogSteer.gd:71 _draw exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/AnalogSteer.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 71,
+                  "endLine": 189
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 30,
+            "nesting_depth": 0,
+            "max_function_loc": 119
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/AnalogSteer.gd:46 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/AnalogSteer.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 46
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/NetworkedBike.gd:56 _apply_roster_vehicle exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/NetworkedBike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 56,
+                  "endLine": 103
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 21,
+            "nesting_depth": 0,
+            "max_function_loc": 48
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/NetworkedBike.gd:122 apply_state exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/NetworkedBike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 122,
+                  "endLine": 160
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 21,
+            "nesting_depth": 0,
+            "max_function_loc": 48
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/game/NetworkedBike.gd:188 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/NetworkedBike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 188
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/FollowCam.gd:98 _process exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/FollowCam.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 98,
+                  "endLine": 161
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 25,
+            "nesting_depth": 0,
+            "max_function_loc": 64
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/FollowCam.gd:162 _input exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/FollowCam.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 162,
+                  "endLine": 179
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 25,
+            "nesting_depth": 0,
+            "max_function_loc": 64
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/FollowCam.gd:76 _safe_look_at exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/FollowCam.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 76,
+                  "endLine": 97
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 25,
+            "nesting_depth": 0,
+            "max_function_loc": 64
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/FollowCam.gd:98 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/FollowCam.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 98
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/build_victory_splash.py:207 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/build_victory_splash.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 207
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-SILENT-CATCH",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "godot/tools/inject_talo_key.py:68 silent catch handler swallows errors."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/inject_talo_key.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 68
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-SILENT-CATCH",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "godot/tools/inject_talo_key.py:75 silent catch handler swallows errors."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/inject_talo_key.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 75
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_touch.gd:57 _initialize exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_touch.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 57,
+                  "endLine": 176
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 16,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "index.service.worker.js flagged for complexity (CC=7, nesting=7, max_function_loc=21)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "index.service.worker.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 52
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 7,
+            "nesting_depth": 7,
+            "max_function_loc": 21
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "godot/src/game/Pickup.gd:113 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/Pickup.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 113
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_combat.gd:19 _run exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_combat.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 19,
+                  "endLine": 138
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 11,
+            "nesting_depth": 0,
+            "max_function_loc": 120
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/VehicleRegistry.gd:58 for_player_in_roster exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/VehicleRegistry.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 58,
+                  "endLine": 84
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 14,
+            "nesting_depth": 0,
+            "max_function_loc": 27
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/deploy_web.sh flagged for complexity (CC=32, nesting=1, max_function_loc=0)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/deploy_web.sh",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 32,
+            "nesting_depth": 1,
+            "max_function_loc": 0
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/repair_and_verify.py:36 main exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/repair_and_verify.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 36,
+                  "endLine": 128
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 22,
+            "nesting_depth": 3,
+            "max_function_loc": 93
+          }
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/repair_and_verify.py:58 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/repair_and_verify.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 58
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/repair_and_verify.py:61 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/repair_and_verify.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 61
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HOT-LOOP",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "src/repair_and_verify.py:127 hot-loop allocation/callback marker."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/repair_and_verify.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 127
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/check_web_hygiene.py:12 main exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/check_web_hygiene.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 12,
+                  "endLine": 94
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 27,
+            "nesting_depth": 4,
+            "max_function_loc": 83
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/vfx_showcase.gd:47 _run exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/vfx_showcase.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 47,
+                  "endLine": 119
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 13,
+            "nesting_depth": 0,
+            "max_function_loc": 73
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/screenshot_gameplay.gd:55 _run exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/screenshot_gameplay.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 55,
+                  "endLine": 127
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 15,
+            "nesting_depth": 0,
+            "max_function_loc": 73
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/game/LoopZone.gd:57 _physics_process exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/LoopZone.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 57,
+                  "endLine": 97
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 22,
+            "nesting_depth": 0,
+            "max_function_loc": 41
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/qb_weapons.py:24 build_cannons exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/qb_weapons.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 24,
+                  "endLine": 116
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 6,
+            "nesting_depth": 2,
+            "max_function_loc": 93
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "src/gen_decal_nardus.py:28 main exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/gen_decal_nardus.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 28,
+                  "endLine": 98
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 3,
+            "nesting_depth": 2,
+            "max_function_loc": 71
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/build_bike.gd:8 _initialize exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/build_bike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 8,
+                  "endLine": 93
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 6,
+            "nesting_depth": 1,
+            "max_function_loc": 86
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_features.gd:10 _initialize exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_features.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 10,
+                  "endLine": 69
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 12,
+            "nesting_depth": 0,
+            "max_function_loc": 60
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/tools/verify_appeal.gd:19 _run exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_appeal.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 19,
+                  "endLine": 67
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 13,
+            "nesting_depth": 0,
+            "max_function_loc": 49
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/core/KiepieTime.gd:50 trigger_hitstop exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/core/KiepieTime.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 50,
+                  "endLine": 76
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 13,
+            "nesting_depth": 0,
+            "max_function_loc": 27
+          }
+        },
+        {
+          "ruleId": "SA-HIGH-COMPLEXITY",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "godot/src/TouchCapture.gd:35 _input exceeds complexity thresholds."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/TouchCapture.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 35,
+                  "endLine": 69
+                }
+              }
+            }
+          ],
+          "properties": {
+            "cyclomatic_complexity": 12,
+            "nesting_depth": 0,
+            "max_function_loc": 35
+          }
+        }
+      ]
+    }
+  ]
+}

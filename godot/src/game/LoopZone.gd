@@ -58,17 +58,21 @@ func _physics_process(_delta: float) -> void:
 	if _bikes.is_empty():
 		return
 	var bx := global_transform.basis
+	var pruned := false
 	for i in range(_bikes.size() - 1, -1, -1):
 		var b := _bikes[i]
 		if not is_instance_valid(b):
 			_bikes.remove_at(i)
+			pruned = true
 			continue
 		var lp := to_local(b.global_position)
 		var bid := b.get_instance_id()
 		if lp.y > 4.0:
 			_climbed[bid] = true
-		var climbed := bool(_climbed.get(bid, false))
 		var in_footprint := absf(lp.x) < 6.0 and absf(lp.z) < loop_radius + 3.0
+		if in_footprint and lp.y < 1.0 and lp.z < -0.5:
+			_climbed.erase(bid)
+		var climbed := bool(_climbed.get(bid, false))
 		if in_footprint and ((lp.y < 1.8 and lp.z < -0.4 and not climbed) or (climbed and lp.y < 1.8 and lp.z > 0.4)):
 			if "loop_up" in b:
 				b.set("loop_up", Vector3.ZERO)
@@ -95,3 +99,15 @@ func _physics_process(_delta: float) -> void:
 				b.set("loop_center_pull", pull)
 		else:
 			b.set("loop_up", Vector3.UP)
+			if "loop_tangent" in b:
+				b.set("loop_tangent", Vector3.ZERO)
+			if "loop_center_pull" in b:
+				b.set("loop_center_pull", Vector3.ZERO)
+	if pruned:
+		var live_ids := {}
+		for lb in _bikes:
+			if is_instance_valid(lb):
+				live_ids[lb.get_instance_id()] = true
+		for kid in _climbed.keys():
+			if not live_ids.has(kid):
+				_climbed.erase(kid)
