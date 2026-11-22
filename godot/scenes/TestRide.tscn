@@ -1,21 +1,21 @@
 [gd_scene load_steps=256 format=4]
 
-[ext_resource type="Texture2D" path="res://assets/tex_asphalt.png" id="1_lp2wu"]
-[ext_resource type="Texture2D" path="res://assets/tex_cone.png" id="2_epcgq"]
-[ext_resource type="PackedScene" path="res://scenes/KiepieBike.tscn" id="3_8sbxo"]
-[ext_resource type="Script" path="res://src/KiepieBike.gd" id="4_2v14h"]
-[ext_resource type="Script" path="res://src/game/CombatController.gd" id="5_w5vk3"]
-[ext_resource type="Script" path="res://src/FollowCam.gd" id="6_6bl11"]
-[ext_resource type="Script" path="res://src/Hud.gd" id="7_p0eq4"]
-[ext_resource type="Script" path="res://src/TouchControls.gd" id="8_ndtr5"]
-[ext_resource type="Script" path="res://src/DestructibleBuilding.gd" id="9_2vqmi"]
-[ext_resource type="Texture2D" path="res://assets/tex_facade_workshop.png" id="10_bregy"]
-[ext_resource type="Texture2D" path="res://assets/tex_facade_shed.png" id="11_fk2nx"]
-[ext_resource type="Texture2D" path="res://assets/tex_facade_store.png" id="12_d51mw"]
-[ext_resource type="Texture2D" path="res://assets/tex_facade_garage.jpg" id="13_y2iix"]
-[ext_resource type="Script" path="res://src/game/FuelDrum.gd" id="14_ux023"]
+[ext_resource type="Texture2D" path="res://assets/tex_asphalt.png" id="1_7uplt"]
+[ext_resource type="Texture2D" path="res://assets/tex_cone.png" id="2_20tad"]
+[ext_resource type="PackedScene" path="res://scenes/KiepieBike.tscn" id="3_6dnsm"]
+[ext_resource type="Script" path="res://src/KiepieBike.gd" id="4_3mvhy"]
+[ext_resource type="Script" path="res://src/game/CombatController.gd" id="5_f6avh"]
+[ext_resource type="Script" path="res://src/FollowCam.gd" id="6_u82vr"]
+[ext_resource type="Script" path="res://src/Hud.gd" id="7_kx27p"]
+[ext_resource type="Script" path="res://src/TouchControls.gd" id="8_n5264"]
+[ext_resource type="Script" path="res://src/DestructibleBuilding.gd" id="9_roft4"]
+[ext_resource type="Texture2D" path="res://assets/tex_facade_workshop.png" id="10_wg80w"]
+[ext_resource type="Texture2D" path="res://assets/tex_facade_shed.png" id="11_nqspt"]
+[ext_resource type="Texture2D" path="res://assets/tex_facade_store.png" id="12_se02h"]
+[ext_resource type="Texture2D" path="res://assets/tex_facade_garage.jpg" id="13_alov3"]
+[ext_resource type="Script" path="res://src/game/FuelDrum.gd" id="14_2umhu"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_64lbo"]
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_j847m"]
 sky_top_color = Color(0.11, 0.19, 0.4, 1)
 sky_horizon_color = Color(0.42, 0.6, 0.72, 1)
 ground_bottom_color = Color(0.16, 0.15, 0.14, 1)
@@ -23,12 +23,12 @@ ground_horizon_color = Color(0.34, 0.37, 0.4, 1)
 sun_angle_max = 28.0
 sun_curve = 0.18
 
-[sub_resource type="Sky" id="Sky_hbwob"]
-sky_material = SubResource("ProceduralSkyMaterial_64lbo")
+[sub_resource type="Sky" id="Sky_rcmmv"]
+sky_material = SubResource("ProceduralSkyMaterial_j847m")
 
-[sub_resource type="Environment" id="Environment_kbohb"]
+[sub_resource type="Environment" id="Environment_wvwu5"]
 background_mode = 2
-sky = SubResource("Sky_hbwob")
+sky = SubResource("Sky_rcmmv")
 ambient_light_source = 3
 ambient_light_color = Color(0.72, 0.8, 0.88, 1)
 ambient_light_sky_contribution = 0.62
@@ -39,576 +39,576 @@ fog_enabled = true
 fog_light_color = Color(0.32, 0.4, 0.46, 1)
 fog_density = 0.00125
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_uxgbi"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_3vnxu"]
 size = Vector3(400, 1, 400)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_b2f51"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mdave"]
 albedo_color = Color(0.82, 0.82, 0.86, 1)
-albedo_texture = ExtResource("1_lp2wu")
+albedo_texture = ExtResource("1_7uplt")
 roughness = 0.96
 uv1_scale = Vector3(210, 210, 1)
 
-[sub_resource type="BoxMesh" id="BoxMesh_oqahg"]
-material = SubResource("StandardMaterial3D_b2f51")
+[sub_resource type="BoxMesh" id="BoxMesh_nvw87"]
+material = SubResource("StandardMaterial3D_mdave")
 size = Vector3(400, 1, 400)
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_wek1p"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_6nmw4"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mgwa2"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gi6a0"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_3n65i"]
-material = SubResource("StandardMaterial3D_mgwa2")
+[sub_resource type="CylinderMesh" id="CylinderMesh_8a54t"]
+material = SubResource("StandardMaterial3D_gi6a0")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_mgmgs"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_4noet"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eurfj"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ho2t0"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_5s27v"]
-material = SubResource("StandardMaterial3D_eurfj")
+[sub_resource type="CylinderMesh" id="CylinderMesh_sa8l1"]
+material = SubResource("StandardMaterial3D_ho2t0")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_wwjb6"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_b2m2o"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gkqwc"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_03j8x"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_8p3s4"]
-material = SubResource("StandardMaterial3D_gkqwc")
+[sub_resource type="CylinderMesh" id="CylinderMesh_tyiq1"]
+material = SubResource("StandardMaterial3D_03j8x")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_3qdgu"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_01xd4"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_18nx0"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ot1eg"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_nf4tt"]
-material = SubResource("StandardMaterial3D_18nx0")
+[sub_resource type="CylinderMesh" id="CylinderMesh_jvsv0"]
+material = SubResource("StandardMaterial3D_ot1eg")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_ud7up"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_accsv"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eja3w"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3g1c4"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_mqomb"]
-material = SubResource("StandardMaterial3D_eja3w")
+[sub_resource type="CylinderMesh" id="CylinderMesh_kytv7"]
+material = SubResource("StandardMaterial3D_3g1c4")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_uuavx"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_eeuw8"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xfhw5"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1po8g"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_p8abk"]
-material = SubResource("StandardMaterial3D_xfhw5")
+[sub_resource type="CylinderMesh" id="CylinderMesh_ns0nf"]
+material = SubResource("StandardMaterial3D_1po8g")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_mpgv5"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_wp18x"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qn00v"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l7euw"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_eaax5"]
-material = SubResource("StandardMaterial3D_qn00v")
+[sub_resource type="CylinderMesh" id="CylinderMesh_j5hnq"]
+material = SubResource("StandardMaterial3D_l7euw")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_c6tiv"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_lklg7"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4ouek"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4ptwx"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_wal8i"]
-material = SubResource("StandardMaterial3D_4ouek")
+[sub_resource type="CylinderMesh" id="CylinderMesh_evqd4"]
+material = SubResource("StandardMaterial3D_4ptwx")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_82kk3"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_q58rg"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_f2it0"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1j3ww"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_iemhd"]
-material = SubResource("StandardMaterial3D_f2it0")
+[sub_resource type="CylinderMesh" id="CylinderMesh_nij20"]
+material = SubResource("StandardMaterial3D_1j3ww")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_483lv"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_dhk41"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_aq8em"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ha637"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_f51pu"]
-material = SubResource("StandardMaterial3D_aq8em")
+[sub_resource type="CylinderMesh" id="CylinderMesh_5vbs5"]
+material = SubResource("StandardMaterial3D_ha637")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_h4wah"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_8id7r"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_8bc5u"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mdxci"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_yao13"]
-material = SubResource("StandardMaterial3D_8bc5u")
+[sub_resource type="CylinderMesh" id="CylinderMesh_ly3xk"]
+material = SubResource("StandardMaterial3D_mdxci")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_1igsj"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_oevld"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_h82oo"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_u4inl"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_ajyah"]
-material = SubResource("StandardMaterial3D_h82oo")
+[sub_resource type="CylinderMesh" id="CylinderMesh_jx01d"]
+material = SubResource("StandardMaterial3D_u4inl")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_ax6ai"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_nwicf"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_54rpo"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ayxgk"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_3lg2r"]
-material = SubResource("StandardMaterial3D_54rpo")
+[sub_resource type="CylinderMesh" id="CylinderMesh_kqrqu"]
+material = SubResource("StandardMaterial3D_ayxgk")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_hwjqy"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_5c2cw"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_k1a3j"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_e5iw6"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_52wyt"]
-material = SubResource("StandardMaterial3D_k1a3j")
+[sub_resource type="CylinderMesh" id="CylinderMesh_egfd5"]
+material = SubResource("StandardMaterial3D_e5iw6")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_ork02"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_l4qde"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7v4xn"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_nx8bs"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_d0cl6"]
-material = SubResource("StandardMaterial3D_7v4xn")
+[sub_resource type="CylinderMesh" id="CylinderMesh_vivjp"]
+material = SubResource("StandardMaterial3D_nx8bs")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_wj5ud"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_12eue"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7e2mw"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_75inu"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_tkm0v"]
-material = SubResource("StandardMaterial3D_7e2mw")
+[sub_resource type="CylinderMesh" id="CylinderMesh_7y2bh"]
+material = SubResource("StandardMaterial3D_75inu")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_tkgjw"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_c1d8v"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_02wjf"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_g1kjj"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_3u1c5"]
-material = SubResource("StandardMaterial3D_02wjf")
+[sub_resource type="CylinderMesh" id="CylinderMesh_hlb1k"]
+material = SubResource("StandardMaterial3D_g1kjj")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_102t2"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_vqq2o"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6vx25"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pqstk"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_1jdle"]
-material = SubResource("StandardMaterial3D_6vx25")
+[sub_resource type="CylinderMesh" id="CylinderMesh_rtvfm"]
+material = SubResource("StandardMaterial3D_pqstk")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_nsj61"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_nqjsp"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jlu1s"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hdlap"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_fr8uo"]
-material = SubResource("StandardMaterial3D_jlu1s")
+[sub_resource type="CylinderMesh" id="CylinderMesh_8cxmo"]
+material = SubResource("StandardMaterial3D_hdlap")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_0pqn7"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_nrxsl"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lbq2t"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ni7bg"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_0btnc"]
-material = SubResource("StandardMaterial3D_lbq2t")
+[sub_resource type="CylinderMesh" id="CylinderMesh_3j1yo"]
+material = SubResource("StandardMaterial3D_ni7bg")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_o5n8t"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_8ahdi"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_k0gy1"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eiukd"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_hn4ab"]
-material = SubResource("StandardMaterial3D_k0gy1")
+[sub_resource type="CylinderMesh" id="CylinderMesh_yeqod"]
+material = SubResource("StandardMaterial3D_eiukd")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_rmnta"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_jpvuu"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7wpko"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_j5l1m"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_5gq66"]
-material = SubResource("StandardMaterial3D_7wpko")
+[sub_resource type="CylinderMesh" id="CylinderMesh_3tqad"]
+material = SubResource("StandardMaterial3D_j5l1m")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_nqqfe"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_wftd3"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4c8hl"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_skbwo"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_vifp8"]
-material = SubResource("StandardMaterial3D_4c8hl")
+[sub_resource type="CylinderMesh" id="CylinderMesh_xlh7n"]
+material = SubResource("StandardMaterial3D_skbwo")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_frep4"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_vi13s"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4s8uj"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_07glt"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_2vfj2"]
-material = SubResource("StandardMaterial3D_4s8uj")
+[sub_resource type="CylinderMesh" id="CylinderMesh_y6tp7"]
+material = SubResource("StandardMaterial3D_07glt")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_q6enb"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_bbpi0"]
 height = 0.7
 radius = 0.17
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_n1csp"]
-albedo_texture = ExtResource("2_epcgq")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_oswkm"]
+albedo_texture = ExtResource("2_20tad")
 roughness = 0.45
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_axomm"]
-material = SubResource("StandardMaterial3D_n1csp")
+[sub_resource type="CylinderMesh" id="CylinderMesh_n7813"]
+material = SubResource("StandardMaterial3D_oswkm")
 top_radius = 0.02
 bottom_radius = 0.16
 height = 0.7
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_voxjd"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cujxj"]
 albedo_color = Color(0.88, 0.88, 0.88, 1)
 roughness = 0.75
 
-[sub_resource type="BoxMesh" id="BoxMesh_hctk5"]
-material = SubResource("StandardMaterial3D_voxjd")
+[sub_resource type="BoxMesh" id="BoxMesh_5k8mv"]
+material = SubResource("StandardMaterial3D_cujxj")
 size = Vector3(14, 0.012, 1.6)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_iq1p8"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_mtgc4"]
 size = Vector3(2.7, 0.16, 3.5)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_85v24"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_fw0x0"]
 size = Vector3(2.7, 0.645609, 0.34)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dj7o2"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xxfqf"]
 albedo_color = Color(0.17, 0.17, 0.18, 1)
 roughness = 0.82
 
-[sub_resource type="BoxMesh" id="BoxMesh_irl38"]
-material = SubResource("StandardMaterial3D_dj7o2")
+[sub_resource type="BoxMesh" id="BoxMesh_dgiys"]
+material = SubResource("StandardMaterial3D_xxfqf")
 size = Vector3(2.7, 0.16, 3.5)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_iq0fq"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7qmyv"]
 albedo_color = Color(0.8, 0.62, 0.1, 1)
 roughness = 0.6
 
-[sub_resource type="BoxMesh" id="BoxMesh_m1r4i"]
-material = SubResource("StandardMaterial3D_iq0fq")
+[sub_resource type="BoxMesh" id="BoxMesh_xv6dn"]
+material = SubResource("StandardMaterial3D_7qmyv")
 size = Vector3(2.7, 0.645609, 0.34)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pvids"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cgtnf"]
 albedo_color = Color(0.95, 0.8, 0.14, 1)
 roughness = 0.5
 emission_enabled = true
 emission = Color(0.85, 0.68, 0.1, 1)
 emission_energy_multiplier = 1.5
 
-[sub_resource type="BoxMesh" id="BoxMesh_do3ga"]
-material = SubResource("StandardMaterial3D_pvids")
+[sub_resource type="BoxMesh" id="BoxMesh_xxscv"]
+material = SubResource("StandardMaterial3D_cgtnf")
 size = Vector3(2.55, 0.05, 0.32)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_cdejc"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_o6ip1"]
 size = Vector3(2.7, 0.16, 3.5)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_vdnkb"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_r1qdm"]
 size = Vector3(2.7, 0.645609, 0.34)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_y5875"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_vgpkr"]
 albedo_color = Color(0.17, 0.17, 0.18, 1)
 roughness = 0.82
 
-[sub_resource type="BoxMesh" id="BoxMesh_6d0x8"]
-material = SubResource("StandardMaterial3D_y5875")
+[sub_resource type="BoxMesh" id="BoxMesh_3ti1p"]
+material = SubResource("StandardMaterial3D_vgpkr")
 size = Vector3(2.7, 0.16, 3.5)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lprjs"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_m3cjk"]
 albedo_color = Color(0.8, 0.62, 0.1, 1)
 roughness = 0.6
 
-[sub_resource type="BoxMesh" id="BoxMesh_26id7"]
-material = SubResource("StandardMaterial3D_lprjs")
+[sub_resource type="BoxMesh" id="BoxMesh_cx8m1"]
+material = SubResource("StandardMaterial3D_m3cjk")
 size = Vector3(2.7, 0.645609, 0.34)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_85gcw"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_r4epc"]
 albedo_color = Color(0.95, 0.8, 0.14, 1)
 roughness = 0.5
 emission_enabled = true
 emission = Color(0.85, 0.68, 0.1, 1)
 emission_energy_multiplier = 1.5
 
-[sub_resource type="BoxMesh" id="BoxMesh_j31jg"]
-material = SubResource("StandardMaterial3D_85gcw")
+[sub_resource type="BoxMesh" id="BoxMesh_jbk07"]
+material = SubResource("StandardMaterial3D_r4epc")
 size = Vector3(2.55, 0.05, 0.32)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_r5w1n"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_urqjd"]
 size = Vector3(2.7, 0.16, 3.5)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_fus1r"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_5uaso"]
 size = Vector3(2.7, 0.791079, 0.34)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mxmnr"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eyhiv"]
 albedo_color = Color(0.17, 0.17, 0.18, 1)
 roughness = 0.82
 
-[sub_resource type="BoxMesh" id="BoxMesh_3y6n1"]
-material = SubResource("StandardMaterial3D_mxmnr")
+[sub_resource type="BoxMesh" id="BoxMesh_87mjj"]
+material = SubResource("StandardMaterial3D_eyhiv")
 size = Vector3(2.7, 0.16, 3.5)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_a13n8"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1bqug"]
 albedo_color = Color(0.8, 0.62, 0.1, 1)
 roughness = 0.6
 
-[sub_resource type="BoxMesh" id="BoxMesh_becit"]
-material = SubResource("StandardMaterial3D_a13n8")
+[sub_resource type="BoxMesh" id="BoxMesh_coia1"]
+material = SubResource("StandardMaterial3D_1bqug")
 size = Vector3(2.7, 0.791079, 0.34)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_chbu8"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_8ymuw"]
 albedo_color = Color(0.95, 0.8, 0.14, 1)
 roughness = 0.5
 emission_enabled = true
 emission = Color(0.85, 0.68, 0.1, 1)
 emission_energy_multiplier = 1.5
 
-[sub_resource type="BoxMesh" id="BoxMesh_y3h3h"]
-material = SubResource("StandardMaterial3D_chbu8")
+[sub_resource type="BoxMesh" id="BoxMesh_o2bcw"]
+material = SubResource("StandardMaterial3D_8ymuw")
 size = Vector3(2.55, 0.05, 0.32)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_kico8"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_0bcb1"]
 size = Vector3(2.7, 0.16, 3.5)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_gx774"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_uyojc"]
 size = Vector3(2.7, 0.49837, 0.34)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_n5g2w"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_33pm5"]
 albedo_color = Color(0.17, 0.17, 0.18, 1)
 roughness = 0.82
 
-[sub_resource type="BoxMesh" id="BoxMesh_jfn4s"]
-material = SubResource("StandardMaterial3D_n5g2w")
+[sub_resource type="BoxMesh" id="BoxMesh_2pwgm"]
+material = SubResource("StandardMaterial3D_33pm5")
 size = Vector3(2.7, 0.16, 3.5)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eucle"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_48m0e"]
 albedo_color = Color(0.8, 0.62, 0.1, 1)
 roughness = 0.6
 
-[sub_resource type="BoxMesh" id="BoxMesh_o7ge8"]
-material = SubResource("StandardMaterial3D_eucle")
+[sub_resource type="BoxMesh" id="BoxMesh_h5l3x"]
+material = SubResource("StandardMaterial3D_48m0e")
 size = Vector3(2.7, 0.49837, 0.34)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_03aml"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1ukw2"]
 albedo_color = Color(0.95, 0.8, 0.14, 1)
 roughness = 0.5
 emission_enabled = true
 emission = Color(0.85, 0.68, 0.1, 1)
 emission_energy_multiplier = 1.5
 
-[sub_resource type="BoxMesh" id="BoxMesh_sh2wv"]
-material = SubResource("StandardMaterial3D_03aml")
+[sub_resource type="BoxMesh" id="BoxMesh_82qsr"]
+material = SubResource("StandardMaterial3D_1ukw2")
 size = Vector3(2.55, 0.05, 0.32)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_767l0"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_wdks3"]
 size = Vector3(2.7, 0.16, 3.5)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_351xq"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_hikuk"]
 size = Vector3(2.7, 0.694316, 0.34)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gqb43"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eqxwv"]
 albedo_color = Color(0.17, 0.17, 0.18, 1)
 roughness = 0.82
 
-[sub_resource type="BoxMesh" id="BoxMesh_2k0bg"]
-material = SubResource("StandardMaterial3D_gqb43")
+[sub_resource type="BoxMesh" id="BoxMesh_5n2us"]
+material = SubResource("StandardMaterial3D_eqxwv")
 size = Vector3(2.7, 0.16, 3.5)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_n5qeb"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_v6av4"]
 albedo_color = Color(0.8, 0.62, 0.1, 1)
 roughness = 0.6
 
-[sub_resource type="BoxMesh" id="BoxMesh_hg7mb"]
-material = SubResource("StandardMaterial3D_n5qeb")
+[sub_resource type="BoxMesh" id="BoxMesh_864ks"]
+material = SubResource("StandardMaterial3D_v6av4")
 size = Vector3(2.7, 0.694316, 0.34)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ka8yy"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kod2u"]
 albedo_color = Color(0.95, 0.8, 0.14, 1)
 roughness = 0.5
 emission_enabled = true
 emission = Color(0.85, 0.68, 0.1, 1)
 emission_energy_multiplier = 1.5
 
-[sub_resource type="BoxMesh" id="BoxMesh_wsfrs"]
-material = SubResource("StandardMaterial3D_ka8yy")
+[sub_resource type="BoxMesh" id="BoxMesh_6q72b"]
+material = SubResource("StandardMaterial3D_kod2u")
 size = Vector3(2.55, 0.05, 0.32)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_0jbf5"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_fewv4"]
 size = Vector3(2.7, 0.16, 3.5)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_fg83x"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_t6e54"]
 size = Vector3(2.7, 0.645609, 0.34)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wadl7"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_htqt3"]
 albedo_color = Color(0.17, 0.17, 0.18, 1)
 roughness = 0.82
 
-[sub_resource type="BoxMesh" id="BoxMesh_b4qwf"]
-material = SubResource("StandardMaterial3D_wadl7")
+[sub_resource type="BoxMesh" id="BoxMesh_fysxr"]
+material = SubResource("StandardMaterial3D_htqt3")
 size = Vector3(2.7, 0.16, 3.5)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5nof5"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_87s4j"]
 albedo_color = Color(0.8, 0.62, 0.1, 1)
 roughness = 0.6
 
-[sub_resource type="BoxMesh" id="BoxMesh_rue60"]
-material = SubResource("StandardMaterial3D_5nof5")
+[sub_resource type="BoxMesh" id="BoxMesh_0mel5"]
+material = SubResource("StandardMaterial3D_87s4j")
 size = Vector3(2.7, 0.645609, 0.34)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lo6fs"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tr8xb"]
 albedo_color = Color(0.95, 0.8, 0.14, 1)
 roughness = 0.5
 emission_enabled = true
 emission = Color(0.85, 0.68, 0.1, 1)
 emission_energy_multiplier = 1.5
 
-[sub_resource type="BoxMesh" id="BoxMesh_o7fv7"]
-material = SubResource("StandardMaterial3D_lo6fs")
+[sub_resource type="BoxMesh" id="BoxMesh_0logx"]
+material = SubResource("StandardMaterial3D_tr8xb")
 size = Vector3(2.55, 0.05, 0.32)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fkfhy"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_01s2u"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -627,7 +627,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fpym7"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_c467k"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -646,7 +646,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_p62r0"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mv8sc"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -665,7 +665,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5uuvc"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kjxg0"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -684,7 +684,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sdyec"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_v3f24"]
 content_margin_left = 2.0
 content_margin_top = 2.0
 content_margin_right = 2.0
@@ -703,14 +703,14 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 4
 shadow_offset = Vector2(0, 2)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jcekh"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dlep4"]
 bg_color = Color(0.722, 0.82, 0.961, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6yadg"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hklbi"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -729,7 +729,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fvw74"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7ogmv"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -748,7 +748,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5dxxn"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kwrkx"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -767,7 +767,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jci2q"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yp4sr"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -786,7 +786,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_banpm"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_w57nq"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -805,7 +805,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qs8ws"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yo2q6"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -824,7 +824,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mtgaf"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jr1l5"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -843,7 +843,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_upwt3"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0uffy"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -862,7 +862,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2riwt"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ikvw1"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -881,7 +881,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_53v2o"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wktsl"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -900,7 +900,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_x3wp8"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jjbeh"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -919,7 +919,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_otua5"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7saw7"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -938,7 +938,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_f3ftr"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_uiv0p"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -957,7 +957,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_44t43"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_t376m"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -976,7 +976,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_57iq1"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jvc00"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -995,7 +995,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jta4q"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yq7su"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1014,7 +1014,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scjxr"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jlqoe"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1033,7 +1033,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_57f3l"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dpype"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1052,7 +1052,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5axbk"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_chowt"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1071,7 +1071,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dbuv3"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4gjej"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1090,381 +1090,381 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_0vcox"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_l647l"]
 size = Vector3(6.5, 3.4, 5)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_meymb"]
-albedo_texture = ExtResource("10_bregy")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_05o0g"]
+albedo_texture = ExtResource("10_wg80w")
 roughness = 0.85
 
-[sub_resource type="BoxMesh" id="BoxMesh_5wjyr"]
-material = SubResource("StandardMaterial3D_meymb")
+[sub_resource type="BoxMesh" id="BoxMesh_4t3xe"]
+material = SubResource("StandardMaterial3D_05o0g")
 size = Vector3(6.5, 3.4, 5)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xiqeq"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wv0ji"]
 albedo_color = Color(0.22, 0.23, 0.24, 1)
 roughness = 0.8
 
-[sub_resource type="BoxMesh" id="BoxMesh_tphko"]
-material = SubResource("StandardMaterial3D_xiqeq")
+[sub_resource type="BoxMesh" id="BoxMesh_s0eb4"]
+material = SubResource("StandardMaterial3D_wv0ji")
 size = Vector3(7, 0.28, 5.5)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_m8dtl"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lqggj"]
 albedo_color = Color(0.13, 0.12, 0.11, 1)
 roughness = 0.7
 
-[sub_resource type="BoxMesh" id="BoxMesh_d6qcg"]
-material = SubResource("StandardMaterial3D_m8dtl")
+[sub_resource type="BoxMesh" id="BoxMesh_0qlvy"]
+material = SubResource("StandardMaterial3D_lqggj")
 size = Vector3(2.47, 2.108, 0.08)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_shbqr"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dm5xo"]
 albedo_color = Color(0.85, 0.42, 0.08, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_ymla2"]
-material = SubResource("StandardMaterial3D_shbqr")
+[sub_resource type="BoxMesh" id="BoxMesh_xw5f2"]
+material = SubResource("StandardMaterial3D_dm5xo")
 size = Vector3(2.99, 0.1, 0.34)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qxga3"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5he3c"]
 cull_mode = 2
 shading_mode = 0
 albedo_color = Color(0.4, 0.64, 0.74, 0.92)
 
-[sub_resource type="ArrayMesh" id="ArrayMesh_1tcub"]
+[sub_resource type="ArrayMesh" id="ArrayMesh_odgwa"]
 _surfaces = [{
 "aabb": AABB(-3.262, 1.304, -2.512, 6.524, 1.472, 5.024),
 "attribute_data": PackedByteArray("AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/"),
 "format": 34359738391,
-"material": SubResource("StandardMaterial3D_qxga3"),
+"material": SubResource("StandardMaterial3D_5he3c"),
 "primitive": 3,
 "uv_scale": Vector4(0, 0, 0, 0),
 "vertex_count": 120,
 "vertex_data": PackedByteArray("hesRwHnppj+cxCBAKVzPv3nppj+cxCBAKVzPv9V46T+cxCBAhesRwHnppj+cxCBAKVzPv9V46T+cxCBAhesRwNV46T+cxCBAhesRwHnppj+cxCDAKVzPv3nppj+cxCDAKVzPv9V46T+cxCDAhesRwHnppj+cxCDAKVzPv9V46T+cxCDAhesRwNV46T+cxCDAw/Wovnnppj+cxCBAw/WoPnnppj+cxCBAw/WoPtV46T+cxCBAw/Wovnnppj+cxCBAw/WoPtV46T+cxCBAw/WovtV46T+cxCBAw/Wovnnppj+cxCDAw/WoPnnppj+cxCDAw/WoPtV46T+cxCDAw/Wovnnppj+cxCDAw/WoPtV46T+cxCDAw/WovtV46T+cxCDAKVzPP3nppj+cxCBAhesRQHnppj+cxCBAhesRQNV46T+cxCBAKVzPP3nppj+cxCBAhesRQNV46T+cxCBAKVzPP9V46T+cxCBAKVzPP3nppj+cxCDAhesRQHnppj+cxCDAhesRQNV46T+cxCDAKVzPP3nppj+cxCDAhesRQNV46T+cxCDAKVzPP9V46T+cxCDAhesRwE5iEECcxCBAKVzPv05iEECcxCBAKVzPv/ypMUCcxCBAhesRwE5iEECcxCBAKVzPv/ypMUCcxCBAhesRwPypMUCcxCBAhesRwE5iEECcxCDAKVzPv05iEECcxCDAKVzPv/ypMUCcxCDAhesRwE5iEECcxCDAKVzPv/ypMUCcxCDAhesRwPypMUCcxCDAw/Wovk5iEECcxCBAw/WoPk5iEECcxCBAw/WoPvypMUCcxCBAw/Wovk5iEECcxCBAw/WoPvypMUCcxCBAw/WovvypMUCcxCBAw/Wovk5iEECcxCDAw/WoPk5iEECcxCDAw/WoPvypMUCcxCDAw/Wovk5iEECcxCDAw/WoPvypMUCcxCDAw/WovvypMUCcxCDAKVzPP05iEECcxCBAhesRQE5iEECcxCBAhesRQPypMUCcxCBAKVzPP05iEECcxCBAhesRQPypMUCcxCBAKVzPP/ypMUCcxCBAKVzPP05iEECcxCDAhesRQE5iEECcxCDAhesRQPypMUCcxCDAKVzPP05iEECcxCDAhesRQPypMUCcxCDAKVzPP/ypMUCcxCDAnMRQQHnppj+4HkW/nMRQQHnppj8+Cre/nMRQQNV46T8+Cre/nMRQQHnppj+4HkW/nMRQQNV46T8+Cre/nMRQQNV46T+4HkW/nMRQwHnppj+4HkW/nMRQwHnppj8+Cre/nMRQwNV46T8+Cre/nMRQwHnppj+4HkW/nMRQwNV46T8+Cre/nMRQwNV46T+4HkW/nMRQQHnppj8+Crc/nMRQQHnppj+4HkU/nMRQQNV46T+4HkU/nMRQQHnppj8+Crc/nMRQQNV46T+4HkU/nMRQQNV46T8+Crc/nMRQwHnppj8+Crc/nMRQwHnppj+4HkU/nMRQwNV46T+4HkU/nMRQwHnppj8+Crc/nMRQwNV46T+4HkU/nMRQwNV46T8+Crc/nMRQQE5iEEC4HkW/nMRQQE5iEEA+Cre/nMRQQPypMUA+Cre/nMRQQE5iEEC4HkW/nMRQQPypMUA+Cre/nMRQQPypMUC4HkW/nMRQwE5iEEC4HkW/nMRQwE5iEEA+Cre/nMRQwPypMUA+Cre/nMRQwE5iEEC4HkW/nMRQwPypMUA+Cre/nMRQwPypMUC4HkW/nMRQQE5iEEA+Crc/nMRQQE5iEEC4HkU/nMRQQPypMUC4HkU/nMRQQE5iEEA+Crc/nMRQQPypMUC4HkU/nMRQQPypMUA+Crc/nMRQwE5iEEA+Crc/nMRQwE5iEEC4HkU/nMRQwPypMUC4HkU/nMRQwE5iEEA+Crc/nMRQwPypMUC4HkU/nMRQwPypMUA+Crc///////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCAAAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/")
 }]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_six45"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ge740"]
 albedo_color = Color(0.2, 0.17, 0.15, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_s1qr0"]
-material = SubResource("StandardMaterial3D_six45")
+[sub_resource type="BoxMesh" id="BoxMesh_jtrow"]
+material = SubResource("StandardMaterial3D_ge740")
 size = Vector3(6.58, 0.55, 5.08)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dcyyx"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_073ud"]
 albedo_color = Color(0.36, 0.38, 0.4, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_hasv2"]
-material = SubResource("StandardMaterial3D_dcyyx")
+[sub_resource type="BoxMesh" id="BoxMesh_kyikk"]
+material = SubResource("StandardMaterial3D_073ud")
 size = Vector3(1.95, 0.48, 1.3)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hi8n4"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gr114"]
 albedo_color = Color(0.28, 0.29, 0.31, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_gmxk0"]
-material = SubResource("StandardMaterial3D_hi8n4")
+[sub_resource type="BoxMesh" id="BoxMesh_7vyal"]
+material = SubResource("StandardMaterial3D_gr114")
 size = Vector3(0.22, 0.85, 0.22)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tvxcx"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hw0b2"]
 albedo_color = Color(0.09, 0.1, 0.12, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_hgp1l"]
-material = SubResource("StandardMaterial3D_tvxcx")
+[sub_resource type="BoxMesh" id="BoxMesh_dpkqv"]
+material = SubResource("StandardMaterial3D_hw0b2")
 size = Vector3(4.68, 0.46, 0.09)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gqdqw"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1xjyp"]
 shading_mode = 0
 albedo_color = Color(1, 0.32, 0.1, 1)
 
-[sub_resource type="SphereMesh" id="SphereMesh_3kfvk"]
-material = SubResource("StandardMaterial3D_gqdqw")
+[sub_resource type="SphereMesh" id="SphereMesh_mhw7r"]
+material = SubResource("StandardMaterial3D_1xjyp")
 radius = 0.1
 height = 0.2
 radial_segments = 8
 rings = 4
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_jx1lj"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_n1n7p"]
 size = Vector3(4.2, 2.3, 3.6)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_57553"]
-albedo_texture = ExtResource("11_fk2nx")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_12usg"]
+albedo_texture = ExtResource("11_nqspt")
 roughness = 0.85
 
-[sub_resource type="BoxMesh" id="BoxMesh_n6bl6"]
-material = SubResource("StandardMaterial3D_57553")
+[sub_resource type="BoxMesh" id="BoxMesh_pwoso"]
+material = SubResource("StandardMaterial3D_12usg")
 size = Vector3(4.2, 2.3, 3.6)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wa0ax"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6uaij"]
 albedo_color = Color(0.22, 0.23, 0.24, 1)
 roughness = 0.8
 
-[sub_resource type="BoxMesh" id="BoxMesh_rhvrh"]
-material = SubResource("StandardMaterial3D_wa0ax")
+[sub_resource type="BoxMesh" id="BoxMesh_rannu"]
+material = SubResource("StandardMaterial3D_6uaij")
 size = Vector3(4.7, 0.28, 4.1)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dppgf"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lqlla"]
 albedo_color = Color(0.13, 0.12, 0.11, 1)
 roughness = 0.7
 
-[sub_resource type="BoxMesh" id="BoxMesh_owga3"]
-material = SubResource("StandardMaterial3D_dppgf")
+[sub_resource type="BoxMesh" id="BoxMesh_w5xx0"]
+material = SubResource("StandardMaterial3D_lqlla")
 size = Vector3(1.596, 1.426, 0.08)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_n201t"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_r7s7m"]
 albedo_color = Color(0.85, 0.42, 0.08, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_q61a0"]
-material = SubResource("StandardMaterial3D_n201t")
+[sub_resource type="BoxMesh" id="BoxMesh_1h57v"]
+material = SubResource("StandardMaterial3D_r7s7m")
 size = Vector3(1.932, 0.1, 0.34)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_e525u"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rxrmd"]
 cull_mode = 2
 shading_mode = 0
 albedo_color = Color(0.4, 0.64, 0.74, 0.92)
 
-[sub_resource type="ArrayMesh" id="ArrayMesh_u65yv"]
+[sub_resource type="ArrayMesh" id="ArrayMesh_umf7g"]
 _surfaces = [{
 "aabb": AABB(-2.112, 0.798, -1.812, 4.224, 0.52, 3.624),
 "attribute_data": PackedByteArray("AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/"),
 "format": 34359738391,
-"material": SubResource("StandardMaterial3D_e525u"),
+"material": SubResource("StandardMaterial3D_rxrmd"),
 "primitive": 3,
 "uv_scale": Vector4(0, 0, 0, 0),
 "vertex_count": 60,
 "vertex_data": PackedByteArray("H4XLv7pJTD+d7+c/ehRuv7pJTD+d7+c/ehRuvzm0qD+d7+c/H4XLv7pJTD+d7+c/ehRuvzm0qD+d7+c/H4XLvzm0qD+d7+c/H4XLv7pJTD+d7+e/ehRuv7pJTD+d7+e/ehRuvzm0qD+d7+e/H4XLv7pJTD+d7+e/ehRuvzm0qD+d7+e/H4XLvzm0qD+d7+e/w/WovrpJTD+d7+c/w/WoPrpJTD+d7+c/w/WoPjm0qD+d7+c/w/WovrpJTD+d7+c/w/WoPjm0qD+d7+c/w/Wovjm0qD+d7+c/w/WovrpJTD+d7+e/w/WoPrpJTD+d7+e/w/WoPjm0qD+d7+e/w/WovrpJTD+d7+e/w/WoPjm0qD+d7+e/w/Wovjm0qD+d7+e/ehRuP7pJTD+d7+c/H4XLP7pJTD+d7+c/H4XLPzm0qD+d7+c/ehRuP7pJTD+d7+c/H4XLPzm0qD+d7+c/ehRuPzm0qD+d7+c/ehRuP7pJTD+d7+e/H4XLP7pJTD+d7+e/H4XLPzm0qD+d7+e/ehRuP7pJTD+d7+e/H4XLPzm0qD+d7+e/ehRuPzm0qD+d7+e/AisHQLpJTD8lBgG/AisHQLpJTD9wPYq/AisHQDm0qD9wPYq/AisHQLpJTD8lBgG/AisHQDm0qD9wPYq/AisHQDm0qD8lBgG/AisHwLpJTD8lBgG/AisHwLpJTD9wPYq/AisHwDm0qD9wPYq/AisHwLpJTD8lBgG/AisHwDm0qD9wPYq/AisHwDm0qD8lBgG/AisHQLpJTD9wPYo/AisHQLpJTD8lBgE/AisHQDm0qD8lBgE/AisHQLpJTD9wPYo/AisHQDm0qD8lBgE/AisHQDm0qD9wPYo/AisHwLpJTD9wPYo/AisHwLpJTD8lBgE/AisHwDm0qD8lBgE/AisHwLpJTD9wPYo/AisHwDm0qD8lBgE/AisHwDm0qD9wPYo///////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCAAAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/")
 }]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_e1dx1"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_8skp5"]
 albedo_color = Color(0.2, 0.17, 0.15, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_3igfv"]
-material = SubResource("StandardMaterial3D_e1dx1")
+[sub_resource type="BoxMesh" id="BoxMesh_yietc"]
+material = SubResource("StandardMaterial3D_8skp5")
 size = Vector3(4.28, 0.55, 3.68)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_t5v4q"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_p534a"]
 albedo_color = Color(0.36, 0.38, 0.4, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_lulpb"]
-material = SubResource("StandardMaterial3D_t5v4q")
+[sub_resource type="BoxMesh" id="BoxMesh_nyt5o"]
+material = SubResource("StandardMaterial3D_p534a")
 size = Vector3(1.26, 0.48, 0.936)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mvmgl"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_laxbm"]
 albedo_color = Color(0.28, 0.29, 0.31, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_tsp4c"]
-material = SubResource("StandardMaterial3D_mvmgl")
+[sub_resource type="BoxMesh" id="BoxMesh_p8j1p"]
+material = SubResource("StandardMaterial3D_laxbm")
 size = Vector3(0.22, 0.85, 0.22)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_12fap"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_w6l8t"]
 albedo_color = Color(0.09, 0.1, 0.12, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_bixiq"]
-material = SubResource("StandardMaterial3D_12fap")
+[sub_resource type="BoxMesh" id="BoxMesh_7w5jp"]
+material = SubResource("StandardMaterial3D_w6l8t")
 size = Vector3(3.024, 0.46, 0.09)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0jyc8"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_nji23"]
 shading_mode = 0
 albedo_color = Color(1, 0.32, 0.1, 1)
 
-[sub_resource type="SphereMesh" id="SphereMesh_483kp"]
-material = SubResource("StandardMaterial3D_0jyc8")
+[sub_resource type="SphereMesh" id="SphereMesh_red08"]
+material = SubResource("StandardMaterial3D_nji23")
 radius = 0.1
 height = 0.2
 radial_segments = 8
 rings = 4
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_5x0yl"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_17iw1"]
 size = Vector3(4.8, 4.6, 4.2)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kxpio"]
-albedo_texture = ExtResource("12_d51mw")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ijy3k"]
+albedo_texture = ExtResource("12_se02h")
 roughness = 0.85
 
-[sub_resource type="BoxMesh" id="BoxMesh_hdct7"]
-material = SubResource("StandardMaterial3D_kxpio")
+[sub_resource type="BoxMesh" id="BoxMesh_b7yhg"]
+material = SubResource("StandardMaterial3D_ijy3k")
 size = Vector3(4.8, 4.6, 4.2)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_d1ahj"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_8n0hp"]
 albedo_color = Color(0.22, 0.23, 0.24, 1)
 roughness = 0.8
 
-[sub_resource type="BoxMesh" id="BoxMesh_7h3gd"]
-material = SubResource("StandardMaterial3D_d1ahj")
+[sub_resource type="BoxMesh" id="BoxMesh_2prd6"]
+material = SubResource("StandardMaterial3D_8n0hp")
 size = Vector3(5.3, 0.28, 4.7)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ydndd"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mytxn"]
 albedo_color = Color(0.13, 0.12, 0.11, 1)
 roughness = 0.7
 
-[sub_resource type="BoxMesh" id="BoxMesh_52exw"]
-material = SubResource("StandardMaterial3D_ydndd")
+[sub_resource type="BoxMesh" id="BoxMesh_nsy8t"]
+material = SubResource("StandardMaterial3D_mytxn")
 size = Vector3(1.824, 2.852, 0.08)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_op0f4"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_i0fch"]
 albedo_color = Color(0.85, 0.42, 0.08, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_cvch8"]
-material = SubResource("StandardMaterial3D_op0f4")
+[sub_resource type="BoxMesh" id="BoxMesh_ylemf"]
+material = SubResource("StandardMaterial3D_i0fch")
 size = Vector3(2.208, 0.1, 0.34)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_vtedg"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4iwky"]
 cull_mode = 2
 shading_mode = 0
 albedo_color = Color(0.4, 0.64, 0.74, 0.92)
 
-[sub_resource type="ArrayMesh" id="ArrayMesh_bsopb"]
+[sub_resource type="ArrayMesh" id="ArrayMesh_pcqhq"]
 _surfaces = [{
 "aabb": AABB(-2.412, 1.856, -2.112, 4.824, 1.808, 4.224),
 "attribute_data": PackedByteArray("AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/"),
 "format": 34359738391,
-"material": SubResource("StandardMaterial3D_vtedg"),
+"material": SubResource("StandardMaterial3D_4iwky"),
 "primitive": 3,
 "uv_scale": Vector4(0, 0, 0, 0),
 "vertex_count": 120,
 "vertex_data": PackedByteArray("XY/iv2iR7T8CKwdAexSOv2iR7T8CKwdAexSOv2IQGEACKwdAXY/iv2iR7T8CKwdAexSOv2IQGEACKwdAXY/iv2IQGEACKwdAXY/iv2iR7T8CKwfAexSOv2iR7T8CKwfAexSOv2IQGEACKwfAXY/iv2iR7T8CKwfAexSOv2IQGEACKwfAXY/iv2IQGEACKwfAw/WovmiR7T8CKwdAw/WoPmiR7T8CKwdAw/WoPmIQGEACKwdAw/WovmiR7T8CKwdAw/WoPmIQGEACKwdAw/WovmIQGEACKwdAw/WovmiR7T8CKwfAw/WoPmiR7T8CKwfAw/WoPmIQGEACKwfAw/WovmiR7T8CKwfAw/WoPmIQGEACKwfAw/WovmIQGEACKwfAexSOP2iR7T8CKwdAXY/iP2iR7T8CKwdAXY/iP2IQGEACKwdAexSOP2iR7T8CKwdAXY/iP2IQGEACKwdAexSOP2IQGEACKwdAexSOP2iR7T8CKwfAXY/iP2iR7T8CKwfAXY/iP2IQGEACKwfAexSOP2iR7T8CKwfAXY/iP2IQGEACKwfAexSOP2IQGEACKwfAXY/iv0w3SUACKwdAexSOv0w3SUACKwdAexSOv/p+akACKwdAXY/iv0w3SUACKwdAexSOv/p+akACKwdAXY/iv/p+akACKwdAXY/iv0w3SUACKwfAexSOv0w3SUACKwfAexSOv/p+akACKwfAXY/iv0w3SUACKwfAexSOv/p+akACKwfAXY/iv/p+akACKwfAw/Wovkw3SUACKwdAw/WoPkw3SUACKwdAw/WoPvp+akACKwdAw/Wovkw3SUACKwdAw/WoPvp+akACKwdAw/Wovvp+akACKwdAw/Wovkw3SUACKwfAw/WoPkw3SUACKwfAw/WoPvp+akACKwfAw/Wovkw3SUACKwfAw/WoPvp+akACKwfAw/Wovvp+akACKwfAexSOP0w3SUACKwdAXY/iP0w3SUACKwdAXY/iP/p+akACKwdAexSOP0w3SUACKwdAXY/iP/p+akACKwdAexSOP/p+akACKwdAexSOP0w3SUACKwfAXY/iP0w3SUACKwfAXY/iP/p+akACKwfAexSOP0w3SUACKwfAXY/iP/p+akACKwfAexSOP/p+akACKwfANl4aQGiR7T9iEBi/Nl4aQGiR7T8Sg6C/Nl4aQGIQGEASg6C/Nl4aQGiR7T9iEBi/Nl4aQGIQGEASg6C/Nl4aQGIQGEBiEBi/Nl4awGiR7T9iEBi/Nl4awGiR7T8Sg6C/Nl4awGIQGEASg6C/Nl4awGiR7T9iEBi/Nl4awGIQGEASg6C/Nl4awGIQGEBiEBi/Nl4aQGiR7T8Sg6A/Nl4aQGiR7T9iEBg/Nl4aQGIQGEBiEBg/Nl4aQGiR7T8Sg6A/Nl4aQGIQGEBiEBg/Nl4aQGIQGEASg6A/Nl4awGiR7T8Sg6A/Nl4awGiR7T9iEBg/Nl4awGIQGEBiEBg/Nl4awGiR7T8Sg6A/Nl4awGIQGEBiEBg/Nl4awGIQGEASg6A/Nl4aQEw3SUBiEBi/Nl4aQEw3SUASg6C/Nl4aQPp+akASg6C/Nl4aQEw3SUBiEBi/Nl4aQPp+akASg6C/Nl4aQPp+akBiEBi/Nl4awEw3SUBiEBi/Nl4awEw3SUASg6C/Nl4awPp+akASg6C/Nl4awEw3SUBiEBi/Nl4awPp+akASg6C/Nl4awPp+akBiEBi/Nl4aQEw3SUASg6A/Nl4aQEw3SUBiEBg/Nl4aQPp+akBiEBg/Nl4aQEw3SUASg6A/Nl4aQPp+akBiEBg/Nl4aQPp+akASg6A/Nl4awEw3SUASg6A/Nl4awEw3SUBiEBg/Nl4awPp+akBiEBg/Nl4awEw3SUASg6A/Nl4awPp+akBiEBg/Nl4awPp+akASg6A///////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCAAAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/")
 }]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_s61nl"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_swpan"]
 albedo_color = Color(0.2, 0.17, 0.15, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_s3cuh"]
-material = SubResource("StandardMaterial3D_s61nl")
+[sub_resource type="BoxMesh" id="BoxMesh_uhq28"]
+material = SubResource("StandardMaterial3D_swpan")
 size = Vector3(4.88, 0.55, 4.28)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_73sn8"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_onnsd"]
 albedo_color = Color(0.36, 0.38, 0.4, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_d5ocl"]
-material = SubResource("StandardMaterial3D_73sn8")
+[sub_resource type="BoxMesh" id="BoxMesh_bqiup"]
+material = SubResource("StandardMaterial3D_onnsd")
 size = Vector3(1.44, 0.48, 1.092)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wjhgl"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_10elj"]
 albedo_color = Color(0.28, 0.29, 0.31, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_qpu0v"]
-material = SubResource("StandardMaterial3D_wjhgl")
+[sub_resource type="BoxMesh" id="BoxMesh_5i6pe"]
+material = SubResource("StandardMaterial3D_10elj")
 size = Vector3(0.22, 0.85, 0.22)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_8nwc7"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_uecf5"]
 albedo_color = Color(0.09, 0.1, 0.12, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_fn683"]
-material = SubResource("StandardMaterial3D_8nwc7")
+[sub_resource type="BoxMesh" id="BoxMesh_c8nw3"]
+material = SubResource("StandardMaterial3D_uecf5")
 size = Vector3(3.456, 0.46, 0.09)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_vy18m"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5lpme"]
 shading_mode = 0
 albedo_color = Color(1, 0.32, 0.1, 1)
 
-[sub_resource type="SphereMesh" id="SphereMesh_coypn"]
-material = SubResource("StandardMaterial3D_vy18m")
+[sub_resource type="SphereMesh" id="SphereMesh_vpq4u"]
+material = SubResource("StandardMaterial3D_5lpme")
 radius = 0.1
 height = 0.2
 radial_segments = 8
 rings = 4
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_luvqh"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_htjqy"]
 size = Vector3(5, 3, 4.4)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ke355"]
-albedo_texture = ExtResource("13_y2iix")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_28owa"]
+albedo_texture = ExtResource("13_alov3")
 roughness = 0.85
 
-[sub_resource type="BoxMesh" id="BoxMesh_8otyf"]
-material = SubResource("StandardMaterial3D_ke355")
+[sub_resource type="BoxMesh" id="BoxMesh_fuqqj"]
+material = SubResource("StandardMaterial3D_28owa")
 size = Vector3(5, 3, 4.4)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jiium"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tbrag"]
 albedo_color = Color(0.22, 0.23, 0.24, 1)
 roughness = 0.8
 
-[sub_resource type="BoxMesh" id="BoxMesh_t4sfg"]
-material = SubResource("StandardMaterial3D_jiium")
+[sub_resource type="BoxMesh" id="BoxMesh_27g8n"]
+material = SubResource("StandardMaterial3D_tbrag")
 size = Vector3(5.5, 0.28, 4.9)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_301a3"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cxfux"]
 albedo_color = Color(0.13, 0.12, 0.11, 1)
 roughness = 0.7
 
-[sub_resource type="BoxMesh" id="BoxMesh_xebya"]
-material = SubResource("StandardMaterial3D_301a3")
+[sub_resource type="BoxMesh" id="BoxMesh_ovljg"]
+material = SubResource("StandardMaterial3D_cxfux")
 size = Vector3(1.9, 1.86, 0.08)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ktrg4"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6xa1e"]
 albedo_color = Color(0.85, 0.42, 0.08, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_quyx7"]
-material = SubResource("StandardMaterial3D_ktrg4")
+[sub_resource type="BoxMesh" id="BoxMesh_h6t83"]
+material = SubResource("StandardMaterial3D_6xa1e")
 size = Vector3(2.3, 0.1, 0.34)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_e7ja6"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ddxd5"]
 cull_mode = 2
 shading_mode = 0
 albedo_color = Color(0.4, 0.64, 0.74, 0.92)
 
-[sub_resource type="ArrayMesh" id="ArrayMesh_6x5a6"]
+[sub_resource type="ArrayMesh" id="ArrayMesh_wolkf"]
 _surfaces = [{
 "aabb": AABB(-2.512, 1.12, -2.212, 5.024, 1.36, 4.424),
 "attribute_data": PackedByteArray("AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAIA/"),
 "format": 34359738391,
-"material": SubResource("StandardMaterial3D_e7ja6"),
+"material": SubResource("StandardMaterial3D_ddxd5"),
 "primitive": 3,
 "uv_scale": Vector4(0, 0, 0, 0),
 "vertex_count": 120,
 "vertex_data": PackedByteArray("cT3qvylcjz9pkQ1Aj8KVvylcjz9pkQ1Aj8KVv4Xr0T9pkQ1AcT3qvylcjz9pkQ1Aj8KVv4Xr0T9pkQ1AcT3qv4Xr0T9pkQ1AcT3qvylcjz9pkQ3Aj8KVvylcjz9pkQ3Aj8KVv4Xr0T9pkQ3AcT3qvylcjz9pkQ3Aj8KVv4Xr0T9pkQ3AcT3qv4Xr0T9pkQ3Aw/Wovilcjz9pkQ1Aw/WoPilcjz9pkQ1Aw/WoPoXr0T9pkQ1Aw/Wovilcjz9pkQ1Aw/WoPoXr0T9pkQ1Aw/WovoXr0T9pkQ1Aw/Wovilcjz9pkQ3Aw/WoPilcjz9pkQ3Aw/WoPoXr0T9pkQ3Aw/Wovilcjz9pkQ3Aw/WoPoXr0T9pkQ3Aw/WovoXr0T9pkQ3Aj8KVPylcjz9pkQ1AcT3qPylcjz9pkQ1AcT3qP4Xr0T9pkQ1Aj8KVPylcjz9pkQ1AcT3qP4Xr0T9pkQ1Aj8KVP4Xr0T9pkQ1Aj8KVPylcjz9pkQ3AcT3qPylcjz9pkQ3AcT3qP4Xr0T9pkQ3Aj8KVPylcjz9pkQ3AcT3qP4Xr0T9pkQ3Aj8KVP4Xr0T9pkQ3AcT3qv0jh+j9pkQ1Aj8KVv0jh+j9pkQ1Aj8KVv1K4HkBpkQ1AcT3qv0jh+j9pkQ1Aj8KVv1K4HkBpkQ1AcT3qv1K4HkBpkQ1AcT3qv0jh+j9pkQ3Aj8KVv0jh+j9pkQ3Aj8KVv1K4HkBpkQ3AcT3qv0jh+j9pkQ3Aj8KVv1K4HkBpkQ3AcT3qv1K4HkBpkQ3Aw/Wovkjh+j9pkQ1Aw/WoPkjh+j9pkQ1Aw/WoPlK4HkBpkQ1Aw/Wovkjh+j9pkQ1Aw/WoPlK4HkBpkQ1Aw/WovlK4HkBpkQ1Aw/Wovkjh+j9pkQ3Aw/WoPkjh+j9pkQ3Aw/WoPlK4HkBpkQ3Aw/Wovkjh+j9pkQ3Aw/WoPlK4HkBpkQ3Aw/WovlK4HkBpkQ3Aj8KVP0jh+j9pkQ1AcT3qP0jh+j9pkQ1AcT3qP1K4HkBpkQ1Aj8KVP0jh+j9pkQ1AcT3qP1K4HkBpkQ1Aj8KVP1K4HkBpkQ1Aj8KVP0jh+j9pkQ3AcT3qP0jh+j9pkQ3AcT3qP1K4HkBpkQ3Aj8KVP0jh+j9pkQ3AcT3qP1K4HkBpkQ3Aj8KVP1K4HkBpkQ3AnMQgQClcjz/4UyO/nMQgQClcjz/dJKa/nMQgQIXr0T/dJKa/nMQgQClcjz/4UyO/nMQgQIXr0T/dJKa/nMQgQIXr0T/4UyO/nMQgwClcjz/4UyO/nMQgwClcjz/dJKa/nMQgwIXr0T/dJKa/nMQgwClcjz/4UyO/nMQgwIXr0T/dJKa/nMQgwIXr0T/4UyO/nMQgQClcjz/dJKY/nMQgQClcjz/4UyM/nMQgQIXr0T/4UyM/nMQgQClcjz/dJKY/nMQgQIXr0T/4UyM/nMQgQIXr0T/dJKY/nMQgwClcjz/dJKY/nMQgwClcjz/4UyM/nMQgwIXr0T/4UyM/nMQgwClcjz/dJKY/nMQgwIXr0T/4UyM/nMQgwIXr0T/dJKY/nMQgQEjh+j/4UyO/nMQgQEjh+j/dJKa/nMQgQFK4HkDdJKa/nMQgQEjh+j/4UyO/nMQgQFK4HkDdJKa/nMQgQFK4HkD4UyO/nMQgwEjh+j/4UyO/nMQgwEjh+j/dJKa/nMQgwFK4HkDdJKa/nMQgwEjh+j/4UyO/nMQgwFK4HkDdJKa/nMQgwFK4HkD4UyO/nMQgQEjh+j/dJKY/nMQgQEjh+j/4UyM/nMQgQFK4HkD4UyM/nMQgQEjh+j/dJKY/nMQgQFK4HkD4UyM/nMQgQFK4HkDdJKY/nMQgwEjh+j/dJKY/nMQgwEjh+j/4UyM/nMQgwFK4HkD4UyM/nMQgwEjh+j/dJKY/nMQgwFK4HkD4UyM/nMQgwFK4HkDdJKY///////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCAAAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+/")
 }]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7ojmj"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_8b121"]
 albedo_color = Color(0.2, 0.17, 0.15, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_a8lpc"]
-material = SubResource("StandardMaterial3D_7ojmj")
+[sub_resource type="BoxMesh" id="BoxMesh_bd5yl"]
+material = SubResource("StandardMaterial3D_8b121")
 size = Vector3(5.08, 0.55, 4.48)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_oh4un"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ou3gt"]
 albedo_color = Color(0.36, 0.38, 0.4, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_purwr"]
-material = SubResource("StandardMaterial3D_oh4un")
+[sub_resource type="BoxMesh" id="BoxMesh_l6288"]
+material = SubResource("StandardMaterial3D_ou3gt")
 size = Vector3(1.5, 0.48, 1.144)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_q7qvb"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rld7k"]
 albedo_color = Color(0.28, 0.29, 0.31, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_lea0r"]
-material = SubResource("StandardMaterial3D_q7qvb")
+[sub_resource type="BoxMesh" id="BoxMesh_201ya"]
+material = SubResource("StandardMaterial3D_rld7k")
 size = Vector3(0.22, 0.85, 0.22)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_w2flj"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l1tob"]
 albedo_color = Color(0.09, 0.1, 0.12, 1)
 roughness = 0.55
 
-[sub_resource type="BoxMesh" id="BoxMesh_tpcih"]
-material = SubResource("StandardMaterial3D_w2flj")
+[sub_resource type="BoxMesh" id="BoxMesh_sj4l6"]
+material = SubResource("StandardMaterial3D_l1tob")
 size = Vector3(3.6, 0.46, 0.09)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pgtm1"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rnuyp"]
 shading_mode = 0
 albedo_color = Color(1, 0.32, 0.1, 1)
 
-[sub_resource type="SphereMesh" id="SphereMesh_fks3a"]
-material = SubResource("StandardMaterial3D_pgtm1")
+[sub_resource type="SphereMesh" id="SphereMesh_fvc6c"]
+material = SubResource("StandardMaterial3D_rnuyp")
 radius = 0.1
 height = 0.2
 radial_segments = 8
@@ -1473,7 +1473,7 @@ rings = 4
 [node name="TestRide" type="Node3D"]
 
 [node name="@WorldEnvironment@2" type="WorldEnvironment" parent="."]
-environment = SubResource("Environment_kbohb")
+environment = SubResource("Environment_wvwu5")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.906308, -0.314067, 0.282787, 0, 0.669131, 0.743145, -0.422618, -0.673518, 0.606438, 0, 0, 0)
@@ -1486,413 +1486,413 @@ directional_shadow_max_distance = 150.0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 
 [node name="@CollisionShape3D@3" type="CollisionShape3D" parent="Ground"]
-shape = SubResource("BoxShape3D_uxgbi")
+shape = SubResource("BoxShape3D_3vnxu")
 
 [node name="@MeshInstance3D@4" type="MeshInstance3D" parent="Ground"]
-mesh = SubResource("BoxMesh_oqahg")
+mesh = SubResource("BoxMesh_nvw87")
 
 [node name="@StaticBody3D@7" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0.35, 0)
 
 [node name="@CollisionShape3D@5" type="CollisionShape3D" parent="@StaticBody3D@7"]
-shape = SubResource("CylinderShape3D_wek1p")
+shape = SubResource("CylinderShape3D_6nmw4")
 
 [node name="@MeshInstance3D@6" type="MeshInstance3D" parent="@StaticBody3D@7"]
-mesh = SubResource("CylinderMesh_3n65i")
+mesh = SubResource("CylinderMesh_8a54t")
 
 [node name="@StaticBody3D@10" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.9778, 0.35, 7.76457)
 
 [node name="@CollisionShape3D@8" type="CollisionShape3D" parent="@StaticBody3D@10"]
-shape = SubResource("CylinderShape3D_mgmgs")
+shape = SubResource("CylinderShape3D_4noet")
 
 [node name="@MeshInstance3D@9" type="MeshInstance3D" parent="@StaticBody3D@10"]
-mesh = SubResource("CylinderMesh_5s27v")
+mesh = SubResource("CylinderMesh_sa8l1")
 
 [node name="@StaticBody3D@13" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.9808, 0.35, 15)
 
 [node name="@CollisionShape3D@11" type="CollisionShape3D" parent="@StaticBody3D@13"]
-shape = SubResource("CylinderShape3D_wwjb6")
+shape = SubResource("CylinderShape3D_b2m2o")
 
 [node name="@MeshInstance3D@12" type="MeshInstance3D" parent="@StaticBody3D@13"]
-mesh = SubResource("CylinderMesh_8p3s4")
+mesh = SubResource("CylinderMesh_tyiq1")
 
 [node name="@StaticBody3D@16" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.2132, 0.35, 21.2132)
 
 [node name="@CollisionShape3D@14" type="CollisionShape3D" parent="@StaticBody3D@16"]
-shape = SubResource("CylinderShape3D_3qdgu")
+shape = SubResource("CylinderShape3D_01xd4")
 
 [node name="@MeshInstance3D@15" type="MeshInstance3D" parent="@StaticBody3D@16"]
-mesh = SubResource("CylinderMesh_nf4tt")
+mesh = SubResource("CylinderMesh_jvsv0")
 
 [node name="@StaticBody3D@19" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0.35, 25.9808)
 
 [node name="@CollisionShape3D@17" type="CollisionShape3D" parent="@StaticBody3D@19"]
-shape = SubResource("CylinderShape3D_ud7up")
+shape = SubResource("CylinderShape3D_accsv")
 
 [node name="@MeshInstance3D@18" type="MeshInstance3D" parent="@StaticBody3D@19"]
-mesh = SubResource("CylinderMesh_mqomb")
+mesh = SubResource("CylinderMesh_kytv7")
 
 [node name="@StaticBody3D@22" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.76457, 0.35, 28.9778)
 
 [node name="@CollisionShape3D@20" type="CollisionShape3D" parent="@StaticBody3D@22"]
-shape = SubResource("CylinderShape3D_uuavx")
+shape = SubResource("CylinderShape3D_eeuw8")
 
 [node name="@MeshInstance3D@21" type="MeshInstance3D" parent="@StaticBody3D@22"]
-mesh = SubResource("CylinderMesh_p8abk")
+mesh = SubResource("CylinderMesh_ns0nf")
 
 [node name="@StaticBody3D@25" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.83697e-15, 0.35, 30)
 
 [node name="@CollisionShape3D@23" type="CollisionShape3D" parent="@StaticBody3D@25"]
-shape = SubResource("CylinderShape3D_mpgv5")
+shape = SubResource("CylinderShape3D_wp18x")
 
 [node name="@MeshInstance3D@24" type="MeshInstance3D" parent="@StaticBody3D@25"]
-mesh = SubResource("CylinderMesh_eaax5")
+mesh = SubResource("CylinderMesh_j5hnq")
 
 [node name="@StaticBody3D@28" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.76457, 0.35, 28.9778)
 
 [node name="@CollisionShape3D@26" type="CollisionShape3D" parent="@StaticBody3D@28"]
-shape = SubResource("CylinderShape3D_c6tiv")
+shape = SubResource("CylinderShape3D_lklg7")
 
 [node name="@MeshInstance3D@27" type="MeshInstance3D" parent="@StaticBody3D@28"]
-mesh = SubResource("CylinderMesh_wal8i")
+mesh = SubResource("CylinderMesh_evqd4")
 
 [node name="@StaticBody3D@31" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0.35, 25.9808)
 
 [node name="@CollisionShape3D@29" type="CollisionShape3D" parent="@StaticBody3D@31"]
-shape = SubResource("CylinderShape3D_82kk3")
+shape = SubResource("CylinderShape3D_q58rg")
 
 [node name="@MeshInstance3D@30" type="MeshInstance3D" parent="@StaticBody3D@31"]
-mesh = SubResource("CylinderMesh_iemhd")
+mesh = SubResource("CylinderMesh_nij20")
 
 [node name="@StaticBody3D@34" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.2132, 0.35, 21.2132)
 
 [node name="@CollisionShape3D@32" type="CollisionShape3D" parent="@StaticBody3D@34"]
-shape = SubResource("CylinderShape3D_483lv")
+shape = SubResource("CylinderShape3D_dhk41")
 
 [node name="@MeshInstance3D@33" type="MeshInstance3D" parent="@StaticBody3D@34"]
-mesh = SubResource("CylinderMesh_f51pu")
+mesh = SubResource("CylinderMesh_5vbs5")
 
 [node name="@StaticBody3D@37" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.9808, 0.35, 15)
 
 [node name="@CollisionShape3D@35" type="CollisionShape3D" parent="@StaticBody3D@37"]
-shape = SubResource("CylinderShape3D_h4wah")
+shape = SubResource("CylinderShape3D_8id7r")
 
 [node name="@MeshInstance3D@36" type="MeshInstance3D" parent="@StaticBody3D@37"]
-mesh = SubResource("CylinderMesh_yao13")
+mesh = SubResource("CylinderMesh_ly3xk")
 
 [node name="@StaticBody3D@40" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.9778, 0.35, 7.76457)
 
 [node name="@CollisionShape3D@38" type="CollisionShape3D" parent="@StaticBody3D@40"]
-shape = SubResource("CylinderShape3D_1igsj")
+shape = SubResource("CylinderShape3D_oevld")
 
 [node name="@MeshInstance3D@39" type="MeshInstance3D" parent="@StaticBody3D@40"]
-mesh = SubResource("CylinderMesh_ajyah")
+mesh = SubResource("CylinderMesh_jx01d")
 
 [node name="@StaticBody3D@43" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0.35, 3.67394e-15)
 
 [node name="@CollisionShape3D@41" type="CollisionShape3D" parent="@StaticBody3D@43"]
-shape = SubResource("CylinderShape3D_ax6ai")
+shape = SubResource("CylinderShape3D_nwicf")
 
 [node name="@MeshInstance3D@42" type="MeshInstance3D" parent="@StaticBody3D@43"]
-mesh = SubResource("CylinderMesh_3lg2r")
+mesh = SubResource("CylinderMesh_kqrqu")
 
 [node name="@StaticBody3D@46" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.9778, 0.35, -7.76457)
 
 [node name="@CollisionShape3D@44" type="CollisionShape3D" parent="@StaticBody3D@46"]
-shape = SubResource("CylinderShape3D_hwjqy")
+shape = SubResource("CylinderShape3D_5c2cw")
 
 [node name="@MeshInstance3D@45" type="MeshInstance3D" parent="@StaticBody3D@46"]
-mesh = SubResource("CylinderMesh_52wyt")
+mesh = SubResource("CylinderMesh_egfd5")
 
 [node name="@StaticBody3D@49" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.9808, 0.35, -15)
 
 [node name="@CollisionShape3D@47" type="CollisionShape3D" parent="@StaticBody3D@49"]
-shape = SubResource("CylinderShape3D_ork02")
+shape = SubResource("CylinderShape3D_l4qde")
 
 [node name="@MeshInstance3D@48" type="MeshInstance3D" parent="@StaticBody3D@49"]
-mesh = SubResource("CylinderMesh_d0cl6")
+mesh = SubResource("CylinderMesh_vivjp")
 
 [node name="@StaticBody3D@52" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.2132, 0.35, -21.2132)
 
 [node name="@CollisionShape3D@50" type="CollisionShape3D" parent="@StaticBody3D@52"]
-shape = SubResource("CylinderShape3D_wj5ud")
+shape = SubResource("CylinderShape3D_12eue")
 
 [node name="@MeshInstance3D@51" type="MeshInstance3D" parent="@StaticBody3D@52"]
-mesh = SubResource("CylinderMesh_tkm0v")
+mesh = SubResource("CylinderMesh_7y2bh")
 
 [node name="@StaticBody3D@55" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0.35, -25.9808)
 
 [node name="@CollisionShape3D@53" type="CollisionShape3D" parent="@StaticBody3D@55"]
-shape = SubResource("CylinderShape3D_tkgjw")
+shape = SubResource("CylinderShape3D_c1d8v")
 
 [node name="@MeshInstance3D@54" type="MeshInstance3D" parent="@StaticBody3D@55"]
-mesh = SubResource("CylinderMesh_3u1c5")
+mesh = SubResource("CylinderMesh_hlb1k")
 
 [node name="@StaticBody3D@58" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.76457, 0.35, -28.9778)
 
 [node name="@CollisionShape3D@56" type="CollisionShape3D" parent="@StaticBody3D@58"]
-shape = SubResource("CylinderShape3D_102t2")
+shape = SubResource("CylinderShape3D_vqq2o")
 
 [node name="@MeshInstance3D@57" type="MeshInstance3D" parent="@StaticBody3D@58"]
-mesh = SubResource("CylinderMesh_1jdle")
+mesh = SubResource("CylinderMesh_rtvfm")
 
 [node name="@StaticBody3D@61" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.51091e-15, 0.35, -30)
 
 [node name="@CollisionShape3D@59" type="CollisionShape3D" parent="@StaticBody3D@61"]
-shape = SubResource("CylinderShape3D_nsj61")
+shape = SubResource("CylinderShape3D_nqjsp")
 
 [node name="@MeshInstance3D@60" type="MeshInstance3D" parent="@StaticBody3D@61"]
-mesh = SubResource("CylinderMesh_fr8uo")
+mesh = SubResource("CylinderMesh_8cxmo")
 
 [node name="@StaticBody3D@64" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.76457, 0.35, -28.9778)
 
 [node name="@CollisionShape3D@62" type="CollisionShape3D" parent="@StaticBody3D@64"]
-shape = SubResource("CylinderShape3D_0pqn7")
+shape = SubResource("CylinderShape3D_nrxsl")
 
 [node name="@MeshInstance3D@63" type="MeshInstance3D" parent="@StaticBody3D@64"]
-mesh = SubResource("CylinderMesh_0btnc")
+mesh = SubResource("CylinderMesh_3j1yo")
 
 [node name="@StaticBody3D@67" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0.35, -25.9808)
 
 [node name="@CollisionShape3D@65" type="CollisionShape3D" parent="@StaticBody3D@67"]
-shape = SubResource("CylinderShape3D_o5n8t")
+shape = SubResource("CylinderShape3D_8ahdi")
 
 [node name="@MeshInstance3D@66" type="MeshInstance3D" parent="@StaticBody3D@67"]
-mesh = SubResource("CylinderMesh_hn4ab")
+mesh = SubResource("CylinderMesh_yeqod")
 
 [node name="@StaticBody3D@70" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.2132, 0.35, -21.2132)
 
 [node name="@CollisionShape3D@68" type="CollisionShape3D" parent="@StaticBody3D@70"]
-shape = SubResource("CylinderShape3D_rmnta")
+shape = SubResource("CylinderShape3D_jpvuu")
 
 [node name="@MeshInstance3D@69" type="MeshInstance3D" parent="@StaticBody3D@70"]
-mesh = SubResource("CylinderMesh_5gq66")
+mesh = SubResource("CylinderMesh_3tqad")
 
 [node name="@StaticBody3D@73" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.9808, 0.35, -15)
 
 [node name="@CollisionShape3D@71" type="CollisionShape3D" parent="@StaticBody3D@73"]
-shape = SubResource("CylinderShape3D_nqqfe")
+shape = SubResource("CylinderShape3D_wftd3")
 
 [node name="@MeshInstance3D@72" type="MeshInstance3D" parent="@StaticBody3D@73"]
-mesh = SubResource("CylinderMesh_vifp8")
+mesh = SubResource("CylinderMesh_xlh7n")
 
 [node name="@StaticBody3D@76" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.9778, 0.35, -7.76457)
 
 [node name="@CollisionShape3D@74" type="CollisionShape3D" parent="@StaticBody3D@76"]
-shape = SubResource("CylinderShape3D_frep4")
+shape = SubResource("CylinderShape3D_vi13s")
 
 [node name="@MeshInstance3D@75" type="MeshInstance3D" parent="@StaticBody3D@76"]
-mesh = SubResource("CylinderMesh_2vfj2")
+mesh = SubResource("CylinderMesh_y6tp7")
 
 [node name="@StaticBody3D@79" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.2, 0.35, 18)
 
 [node name="@CollisionShape3D@77" type="CollisionShape3D" parent="@StaticBody3D@79"]
-shape = SubResource("CylinderShape3D_q6enb")
+shape = SubResource("CylinderShape3D_bbpi0")
 
 [node name="@MeshInstance3D@78" type="MeshInstance3D" parent="@StaticBody3D@79"]
-mesh = SubResource("CylinderMesh_axomm")
+mesh = SubResource("CylinderMesh_n7813")
 
 [node name="@StaticBody3D@82" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.2, 0.35, 18)
 
 [node name="@CollisionShape3D@80" type="CollisionShape3D" parent="@StaticBody3D@82"]
-shape = SubResource("CylinderShape3D_q6enb")
+shape = SubResource("CylinderShape3D_bbpi0")
 
 [node name="@MeshInstance3D@81" type="MeshInstance3D" parent="@StaticBody3D@82"]
-mesh = SubResource("CylinderMesh_axomm")
+mesh = SubResource("CylinderMesh_n7813")
 
 [node name="@StaticBody3D@85" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.2, 0.35, -6)
 
 [node name="@CollisionShape3D@83" type="CollisionShape3D" parent="@StaticBody3D@85"]
-shape = SubResource("CylinderShape3D_q6enb")
+shape = SubResource("CylinderShape3D_bbpi0")
 
 [node name="@MeshInstance3D@84" type="MeshInstance3D" parent="@StaticBody3D@85"]
-mesh = SubResource("CylinderMesh_axomm")
+mesh = SubResource("CylinderMesh_n7813")
 
 [node name="@StaticBody3D@88" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.2, 0.35, -6)
 
 [node name="@CollisionShape3D@86" type="CollisionShape3D" parent="@StaticBody3D@88"]
-shape = SubResource("CylinderShape3D_q6enb")
+shape = SubResource("CylinderShape3D_bbpi0")
 
 [node name="@MeshInstance3D@87" type="MeshInstance3D" parent="@StaticBody3D@88"]
-mesh = SubResource("CylinderMesh_axomm")
+mesh = SubResource("CylinderMesh_n7813")
 
 [node name="StartLine" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.012, 8)
-mesh = SubResource("BoxMesh_hctk5")
+mesh = SubResource("BoxMesh_5k8mv")
 
 [node name="RampLeft" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, 10)
 
 [node name="@CollisionShape3D@89" type="CollisionShape3D" parent="RampLeft"]
 transform = Transform3D(1, 0, 0, 0, 0.97437, 0.224951, 0, -0.224951, 0.97437, 0, 0.453664, 0)
-shape = SubResource("BoxShape3D_iq1p8")
+shape = SubResource("BoxShape3D_mtgc4")
 
 [node name="@CollisionShape3D@90" type="CollisionShape3D" parent="RampLeft"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.322805, 1.33002)
-shape = SubResource("BoxShape3D_85v24")
+shape = SubResource("BoxShape3D_fw0x0")
 
 [node name="@MeshInstance3D@91" type="MeshInstance3D" parent="RampLeft"]
 transform = Transform3D(1, 0, 0, 0, 0.97437, 0.224951, 0, -0.224951, 0.97437, 0, 0.453664, 0)
-mesh = SubResource("BoxMesh_irl38")
+mesh = SubResource("BoxMesh_dgiys")
 
 [node name="@MeshInstance3D@92" type="MeshInstance3D" parent="RampLeft"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.322805, 1.33002)
-mesh = SubResource("BoxMesh_m1r4i")
+mesh = SubResource("BoxMesh_xv6dn")
 
 [node name="@MeshInstance3D@93" type="MeshInstance3D" parent="RampLeft"]
 transform = Transform3D(1, 0, 0, 0, 0.97437, 0.224951, 0, -0.224951, 0.97437, 0, 0.553664, 1.24719)
-mesh = SubResource("BoxMesh_do3ga")
+mesh = SubResource("BoxMesh_xxscv")
 
 [node name="RampRight" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 14)
 
 [node name="@CollisionShape3D@94" type="CollisionShape3D" parent="RampRight"]
 transform = Transform3D(1, 0, 0, 0, 0.97437, 0.224951, 0, -0.224951, 0.97437, 0, 0.453664, 0)
-shape = SubResource("BoxShape3D_cdejc")
+shape = SubResource("BoxShape3D_o6ip1")
 
 [node name="@CollisionShape3D@95" type="CollisionShape3D" parent="RampRight"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.322805, 1.33002)
-shape = SubResource("BoxShape3D_vdnkb")
+shape = SubResource("BoxShape3D_r1qdm")
 
 [node name="@MeshInstance3D@96" type="MeshInstance3D" parent="RampRight"]
 transform = Transform3D(1, 0, 0, 0, 0.97437, 0.224951, 0, -0.224951, 0.97437, 0, 0.453664, 0)
-mesh = SubResource("BoxMesh_6d0x8")
+mesh = SubResource("BoxMesh_3ti1p")
 
 [node name="@MeshInstance3D@97" type="MeshInstance3D" parent="RampRight"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.322805, 1.33002)
-mesh = SubResource("BoxMesh_26id7")
+mesh = SubResource("BoxMesh_cx8m1")
 
 [node name="@MeshInstance3D@98" type="MeshInstance3D" parent="RampRight"]
 transform = Transform3D(1, 0, 0, 0, 0.97437, 0.224951, 0, -0.224951, 0.97437, 0, 0.553664, 1.24719)
-mesh = SubResource("BoxMesh_j31jg")
+mesh = SubResource("BoxMesh_jbk07")
 
 [node name="RampBig" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 26)
 
 [node name="@CollisionShape3D@99" type="CollisionShape3D" parent="RampBig"]
 transform = Transform3D(1, 0, 0, 0, 0.961262, 0.275637, 0, -0.275637, 0.961262, 0, 0.542365, 0)
-shape = SubResource("BoxShape3D_r5w1n")
+shape = SubResource("BoxShape3D_urqjd")
 
 [node name="@CollisionShape3D@100" type="CollisionShape3D" parent="RampBig"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.39554, 1.31212)
-shape = SubResource("BoxShape3D_fus1r")
+shape = SubResource("BoxShape3D_5uaso")
 
 [node name="@MeshInstance3D@101" type="MeshInstance3D" parent="RampBig"]
 transform = Transform3D(1, 0, 0, 0, 0.961262, 0.275637, 0, -0.275637, 0.961262, 0, 0.542365, 0)
-mesh = SubResource("BoxMesh_3y6n1")
+mesh = SubResource("BoxMesh_87mjj")
 
 [node name="@MeshInstance3D@102" type="MeshInstance3D" parent="RampBig"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.39554, 1.31212)
-mesh = SubResource("BoxMesh_becit")
+mesh = SubResource("BoxMesh_coia1")
 
 [node name="@MeshInstance3D@103" type="MeshInstance3D" parent="RampBig"]
 transform = Transform3D(1, 0, 0, 0, 0.961262, 0.275637, 0, -0.275637, 0.961262, 0, 0.642365, 1.23041)
-mesh = SubResource("BoxMesh_y3h3h")
+mesh = SubResource("BoxMesh_o2bcw")
 
 [node name="RampBigLanding" type="StaticBody3D" parent="."]
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 40)
 
 [node name="@CollisionShape3D@104" type="CollisionShape3D" parent="RampBigLanding"]
 transform = Transform3D(1, 0, 0, 0, 0.984808, 0.173648, 0, -0.173648, 0.984808, 0, 0.363884, 0)
-shape = SubResource("BoxShape3D_kico8")
+shape = SubResource("BoxShape3D_0bcb1")
 
 [node name="@CollisionShape3D@105" type="CollisionShape3D" parent="RampBigLanding"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.249185, 1.34426)
-shape = SubResource("BoxShape3D_gx774")
+shape = SubResource("BoxShape3D_uyojc")
 
 [node name="@MeshInstance3D@106" type="MeshInstance3D" parent="RampBigLanding"]
 transform = Transform3D(1, 0, 0, 0, 0.984808, 0.173648, 0, -0.173648, 0.984808, 0, 0.363884, 0)
-mesh = SubResource("BoxMesh_jfn4s")
+mesh = SubResource("BoxMesh_2pwgm")
 
 [node name="@MeshInstance3D@107" type="MeshInstance3D" parent="RampBigLanding"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.249185, 1.34426)
-mesh = SubResource("BoxMesh_o7ge8")
+mesh = SubResource("BoxMesh_h5l3x")
 
 [node name="@MeshInstance3D@108" type="MeshInstance3D" parent="RampBigLanding"]
 transform = Transform3D(1, 0, 0, 0, 0.984808, 0.173648, 0, -0.173648, 0.984808, 0, 0.463884, 1.26055)
-mesh = SubResource("BoxMesh_sh2wv")
+mesh = SubResource("BoxMesh_82qsr")
 
 [node name="RampSouth" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -20)
 
 [node name="@CollisionShape3D@109" type="CollisionShape3D" parent="RampSouth"]
 transform = Transform3D(1, 0, 0, 0, 0.970296, 0.241922, 0, -0.241922, 0.970296, 0, 0.483363, 0)
-shape = SubResource("BoxShape3D_767l0")
+shape = SubResource("BoxShape3D_wdks3")
 
 [node name="@CollisionShape3D@110" type="CollisionShape3D" parent="RampSouth"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.347158, 1.32445)
-shape = SubResource("BoxShape3D_351xq")
+shape = SubResource("BoxShape3D_hikuk")
 
 [node name="@MeshInstance3D@111" type="MeshInstance3D" parent="RampSouth"]
 transform = Transform3D(1, 0, 0, 0, 0.970296, 0.241922, 0, -0.241922, 0.970296, 0, 0.483363, 0)
-mesh = SubResource("BoxMesh_2k0bg")
+mesh = SubResource("BoxMesh_5n2us")
 
 [node name="@MeshInstance3D@112" type="MeshInstance3D" parent="RampSouth"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.347158, 1.32445)
-mesh = SubResource("BoxMesh_hg7mb")
+mesh = SubResource("BoxMesh_864ks")
 
 [node name="@MeshInstance3D@113" type="MeshInstance3D" parent="RampSouth"]
 transform = Transform3D(1, 0, 0, 0, 0.970296, 0.241922, 0, -0.241922, 0.970296, 0, 0.583363, 1.24198)
-mesh = SubResource("BoxMesh_wsfrs")
+mesh = SubResource("BoxMesh_6q72b")
 
 [node name="RampWest" type="StaticBody3D" parent="."]
 transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, -22, 0, -2)
 
 [node name="@CollisionShape3D@114" type="CollisionShape3D" parent="RampWest"]
 transform = Transform3D(1, 0, 0, 0, 0.97437, 0.224951, 0, -0.224951, 0.97437, 0, 0.453664, 0)
-shape = SubResource("BoxShape3D_0jbf5")
+shape = SubResource("BoxShape3D_fewv4")
 
 [node name="@CollisionShape3D@115" type="CollisionShape3D" parent="RampWest"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.322805, 1.33002)
-shape = SubResource("BoxShape3D_fg83x")
+shape = SubResource("BoxShape3D_t6e54")
 
 [node name="@MeshInstance3D@116" type="MeshInstance3D" parent="RampWest"]
 transform = Transform3D(1, 0, 0, 0, 0.97437, 0.224951, 0, -0.224951, 0.97437, 0, 0.453664, 0)
-mesh = SubResource("BoxMesh_b4qwf")
+mesh = SubResource("BoxMesh_fysxr")
 
 [node name="@MeshInstance3D@117" type="MeshInstance3D" parent="RampWest"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.322805, 1.33002)
-mesh = SubResource("BoxMesh_rue60")
+mesh = SubResource("BoxMesh_0mel5")
 
 [node name="@MeshInstance3D@118" type="MeshInstance3D" parent="RampWest"]
 transform = Transform3D(1, 0, 0, 0, 0.97437, 0.224951, 0, -0.224951, 0.97437, 0, 0.553664, 1.24719)
-mesh = SubResource("BoxMesh_o7fv7")
+mesh = SubResource("BoxMesh_0logx")
 
-[node name="KiepieBike" type="VehicleBody3D" parent="." instance=ExtResource("3_8sbxo")]
+[node name="KiepieBike" type="VehicleBody3D" parent="." instance=ExtResource("3_6dnsm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 8)
 mass = 185.0
 center_of_mass_mode = 1
 center_of_mass = Vector3(0, -0.28, 0.1)
 inertia = Vector3(70, 120, 150)
 continuous_cd = true
-script = ExtResource("4_2v14h")
+script = ExtResource("4_3mvhy")
 engine_power = 235.0
 turbo_boost = 1.24
 overdrive_boost = 1.38
@@ -1912,12 +1912,12 @@ dodge_duration = 0.72
 dodge_cooldown = 1.0
 
 [node name="CombatController" type="Node3D" parent="KiepieBike"]
-script = ExtResource("5_w5vk3")
+script = ExtResource("5_f6avh")
 practice_mode = true
 
 [node name="CameraRig" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 13)
-script = ExtResource("6_6bl11")
+script = ExtResource("6_u82vr")
 target_path = NodePath("../KiepieBike")
 height = 1.9
 distance = 4.6
@@ -1933,7 +1933,7 @@ current = true
 fov = 62.0
 
 [node name="HUD" type="CanvasLayer" parent="."]
-script = ExtResource("7_p0eq4")
+script = ExtResource("7_kx27p")
 smash_total = 4
 
 [node name="Help" type="Label" parent="HUD"]
@@ -1941,7 +1941,7 @@ offset_left = 16.0
 offset_top = 14.0
 offset_right = 340.0
 offset_bottom = 114.0
-theme_override_styles/normal = SubResource("StyleBoxFlat_fkfhy")
+theme_override_styles/normal = SubResource("StyleBoxFlat_01s2u")
 theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.91, 0.929, 0.969, 1)
 text = "KIEPIE QUAD
@@ -1956,7 +1956,7 @@ offset_left = 16.0
 offset_top = 128.0
 offset_right = 166.0
 offset_bottom = 176.0
-theme_override_styles/normal = SubResource("StyleBoxFlat_fpym7")
+theme_override_styles/normal = SubResource("StyleBoxFlat_c467k")
 theme_override_font_sizes/font_size = 30
 theme_override_colors/font_color = Color(0.91, 0.929, 0.969, 1)
 text = "0 km/h"
@@ -1967,7 +1967,7 @@ offset_left = 16.0
 offset_top = 186.0
 offset_right = 266.0
 offset_bottom = 220.0
-theme_override_styles/normal = SubResource("StyleBoxFlat_p62r0")
+theme_override_styles/normal = SubResource("StyleBoxFlat_mv8sc")
 theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(1, 0.82, 0.42, 1)
 text = "Buildings smashed: 0 / 4"
@@ -1977,7 +1977,7 @@ offset_left = 16.0
 offset_top = 228.0
 offset_right = 266.0
 offset_bottom = 248.0
-theme_override_styles/normal = SubResource("StyleBoxFlat_5uuvc")
+theme_override_styles/normal = SubResource("StyleBoxFlat_kjxg0")
 theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.722, 0.82, 0.961, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0.95)
@@ -1991,8 +1991,8 @@ offset_top = 250.0
 offset_right = 200.0
 offset_bottom = 262.0
 mouse_filter = 2
-theme_override_styles/background = SubResource("StyleBoxFlat_sdyec")
-theme_override_styles/fill = SubResource("StyleBoxFlat_jcekh")
+theme_override_styles/background = SubResource("StyleBoxFlat_v3f24")
+theme_override_styles/fill = SubResource("StyleBoxFlat_dlep4")
 value = 100.0
 show_percentage = false
 
@@ -2025,11 +2025,11 @@ offset_top = 10.0
 offset_right = -14.0
 offset_bottom = 56.0
 focus_mode = 0
-theme_override_styles/normal = SubResource("StyleBoxFlat_6yadg")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_fvw74")
-theme_override_styles/hover = SubResource("StyleBoxFlat_5dxxn")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_jci2q")
-theme_override_styles/focus = SubResource("StyleBoxFlat_banpm")
+theme_override_styles/normal = SubResource("StyleBoxFlat_hklbi")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_7ogmv")
+theme_override_styles/hover = SubResource("StyleBoxFlat_kwrkx")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_yp4sr")
+theme_override_styles/focus = SubResource("StyleBoxFlat_w57nq")
 theme_override_colors/font_color = Color(0.91, 0.929, 0.969, 1)
 theme_override_colors/font_focus_color = Color(1, 0.82, 0.42, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.93, 0.62, 1)
@@ -2048,11 +2048,11 @@ offset_top = 68.0
 offset_right = -14.0
 offset_bottom = 120.0
 focus_mode = 0
-theme_override_styles/normal = SubResource("StyleBoxFlat_qs8ws")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_mtgaf")
-theme_override_styles/hover = SubResource("StyleBoxFlat_upwt3")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_2riwt")
-theme_override_styles/focus = SubResource("StyleBoxFlat_53v2o")
+theme_override_styles/normal = SubResource("StyleBoxFlat_yo2q6")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_jr1l5")
+theme_override_styles/hover = SubResource("StyleBoxFlat_0uffy")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_ikvw1")
+theme_override_styles/focus = SubResource("StyleBoxFlat_wktsl")
 theme_override_colors/font_color = Color(0.91, 0.929, 0.969, 1)
 theme_override_colors/font_focus_color = Color(1, 0.82, 0.42, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.93, 0.62, 1)
@@ -2071,11 +2071,11 @@ offset_top = 126.0
 offset_right = -14.0
 offset_bottom = 178.0
 focus_mode = 0
-theme_override_styles/normal = SubResource("StyleBoxFlat_x3wp8")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_otua5")
-theme_override_styles/hover = SubResource("StyleBoxFlat_f3ftr")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_44t43")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57iq1")
+theme_override_styles/normal = SubResource("StyleBoxFlat_jjbeh")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_7saw7")
+theme_override_styles/hover = SubResource("StyleBoxFlat_uiv0p")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_t376m")
+theme_override_styles/focus = SubResource("StyleBoxFlat_jvc00")
 theme_override_colors/font_color = Color(0.91, 0.929, 0.969, 1)
 theme_override_colors/font_focus_color = Color(1, 0.82, 0.42, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.93, 0.62, 1)
@@ -2086,7 +2086,7 @@ text = "Main Menu"
 
 [node name="TouchHUD" type="CanvasLayer" parent="."]
 layer = 2
-script = ExtResource("8_ndtr5")
+script = ExtResource("8_n5264")
 
 [node name="BtnTouchToggle" type="Button" parent="TouchHUD"]
 custom_minimum_size = Vector2(0, 52)
@@ -2098,11 +2098,11 @@ offset_top = 184.0
 offset_right = -14.0
 offset_bottom = 236.0
 focus_mode = 0
-theme_override_styles/normal = SubResource("StyleBoxFlat_jta4q")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_scjxr")
-theme_override_styles/hover = SubResource("StyleBoxFlat_57f3l")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_5axbk")
-theme_override_styles/focus = SubResource("StyleBoxFlat_dbuv3")
+theme_override_styles/normal = SubResource("StyleBoxFlat_yq7su")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_jlqoe")
+theme_override_styles/hover = SubResource("StyleBoxFlat_dpype")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_chowt")
+theme_override_styles/focus = SubResource("StyleBoxFlat_4gjej")
 theme_override_colors/font_color = Color(0.91, 0.929, 0.969, 1)
 theme_override_colors/font_focus_color = Color(1, 0.82, 0.42, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.93, 0.62, 1)
@@ -2113,49 +2113,49 @@ text = "TOUCH: AUTO"
 
 [node name="Workshop" type="StaticBody3D" parent="."]
 transform = Transform3D(-0.860927, 0, -0.508729, 0, 1, 0, 0.508729, 0, -0.860927, 13, 0, 22)
-script = ExtResource("9_2vqmi")
+script = ExtResource("9_roft4")
 hit_speed = 3.2
 debris_pieces = 14
 building_name = "Workshop"
 
 [node name="@CollisionShape3D@119" type="CollisionShape3D" parent="Workshop"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
-shape = SubResource("BoxShape3D_0vcox")
+shape = SubResource("BoxShape3D_l647l")
 
 [node name="MainBlock" type="MeshInstance3D" parent="Workshop"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
-mesh = SubResource("BoxMesh_5wjyr")
+mesh = SubResource("BoxMesh_4t3xe")
 
 [node name="Roof" type="MeshInstance3D" parent="Workshop"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.54, 0)
-mesh = SubResource("BoxMesh_tphko")
+mesh = SubResource("BoxMesh_s0eb4")
 
 [node name="Door" type="MeshInstance3D" parent="Workshop"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.054, 2.545)
-mesh = SubResource("BoxMesh_d6qcg")
+mesh = SubResource("BoxMesh_0qlvy")
 
 [node name="Awning" type="MeshInstance3D" parent="Workshop"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.388, 2.66)
-mesh = SubResource("BoxMesh_ymla2")
+mesh = SubResource("BoxMesh_xw5f2")
 
 [node name="Windows" type="MeshInstance3D" parent="Workshop"]
-mesh = SubResource("ArrayMesh_1tcub")
+mesh = SubResource("ArrayMesh_odgwa")
 
 [node name="BaseTrim" type="MeshInstance3D" parent="Workshop"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.27, 0)
-mesh = SubResource("BoxMesh_s1qr0")
+mesh = SubResource("BoxMesh_jtrow")
 
 [node name="RoofAC" type="MeshInstance3D" parent="Workshop"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.43, 3.88, -0.75)
-mesh = SubResource("BoxMesh_hasv2")
+mesh = SubResource("BoxMesh_kyikk")
 
 [node name="RoofVent" type="MeshInstance3D" parent="Workshop"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.82, 4, 1.1)
-mesh = SubResource("BoxMesh_gmxk0")
+mesh = SubResource("BoxMesh_7vyal")
 
 [node name="SignBoard" type="MeshInstance3D" parent="Workshop"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.992, 2.6)
-mesh = SubResource("BoxMesh_hgp1l")
+mesh = SubResource("BoxMesh_dpkqv")
 
 [node name="Sign" type="Label3D" parent="Workshop"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.992, 2.66)
@@ -2167,53 +2167,53 @@ outline_size = 6
 
 [node name="Beacon" type="MeshInstance3D" parent="Workshop"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.34, 3.68, 1.8)
-mesh = SubResource("SphereMesh_3kfvk")
+mesh = SubResource("SphereMesh_mhw7r")
 
 [node name="Shed" type="StaticBody3D" parent="."]
 transform = Transform3D(0.759257, 0, -0.650791, 0, 1, 0, 0.650791, 0, 0.759257, 12, 0, -14)
-script = ExtResource("9_2vqmi")
+script = ExtResource("9_roft4")
 hit_speed = 3.2
 debris_pieces = 14
 building_name = "Shed"
 
 [node name="@CollisionShape3D@120" type="CollisionShape3D" parent="Shed"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0)
-shape = SubResource("BoxShape3D_jx1lj")
+shape = SubResource("BoxShape3D_n1n7p")
 
 [node name="MainBlock" type="MeshInstance3D" parent="Shed"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0)
-mesh = SubResource("BoxMesh_n6bl6")
+mesh = SubResource("BoxMesh_pwoso")
 
 [node name="Roof" type="MeshInstance3D" parent="Shed"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.44, 0)
-mesh = SubResource("BoxMesh_rhvrh")
+mesh = SubResource("BoxMesh_rannu")
 
 [node name="Door" type="MeshInstance3D" parent="Shed"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.713, 1.845)
-mesh = SubResource("BoxMesh_owga3")
+mesh = SubResource("BoxMesh_w5xx0")
 
 [node name="Awning" type="MeshInstance3D" parent="Shed"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.706, 1.96)
-mesh = SubResource("BoxMesh_q61a0")
+mesh = SubResource("BoxMesh_1h57v")
 
 [node name="Windows" type="MeshInstance3D" parent="Shed"]
-mesh = SubResource("ArrayMesh_u65yv")
+mesh = SubResource("ArrayMesh_umf7g")
 
 [node name="BaseTrim" type="MeshInstance3D" parent="Shed"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.27, 0)
-mesh = SubResource("BoxMesh_3igfv")
+mesh = SubResource("BoxMesh_yietc")
 
 [node name="RoofAC" type="MeshInstance3D" parent="Shed"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.924, 2.78, -0.54)
-mesh = SubResource("BoxMesh_lulpb")
+mesh = SubResource("BoxMesh_nyt5o")
 
 [node name="RoofVent" type="MeshInstance3D" parent="Shed"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.176, 2.9, 0.792)
-mesh = SubResource("BoxMesh_tsp4c")
+mesh = SubResource("BoxMesh_p8j1p")
 
 [node name="SignBoard" type="MeshInstance3D" parent="Shed"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.024, 1.9)
-mesh = SubResource("BoxMesh_bixiq")
+mesh = SubResource("BoxMesh_7w5jp")
 
 [node name="Sign" type="Label3D" parent="Shed"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.024, 1.96)
@@ -2225,53 +2225,53 @@ outline_size = 6
 
 [node name="Beacon" type="MeshInstance3D" parent="Shed"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.512, 2.58, 1.296)
-mesh = SubResource("SphereMesh_483kp")
+mesh = SubResource("SphereMesh_red08")
 
 [node name="Store" type="StaticBody3D" parent="."]
 transform = Transform3D(-0.82137, 0, 0.570396, 0, 1, 0, -0.570396, 0, -0.82137, -12.5, 0, 18)
-script = ExtResource("9_2vqmi")
+script = ExtResource("9_roft4")
 hit_speed = 3.2
 debris_pieces = 14
 building_name = "Store"
 
 [node name="@CollisionShape3D@121" type="CollisionShape3D" parent="Store"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.3, 0)
-shape = SubResource("BoxShape3D_5x0yl")
+shape = SubResource("BoxShape3D_17iw1")
 
 [node name="MainBlock" type="MeshInstance3D" parent="Store"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.3, 0)
-mesh = SubResource("BoxMesh_hdct7")
+mesh = SubResource("BoxMesh_b7yhg")
 
 [node name="Roof" type="MeshInstance3D" parent="Store"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.74, 0)
-mesh = SubResource("BoxMesh_7h3gd")
+mesh = SubResource("BoxMesh_2prd6")
 
 [node name="Door" type="MeshInstance3D" parent="Store"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.426, 2.145)
-mesh = SubResource("BoxMesh_52exw")
+mesh = SubResource("BoxMesh_nsy8t")
 
 [node name="Awning" type="MeshInstance3D" parent="Store"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.132, 2.26)
-mesh = SubResource("BoxMesh_cvch8")
+mesh = SubResource("BoxMesh_ylemf")
 
 [node name="Windows" type="MeshInstance3D" parent="Store"]
-mesh = SubResource("ArrayMesh_bsopb")
+mesh = SubResource("ArrayMesh_pcqhq")
 
 [node name="BaseTrim" type="MeshInstance3D" parent="Store"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.27, 0)
-mesh = SubResource("BoxMesh_s3cuh")
+mesh = SubResource("BoxMesh_uhq28")
 
 [node name="RoofAC" type="MeshInstance3D" parent="Store"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.056, 5.08, -0.63)
-mesh = SubResource("BoxMesh_d5ocl")
+mesh = SubResource("BoxMesh_bqiup")
 
 [node name="RoofVent" type="MeshInstance3D" parent="Store"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.344, 5.2, 0.924)
-mesh = SubResource("BoxMesh_qpu0v")
+mesh = SubResource("BoxMesh_5i6pe")
 
 [node name="SignBoard" type="MeshInstance3D" parent="Store"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.048, 2.2)
-mesh = SubResource("BoxMesh_fn683")
+mesh = SubResource("BoxMesh_c8nw3")
 
 [node name="Sign" type="Label3D" parent="Store"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.048, 2.26)
@@ -2283,53 +2283,53 @@ outline_size = 6
 
 [node name="Beacon" type="MeshInstance3D" parent="Store"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.728, 4.88, 1.512)
-mesh = SubResource("SphereMesh_coypn")
+mesh = SubResource("SphereMesh_vpq4u")
 
 [node name="Garage" type="StaticBody3D" parent="."]
 transform = Transform3D(0.789352, 0, 0.613941, 0, 1, 0, -0.613941, 0, 0.789352, -14, 0, -18)
-script = ExtResource("9_2vqmi")
+script = ExtResource("9_roft4")
 hit_speed = 3.2
 debris_pieces = 14
 building_name = "Garage"
 
 [node name="@CollisionShape3D@122" type="CollisionShape3D" parent="Garage"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
-shape = SubResource("BoxShape3D_luvqh")
+shape = SubResource("BoxShape3D_htjqy")
 
 [node name="MainBlock" type="MeshInstance3D" parent="Garage"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
-mesh = SubResource("BoxMesh_8otyf")
+mesh = SubResource("BoxMesh_fuqqj")
 
 [node name="Roof" type="MeshInstance3D" parent="Garage"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.14, 0)
-mesh = SubResource("BoxMesh_t4sfg")
+mesh = SubResource("BoxMesh_27g8n")
 
 [node name="Door" type="MeshInstance3D" parent="Garage"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.93, 2.245)
-mesh = SubResource("BoxMesh_xebya")
+mesh = SubResource("BoxMesh_ovljg")
 
 [node name="Awning" type="MeshInstance3D" parent="Garage"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.14, 2.36)
-mesh = SubResource("BoxMesh_quyx7")
+mesh = SubResource("BoxMesh_h6t83")
 
 [node name="Windows" type="MeshInstance3D" parent="Garage"]
-mesh = SubResource("ArrayMesh_6x5a6")
+mesh = SubResource("ArrayMesh_wolkf")
 
 [node name="BaseTrim" type="MeshInstance3D" parent="Garage"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.27, 0)
-mesh = SubResource("BoxMesh_a8lpc")
+mesh = SubResource("BoxMesh_bd5yl")
 
 [node name="RoofAC" type="MeshInstance3D" parent="Garage"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.1, 3.48, -0.66)
-mesh = SubResource("BoxMesh_purwr")
+mesh = SubResource("BoxMesh_l6288")
 
 [node name="RoofVent" type="MeshInstance3D" parent="Garage"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4, 3.6, 0.968)
-mesh = SubResource("BoxMesh_lea0r")
+mesh = SubResource("BoxMesh_201ya")
 
 [node name="SignBoard" type="MeshInstance3D" parent="Garage"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.64, 2.3)
-mesh = SubResource("BoxMesh_tpcih")
+mesh = SubResource("BoxMesh_sj4l6")
 
 [node name="Sign" type="Label3D" parent="Garage"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.64, 2.36)
@@ -2341,46 +2341,46 @@ outline_size = 6
 
 [node name="Beacon" type="MeshInstance3D" parent="Garage"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.8, 3.28, 1.584)
-mesh = SubResource("SphereMesh_fks3a")
+mesh = SubResource("SphereMesh_fvc6c")
 
 [node name="FuelDrum0" type="StaticBody3D" parent="." groups=["hazard"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0.45, 2)
-script = ExtResource("14_ux023")
+script = ExtResource("14_2umhu")
 blast_radius = 4.6
 blast_damage = 55.0
 respawn_delay = 6.0
 
 [node name="FuelDrum1" type="StaticBody3D" parent="." groups=["hazard"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.2, 0.45, 3)
-script = ExtResource("14_ux023")
+script = ExtResource("14_2umhu")
 blast_radius = 4.6
 blast_damage = 55.0
 respawn_delay = 6.0
 
 [node name="FuelDrum2" type="StaticBody3D" parent="." groups=["hazard"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0.45, 34)
-script = ExtResource("14_ux023")
+script = ExtResource("14_2umhu")
 blast_radius = 4.6
 blast_damage = 55.0
 respawn_delay = 6.0
 
 [node name="FuelDrum3" type="StaticBody3D" parent="." groups=["hazard"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.2, 0.45, 34.8)
-script = ExtResource("14_ux023")
+script = ExtResource("14_2umhu")
 blast_radius = 4.6
 blast_damage = 55.0
 respawn_delay = 6.0
 
 [node name="FuelDrum4" type="StaticBody3D" parent="." groups=["hazard"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 0.45, -10)
-script = ExtResource("14_ux023")
+script = ExtResource("14_2umhu")
 blast_radius = 4.6
 blast_damage = 55.0
 respawn_delay = 6.0
 
 [node name="FuelDrum5" type="StaticBody3D" parent="." groups=["hazard"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0.45, -26)
-script = ExtResource("14_ux023")
+script = ExtResource("14_2umhu")
 blast_radius = 4.6
 blast_damage = 55.0
 respawn_delay = 6.0

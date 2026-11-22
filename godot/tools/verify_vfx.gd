@@ -595,3 +595,41 @@ func _pooling_and_settings() -> void:
 		s_node_cap.call("set_value", "gameplay", "reduced_motion", prev_rm)
 		s_node_cap.call("set_value", "video", "particles", prev_pq)
 	await process_frame
+
+	# P2-1: Projectile pooled reuse resets visible, physics_process, and _age
+	var proj_gd := load("res://src/game/Projectile.gd") as GDScript
+	var proj := Node3D.new()
+	proj.set_script(proj_gd)
+	root.add_child(proj)
+	proj.visible = false
+	proj.set_physics_process(false)
+	proj.set("_age", 9.0)
+	proj.call("setup", "p1", null, Vector3.ZERO, Vector3.FORWARD, 52.0, 30.0, "tok", Color.WHITE)
+	_check(proj.visible and proj.is_physics_processing() and float(proj.get("_age")) == 0.0,
+			"P2-1: Projectile pooled reuse resets visible, physics_process, and _age")
+	proj.queue_free()
+
+	# P2-2: impact() OmniLight3D freed by 0.20s
+	var fx_holder := Node3D.new()
+	root.add_child(fx_holder)
+	vfx_gd.call("impact", fx_holder, Vector3.ZERO, Color.WHITE, Vector3.UP, "metal", Vector3.UP)
+	_check(get_nodes_in_group("vfx_light").size() > 0, "P2-2: impact() spawns vfx_light")
+	await create_timer(0.20).timeout
+	_check(get_nodes_in_group("vfx_light").size() == 0, "P2-2: impact() vfx_light freed by 0.20s")
+
+	# P2-5: casing() returns early under reduced_motion
+	if s_node_cap != null:
+		s_node_cap.call("set_value", "gameplay", "reduced_motion", true)
+	var before_casing := fx_holder.get_child_count()
+	vfx_gd.call("casing", fx_holder, Vector3.ZERO, Vector3.RIGHT)
+	_check(fx_holder.get_child_count() == before_casing, "P2-5: casing() skips under reduced_motion")
+	if s_node_cap != null:
+		s_node_cap.call("set_value", "gameplay", "reduced_motion", prev_rm)
+
+	# Track B: lightning_strike_explosion & cash_explosion smoke
+	vfx_gd.call("lightning_strike_explosion", fx_holder, Vector3.ZERO, 1.35)
+	vfx_gd.call("cash_explosion", fx_holder, Vector3.ZERO, false)
+	vfx_gd.call("cash_explosion", fx_holder, Vector3.ZERO, true)
+	_check(fx_holder.get_child_count() > 0, "Track B: lightning_strike_explosion & cash_explosion spawn nodes")
+	fx_holder.queue_free()
+	await process_frame

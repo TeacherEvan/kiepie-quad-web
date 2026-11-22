@@ -321,5 +321,33 @@ func _initialize() -> void:
 	_check(wl_lost[0], "P1-9: host leave in waiting lobby emits host_lost")
 	wl.free()
 
-	print("talo backend contract: %d checks, %d failure(s)" % [41, _failures])
+	# P1-1: host-handoff _state_seq rollover
+	var hh := _new_backend()
+	get_root().add_child(hh)
+	hh.user_id = "2"
+	hh._channel_id = 10
+	hh._lobby = {"id": "10", "host_id": "1", "status": "playing"}
+	await hh.call("_on_socket_message", "v1.channels.message", {
+		"channel": {"id": 10},
+		"playerAlias": {"id": 1},
+		"message": JSON.stringify({"k": "state", "p": {"seq": 50, "lobby": {"id": "10", "host_id": "1", "status": "playing"}, "players": {}}}),
+	})
+	hh._lobby["host_id"] = "3"
+	await hh.call("_on_socket_message", "v1.channels.message", {
+		"channel": {"id": 10},
+		"playerAlias": {"id": 3},
+		"message": JSON.stringify({"k": "state", "p": {"seq": 1, "lobby": {"id": "10", "host_id": "3", "status": "playing"}, "players": {}}}),
+	})
+	_check(str(hh.get("_last_state_host")) == "3" and int(hh.get("_last_state_seq")) == 1,
+			"P1-1: host handoff resets _last_state_host and accepts lower seq=1")
+	await hh.call("_on_socket_message", "v1.channels.message", {
+		"channel": {"id": 10},
+		"playerAlias": {"id": 3},
+		"message": JSON.stringify({"k": "state", "p": {"seq": 7, "lobby": {"id": "10", "host_id": "2", "status": "playing"}, "players": {}}}),
+	})
+	_check(int(hh.get("_state_seq")) >= 7,
+			"P1-1: new host seeds _state_seq >= _last_state_seq (got %d)" % int(hh.get("_state_seq")))
+	hh.free()
+
+	print("talo backend contract: %d checks, %d failure(s)" % [43, _failures])
 	quit(1 if _failures > 0 else 0)

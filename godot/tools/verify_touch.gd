@@ -189,6 +189,17 @@ func _initialize() -> void:
 	_check(not Input.is_action_pressed("move_forward"), "focus-out releases gas")
 	_check(not _fire_held(layer), "focus-out releases fire")
 
+	# ---- P1-4: runtime Settings touch_force toggle
+	if settings_node != null:
+		settings_node.call("set_value", "controls", "touch_force", false)
+		await process_frame
+		_check(not left.visible and not right.visible,
+				"P1-4: runtime touch_force=false hides touch pads")
+		settings_node.call("set_value", "controls", "touch_force", true)
+		await process_frame
+		_check(left.visible and right.visible,
+				"P1-4: runtime touch_force=true shows touch pads")
+
 	# ---- exit-tree safety
 	_touch(6, _drive_at(layer, -1.0, 0.0), true)
 	await process_frame

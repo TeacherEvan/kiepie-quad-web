@@ -27,6 +27,7 @@ func _run() -> void:
 	_exhaust_axis()
 	_malformed_shot()
 	_respawn_deadline()
+	_stale_leave_lobby_protection()
 	print("AUDIT REGRESSIONS: %d failure(s)" % _fail)
 	quit(1 if _fail > 0 else 0)
 
@@ -316,3 +317,13 @@ func _respawn_deadline() -> void:
 	m.set("players", {"ghost": {"user_id": "ghost", "respawn_at": ""}})
 	_check(not bool(m.call("is_respawning", "ghost")),
 			"empty respawn_at is not respawning")
+
+func _stale_leave_lobby_protection() -> void:
+	var tb := (load("res://src/net/TaloBackend.gd") as GDScript).new() as Node
+	root.add_child(tb)
+	tb.set("_channel_id", 999)
+	tb.set("_lobby", {"id": "999", "host_id": "1"})
+	tb.call("_leave_lobby", {"p_expected_lobby_id": 123})
+	_check(int(tb.get("_channel_id")) == 999 and str((tb.get("_lobby") as Dictionary).get("id", "")) == "999",
+			"P1-2: stale _leave_lobby(expected=123) does not wipe active lobby 999")
+	tb.free()

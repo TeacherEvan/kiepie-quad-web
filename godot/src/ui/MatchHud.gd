@@ -99,7 +99,8 @@ func _ready() -> void:
 			_on_toggle_scores())
 		_compact_btn(score_toggle, 12, 6.0)
 	if _fps_label != null:
-		_fps_label.position = Vector2(12.0, 56.0 if short else 272.0)
+		var is_short := get_viewport().get_visible_rect().size.y <= 500.0
+		_fps_label.position = Vector2(12.0, 56.0 if is_short else 272.0)
 
 	var score := get_node_or_null("Scoreboard") as Control
 	if score != null:
@@ -227,7 +228,8 @@ func _sync_score_toggle() -> void:
 	if btn != null:
 		btn.text = "SCORES ^" if _scores_open else "SCORES v"
 	if _fps_label != null:
-		_fps_label.position = Vector2(12.0, 56.0 if short else 272.0)
+		var is_short := get_viewport().get_visible_rect().size.y <= 500.0
+		_fps_label.position = Vector2(12.0, 56.0 if is_short else 272.0)
 
 	var score := get_node_or_null("Scoreboard") as Control
 	if score != null:
@@ -347,7 +349,8 @@ func _relayout() -> void:
 			score_toggle.offset_bottom = 56.0
 
 	if _fps_label != null:
-		_fps_label.position = Vector2(12.0, 56.0 if short else 272.0)
+		var is_short := get_viewport().get_visible_rect().size.y <= 500.0
+		_fps_label.position = Vector2(12.0, 56.0 if is_short else 272.0)
 
 	var score := get_node_or_null("Scoreboard") as Control
 	if score != null:

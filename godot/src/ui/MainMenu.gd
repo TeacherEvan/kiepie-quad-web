@@ -84,7 +84,7 @@ func _ready() -> void:
 		var label := "offline mock" if Supabase.use_mock else "online"
 		_set_status("Ready · %s · %s" % [label, Settings.display_name()], COL_OK)
 	elif not Supabase.is_connecting():
-		_set_status("Offline · check connection and retry", COL_ERR)
+		_set_status("Offline · check connection and retry", COL_WARN)
 		if _btn_retry != null:
 			_btn_retry.visible = true
 	else:

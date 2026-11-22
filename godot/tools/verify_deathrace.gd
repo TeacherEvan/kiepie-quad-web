@@ -568,6 +568,49 @@ func _run() -> void:
 		drum.set("_ignited", prev_ign)
 		combat.disconnect("hit_confirmed", on_hit)
 
+	# P1-5: RaceTracker missing 'laps' recovery
+	var rt := dr.get_node_or_null("RaceTracker")
+	if rt != null:
+		rt.set("completed_laps", 1)
+		rt.set("_lap_pending", true)
+		var uid := str(root.get_node("Supabase").get("user_id"))
+		match_node.set("lobby", {"status": "playing", "host_id": "other-host", "settings": {"lap_target": 2}})
+		match_node.set("players", {uid: {"user_id": uid, "kills": 0}})
+		rt.call("_on_roster_changed")
+		_check(int(rt.get("completed_laps")) == 1 and bool(rt.get("_lap_pending")),
+				"P1-5: RaceTracker defers rollback when 'laps' missing and _lap_pending is true")
+		match_node.set("players", {uid: {"user_id": uid, "kills": 0, "laps": 1}})
+		rt.call("_on_roster_changed")
+		_check(not bool(rt.get("_lap_pending")),
+				"P1-5: RaceTracker clears _lap_pending when auth_laps >= completed_laps")
+
+	# Track B: Big-Ben Small Cash Bag Rocket & Quad Lightning / Big-Ben Giant Cash Bag Meteor
+	var cb_rkt_gd := load("res://src/game/RocketProjectile.gd") as GDScript
+	var cb_rkt := Node3D.new()
+	cb_rkt.set_script(cb_rkt_gd)
+	dr.add_child(cb_rkt)
+	cb_rkt.call("setup", "p1", null, Vector3.ZERO, Vector3.FORWARD, 40.0, 60.0, "t1", Color.GREEN, 4.5, "cash_bag")
+	_check(str(cb_rkt.get("visual_style")) == "cash_bag" and cb_rkt.get_node_or_null("CashBag") != null,
+			"Track B: RocketProjectile cash_bag mounts CashBagVisual")
+	cb_rkt.queue_free()
+
+	var m_gd := load("res://src/game/MeteorStrike.gd") as GDScript
+	var m_lt := Node3D.new()
+	m_lt.set_script(m_gd)
+	dr.add_child(m_lt)
+	m_lt.call("setup", "p1", null, Vector3.ZERO, 100.0, "t2", Color.CYAN, 2.0, 12.0, "lightning")
+	_check(str(m_lt.get("visual_style")) == "lightning",
+			"Track B: MeteorStrike lightning style set")
+	m_lt.queue_free()
+
+	var m_cb := Node3D.new()
+	m_cb.set_script(m_gd)
+	dr.add_child(m_cb)
+	m_cb.call("setup", "p1", null, Vector3.ZERO, 100.0, "t3", Color.GOLD, 2.0, 12.0, "cash_bag")
+	_check(str(m_cb.get("visual_style")) == "cash_bag" and m_cb.get_node_or_null("CashBag") != null,
+			"Track B: MeteorStrike cash_bag mounts giant CashBagVisual")
+	m_cb.queue_free()
+
 	dr.free()
 	match_node.set("lobby", prev_lobby)
 	match_node.set("players", prev_players)

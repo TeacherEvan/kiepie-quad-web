@@ -246,6 +246,21 @@ func _run() -> void:
 	var top_od := drop_bike.linear_velocity.length()
 	_release_all()
 	_check(top_od <= 39.0, "Overdrive+Turbo top speed capped <= 39.0 m/s (got %.1f m/s)" % top_od)
+
+	# P1-3: reset_bike blocked in live multiplayer
+	var match_node := root.get_node_or_null("Match")
+	if match_node != null:
+		var prev_lobby: Dictionary = match_node.get("lobby")
+		match_node.set("lobby", {"status": "playing"})
+		drop_bike.set_spawn(Transform3D(Basis.IDENTITY, Vector3(0.0, 0.05, 0.0)))
+		drop_bike.global_position = Vector3(12.0, 0.5, 12.0)
+		Input.action_press("reset_bike")
+		await physics_frame
+		Input.action_release("reset_bike")
+		_check(drop_bike.global_position.distance_to(Vector3(12.0, 0.5, 12.0)) < 2.0,
+				"P1-3: reset_bike is blocked during live multiplayer")
+		match_node.set("lobby", prev_lobby)
+
 	drop_root.free()
 	await process_frame
 
