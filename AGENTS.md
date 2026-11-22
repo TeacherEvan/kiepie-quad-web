@@ -153,7 +153,7 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   MockBackend. `html/head_include` carries the fullscreen-on-launch bridge
   and the web-shell splash: inline CSS/JS injecting `#splash` (autoplay-muted
   `web-assets/kiepie-quad-splash.mp4`, click/touch/`Esc` skip,
-  `localStorage['kiepie_splash_seen_v2']` for returning visitors, instant removal under
+  `localStorage['kiepie_splash_seen_v3']` for returning visitors, `?splash=1` force-replay override, instant removal under
   `prefers-reduced-motion`). Root `index.html` ships the identical markup and the preset
   embeds it, so re-exports keep it. `web-assets/` (dashboard background + splash) lives
   **outside** `godot/` so the pck stays small — do not move those files into `godot/assets/`.
