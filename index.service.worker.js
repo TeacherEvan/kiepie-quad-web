@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1795374319|10044602|164f2e7bf613';
+const CACHE_VERSION = '1795378920|7864727|1c6e6dda42fe';
 /** @type {string} */
 const CACHE_PREFIX = 'KiepieBike-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
@@ -115,6 +115,9 @@ self.addEventListener(
 		try {
 			const u = new URL(url, self.location.href);
 			if (u.origin !== self.location.origin) {
+				return;
+			}
+			if (u.pathname.indexOf('/web-assets/') !== -1 || event.request.headers.has('range')) {
 				return;
 			}
 			local = u.pathname.slice(u.pathname.lastIndexOf('/') + 1);
