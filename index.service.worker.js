@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1795368881|8198756|6afb3ffa28d6';
+const CACHE_VERSION = '1795369109|8228639|675a7a6178bc';
 /** @type {string} */
 const CACHE_PREFIX = 'KiepieBike-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
