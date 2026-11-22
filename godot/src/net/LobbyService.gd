@@ -37,8 +37,10 @@ func _enter(result: Dictionary) -> bool:
 func _enter_if_current(gen: int, res: Dictionary) -> bool:
 	if gen != _session_gen:
 		if not res.is_empty() and res.has("lobby"):
-			await Supabase.call_rpc("leave_lobby", {})
-			Supabase.leave_lobby_channel()
+			var stale_id := str((res["lobby"] as Dictionary).get("id", ""))
+			await Supabase.call_rpc("leave_lobby", {"p_expected_lobby_id": stale_id})
+			if current_lobby_id == "" or current_lobby_id == stale_id:
+				Supabase.leave_lobby_channel()
 		return false
 	return _enter(res)
 

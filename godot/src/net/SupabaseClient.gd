@@ -17,6 +17,7 @@ var mock: Node
 var talo: Node
 var user_id := ""
 var is_ready := false
+var last_auth_error := ""
 
 var _lobby_id := ""
 
@@ -57,9 +58,18 @@ func _ready() -> void:
 
 func _on_talo_auth(ok: bool, message: String) -> void:
 	is_ready = ok
+	last_auth_error = "" if ok else message
 	if ok:
 		user_id = str(talo.user_id)
 	auth_status.emit(ok, message)
+
+
+func is_connecting() -> bool:
+	if use_mock or talo == null:
+		return false
+	if talo.has_method("is_connecting"):
+		return bool(talo.call("is_connecting"))
+	return false
 
 
 func call_rpc(name: String, args: Dictionary = {}) -> Dictionary:

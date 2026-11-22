@@ -57,6 +57,8 @@ var _apply_extra: Dictionary = {}     # merged one-shot prop overrides
 var _host_lost_emitted := false       # emit host_lost once per lobby, not every poll
 var _state_seq := 0                   # monotonic host state sequence
 var _last_state_seq := -1             # last applied host state sequence on guest
+var _last_state_host := ""            # host_id associated with _last_state_seq
+var last_auth_error := ""             # most recent auth failure message
 
 
 # ------------------------------------------------------------------ lifecycle ---
@@ -78,22 +80,30 @@ func reconnect() -> void:
 	start()
 
 
+func is_connecting() -> bool:
+	return _starting
+
+
 func start() -> void:
 	if _starting:
 		return
 	_starting = true
+	last_auth_error = ""
 	var key := str(Talo.settings.get_value("", "access_key", ""))
 	if not key.begins_with("eyJ"):
 		_starting = false
-		auth_status.emit(false, "Talo game key missing — set TALO_API_GAME in .env")
+		last_auth_error = "Talo game key missing — set TALO_API_GAME in .env"
+		auth_status.emit(false, last_auth_error)
 		return
-	await Talo.players.identify("anonymous", Talo.players.generate_identifier())
+	var ident := str(Talo.current_alias.identifier) if Talo.current_alias != null else Talo.players.generate_identifier()
+	await Talo.players.identify("anonymous", ident)
 	if not is_inside_tree():
 		_starting = false
 		return
 	if Talo.current_alias == null:
 		_starting = false
-		auth_status.emit(false, "Talo identify failed — check key scopes")
+		last_auth_error = "Talo identify failed — check key scopes"
+		auth_status.emit(false, last_auth_error)
 		return
 	user_id = str(Talo.current_alias.id)
 	if not Talo.socket.message_received.is_connected(_on_socket_message):
@@ -239,7 +249,7 @@ func call_rpc(name: String, args: Dictionary = {}) -> Dictionary:
 		"join_by_code":
 			return await _join_by_code(args)
 		"leave_lobby":
-			await _leave_lobby()
+			await _leave_lobby(args)
 			return {"ok": true}
 		"start_match":
 			return await _start_match()
@@ -281,6 +291,7 @@ func leave_lobby_channel() -> void:
 	_prop_gen += 1
 	_state_seq = 0
 	_last_state_seq = -1
+	_last_state_host = ""
 	_apply_dirty = false
 	_apply_extra.clear()
 	if _channel_id > 0 and _channel != null:
@@ -322,6 +333,9 @@ func _player_row(args: Dictionary) -> Dictionary:
 		"color": str(args.get("p_color", Settings.player_color())),
 		"vehicle": VehicleRegistry.sanitize_preference(str(args.get("p_vehicle", ""))),
 		"score": 0,
+		"kills": 0,
+		"laps": 0,
+		"is_ready": false,
 		"respawn_at": "",
 	}
 
@@ -363,6 +377,7 @@ func _create_lobby(args: Dictionary) -> Dictionary:
 	_channel_id = int(channel.id)
 	_state_seq = 0
 	_last_state_seq = -1
+	_last_state_host = ""
 	_heartbeat_accum = 0.0
 	_roster = {user_id: _player_row(args)}
 	_make_lobby(code, str(props["name"]), settings)
@@ -526,6 +541,7 @@ func _try_join(channel, args: Dictionary) -> bool:
 	_channel_id = int(channel.id)
 	_state_seq = 0
 	_last_state_seq = -1
+	_last_state_host = ""
 	_load_state()
 	if not _roster.has(user_id):
 		_roster[user_id] = _player_row(args)
@@ -535,7 +551,11 @@ func _try_join(channel, args: Dictionary) -> bool:
 	return true
 
 
-func _leave_lobby() -> void:
+func _leave_lobby(args: Dictionary = {}) -> void:
+	var expected_id := int(args.get("p_expected_lobby_id", 0))
+	if expected_id > 0 and _channel_id != expected_id:
+		Talo.channels.leave(expected_id)
+		return
 	var leaving_id := _channel_id
 	if _channel_id > 0:
 		if _is_host() and _roster.size() > 1 and str(_lobby.get("status", "")) == "waiting":
@@ -598,11 +618,15 @@ func _load_state() -> void:
 		return
 	var code := str(_channel.get_prop("code", ""))
 	var settings := _parse_dict(_channel.get_prop("settings", "{}"))
+	var new_host := str(_channel.get_prop("host_id", ""))
+	if new_host != _last_state_host:
+		_last_state_host = new_host
+		_last_state_seq = -1
 	_lobby = {
 		"id": str(_channel_id),
 		"code": code,
 		"name": str(_channel.get_prop("name", code)),
-		"host_id": str(_channel.get_prop("host_id", "")),
+		"host_id": new_host,
 		"settings": settings,
 		"status": str(_channel.get_prop("status", "waiting")),
 		"started_at": str(_channel.get_prop("started_at", "")),
@@ -964,6 +988,9 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 				return
 			if payload is Dictionary:
 				var p := payload as Dictionary
+				if sender_id != _last_state_host:
+					_last_state_host = sender_id
+					_last_state_seq = -1
 				var seq := int(p.get("seq", -1))
 				if seq >= 0:
 					if seq <= _last_state_seq:
@@ -973,6 +1000,8 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 					_lobby = (p["lobby"] as Dictionary).duplicate(true)
 				if p.has("roster") and p["roster"] is Dictionary:
 					_roster = (p["roster"] as Dictionary).duplicate(true)
+				if str(_lobby.get("host_id", "")) == user_id:
+					_state_seq = maxi(_state_seq, _last_state_seq)
 				_emit_state()
 				_emit_roster()
 		"join", "leave":

@@ -18,6 +18,7 @@ var my_user_id := ""
 var last_result: Dictionary = {}
 var _time_up_called := false
 var _settings_cache: Dictionary = {}   # refreshed on every lobby mutation; avoids per-frame deep dup
+var _started_unix := 0.0               # cached started_at unix timestamp; avoids per-frame ISO parse
 
 
 func _ready() -> void:
@@ -56,7 +57,7 @@ func _process(_delta: float) -> void:
 	var limit := time_limit_seconds()
 	if limit <= 0 or str(lobby.get("host_id", "")) != my_user_id:
 		return
-	var started := _iso_to_unix(str(lobby.get("started_at", "")))
+	var started := _started_unix
 	if started <= 0.0:
 		return
 	if Time.get_unix_time_from_system() - started < float(limit):
@@ -128,6 +129,7 @@ func settings() -> Dictionary:
 
 func _refresh_settings_cache() -> void:
 	_settings_cache = (lobby.get("settings", {}) as Dictionary).duplicate(true)
+	_started_unix = _iso_to_unix(str(lobby.get("started_at", "")))
 
 
 func kill_target() -> int:
