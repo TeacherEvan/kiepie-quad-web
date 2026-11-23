@@ -4,7 +4,19 @@ Concrete done-vs-pending ledger. Companion to [project-plan.md](project-plan.md)
 navigation in [index.md](index.md). Statuses are evidence-backed: commit hashes,
 gate names, or live checks — not assumptions.
 
-**Last verified:** 2026-11-22 — `scene_sync OK`, `web_hygiene OK`, full gate suite **29/29** green after completing the 2026-11-22 Rev 2 Surgical Audit remediation.
+**Last verified:** 2026-11-23 — `scene_sync OK`, `web_hygiene OK`, full gate suite **29/29** green after completing the 2026-11-23 Rev 2 Surgical Audit remediation.
+
+## Audit remediation — Surgical Audit Rev 2 (2026-11-23)
+
+Source report: [audits/kiepie-quad-surgical-audit-2026-11-23-rev2.md](audits/kiepie-quad-surgical-audit-2026-11-23-rev2.md) + [SARIF 2.1.0](audits/kiepie-quad-surgical-audit-2026-11-23-rev2.sarif).
+
+| ID | Finding (severity) | Fix | Evidence |
+| --- | --- | --- | --- |
+| P1-1..3 | Guest `12 s` lap throttle vs `3 s` retry; `RaceTracker` non-final lap recovery; missing post-`await` channel/lobby guards | `GUEST_LAP_RETRY_S = 2.5`; `_arm_lap_recovery()` on all pending laps; `op_channel`/`expected_id` guards | `TaloBackend.gd`, `MatchState.gd`, `RaceTracker.gd` + `verify_talo_backend.gd`, `verify_deathrace.gd` |
+| P1-4 | `ArenaNet._on_broadcast("kill")` lacks token dedupe, roster check, `Match.is_playing()` gate | Token dedupe (`MAX_SEEN_KILL_TOKENS=128`), victim cooldown, roster & playing gates | `ArenaNet.gd` + `verify_multiplayer.gd` |
+| P1-5..6 | `VfxFactory.cash_explosion` animated `_ring_quad` under `reduced_motion`; `repair_and_verify.py` skips `EMPTY` anchors/front wheels | `_static_cue` + `bolt_root` cleanup; shift all `parent is None` roots in collection | `VfxFactory.gd`, `repair_and_verify.py` + `verify_vfx.gd` |
+| P2-1..9 | `BananaProjectile._build_tracer` visibility/process reset; 36-VBO lightning & unwarmed `CashBagVisual`; `Particles=0.0` bypass; `MatchHud._fps_label` overlap; `last_auth_error` unset; freed `owner_node`; late `"join"`; `3.47 MiB` splash; `CombatAoe` & `UiTheme.apply_safe_area` extraction | All remediated and gated; splash re-encoded at `-crf 25` | `BananaProjectile.gd`, `CashBagVisual.gd`, `VfxFactory.gd`, `MatchHud.gd`, `MainMenu.gd`, `CombatAoe.gd`, `UiTheme.gd`, `build_intro_splash.py` |
+| P3-1..5 | `#victory-splash` 10 s timeout; `build_intro_splash.py` portability/cleanup; `verify_talo_backend.gd` `"roster"` key; `SideCannons` `_aim_mat` cache; docs sync | Cleaned up and verified | `index.html`, `export_presets.cfg`, `build_intro_splash.py`, `SideCannons.gd`, `verify_talo_backend.gd`, docs |
 
 ## Audit remediation — Surgical Audit Rev 2 (2026-11-22)
 
