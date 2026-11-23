@@ -51,11 +51,14 @@ def main():
     dz = -gmin[2]
     print('AABB %s -> %s' % (gmin, gmax), 'shift dz', round(dz, 5))
     if abs(dz) > 1e-6:
-        # World-space datum: move origins, not local vertices, so rotated
-        # meshes are lifted straight up instead of drifting sideways.
-        for ob in bike_meshes:
-            if ob.parent is None:
-                ob.location.z += dz
+        # World-space datum: shift all top-level objects (including EMPTY anchors
+        # like Steer_FL/FR and Muzzle_L/R) so children and wheels move rigidly.
+        seen_roots = set()
+        for c in (coll, *coll.children_recursive):
+            for ob in c.objects:
+                if ob.parent is None and id(ob) not in seen_roots:
+                    seen_roots.add(id(ob))
+                    ob.location.z += dz
         bpy.context.view_layer.update()
 
     studio, cam, target = build_quad.build_studio()

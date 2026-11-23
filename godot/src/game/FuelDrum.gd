@@ -6,6 +6,7 @@ extends StaticBody3D
 ## guard makes the chain terminate even when drums are adjacent.
 
 const VFX := preload("res://src/game/VfxFactory.gd")
+const AOE := preload("res://src/game/CombatAoe.gd")
 
 @export var blast_radius := 4.6
 @export var blast_damage := 55.0
@@ -82,36 +83,8 @@ func ignite(attacker_id: String, token: String = "") -> void:
 
 	var tree := get_tree()
 	if tree != null:
-		# Damage every bike inside the blast radius.
-		for bike in tree.get_nodes_in_group("bike"):
-			if not is_instance_valid(bike) or not (bike is Node3D):
-				continue
-			var b := bike as Node3D
-			if not b.visible or b.get("is_respawning") == true:
-				continue
-			if b.global_position.distance_to(pos) > blast_radius:
-				continue
-			# take_damage lives on the CombatController child, not on the bike body.
-			var controller: Node = b.get_node_or_null("CombatController")
-			if controller == null:
-				for child in b.get_children():
-					if child.has_method("take_damage"):
-						controller = child
-						break
-			if controller != null and controller.has_method("take_damage"):
-				var target_id := str(b.get("player_id")) if "player_id" in b else ""
-				var hit_tok := ("%s:v%s" % [token, target_id]) if (token != "" and target_id != "") else token
-				controller.call("take_damage", blast_damage, attacker_id, b.global_position, hit_tok)
-			else:
-				# Remote proxy: no local CombatController — pop an immediate gold
-				# number for the attacker instead of nothing.
-				var target_id := str(b.get("player_id")) if "player_id" in b else ""
-				var sb := tree.root.get_node_or_null("Supabase") if tree != null else null
-				var local_uid := str(sb.get("user_id")) if sb != null and "user_id" in sb else ""
-				if attacker_id != "" and attacker_id == local_uid and target_id != "" and target_id != local_uid:
-					VFX.damage_number(_fx_parent(), b.global_position + Vector3(0.0, 0.55, 0.0),
-							float(blast_damage), Color(1.0, 0.85, 0.22))
-					_note_local_damage_shown(target_id)
+		AOE.apply_blast(tree, _fx_parent(), pos, blast_radius, blast_damage,
+				1.0, 1.0, attacker_id, self, token, false, 12.0, false, false)
 
 		# Chain to other drums inside the blast radius, slightly staggered.
 		for other in tree.get_nodes_in_group("hazard"):
@@ -160,19 +133,6 @@ func _on_respawn_timer(t: Timer) -> void:
 	if c != null:
 		c.set_deferred("disabled", false)
 	VFX.shield_pulse(_fx_parent(), global_position, Color(1.0, 0.45, 0.12, 1.0))
-
-
-func _arena_net() -> Node:
-	var tree := get_tree()
-	if tree == null or not (tree.current_scene is Node):
-		return null
-	return tree.current_scene.get_node_or_null("ArenaNet")
-
-
-func _note_local_damage_shown(target_id: String) -> void:
-	var net := _arena_net()
-	if net != null and net.has_method("note_local_damage_shown"):
-		net.call("note_local_damage_shown", target_id)
 
 
 func _fx_parent() -> Node3D:

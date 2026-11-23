@@ -62,8 +62,7 @@ func _on_roster_changed() -> void:
 			current_lap = mini(completed_laps + 1, target)
 			if completed_laps < target:
 				race_finished = false
-			if auth_laps >= completed_laps:
-				_lap_pending = false
+			_lap_pending = false
 			_sync_hud()
 		elif _lap_pending and auth_laps >= completed_laps:
 			_lap_pending = false
@@ -190,21 +189,7 @@ func _on_finish_line_entered(body: Node) -> void:
 		_sync_hud()
 		var uid := str(Supabase.user_id) if (Supabase != null and str(Supabase.user_id) != "") else "mock-host"
 		if lap_pending:
-			_lap_retry_gen += 1
-			var gen := _lap_retry_gen
-			var w_self: WeakRef = weakref(self)
-			if get_tree() != null:
-				get_tree().create_timer(3.0).timeout.connect(func() -> void:
-					var me := w_self.get_ref() as Node
-					if me == null or not is_instance_valid(me) or not me.is_inside_tree():
-						return
-					if int(me.get("_lap_retry_gen")) != gen or not bool(me.get("_lap_pending")):
-						return
-					if Match != null and Match.is_playing() and not Match.is_finished():
-						me.set("completed_laps", maxi(0, target - 1))
-						me.set("next_checkpoint", int(me.get("total_checkpoints")))
-						me.set("_lap_pending", false)
-						me.call("_sync_hud"))
+			_arm_lap_recovery(completed_laps, target)
 			return
 		race_finished = true
 		race_won.emit(uid)
@@ -217,9 +202,44 @@ func _on_finish_line_entered(body: Node) -> void:
 	else:
 		current_lap = completed_laps + 1
 		_sync_hud()
+		if lap_pending:
+			_arm_lap_recovery(completed_laps, target)
 		var hud := get_tree().get_first_node_in_group("match_hud") if get_tree() != null else null
 		if hud != null and hud.has_method("announce"):
 			hud.call("announce", "FINAL LAP!" if current_lap == target else ("LAP %d / %d" % [current_lap, target]))
+
+
+func _arm_lap_recovery(expected_completed: int, target: int) -> void:
+	_lap_retry_gen += 1
+	var gen := _lap_retry_gen
+	var w_self: WeakRef = weakref(self)
+	if get_tree() == null:
+		return
+	get_tree().create_timer(3.0).timeout.connect(func() -> void:
+		var me := w_self.get_ref() as Node
+		if me == null or not is_instance_valid(me) or not me.is_inside_tree():
+			return
+		if int(me.get("_lap_retry_gen")) != gen or not bool(me.get("_lap_pending")):
+			return
+		me.call("_reconcile_pending_lap", expected_completed, target))
+
+
+func _reconcile_pending_lap(expected_completed: int, target: int) -> void:
+	if not _lap_pending:
+		return
+	if Match != null and Match.is_playing() and not Match.is_finished():
+		var uid := str(Supabase.user_id) if (Supabase != null and str(Supabase.user_id) != "") else "mock-host"
+		var auth_laps := 0
+		if Match.players.has(uid) and Match.players[uid] is Dictionary:
+			auth_laps = int((Match.players[uid] as Dictionary).get("laps", 0))
+		if auth_laps < completed_laps:
+			completed_laps = auth_laps
+			current_lap = mini(completed_laps + 1, target)
+			if expected_completed >= target:
+				next_checkpoint = total_checkpoints
+			race_finished = false
+			_sync_hud()
+	_lap_pending = false
 
 
 func _sync_hud() -> void:

@@ -120,7 +120,8 @@ func smash(impulse: Vector3 = Vector3.ZERO) -> void:
 	var parent := get_parent()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(building_name) + int(abs(origin.x * 1000.0)) + int(abs(origin.z * 977.0))
-	var count := 0 if Settings.reduced_motion() else maxi(4, int(debris_pieces * Settings.quality_multiplier()))
+	var q := Settings.quality_multiplier()
+	var count := 0 if (Settings.reduced_motion() or q <= 0.0) else maxi(4, int(debris_pieces * q))
 	var chunks: Array[RigidBody3D] = []
 	for i in range(count):
 		var variant := rng.randi_range(0, _debris_meshes.size() - 1)

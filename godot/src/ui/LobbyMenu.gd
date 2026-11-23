@@ -447,25 +447,4 @@ func _on_copy() -> void:
 
 
 func _apply_safe_area(margin: MarginContainer) -> void:
-	if not DisplayServer.has_method("get_display_safe_area"):
-		return
-	var vp := get_viewport_rect().size
-	var win := DisplayServer.window_get_size()
-	if win.x <= 0 or win.y <= 0:
-		return
-	var sa := DisplayServer.get_display_safe_area()
-	var sx := vp.x / float(win.x)
-	var sy := vp.y / float(win.y)
-	var short := vp.y <= 480.0
-	var min_lr := 12.0 if vp.x <= 480.0 else 24.0
-	var min_t := 6.0 if short else 20.0
-	var min_b := 6.0 if short else (16.0 if vp.x < 720.0 else 56.0)
-	var l := int(maxf(min_lr, float(sa.position.x) * sx))
-	var t := int(maxf(min_t, float(sa.position.y) * sy))
-	var r := int(maxf(min_lr, float(win.x - sa.end.x) * sx))
-	# The Web shell paints a fixed hint strip along the bottom on wide desktop; keep clear of it.
-	var b := int(maxf(min_b, float(win.y - sa.end.y) * sy))
-	margin.set("theme_override_constants/margin_left", l)
-	margin.set("theme_override_constants/margin_top", t)
-	margin.set("theme_override_constants/margin_right", r)
-	margin.set("theme_override_constants/margin_bottom", b)
+	UI.apply_safe_area(self, margin, 20.0)

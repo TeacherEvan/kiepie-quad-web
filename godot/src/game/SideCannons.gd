@@ -74,6 +74,7 @@ var _aim_ray_query: PhysicsRayQueryParameters3D = null
 var _last_reload_progress := -1.0
 var _last_reload_ready := true
 var _last_weapon_emitted := ""
+var _last_aim_state := ""
 const PROJ_POOL_SIZE := 24
 var _proj_pool: Array[Node3D] = []
 var _proj_pool_idx := 0
@@ -441,15 +442,18 @@ func _update_aim_reticle(delta: float = 0.0) -> void:
 		_aim_reticle.rotate_y(2.1 * minf(delta, 0.05))
 	if _aim_mat != null:
 		var rdy := can_fire()
-		if weapon_profile == "bike":
-			_aim_mat.albedo_color = Color(0.32, 0.88, 1.0, 0.58) if rdy else Color(0.28, 0.45, 0.65, 0.30)
-			_aim_mat.emission = Color(0.45, 0.92, 1.0) if rdy else Color(0.30, 0.50, 0.72)
-		elif weapon_profile == "aston":
-			_aim_mat.albedo_color = Color(0.18, 0.88, 0.42, 0.58) if rdy else Color(0.75, 0.62, 0.16, 0.30)
-			_aim_mat.emission = Color(0.95, 0.84, 0.24) if rdy else Color(0.68, 0.55, 0.14)
-		else:
-			_aim_mat.albedo_color = Color(0.28, 1.0, 0.52, 0.55) if rdy else Color(1.0, 0.42, 0.10, 0.30)
-			_aim_mat.emission = Color(0.32, 1.0, 0.55) if rdy else Color(1.0, 0.38, 0.10)
+		var aim_key := "%s:%s" % [weapon_profile, str(rdy)]
+		if aim_key != _last_aim_state:
+			_last_aim_state = aim_key
+			if weapon_profile == "bike":
+				_aim_mat.albedo_color = Color(0.32, 0.88, 1.0, 0.58) if rdy else Color(0.28, 0.45, 0.65, 0.30)
+				_aim_mat.emission = Color(0.45, 0.92, 1.0) if rdy else Color(0.30, 0.50, 0.72)
+			elif weapon_profile == "aston":
+				_aim_mat.albedo_color = Color(0.18, 0.88, 0.42, 0.58) if rdy else Color(0.75, 0.62, 0.16, 0.30)
+				_aim_mat.emission = Color(0.95, 0.84, 0.24) if rdy else Color(0.68, 0.55, 0.14)
+			else:
+				_aim_mat.albedo_color = Color(0.28, 1.0, 0.52, 0.55) if rdy else Color(1.0, 0.42, 0.10, 0.30)
+				_aim_mat.emission = Color(0.32, 1.0, 0.55) if rdy else Color(1.0, 0.38, 0.10)
 
 
 func _resolve_fx_parent() -> Node3D:
@@ -522,7 +526,7 @@ func fire() -> void:
 		var muzzle: Node3D = _muzzles[i]
 		if not is_instance_valid(muzzle):
 			continue
-		if i < _muzzle_flashes.size() and is_instance_valid(_muzzle_flashes[i]) and not Settings.reduced_motion():
+		if i < _muzzle_flashes.size() and is_instance_valid(_muzzle_flashes[i]) and not Settings.reduced_motion() and Settings.quality_multiplier() > 0.0:
 			_muzzle_flashes[i].position = owner_node.to_local(muzzle.global_position)
 			_muzzle_flashes[i].restart()
 			_muzzle_flashes[i].emitting = true

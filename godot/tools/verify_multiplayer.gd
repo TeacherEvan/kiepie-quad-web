@@ -362,6 +362,20 @@ func _run() -> void:
 	var after_lag := net_lag.get_child_count()
 	net_lag.call("_spawn_remote_shot", {"id": "peer-lag", "o": [25.0, 0.5, 0.0], "d": [0.0, 0.0, 1.0], "token": "lag-spoof"})
 	_check(net_lag.get_child_count() == after_lag, "P1-3: ArenaNet still rejects 25.0 m spoofed shot origin")
+
+	# P1-4: ArenaNet._on_broadcast("kill") rejects non-playing, unknown victim, and duplicate tokens
+	var my_uid := str(root.get_node("Supabase").get("user_id"))
+	match_node.set("lobby", {"id": "1", "status": "waiting", "settings": {}})
+	match_node.set("players", {my_uid: {"user_id": my_uid}, "peer-lag": {"user_id": "peer-lag"}})
+	net_lag.call("_on_broadcast", "kill", {"killer": my_uid, "victim": "peer-lag", "token": "k-wait"})
+	_check(int(net_lag.get("_streak")) == 0, "P1-4: kill broadcast ignored when Match.is_playing() is false")
+	match_node.set("lobby", {"id": "1", "status": "playing", "settings": {"respawn_delay": 2.5}})
+	net_lag.call("_on_broadcast", "kill", {"killer": my_uid, "victim": "ghost-unknown", "token": "k-ghost"})
+	_check(int(net_lag.get("_streak")) == 0, "P1-4: kill broadcast ignored for victim not in Match.players")
+	net_lag.call("_on_broadcast", "kill", {"killer": my_uid, "victim": "peer-lag", "token": "k-valid-1"})
+	net_lag.call("_on_broadcast", "kill", {"killer": my_uid, "victim": "peer-lag", "token": "k-valid-1"})
+	_check(int(net_lag.get("_streak")) == 1, "P1-4: duplicate kill token is deduped (_streak == 1)")
+
 	lag_stub.queue_free()
 	net_lag.queue_free()
 

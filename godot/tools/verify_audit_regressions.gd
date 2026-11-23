@@ -327,3 +327,16 @@ func _stale_leave_lobby_protection() -> void:
 	_check(int(tb.get("_channel_id")) == 999 and str((tb.get("_lobby") as Dictionary).get("id", "")) == "999",
 			"P1-2: stale _leave_lobby(expected=123) does not wipe active lobby 999")
 	tb.free()
+
+	# P1-3: MatchState.set_lobby clears stale players when lobby id changes
+	var m := root.get_node_or_null("Match")
+	if m != null:
+		var prev_lobby: Dictionary = (m.get("lobby") as Dictionary).duplicate(true)
+		var prev_players: Dictionary = (m.get("players") as Dictionary).duplicate(true)
+		m.set("lobby", {"id": "old-lobby"})
+		m.set("players", {"stale-peer": {"user_id": "stale-peer"}})
+		m.call("set_lobby", {"lobby": {"id": "new-lobby", "status": "waiting"}})
+		_check(not (m.get("players") as Dictionary).has("stale-peer"),
+				"P1-3: MatchState.set_lobby clears stale players on lobby id swap")
+		m.set("lobby", prev_lobby)
+		m.set("players", prev_players)

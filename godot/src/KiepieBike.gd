@@ -434,7 +434,7 @@ func _physics_process(delta: float) -> void:
 		_engine_player.pitch_scale = lerpf(_engine_player.pitch_scale, target_pitch, 1.0 - exp(-8.0 * delta))
 	var reduced := Settings.reduced_motion()
 	if _flames:
-		_flames.emitting = turbo_active and not reduced
+		_flames.emitting = turbo_active and not reduced and Settings.quality_multiplier() > 0.0
 	if _jet_plume != null:
 		var jet_strength := _turbo_blend if turbo_active else (0.55 if (_flames and _flames.emitting) else 0.0)
 		_jet_plume.visible = jet_strength > 0.04 and not reduced

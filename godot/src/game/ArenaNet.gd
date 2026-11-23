@@ -27,6 +27,9 @@ const REMOTE_METEOR_MIN_S := 5.5
 var _state_tick := 0             # monotonic relay sequence for bike_state
 var _death_gen: Dictionary = {}  # peer_id -> monotonic death generation for respawn timer
 var _local_dmg_shown_at: Dictionary = {}  # victim_id -> sec timestamp of our attacker-side damage number
+var _seen_kill_tokens: Dictionary = {}  # token -> true (dedupes replayed "kill" broadcasts)
+var _victim_kill_at: Dictionary = {}    # victim_id -> sec timestamp of last processed "kill"
+const MAX_SEEN_KILL_TOKENS := 128
 const LOCAL_DMG_DEDUP_S := 0.28
 const REMOTE_PROJ_POOL_SIZE := 32
 var _remote_proj_pool: Array[Node3D] = []
@@ -151,26 +154,40 @@ func _on_broadcast(event: String, payload: Variant) -> void:
 		"shot":
 			_spawn_remote_shot(p)
 		"kill":
+			if Match != null and not Match.lobby.is_empty() and not Match.is_playing():
+				return
 			var killer := str(p.get("killer", ""))
 			var victim := str(p.get("victim", ""))
 			var token := str(p.get("token", ""))
+			if victim == "" or token == "":
+				return
+			if (not Supabase.use_mock or Match.players.size() > 1) and not Match.players.is_empty() and not Match.players.has(victim):
+				return
+			if _seen_kill_tokens.has(token):
+				return
+			var kill_now := Time.get_ticks_msec() / 1000.0
+			var min_kill_gap := maxf(0.5, Match.respawn_delay() * 0.5)
+			if (kill_now - float(_victim_kill_at.get(victim, -10.0))) < min_kill_gap:
+				return
+			_seen_kill_tokens[token] = true
+			while _seen_kill_tokens.size() > MAX_SEEN_KILL_TOKENS:
+				_seen_kill_tokens.erase(_seen_kill_tokens.keys()[0])
+			_victim_kill_at[victim] = kill_now
+			var feed := get_tree().get_first_node_in_group("match_hud")
 			# The victim broadcasts its death; only the killer's client awards
 			# the point through the authoritative RPC (the server owns scores).
-			if killer == Supabase.user_id and victim != "" and victim != Supabase.user_id and token != "":
+			if killer == Supabase.user_id and victim != Supabase.user_id:
 				_streak += 1
 				Match.register_kill(victim, token)
 				_play_sfx("kill")
 				_do_hitstop()
-				if _streak >= 3:
-					var feed := get_tree().get_first_node_in_group("match_hud")
-					if feed != null and feed.has_method("announce"):
-						feed.call("announce", "RAMPAGE ×%d" % _streak)
+				if _streak >= 3 and feed != null and feed.has_method("announce"):
+					feed.call("announce", "RAMPAGE ×%d" % _streak)
 			if victim == Supabase.user_id:
 				_streak = 0
 				_start_kill_cam(killer)
 			if _remote.has(victim):
 				_hide_remote_briefly(victim)
-			var feed := get_tree().get_first_node_in_group("match_hud")
 			if feed != null and feed.has_method("add_kill"):
 				feed.call("add_kill", killer, victim)
 		"hurt":
@@ -409,3 +426,4 @@ func _sync_roster() -> void:
 			_meteor_last.erase(id)
 			_death_gen.erase(id)
 			_local_dmg_shown_at.erase(id)
+			_victim_kill_at.erase(id)

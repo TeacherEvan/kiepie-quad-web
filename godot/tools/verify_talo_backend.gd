@@ -330,24 +330,97 @@ func _initialize() -> void:
 	await hh.call("_on_socket_message", "v1.channels.message", {
 		"channel": {"id": 10},
 		"playerAlias": {"id": 1},
-		"message": JSON.stringify({"k": "state", "p": {"seq": 50, "lobby": {"id": "10", "host_id": "1", "status": "playing"}, "players": {}}}),
+		"message": JSON.stringify({"k": "state", "p": {"seq": 50, "lobby": {"id": "10", "host_id": "1", "status": "playing"}, "roster": {"1": {"user_id": "1"}, "2": {"user_id": "2"}}}}),
 	})
 	hh._lobby["host_id"] = "3"
 	await hh.call("_on_socket_message", "v1.channels.message", {
 		"channel": {"id": 10},
 		"playerAlias": {"id": 3},
-		"message": JSON.stringify({"k": "state", "p": {"seq": 1, "lobby": {"id": "10", "host_id": "3", "status": "playing"}, "players": {}}}),
+		"message": JSON.stringify({"k": "state", "p": {"seq": 1, "lobby": {"id": "10", "host_id": "3", "status": "playing"}, "roster": {"1": {"user_id": "1"}, "2": {"user_id": "2"}, "3": {"user_id": "3"}}}}),
 	})
-	_check(str(hh.get("_last_state_host")) == "3" and int(hh.get("_last_state_seq")) == 1,
-			"P1-1: host handoff resets _last_state_host and accepts lower seq=1")
+	_check(str(hh.get("_last_state_host")) == "3" and int(hh.get("_last_state_seq")) == 1 and (hh.get("_roster") as Dictionary).has("3"),
+			"P1-1/P3-3: host handoff resets _last_state_host, accepts lower seq=1, and updates _roster")
 	await hh.call("_on_socket_message", "v1.channels.message", {
 		"channel": {"id": 10},
 		"playerAlias": {"id": 3},
-		"message": JSON.stringify({"k": "state", "p": {"seq": 7, "lobby": {"id": "10", "host_id": "2", "status": "playing"}, "players": {}}}),
+		"message": JSON.stringify({"k": "state", "p": {"seq": 7, "lobby": {"id": "10", "host_id": "2", "status": "playing"}, "roster": {"2": {"user_id": "2"}, "3": {"user_id": "3"}}}}),
 	})
 	_check(int(hh.get("_state_seq")) >= 7,
 			"P1-1: new host seeds _state_seq >= _last_state_seq (got %d)" % int(hh.get("_state_seq")))
+
+	# P2-7: late "join" from unknown uid during "playing" is rejected
+	await hh.call("_on_socket_message", "v1.channels.message", {
+		"channel": {"id": 10},
+		"playerAlias": {"id": 99},
+		"message": JSON.stringify({"k": "join", "p": {"user_id": "99", "display_name": "LATE"}}),
+	})
+	_check(not (hh.get("_roster") as Dictionary).has("99"),
+			"P2-7: late join from unknown uid during playing match is rejected")
+
+	# P1-1 (lap): guest retry allowed after 2.6 s (< 12 s) while host still enforces 12 s
+	var gl_retry := _new_backend()
+	get_root().add_child(gl_retry)
+	gl_retry.user_id = "2"
+	gl_retry._lobby = {"id": "1", "host_id": "1", "status": "playing", "settings": {"game_mode": "death_race", "lap_target": 3}}
+	var now_s := Time.get_ticks_msec() / 1000.0
+	gl_retry._lap_timestamps["2"] = now_s - 2.6
+	var gl_retry_res: Dictionary = await gl_retry.call_rpc("register_lap", {"p_racer": "2", "p_token": "g-retry-ok"})
+	_check(bool(gl_retry_res.get("ok", false)) and bool(gl_retry_res.get("pending", false)),
+			"P1-1: guest register_lap allows recovery retry after 2.6 s")
+	gl_retry.free()
 	hh.free()
 
-	print("talo backend contract: %d checks, %d failure(s)" % [43, _failures])
+	# P1-3: post-await channel swap suppresses stale _broadcast_state
+	var sw := _new_backend()
+	get_root().add_child(sw)
+	sw.user_id = "1"
+	sw._channel_id = 10
+	sw._lobby = {"id": "10", "host_id": "1", "status": "waiting"}
+	sw._roster = {"1": {"user_id": "1"}, "2": {"user_id": "2", "is_ready": false}}
+	sw.set("_apply_inflight", true)
+	var seq_before := int(sw.get("_state_seq"))
+	sw.call("_on_socket_message", "v1.channels.message", {
+		"channel": {"id": 10},
+		"playerAlias": {"id": 2},
+		"message": JSON.stringify({"k": "ready_request", "p": {"user_id": "2", "ready": true}}),
+	})
+	sw._channel_id = 20
+	sw._lobby = {"id": "20", "host_id": "1", "status": "waiting"}
+	sw.emit_signal("_apply_drained")
+	await process_frame
+	_check(int(sw.get("_state_seq")) == seq_before,
+			"P1-3: post-await channel swap suppresses stale _broadcast_state (seq=%d)" % int(sw.get("_state_seq")))
+	sw.free()
+
+	# P2-5: last_auth_error surfaces on MainMenu when offline
+	var err_tb := _new_backend()
+	_check(str(err_tb.get("last_auth_error")) == "", "P2-5: TaloBackend.last_auth_error starts empty")
+	err_tb.free()
+	var sb_err := get_root().get_node_or_null("Supabase")
+	if sb_err != null:
+		var prev_ready := bool(sb_err.get("is_ready"))
+		var prev_mock := bool(sb_err.get("use_mock"))
+		var prev_err := str(sb_err.get("last_auth_error")) if "last_auth_error" in sb_err else ""
+		sb_err.set("is_ready", false)
+		sb_err.set("use_mock", false)
+		if "last_auth_error" in sb_err:
+			sb_err.set("last_auth_error", "Auth timed out — check network")
+		var mm_scene := load("res://scenes/MainMenu.tscn") as PackedScene
+		if mm_scene != null:
+			var mm := mm_scene.instantiate()
+			get_root().add_child(mm)
+			await process_frame
+			var st_lbl := mm.get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/Status") as Label
+			var retry_btn := mm.get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/BtnRetry") as Button
+			_check(st_lbl != null and st_lbl.text.find("Auth timed out") >= 0
+					and retry_btn != null and retry_btn.visible,
+					"P2-5: MainMenu surfaces last_auth_error and shows BtnRetry when offline")
+			mm.queue_free()
+			await process_frame
+		sb_err.set("is_ready", prev_ready)
+		sb_err.set("use_mock", prev_mock)
+		if "last_auth_error" in sb_err:
+			sb_err.set("last_auth_error", prev_err)
+
+	print("talo backend contract: %d failure(s)" % _failures)
 	quit(1 if _failures > 0 else 0)

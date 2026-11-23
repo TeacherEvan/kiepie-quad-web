@@ -179,14 +179,14 @@ func _rearm_tracer() -> void:
 	if _tracer != null:
 		_tracer.basis = Basis.looking_at(dir, up)
 	if _ray_query != null:
-		_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()] if owner_node is CollisionObject3D else []
-	if not Settings.reduced_motion() and _trail == null:
+		_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()] if (is_instance_valid(owner_node) and owner_node is CollisionObject3D) else []
+	if not Settings.reduced_motion() and Settings.quality_multiplier() > 0.0 and _trail == null:
 		_ensure_trail(dir)
 	if _trail != null:
 		if _trail.process_material is ParticleProcessMaterial:
 			(_trail.process_material as ParticleProcessMaterial).direction = -dir
 		_trail.restart()
-		_trail.emitting = not Settings.reduced_motion()
+		_trail.emitting = not Settings.reduced_motion() and Settings.quality_multiplier() > 0.0
 
 
 func _recycle() -> void:
@@ -194,6 +194,7 @@ func _recycle() -> void:
 	visible = false
 	set_physics_process(false)
 	on_hit = Callable()
+	owner_node = null
 	if _trail != null:
 		_trail.emitting = false
 	if not pooled:
@@ -201,6 +202,9 @@ func _recycle() -> void:
 
 
 func _build_tracer() -> void:
+	visible = true
+	set_physics_process(true)
+	_age = 0.0
 	_tracer = Node3D.new()
 	_tracer.name = "Banana"
 	add_child(_tracer)
@@ -216,12 +220,12 @@ func _build_tracer() -> void:
 	_ray_query = PhysicsRayQueryParameters3D.new()
 	_ray_query.collide_with_areas = false
 	_ray_query.collide_with_bodies = true
-	_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()] if owner_node is CollisionObject3D else []
+	_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()] if (is_instance_valid(owner_node) and owner_node is CollisionObject3D) else []
 
 	# Bananas rely on emissive material + bloom rather than per-shot OmniLight3D
 	# nodes so WebGL2 stays within its 8-light-per-surface budget.
 
-	if not Settings.reduced_motion():
+	if not Settings.reduced_motion() and Settings.quality_multiplier() > 0.0:
 		_ensure_trail(dir)
 
 
@@ -273,7 +277,7 @@ func _physics_process(delta: float) -> void:
 		return
 	var collider: Object = result.get("collider", null)
 	var point: Vector3 = result.get("position", to)
-	if collider == owner_node:
+	if is_instance_valid(owner_node) and collider == owner_node:
 		global_position = to
 		return
 	global_position = point

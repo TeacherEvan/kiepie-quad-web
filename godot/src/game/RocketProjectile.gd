@@ -7,6 +7,7 @@ signal hit(target: Node, point: Vector3)
 const SPEED := 38.0
 const BLAST_RADIUS := 4.5
 const VFX := preload("res://src/game/VfxFactory.gd")
+const COMBAT_AOE := preload("res://src/game/CombatAoe.gd")
 
 var owner_id := ""
 var owner_node: Node
@@ -114,19 +115,6 @@ static func _ensure_meshes() -> void:
 		])
 
 
-func _arena_net() -> Node:
-	var tree := get_tree()
-	if tree == null or not (tree.current_scene is Node):
-		return null
-	return tree.current_scene.get_node_or_null("ArenaNet")
-
-
-func _note_local_damage_shown(target_id: String) -> void:
-	var net := _arena_net()
-	if net != null and net.has_method("note_local_damage_shown"):
-		net.call("note_local_damage_shown", target_id)
-
-
 func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
 		p_direction: Vector3, p_speed: float, p_damage: float,
 		p_token: String, p_color: Color, p_blast_radius: float = BLAST_RADIUS,
@@ -191,7 +179,7 @@ func _build_visual() -> void:
 	_ray_query = PhysicsRayQueryParameters3D.new()
 	_ray_query.collide_with_areas = false
 	_ray_query.collide_with_bodies = true
-	if owner_node is CollisionObject3D:
+	if is_instance_valid(owner_node) and owner_node is CollisionObject3D:
 		_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()]
 
 	if Settings.quality_multiplier() >= 0.5:
@@ -203,7 +191,7 @@ func _build_visual() -> void:
 		add_child(_light)
 		VFX._cap_group(self, "vfx_light", VFX.MAX_IMPACT_LIGHTS)
 
-	if not Settings.reduced_motion():
+	if not Settings.reduced_motion() and Settings.quality_multiplier() > 0.0:
 		_trail = GPUParticles3D.new()
 		_trail.amount = maxi(6, int(36 * Settings.quality_multiplier()))
 		_trail.lifetime = 0.44
@@ -259,7 +247,7 @@ func _physics_process(delta: float) -> void:
 		return
 	var collider: Object = result.get("collider", null)
 	var point: Vector3 = result.get("position", to)
-	if collider == owner_node:
+	if is_instance_valid(owner_node) and collider == owner_node:
 		global_position = to
 		return
 	global_position = point
@@ -298,61 +286,5 @@ func _detonate(point: Vector3, direct_collider: Object) -> void:
 	var tree := get_tree()
 	if tree == null:
 		return
-
-	var local_uid := ""
-	var sb := tree.root.get_node_or_null("Supabase")
-	if sb != null and "user_id" in sb:
-		local_uid = str(sb.get("user_id"))
-
-	var hit_any_enemy := false
-	for b in tree.get_nodes_in_group("bike"):
-		if not is_instance_valid(b) or not (b is Node3D):
-			continue
-		var bike_node := b as Node3D
-		if not bike_node.visible or bike_node.get("is_respawning") == true:
-			continue
-		var dist := bike_node.global_position.distance_to(point)
-		if dist > blast_radius:
-			continue
-		if bike_node == owner_node:
-			continue
-		var target_id := str(bike_node.get("player_id")) if "player_id" in bike_node else ""
-		# Slight radial falloff only near the very edge; full 2x damage inside 65% radius
-		var falloff := 1.0 if dist <= blast_radius * 0.65 else lerpf(1.0, 0.75, (dist - blast_radius * 0.65) / maxf(0.01, blast_radius * 0.35))
-		var applied_dmg := roundf(damage * falloff)
-		var controller := bike_node.get_node_or_null("CombatController")
-		if controller != null and controller.has_method("take_damage"):
-			var hit_tok := ("%s:v%s" % [token, target_id]) if (token != "" and target_id != "") else token
-			controller.call("take_damage", applied_dmg, owner_id, bike_node.global_position, hit_tok)
-		elif owner_id != "" and owner_id == local_uid and target_id != local_uid:
-			# Remote proxy or practice dummy: no local CombatController exists to
-			# pop a number — give the shooter immediate zero-latency feedback.
-			VFX.damage_number(fx, bike_node.global_position + Vector3(0.0, 0.55, 0.0),
-					float(applied_dmg), Color(1.0, 0.85, 0.22))
-			_note_local_damage_shown(target_id)
-		if owner_id != "" and owner_id == local_uid and target_id != local_uid:
-			hit_any_enemy = true
-
-	for h in tree.get_nodes_in_group("hazard"):
-		if not is_instance_valid(h) or not (h is Node3D):
-			continue
-		var hz := h as Node3D
-		if not hz.visible or bool(hz.get("_ignited")):
-			continue
-		if hz.global_position.distance_to(point) <= blast_radius and hz.has_method("ignite"):
-			var drum_tok := ("%s:d%d" % [token, hz.get_instance_id()]) if token != "" else ""
-			hz.call("ignite", owner_id, drum_tok)
-			if owner_id != "" and owner_id == local_uid:
-				hit_any_enemy = true
-
-	for d in tree.get_nodes_in_group("destructible"):
-		if not is_instance_valid(d) or not (d is Node3D):
-			continue
-		var db := d as Node3D
-		if db.global_position.distance_to(point) <= blast_radius and db.has_method("smash"):
-			db.call("smash", (db.global_position - point).normalized() * 12.0)
-
-	if hit_any_enemy:
-		var local_combat := tree.get_first_node_in_group("local_combat")
-		if local_combat != null and local_combat.has_signal("hit_confirmed"):
-			local_combat.emit_signal("hit_confirmed")
+	COMBAT_AOE.apply_blast(tree, fx, point, blast_radius, damage, 0.65, 0.75,
+			owner_id, owner_node, token, true, 12.0, true)

@@ -9,6 +9,7 @@ const FALL_DURATION := 2.0
 const BLAST_RADIUS := 7.5
 const SKY_HEIGHT := 36.0
 const VFX := preload("res://src/game/VfxFactory.gd")
+const COMBAT_AOE := preload("res://src/game/CombatAoe.gd")
 
 var owner_id := ""
 var owner_node: Node
@@ -37,6 +38,8 @@ static var _ring_mesh: CylinderMesh = null
 static var _disc_mesh: CylinderMesh = null
 static var _trail_mesh: SphereMesh = null
 static var _trail_ramp: GradientTexture1D = null
+static var _cloud_mesh: CylinderMesh = null
+static var _shaft_mesh: CylinderMesh = null
 
 
 static func _ensure_meshes() -> void:
@@ -124,19 +127,28 @@ static func _ensure_meshes() -> void:
 			Color(1.0, 0.38, 0.08, 0.78),
 			Color(0.22, 0.14, 0.12, 0.0),
 		])
-
-
-func _arena_net() -> Node:
-	var tree := get_tree()
-	if tree == null or not (tree.current_scene is Node):
-		return null
-	return tree.current_scene.get_node_or_null("ArenaNet")
-
-
-func _note_local_damage_shown(target_id: String) -> void:
-	var net := _arena_net()
-	if net != null and net.has_method("note_local_damage_shown"):
-		net.call("note_local_damage_shown", target_id)
+	if _cloud_mesh == null:
+		var cm2 := CylinderMesh.new()
+		cm2.top_radius = 5.5
+		cm2.bottom_radius = 3.2
+		cm2.height = 2.2
+		cm2.radial_segments = 16
+		var cmat2 := StandardMaterial3D.new()
+		cmat2.albedo_color = Color(0.14, 0.20, 0.30, 0.88)
+		cmat2.emission_enabled = true
+		cmat2.emission = Color(0.28, 0.72, 1.0)
+		cmat2.emission_energy_multiplier = 1.8
+		cmat2.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		cm2.material = cmat2
+		_cloud_mesh = cm2
+	if _shaft_mesh == null:
+		var sm2 := CylinderMesh.new()
+		sm2.top_radius = 0.65
+		sm2.bottom_radius = 0.22
+		sm2.height = 32.0
+		sm2.radial_segments = 10
+		sm2.material = VFX._additive(Color(0.45, 0.88, 1.0, 0.35), 3.2)
+		_shaft_mesh = sm2
 
 
 func setup(p_owner_id: String, p_owner_node: Node, p_target_pos: Vector3,
@@ -192,30 +204,12 @@ func _build_visual() -> void:
 		add_child(_boulder)
 		_boulder.position = Vector3(0.0, 32.0, 0.0)
 
-		var cloud_mesh := CylinderMesh.new()
-		cloud_mesh.top_radius = 5.5
-		cloud_mesh.bottom_radius = 3.2
-		cloud_mesh.height = 2.2
-		cloud_mesh.radial_segments = 16
-		var cmat := StandardMaterial3D.new()
-		cmat.albedo_color = Color(0.14, 0.20, 0.30, 0.88)
-		cmat.emission_enabled = true
-		cmat.emission = Color(0.28, 0.72, 1.0)
-		cmat.emission_energy_multiplier = 1.8
-		cmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		cloud_mesh.material = cmat
 		var cloud := MeshInstance3D.new()
-		cloud.mesh = cloud_mesh
+		cloud.mesh = _cloud_mesh
 		_boulder.add_child(cloud)
 
-		var shaft_mesh := CylinderMesh.new()
-		shaft_mesh.top_radius = 0.65
-		shaft_mesh.bottom_radius = 0.22
-		shaft_mesh.height = 32.0
-		shaft_mesh.radial_segments = 10
-		shaft_mesh.material = VFX._additive(Color(0.45, 0.88, 1.0, 0.35), 3.2)
 		_ion_shaft = MeshInstance3D.new()
-		_ion_shaft.mesh = shaft_mesh
+		_ion_shaft.mesh = _shaft_mesh
 		_ion_shaft.position = Vector3(0.0, 16.0, 0.0)
 		add_child(_ion_shaft)
 
@@ -228,7 +222,7 @@ func _build_visual() -> void:
 			_boulder.add_child(_light)
 			VFX._cap_group(_boulder, "vfx_light", VFX.MAX_IMPACT_LIGHTS)
 
-		if not Settings.reduced_motion():
+		if not Settings.reduced_motion() and Settings.quality_multiplier() > 0.0:
 			_trail = GPUParticles3D.new()
 			_trail.amount = maxi(8, int(36 * Settings.quality_multiplier()))
 			_trail.lifetime = 0.65
@@ -263,7 +257,7 @@ func _build_visual() -> void:
 			_boulder.add_child(_light)
 			VFX._cap_group(_boulder, "vfx_light", VFX.MAX_IMPACT_LIGHTS)
 
-		if not Settings.reduced_motion():
+		if not Settings.reduced_motion() and Settings.quality_multiplier() > 0.0:
 			_trail = GPUParticles3D.new()
 			_trail.amount = maxi(8, int(38 * Settings.quality_multiplier()))
 			_trail.lifetime = 0.75
@@ -306,7 +300,7 @@ func _build_visual() -> void:
 			_boulder.add_child(_light)
 			VFX._cap_group(_boulder, "vfx_light", VFX.MAX_IMPACT_LIGHTS)
 
-		if not Settings.reduced_motion():
+		if not Settings.reduced_motion() and Settings.quality_multiplier() > 0.0:
 			_trail = GPUParticles3D.new()
 			_trail.amount = maxi(8, int(44 * Settings.quality_multiplier()))
 			_trail.lifetime = 0.55
@@ -412,61 +406,5 @@ func _detonate() -> void:
 	var tree := get_tree()
 	if tree == null:
 		return
-
-	var local_uid := ""
-	var sb := tree.root.get_node_or_null("Supabase")
-	if sb != null and "user_id" in sb:
-		local_uid = str(sb.get("user_id"))
-
-	var hit_any_enemy := false
-	for b in tree.get_nodes_in_group("bike"):
-		if not is_instance_valid(b) or not (b is Node3D):
-			continue
-		var bike_node := b as Node3D
-		if not bike_node.visible or bike_node.get("is_respawning") == true:
-			continue
-		var dist := bike_node.global_position.distance_to(target_pos)
-		if dist > blast_radius:
-			continue
-		if bike_node == owner_node:
-			continue
-		var target_id := str(bike_node.get("player_id")) if "player_id" in bike_node else ""
-		# Massive damage: full 105+ damage inside 60% radius, tapering only at outer rim
-		var falloff := 1.0 if dist <= blast_radius * 0.60 else lerpf(1.0, 0.72, (dist - blast_radius * 0.60) / maxf(0.01, blast_radius * 0.40))
-		var applied_dmg := roundf(damage * falloff)
-		var controller := bike_node.get_node_or_null("CombatController")
-		if controller != null and controller.has_method("take_damage"):
-			var hit_tok := ("%s:v%s" % [token, target_id]) if (token != "" and target_id != "") else token
-			controller.call("take_damage", applied_dmg, owner_id, bike_node.global_position, hit_tok)
-		elif owner_id != "" and owner_id == local_uid and target_id != local_uid:
-			# Remote proxy or practice dummy: no local CombatController exists to
-			# pop a number — give the shooter immediate zero-latency feedback.
-			VFX.damage_number(fx, bike_node.global_position + Vector3(0.0, 0.55, 0.0),
-					float(applied_dmg), Color(1.0, 0.85, 0.22))
-			_note_local_damage_shown(target_id)
-		if owner_id != "" and owner_id == local_uid and target_id != local_uid:
-			hit_any_enemy = true
-
-	for h in tree.get_nodes_in_group("hazard"):
-		if not is_instance_valid(h) or not (h is Node3D):
-			continue
-		var hz := h as Node3D
-		if not hz.visible or bool(hz.get("_ignited")):
-			continue
-		if hz.global_position.distance_to(target_pos) <= blast_radius and hz.has_method("ignite"):
-			var drum_tok := ("%s:d%d" % [token, hz.get_instance_id()]) if token != "" else ""
-			hz.call("ignite", owner_id, drum_tok)
-			if owner_id != "" and owner_id == local_uid:
-				hit_any_enemy = true
-
-	for d in tree.get_nodes_in_group("destructible"):
-		if not is_instance_valid(d) or not (d is Node3D):
-			continue
-		var db := d as Node3D
-		if db.global_position.distance_to(target_pos) <= blast_radius and db.has_method("smash"):
-			db.call("smash", (db.global_position - target_pos).normalized() * 16.0)
-
-	if hit_any_enemy:
-		var local_combat := tree.get_first_node_in_group("local_combat")
-		if local_combat != null and local_combat.has_signal("hit_confirmed"):
-			local_combat.emit_signal("hit_confirmed")
+	COMBAT_AOE.apply_blast(tree, fx, target_pos, blast_radius, damage, 0.60, 0.72,
+			owner_id, owner_node, token, true, 16.0, true)

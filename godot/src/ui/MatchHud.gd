@@ -98,9 +98,6 @@ func _ready() -> void:
 			Sfx.play_ui("ui_click")
 			_on_toggle_scores())
 		_compact_btn(score_toggle, 12, 6.0)
-	if _fps_label != null:
-		var is_short := get_viewport().get_visible_rect().size.y <= 500.0
-		_fps_label.position = Vector2(12.0, 56.0 if is_short else 272.0)
 
 	var score := get_node_or_null("Scoreboard") as Control
 	if score != null:
@@ -227,9 +224,6 @@ func _sync_score_toggle() -> void:
 	var btn := get_node_or_null("ScoreToggle") as Button
 	if btn != null:
 		btn.text = "SCORES ^" if _scores_open else "SCORES v"
-	if _fps_label != null:
-		var is_short := get_viewport().get_visible_rect().size.y <= 500.0
-		_fps_label.position = Vector2(12.0, 56.0 if is_short else 272.0)
 
 	var score := get_node_or_null("Scoreboard") as Control
 	if score != null:
@@ -251,6 +245,14 @@ func _on_viewport_resized() -> void:
 		if me != null and is_instance_valid(me) and me.is_inside_tree():
 			me.set("_relayout_pending", false)
 			me.call("_relayout"))
+
+
+static func compute_fps_pos(vp: Vector2) -> Vector2:
+	var narrow := vp.x <= 640.0
+	var short := vp.y <= 500.0
+	var rsize := 92.0 if narrow else (80.0 if short else 128.0)
+	var rtop := 90.0 if (narrow or short) else 94.0
+	return Vector2(12.0 + rsize + 10.0, rtop) if short else Vector2(12.0, 272.0)
 
 
 func _relayout() -> void:
@@ -348,31 +350,18 @@ func _relayout() -> void:
 			score_toggle.offset_top = 12.0
 			score_toggle.offset_bottom = 56.0
 
-	if _fps_label != null:
-		var is_short := get_viewport().get_visible_rect().size.y <= 500.0
-		_fps_label.position = Vector2(12.0, 56.0 if is_short else 272.0)
-
-	var score := get_node_or_null("Scoreboard") as Control
-	if score != null:
-		var sw := minf(220.0, vp.x * 0.56) if narrow else (minf(240.0, vp.x * 0.28) if short else 250.0)
-		var rows_cnt := Match.players.size() if Match != null else 1
-		var sh := clampf(float(maxi(1, rows_cnt)) * 24.0 + 20.0, 54.0, 176.0)
-		score.anchor_left = 1.0
-		score.anchor_right = 1.0
-		score.offset_left = -sw - 10.0
-		score.offset_right = -10.0
-		score.offset_top = 110.0 if narrow else (60.0 if short else 62.0)
-		score.offset_bottom = score.offset_top + sh
-		score.visible = _scores_open
-
 	var radar := get_node_or_null("Radar") as Control
+	var rsize := 92.0 if narrow else (80.0 if short else 128.0)
+	var rtop := 90.0 if (narrow or short) else 94.0
 	if radar != null:
 		radar.visible = vp.y >= 260.0
-		var rsize := 92.0 if narrow else (80.0 if short else 128.0)
 		radar.offset_left = 12.0
-		radar.offset_top = 90.0 if (narrow or short) else 94.0
+		radar.offset_top = rtop
 		radar.offset_right = 12.0 + rsize
 		radar.offset_bottom = radar.offset_top + rsize
+
+	if _fps_label != null:
+		_fps_label.position = compute_fps_pos(vp)
 
 	var feed := get_node_or_null("KillFeed") as Control
 	if feed != null:

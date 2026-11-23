@@ -609,6 +609,17 @@ func _pooling_and_settings() -> void:
 			"P2-1: Projectile pooled reuse resets visible, physics_process, and _age")
 	proj.queue_free()
 
+	# P2-1b: BananaProjectile degenerate-first-call pooled reuse resets visible, physics_process, and _age
+	var bp_pool := Node3D.new()
+	bp_pool.set_script(banana_script)
+	bp_pool.set("pooled", true)
+	root.add_child(bp_pool)
+	bp_pool.call("setup", "p1", null, Vector3.ZERO, Vector3.ZERO, 52.0, 60.0, "tok-bad", Color.YELLOW)
+	bp_pool.call("setup", "p1", null, Vector3.ZERO, Vector3.FORWARD, 52.0, 60.0, "tok-ok", Color.YELLOW)
+	_check(bp_pool.visible and bp_pool.is_physics_processing() and float(bp_pool.get("_age")) == 0.0,
+			"P2-1b: BananaProjectile degenerate-first-call pooled reuse resets visible, physics_process, and _age")
+	bp_pool.queue_free()
+
 	# P2-2: impact() OmniLight3D freed by 0.20s
 	var fx_holder := Node3D.new()
 	root.add_child(fx_holder)
@@ -626,10 +637,70 @@ func _pooling_and_settings() -> void:
 	if s_node_cap != null:
 		s_node_cap.call("set_value", "gameplay", "reduced_motion", prev_rm)
 
-	# Track B: lightning_strike_explosion & cash_explosion smoke
+	# Track B: lightning_strike_explosion & cash_explosion smoke + reduced_motion + particles=0.0 + bolt mesh reuse
+	vfx_gd.call("prewarm")
+	var cb_gd := load("res://src/game/CashBagVisual.gd") as GDScript
+	_check(cb_gd != null and bool(cb_gd.get("_initialized")), "P2-2: VfxFactory.prewarm() warms CashBagVisual")
+
 	vfx_gd.call("lightning_strike_explosion", fx_holder, Vector3.ZERO, 1.35)
-	vfx_gd.call("cash_explosion", fx_holder, Vector3.ZERO, false)
-	vfx_gd.call("cash_explosion", fx_holder, Vector3.ZERO, true)
-	_check(fx_holder.get_child_count() > 0, "Track B: lightning_strike_explosion & cash_explosion spawn nodes")
+	var bolt_meshes := {}
+	for mi in fx_holder.find_children("*", "MeshInstance3D", true, false):
+		var m_inst := mi as MeshInstance3D
+		if m_inst != null and m_inst.mesh is CylinderMesh:
+			bolt_meshes[m_inst.mesh.get_instance_id()] = true
+	_check(bolt_meshes.size() == 1, "P2-2: MegaBolt segments share 1 cached CylinderMesh (got %d)" % bolt_meshes.size())
+
+	if s_node_cap != null:
+		s_node_cap.call("set_value", "gameplay", "reduced_motion", true)
+	var rm_holder := Node3D.new()
+	root.add_child(rm_holder)
+	vfx_gd.call("cash_explosion", rm_holder, Vector3.ZERO, true)
+	vfx_gd.call("lightning_strike_explosion", rm_holder, Vector3.ZERO, 1.35)
+	var rm_gpu := rm_holder.find_children("*", "GPUParticles3D", true, false)
+	var ring_tex: Variant = vfx_gd.call("_ring_sprite")
+	var rm_rings := 0
+	for mi in rm_holder.find_children("*", "MeshInstance3D", true, false):
+		var m_inst := mi as MeshInstance3D
+		if m_inst != null and m_inst.material_override is StandardMaterial3D:
+			if (m_inst.material_override as StandardMaterial3D).albedo_texture == ring_tex:
+				rm_rings += 1
+	_check(rm_gpu.is_empty() and rm_rings == 0,
+			"P1-5: cash_explosion & lightning_strike_explosion spawn 0 GPUParticles3D and 0 ring-sprite quads under reduced_motion")
+	_check(rm_holder.find_child("MegaBolt", true, false) != null,
+			"P1-5: MegaBolt spawns initially under reduced_motion")
+	await create_timer(0.40).timeout
+	_check(rm_holder.find_child("MegaBolt", true, false) == null and get_nodes_in_group("vfx_light").size() == 0,
+			"P1-5: reduced_motion heavy strikes free MegaBolt and vfx_light by 0.40s")
+	rm_holder.queue_free()
+	if s_node_cap != null:
+		s_node_cap.call("set_value", "gameplay", "reduced_motion", prev_rm)
+		s_node_cap.call("set_value", "video", "particles", 0.0)
+	var q0_holder := Node3D.new()
+	root.add_child(q0_holder)
+	vfx_gd.call("cash_explosion", q0_holder, Vector3.ZERO, true)
+	var r_gd := load("res://src/game/RocketProjectile.gd") as GDScript
+	if r_gd != null:
+		var rp := Node3D.new()
+		rp.set_script(r_gd)
+		q0_holder.add_child(rp)
+		rp.call("setup", "p1", null, Vector3.ZERO, Vector3.FORWARD, 35.0, 60.0, "q0-r", Color.ORANGE)
+	var m_gd := load("res://src/game/MeteorStrike.gd") as GDScript
+	if m_gd != null:
+		var ms := Node3D.new()
+		ms.set_script(m_gd)
+		q0_holder.add_child(ms)
+		ms.call("setup", "p1", null, Vector3.ZERO, 90.0, "q0-m", Color.ORANGE, 0.5, 6.0, "meteor")
+	var db_gd := load("res://src/DestructibleBuilding.gd") as GDScript
+	if db_gd != null:
+		var db := StaticBody3D.new()
+		db.set_script(db_gd)
+		q0_holder.add_child(db)
+		db.call("smash", Vector3(0.0, 2.0, 8.0))
+	_check(q0_holder.find_children("*", "GPUParticles3D", true, false).is_empty(),
+			"P2-3: particles=0.0 spawns 0 GPUParticles3D across cash_explosion, RocketProjectile, MeteorStrike, and DestructibleBuilding")
+	q0_holder.queue_free()
+	if s_node_cap != null:
+		s_node_cap.call("set_value", "video", "particles", prev_pq)
+
 	fx_holder.queue_free()
 	await process_frame

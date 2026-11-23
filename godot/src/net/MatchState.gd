@@ -252,10 +252,13 @@ func issue_shot() -> Dictionary:
 
 
 func register_kill(target_id: String, token: String) -> Dictionary:
+	var expected_id := str(lobby.get("id", ""))
 	var res: Dictionary = await Supabase.call_rpc("register_kill", {
 		"p_target": target_id,
 		"p_token": token,
 	})
+	if str(lobby.get("id", "")) != expected_id:
+		return {}
 	last_result = res
 	if bool(res.get("ok", false)):
 		if bool(res.get("pending", false)):
@@ -284,9 +287,12 @@ func register_kill(target_id: String, token: String) -> Dictionary:
 
 
 func register_lap(token: String) -> Dictionary:
+	var expected_id := str(lobby.get("id", ""))
 	var res: Dictionary = await Supabase.call_rpc("register_lap", {
 		"p_token": token,
 	})
+	if str(lobby.get("id", "")) != expected_id:
+		return {}
 	last_result = res
 	if bool(res.get("ok", false)):
 		if bool(res.get("pending", false)):
@@ -312,22 +318,31 @@ func register_lap(token: String) -> Dictionary:
 
 
 func start_match() -> void:
+	var expected_id := str(lobby.get("id", ""))
 	var res: Dictionary = await Supabase.call_rpc("start_match", {})
+	if str(lobby.get("id", "")) != expected_id:
+		return
 	if not res.is_empty():
 		apply_lobby(res)
 
 
 func set_lobby_settings(new_settings: Dictionary) -> void:
+	var expected_id := str(lobby.get("id", ""))
 	var res: Dictionary = await Supabase.call_rpc("set_settings", {"p_settings": new_settings})
+	if str(lobby.get("id", "")) != expected_id:
+		return
 	if not res.is_empty():
 		apply_lobby(res)
 
 
 func set_ready(ready: bool) -> void:
+	var expected_id := str(lobby.get("id", ""))
 	if players.has(my_user_id) and players[my_user_id] is Dictionary:
 		players[my_user_id]["is_ready"] = ready
 		roster_changed.emit()
 	var res: Dictionary = await Supabase.call_rpc("set_ready", {"p_ready": ready})
+	if str(lobby.get("id", "")) != expected_id:
+		return
 	if not res.is_empty() and not bool(res.get("pending", false)) and res.has("players"):
 		players = (res["players"] as Dictionary).duplicate(true)
 		roster_changed.emit()

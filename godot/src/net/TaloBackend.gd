@@ -7,12 +7,13 @@ extends Node
 ## intentionally not reproduced. Offline gates use MockBackend instead of this.
 
 const KT := preload("res://src/core/KiepieTime.gd")
+const PROTO := preload("res://src/net/TaloProtocol.gd")
 
 ## Talo wire protocol. Bump ONLY when the wire format breaks (message kinds,
 ## prop keys, kill-token semantics). Lobbies stamp it as the `protocol_version`
 ## channel prop; peers present it too — mismatched peers are never mixed into
 ## the same lobby.
-const PROTOCOL_VERSION := "3"
+const PROTOCOL_VERSION := PROTO.PROTOCOL_VERSION
 
 signal auth_status(ok: bool, message: String)
 signal connection_state(state: String)
@@ -43,6 +44,7 @@ const SOCKET_IDENTIFY_TIMEOUT_MS := 10000
 const HOST_POLL_INTERVAL_S := 15.0
 const MAX_USED_TOKENS := 512
 const MIN_LAP_SECONDS := 12.0
+const GUEST_LAP_RETRY_S := 2.5
 const MAX_RECONNECT_ATTEMPTS := 5
 
 var _prop_gen := 0                    # guards interleaved channel-prop writes
@@ -124,7 +126,8 @@ func start() -> void:
 	# false "online" that silently drops every send.
 	is_ready = false
 	_starting = false
-	auth_status.emit(false, "Talo socket timed out — tap Retry or any multiplayer mode")
+	last_auth_error = "Talo socket timed out — tap Retry or any multiplayer mode"
+	auth_status.emit(false, last_auth_error)
 	return
 
 
@@ -231,8 +234,9 @@ func _on_socket_closed(_code: int, _reason: String) -> void:
 	if not reconnected and is_inside_tree() and is_ready:
 		is_ready = false
 		_starting = false
+		last_auth_error = "Talo socket reconnect timed out — check your connection"
 		connection_state.emit("disconnected")
-		auth_status.emit(false, "Talo socket reconnect timed out — check your connection")
+		auth_status.emit(false, last_auth_error)
 
 
 # ------------------------------------------------------------------ RPC surface ---
@@ -319,11 +323,7 @@ func broadcast(event: String, payload: Dictionary) -> void:
 # ------------------------------------------------------------------ lobby ops ---
 
 func _new_code() -> String:
-	var alphabet := "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-	var code := ""
-	for i in range(5):
-		code += alphabet[randi() % alphabet.length()]
-	return code
+	return PROTO.new_code()
 
 
 func _player_row(args: Dictionary) -> Dictionary:
@@ -386,40 +386,11 @@ func _create_lobby(args: Dictionary) -> Dictionary:
 
 
 static func protocol_ok(channel) -> bool:
-	## A lobby is only matchable within the same protocol version. A missing
-	## prop means a pre-versioning lobby: skip it rather than mix wires.
-	if channel == null:
-		return false
-	return str(channel.get_prop("protocol_version", "")) == PROTOCOL_VERSION
+	return PROTO.protocol_ok(channel)
 
 
 static func is_channel_joinable(channel, now_unix: float, max_stale_sec: float = STALE_LOBBY_S) -> bool:
-	if channel == null:
-		return false
-	if not protocol_ok(channel):
-		return false
-	if str(channel.get_prop("status", "waiting")) != "waiting":
-		return false
-	if int(channel.member_count) <= 0:
-		return false
-	var host_id := str(channel.get_prop("host_id", ""))
-	if host_id == "":
-		return false
-	if channel.owner_alias == null or str(channel.owner_alias.id) != host_id:
-		return false
-	var roster := _parse_dict_static(str(channel.get_prop("roster", "{}")))
-	if not roster.has(host_id):
-		return false
-	var settings := _parse_dict_static(str(channel.get_prop("settings", "{}")))
-	var max_players := clampi(int(settings.get("max_players", 8)), 2, 8)
-	if int(channel.member_count) >= max_players:
-		return false
-	var hb := float(str(channel.get_prop("heartbeat", "0")))
-	if hb <= 0.0:
-		hb = _parse_iso_static(str(channel.updated_at))
-	if hb > 0.0 and (now_unix - hb) > max_stale_sec:
-		return false
-	return true
+	return PROTO.is_channel_joinable(channel, now_unix, max_stale_sec, Callable(KT, "parse_iso"))
 
 
 func _fetch_all_channels(max_pages: int = 10) -> Array:
@@ -580,18 +551,7 @@ func _handoff_host_before_leave(leaving_id: int) -> void:
 	new_roster.erase(user_id)
 	var new_lobby := _lobby.duplicate(true)
 	new_lobby["host_id"] = next_host
-	var prop_array: Array = [
-		{"key": "code", "value": str(new_lobby.get("code", ""))},
-		{"key": "name", "value": str(new_lobby.get("name", ""))},
-		{"key": "settings", "value": JSON.stringify(new_lobby.get("settings", {}))},
-		{"key": "host_id", "value": next_host},
-		{"key": "status", "value": str(new_lobby.get("status", ""))},
-		{"key": "started_at", "value": str(new_lobby.get("started_at", ""))},
-		{"key": "winner_id", "value": str(new_lobby.get("winner_id", ""))},
-		{"key": "heartbeat", "value": str(int(Time.get_unix_time_from_system()))},
-		{"key": "protocol_version", "value": PROTOCOL_VERSION},
-		{"key": "roster", "value": JSON.stringify(new_roster)},
-	]
+	var prop_array := PROTO.build_prop_array(new_lobby, new_roster)
 	for attempt in range(2):
 		if _channel_id != leaving_id or leaving_id <= 0:
 			return
@@ -661,25 +621,7 @@ func _apply_props(extra: Dictionary = {}) -> void:
 func _write_props(extra: Dictionary) -> void:
 	if _channel == null:
 		return
-	var props := {
-		"code": str(_lobby.get("code", "")),
-		"name": str(_lobby.get("name", "")),
-		"settings": JSON.stringify(_lobby.get("settings", {})),
-		"host_id": str(_lobby.get("host_id", "")),
-		"status": str(_lobby.get("status", "")),
-		"started_at": str(_lobby.get("started_at", "")),
-		"winner_id": str(_lobby.get("winner_id", "")),
-		"heartbeat": str(int(Time.get_unix_time_from_system())),
-		"protocol_version": PROTOCOL_VERSION,
-		"roster": JSON.stringify(_roster),
-	}
-	for k in extra.keys():
-		props[k] = extra[k]
-	# Talo 0.20's update() sends props as a Dictionary but the v1 API requires
-	# an array of {key,value}. Go through its client with the correct shape.
-	var prop_array: Array = []
-	for k in props.keys():
-		prop_array.append({"key": k, "value": str(props[k])})
+	var prop_array := PROTO.build_prop_array(_lobby, _roster, extra)
 	var gen := _prop_gen + 1
 	_prop_gen = gen
 	var res = await Talo.channels.client.make_request(
@@ -718,9 +660,12 @@ func _is_host() -> bool:
 func _start_match() -> Dictionary:
 	if not _is_host():
 		return {}
+	var op_channel := _channel_id
 	_lobby["status"] = "playing"
 	_lobby["started_at"] = _now_iso()
 	await _apply_props()
+	if _channel_id != op_channel or _channel_id <= 0:
+		return {}
 	_broadcast_state(_lobby, _roster)
 	return _lobby.duplicate(true)
 
@@ -728,8 +673,11 @@ func _start_match() -> Dictionary:
 func _set_settings(args: Dictionary) -> Dictionary:
 	if not _is_host():
 		return {}
+	var op_channel := _channel_id
 	_lobby["settings"] = (args.get("p_settings", {}) as Dictionary).duplicate(true)
 	await _apply_props()
+	if _channel_id != op_channel or _channel_id <= 0:
+		return {}
 	_broadcast_state(_lobby, _roster)
 	return _lobby.duplicate(true)
 
@@ -737,10 +685,13 @@ func _set_settings(args: Dictionary) -> Dictionary:
 func _set_ready(args: Dictionary) -> Dictionary:
 	var ready := bool(args.get("p_ready", false))
 	if _is_host():
+		var op_channel := _channel_id
 		var row: Dictionary = _roster.get(user_id, {})
 		row["is_ready"] = ready
 		_roster[user_id] = row
 		await _apply_props()
+		if _channel_id != op_channel or _channel_id <= 0:
+			return {}
 		_emit_roster()
 		_broadcast_state(_lobby, _roster)
 		return {"players": _roster.duplicate(true)}
@@ -788,14 +739,10 @@ func _register_kill(args: Dictionary) -> Dictionary:
 			burst_ok = true
 	if now_s - last < 1.0 and not burst_ok:
 		return {"ok": false, "reason": "rate_limited"}
-	var arr: Array = _kill_window.get(killer, [])
-	var kept: Array = []
-	for t in arr:
-		if now_s - float(t) < 60.0:
-			kept.append(t)
-	if kept.size() >= 20:
+	var win := PROTO.prune_rate_window(_kill_window.get(killer, []), now_s, 60.0, 20)
+	if not bool(win["ok"]):
 		return {"ok": false, "reason": "rate_limited"}
-	kept.append(now_s)
+	var kept: Array = win["kept"]
 	_kill_cooldowns[killer] = now_s
 	if burst_ok:
 		var pb: Dictionary = _kill_last_base[killer] as Dictionary
@@ -831,7 +778,10 @@ func _register_kill(args: Dictionary) -> Dictionary:
 		winner = killer
 		_lobby["status"] = status
 		_lobby["winner_id"] = winner
+	var op_channel := _channel_id
 	await _apply_props()
+	if _channel_id != op_channel or _channel_id <= 0:
+		return {}
 	_emit_roster()
 	_emit_state()
 	# CombatController already broadcasts the "kill" event for the feed; send the
@@ -857,7 +807,8 @@ func _register_lap(args: Dictionary) -> Dictionary:
 		return {"ok": false, "reason": "lobby_not_playing"}
 	var now_s := Time.get_ticks_msec() / 1000.0
 	var last_lap := float(_lap_timestamps.get(racer, -MIN_LAP_SECONDS))
-	if now_s - last_lap < MIN_LAP_SECONDS:
+	var min_lap_s := MIN_LAP_SECONDS if _is_host() else GUEST_LAP_RETRY_S
+	if now_s - last_lap < min_lap_s:
 		return {"ok": false, "reason": "rate_limited"}
 	if not _is_host():
 		_lap_timestamps[racer] = now_s
@@ -868,6 +819,7 @@ func _register_lap(args: Dictionary) -> Dictionary:
 				"winner_id": str(_lobby.get("winner_id", ""))}
 	if not _roster.has(racer):
 		return {"ok": false, "reason": "not_in_lobby"}
+	var op_channel := _channel_id
 	_lap_timestamps[racer] = now_s
 	_record_used_token(token)
 	var row: Dictionary = _roster.get(racer, {})
@@ -884,6 +836,8 @@ func _register_lap(args: Dictionary) -> Dictionary:
 		_lobby["status"] = status
 		_lobby["winner_id"] = winner
 	await _apply_props()
+	if _channel_id != op_channel or _channel_id <= 0:
+		return {}
 	_emit_roster()
 	_emit_state()
 	_broadcast_state(_lobby, _roster)
@@ -901,6 +855,7 @@ func _time_up() -> Dictionary:
 	var started := _parse_iso(str(_lobby.get("started_at", "")))
 	if started <= 0.0 or Time.get_unix_time_from_system() - started < float(limit):
 		return {}
+	var op_channel := _channel_id
 	var best := ""
 	var best_score := -1
 	var uids := _roster.keys()
@@ -913,6 +868,8 @@ func _time_up() -> Dictionary:
 	_lobby["status"] = "finished"
 	_lobby["winner_id"] = best
 	await _apply_props()
+	if _channel_id != op_channel or _channel_id <= 0:
+		return {}
 	_broadcast_state(_lobby, _roster)
 	return _lobby.duplicate(true)
 
@@ -1015,30 +972,14 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 					# otherwise any member could forge or erase another's row
 					return
 				if kind == "join":
+					if not _roster.has(uid) and str(_lobby.get("status", "waiting")) != "waiting":
+						return  # late-joining peers cannot enter an active/finished match
 					if _roster.size() >= 8 and not _roster.has(uid):
 						return  # full lobby; no unbounded growth
 					var prev: Dictionary = {}
 					if _roster.has(uid) and _roster[uid] is Dictionary:
 						prev = _roster[uid] as Dictionary
-					var col := str(p.get("color", "#40c8ff"))
-					if not _is_hex_color(col):
-						col = "#40c8ff"
-					# Allowlist: join rows carry ONLY the keys below, so forged
-					# frames cannot inject arbitrary lobby state; prior score/kills/
-					# laps/readiness are re-seeded from trusted roster state.
-					var raw_veh := str(p.get("vehicle", prev.get("vehicle", ""))) if p.has("vehicle") else str(prev.get("vehicle", ""))
-					var row: Dictionary = {
-						"user_id": uid,
-						"display_name": str(p.get("display_name", "RIDER")).substr(0, 32),
-						"color": col,
-						"vehicle": VehicleRegistry.sanitize_preference(raw_veh),
-						"score": int(prev.get("score", 0)),
-						"kills": int(prev.get("kills", 0)),
-						"laps": int(prev.get("laps", 0)),
-						"is_ready": bool(prev.get("is_ready", false)),
-						"respawn_at": str(prev.get("respawn_at", "")),
-					}
-					_roster[uid] = row
+					_roster[uid] = PROTO.sanitize_join_row(uid, p, prev)
 				else:
 					_roster.erase(uid)
 					# The host is gone mid-match or in waiting lobby: void cleanly now
@@ -1051,7 +992,10 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 						host_lost.emit()
 				_emit_roster()
 				if _is_host():
+					var op_channel := _channel_id
 					await _apply_props()
+					if _channel_id != op_channel or _channel_id <= 0:
+						return
 					_broadcast_state(_lobby, _roster)
 		"ready_request":
 			if _is_host() and payload is Dictionary:
@@ -1061,10 +1005,13 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 					return
 				if sender_id == "" or sender_id != uid:
 					return
+				var op_channel := _channel_id
 				var row: Dictionary = _roster[uid]
 				row["is_ready"] = bool(p.get("ready", false))
 				_roster[uid] = row
 				await _apply_props()
+				if _channel_id != op_channel or _channel_id <= 0:
+					return
 				_emit_roster()
 				_broadcast_state(_lobby, _roster)
 		"kill_request":
@@ -1138,29 +1085,16 @@ func _hurt_rate_ok(sender_id: String) -> bool:
 	## Per-sender 24/s cap on damage telemetry. Twin-barrel rapid fire can
 	## legitimately produce bursts; this only stops a forged flood.
 	var now := Time.get_ticks_msec() / 1000.0
-	var window: Array = _hurt_log.get(sender_id, [])
-	var kept: Array = []
-	for t in window:
-		if now - float(t) < 1.0:
-			kept.append(t)
-	if kept.size() >= 24:
-		_hurt_log[sender_id] = kept
-		return false
-	kept.append(now)
-	_hurt_log[sender_id] = kept
-	return true
+	var win := PROTO.prune_rate_window(_hurt_log.get(sender_id, []), now, 1.0, 24)
+	_hurt_log[sender_id] = win["kept"]
+	return bool(win["ok"])
 
 func _parse_dict(text: String) -> Dictionary:
 	return _parse_dict_static(text)
 
 
 static func _parse_dict_static(text: String) -> Dictionary:
-	if text.is_empty():
-		return {}
-	var json := JSON.new()
-	if json.parse(text) != OK or not (json.get_data() is Dictionary):
-		return {}
-	return json.get_data() as Dictionary
+	return PROTO.parse_dict(text)
 
 
 func _now_iso() -> String:
@@ -1189,11 +1123,4 @@ func _token() -> String:
 
 
 func _is_hex_color(col: String) -> bool:
-	if col.length() != 7 or col[0] != "#":
-		return false
-	for i in range(1, 7):
-		var c := col.substr(i, 1)
-		var ok := (c >= "0" and c <= "9") or (c >= "a" and c <= "f") or (c >= "A" and c <= "F")
-		if not ok:
-			return false
-	return true
+	return PROTO.is_hex_color(col)

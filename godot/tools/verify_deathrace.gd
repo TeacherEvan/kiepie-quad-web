@@ -468,6 +468,24 @@ func _run() -> void:
 					and r_kf.intersection(bn.get_global_rect()).get_area() == 0.0
 					and r_kf.intersection(rd.get_global_rect()).get_area() == 0.0,
 					"MatchHud KillFeed has zero overlap with WeaponLabel/Banner/Radar (F-P1-2)")
+		# P2-4: _fps_label clears WeaponLabel, Radar & TouchHUD across all 4 viewports
+		var mh_gd := load("res://src/ui/MatchHud.gd") as GDScript
+		var fps_667: Vector2 = mh_gd.call("compute_fps_pos", Vector2(667.0, 375.0))
+		var fps_844: Vector2 = mh_gd.call("compute_fps_pos", Vector2(844.0, 390.0))
+		var fps_390: Vector2 = mh_gd.call("compute_fps_pos", Vector2(390.0, 844.0))
+		var fps_1280: Vector2 = mh_gd.call("compute_fps_pos", Vector2(1280.0, 720.0))
+		_check(fps_667 == Vector2(102.0, 90.0) and fps_844 == Vector2(102.0, 90.0),
+				"P2-4: MatchHud.compute_fps_pos places FPS right of Radar on short mobile viewports (667x375=%s, 844x390=%s)" % [str(fps_667), str(fps_844)])
+		_check(fps_390 == Vector2(12.0, 272.0) and fps_1280 == Vector2(12.0, 272.0),
+				"P2-4: MatchHud.compute_fps_pos places FPS below Radar/KillFeed on tall/desktop viewports (390x844=%s, 1280x720=%s)" % [str(fps_390), str(fps_1280)])
+		hud.set("_show_fps", true)
+		hud.call("_process", 0.016)
+		var fps_lbl := hud.get("_fps_label") as Control
+		if fps_lbl != null and wl != null and rd != null:
+			_check(fps_lbl.position.y >= 90.0
+					and fps_lbl.get_global_rect().intersection(wl.get_global_rect()).get_area() == 0.0,
+					"P2-4: MatchHud._fps_label clears WeaponLabel & Radar (pos=%s)" % str(fps_lbl.position))
+		hud.set("_show_fps", false)
 
 	# F-P0-1: DestructibleBuilding.smash(impulse) accepts Rocket/Meteor impulse safely
 	var pit_garage := dr.get_node_or_null("PitGarage") as Node3D
@@ -583,6 +601,14 @@ func _run() -> void:
 		rt.call("_on_roster_changed")
 		_check(not bool(rt.get("_lap_pending")),
 				"P1-5: RaceTracker clears _lap_pending when auth_laps >= completed_laps")
+		# P1-2: non-final pending lap reconciles back to authoritative auth_laps on timeout
+		rt.set("completed_laps", 1)
+		rt.set("current_lap", 2)
+		rt.set("_lap_pending", true)
+		match_node.set("players", {uid: {"user_id": uid, "kills": 0, "laps": 0}})
+		rt.call("_reconcile_pending_lap", 1, 3)
+		_check(int(rt.get("completed_laps")) == 0 and int(rt.get("current_lap")) == 1 and not bool(rt.get("_lap_pending")),
+				"P1-2: RaceTracker reconciles dropped non-final guest lap back to auth_laps=0")
 
 	# Track B: Big-Ben Small Cash Bag Rocket & Quad Lightning / Big-Ben Giant Cash Bag Meteor
 	var cb_rkt_gd := load("res://src/game/RocketProjectile.gd") as GDScript
@@ -610,6 +636,24 @@ func _run() -> void:
 	_check(str(m_cb.get("visual_style")) == "cash_bag" and m_cb.get_node_or_null("CashBag") != null,
 			"Track B: MeteorStrike cash_bag mounts giant CashBagVisual")
 	m_cb.queue_free()
+
+	# P2-6: freed owner_node mid-flight does not error on RocketProjectile / MeteorStrike _detonate()
+	var freed_owner := Node3D.new()
+	dr.add_child(freed_owner)
+	var r_freed := Node3D.new()
+	r_freed.set_script(cb_rkt_gd)
+	dr.add_child(r_freed)
+	r_freed.call("setup", "p-gone", freed_owner, Vector3.ZERO, Vector3.FORWARD, 40.0, 60.0, "t-gone", Color.GREEN, 4.5, "cash_bag")
+	var m_freed := Node3D.new()
+	m_freed.set_script(m_gd)
+	dr.add_child(m_freed)
+	m_freed.call("setup", "p-gone", freed_owner, Vector3.ZERO, 100.0, "t-gone-m", Color.CYAN, 2.0, 7.5, "lightning")
+	freed_owner.free()
+	r_freed.call("_detonate", Vector3.ZERO, null)
+	m_freed.call("_detonate")
+	_check(true, "P2-6: RocketProjectile & MeteorStrike _detonate() survive freed owner_node")
+	r_freed.queue_free()
+	m_freed.queue_free()
 
 	dr.free()
 	match_node.set("lobby", prev_lobby)

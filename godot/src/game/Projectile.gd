@@ -144,13 +144,13 @@ func _rearm_tracer() -> void:
 	if _tracer != null:
 		_tracer.basis = Basis.looking_at(dir, up)
 	if _ray_query != null:
-		_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()] if owner_node is CollisionObject3D else []
+		_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()] if (is_instance_valid(owner_node) and owner_node is CollisionObject3D) else []
 	var color_changed := hit_color != _last_color
 	if color_changed:
 		if _shaft != null:
 			_shaft.mesh = _get_shaft_mesh(hit_color)
 		_last_color = hit_color
-	if not Settings.reduced_motion() and _trail == null:
+	if not Settings.reduced_motion() and Settings.quality_multiplier() > 0.0 and _trail == null:
 		_ensure_trail(dir)
 	if _trail != null:
 		if _trail.process_material is ParticleProcessMaterial:
@@ -161,7 +161,7 @@ func _rearm_tracer() -> void:
 		if color_changed:
 			_trail.draw_pass_1 = _get_trail_mesh(hit_color)
 		_trail.restart()
-		_trail.emitting = not Settings.reduced_motion()
+		_trail.emitting = not Settings.reduced_motion() and Settings.quality_multiplier() > 0.0
 
 
 func _recycle() -> void:
@@ -169,6 +169,7 @@ func _recycle() -> void:
 	visible = false
 	set_physics_process(false)
 	on_hit = Callable()
+	owner_node = null
 	if _trail != null:
 		_trail.emitting = false
 	if not pooled:
@@ -210,12 +211,12 @@ func _build_tracer() -> void:
 	# Own chassis never blocks the frame-1 trace: intersect_ray returns only
 	# the first hit, so a point-blank self-hit would otherwise teleport the
 	# bolt past whatever it should have hit.
-	_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()] if owner_node is CollisionObject3D else []
+	_ray_query.exclude = [(owner_node as CollisionObject3D).get_rid()] if (is_instance_valid(owner_node) and owner_node is CollisionObject3D) else []
 
 	# Rapid-fire tracers rely on unshaded additive bloom instead of per-bolt
 	# OmniLight3D nodes so WebGL2 stays within its 8-light-per-surface budget.
 
-	if not Settings.reduced_motion():
+	if not Settings.reduced_motion() and Settings.quality_multiplier() > 0.0:
 		_ensure_trail(dir)
 
 
@@ -264,7 +265,7 @@ func _physics_process(delta: float) -> void:
 		return
 	var collider: Object = result.get("collider", null)
 	var point: Vector3 = result.get("position", to)
-	if collider == owner_node:
+	if is_instance_valid(owner_node) and collider == owner_node:
 		global_position = to
 		return
 	global_position = point
