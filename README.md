@@ -12,7 +12,7 @@ hosted on Vercel and installable as a PWA.
 - **Death Race** — high-speed closed-circuit combat racetrack (`DeathRace.tscn`) featuring sweeping banked turns, 2 full 360° vertical stunt loops, 3 molten hazard pits, a pit stop service lane, 8 jump ramps, pickups, 4 ordered checkpoints, and a checkered Start/Finish Line gantry tracking laps. First racer to complete the target laps triggers the **Victory Splash video** (`web-assets/kiepie-victory-splash.mp4`) and wins.
 - **Arsenal (Both Modes & Practice)** — cycle weapons by pulling the **right analog stick back** on mobile (or pressing `Tab` / `V` / `1–3` on desktop), with a live **HUD Reload Bar** showing reloading status:
   - **Machine Gun (Quad) / Dual Bananas (Nardus):** Rapid-fire primary (`0.20 s` / `0.40 s` cooldown, identical 150 DPS).
-  - **Rocket Launcher:** Fires once every **1.5 seconds**, deals **2× machine-gun damage** (`60` dmg) across a **4.5 m small blast radius**.
+  - **Rocket Launcher:** Fires once every **1.5 seconds**. A **direct hit is an instant kill**; anything else inside the **4.5 m blast radius loses 90% of its health** (flat `90` dmg). NARDUS launches a **massive Cigar** ("CIGAR LAUNCHER"), BIG-BEN keeps its **Cash Bag Launcher**, and the Quad fires a standard finned rocket.
   - **Meteor Shower:** Fires once every **6.0 seconds** with practical forward ground-raycast aiming (and live 3D ground targeting reticle); drops a single flaming meteor from the sky with a **2.0-second fall delay** that detonates for **massive AOE damage** (`105` center damage across a `7.5 m` radius).
 
 ## Gameplay

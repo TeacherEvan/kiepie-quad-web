@@ -1,7 +1,7 @@
 extends SceneTree
 ## Gate: Battle Royale & Death Race game modes, Death Race circuit (loops,
 ## hazard pits, ramps, pickups, ordered checkpoints, finish line & lap counter),
-## Victory Splash video, Rocket Launcher (1.5s CD, 2x dmg, 4.5m blast) &
+## Victory Splash video, Rocket Launcher (1.5s CD, lethal direct / 90% 4.5m blast) &
 ## Meteor Shower (6s CD, practical ground aim reticle, 2s sky-fall delay,
 ## massive AOE damage), HUD reload bar, and mobile right-analog-back switching.
 
@@ -156,7 +156,7 @@ func _run() -> void:
 			touch_hud.call("_on_pointer_up", 0, centre)
 			await process_frame
 
-		# Fire Rocket Launcher: 1.5s cooldown, 2x damage (60.0), 4.5m blast radius
+		# Fire Rocket Launcher: 1.5s cooldown, 90% blast damage, 4.5m blast radius
 		cannons.call("select_weapon", "rocket")
 		_check(is_equal_approx(float(cannons.call("max_cooldown_for", "rocket")), 1.5),
 				"Rocket Launcher cooldown is 1.5 seconds")
@@ -211,13 +211,13 @@ func _run() -> void:
 		for _f in range(12):
 			await physics_frame
 			await process_frame
-		_check(is_equal_approx(float(enemy_combat.get("last_dmg")), 60.0),
-				"Rocket Launcher deals double MG damage (60.0) in 4.5m blast radius (got %.1f)" % float(enemy_combat.get("last_dmg")))
+		_check(is_equal_approx(float(enemy_combat.get("last_dmg")), 90.0),
+				"Rocket Launcher removes 90%% health (90.0) in 4.5m blast radius (got %.1f)" % float(enemy_combat.get("last_dmg")))
 		var rocket_number := false
 		var ghost_rocket_num := false
 		for lbl in dr.find_children("*", "Label3D", true, false):
 			var l3 := lbl as Label3D
-			if str(l3.text).begins_with("-60"):
+			if str(l3.text).begins_with("-90"):
 				if l3.global_position.distance_to(dummy_ghost.global_position) < 1.0:
 					ghost_rocket_num = true
 				else:
@@ -619,6 +619,61 @@ func _run() -> void:
 	_check(str(cb_rkt.get("visual_style")) == "cash_bag" and cb_rkt.get_node_or_null("CashBag") != null,
 			"Track B: RocketProjectile cash_bag mounts CashBagVisual")
 	cb_rkt.queue_free()
+
+	# NARDUS (pogo) launcher: massive cigar, distinct from Big-Ben's cash bag.
+	var cg_rkt := Node3D.new()
+	cg_rkt.set_script(cb_rkt_gd)
+	dr.add_child(cg_rkt)
+	cg_rkt.call("setup", "p1", null, Vector3.ZERO, Vector3.FORWARD, 38.0, 90.0, "t-cigar", Color.GREEN, 4.5, "cigar")
+	_check(str(cg_rkt.get("visual_style")) == "cigar" and cg_rkt.get_node_or_null("Cigar") != null,
+			"NARDUS rocket mounts the massive Cigar visual")
+	var cg_visual := cg_rkt.get_node_or_null("Cigar") as Node3D
+	var cg_body: MeshInstance3D = null
+	if cg_visual != null and cg_visual.get_child_count() > 0:
+		cg_body = cg_visual.get_child(0) as MeshInstance3D
+	_check(cg_body != null and cg_body.mesh is CylinderMesh
+			and (cg_body.mesh as CylinderMesh).height >= 1.8,
+			"NARDUS cigar is massive (body >= 1.8 m)")
+	cg_rkt.queue_free()
+
+	# Rocket contract: direct hit = 100% kill, near miss = flat 90% health loss.
+	var lethal_stub := GDScript.new()
+	lethal_stub.source_code = "extends Node3D\nvar lethal := false\nvar last_dmg := 0.0\nvar last_tok := ''\nfunc take_lethal_hit(_att: String, _pt: Vector3, tok: String = '') -> void:\n\tlethal = true\n\tlast_tok = tok\nfunc take_damage(amount: float, _att: String, _pt: Vector3, _tok: String = '') -> void:\n\tlast_dmg += amount\n"
+	lethal_stub.reload()
+	var lethal_dummy := StaticBody3D.new()
+	lethal_dummy.add_to_group("bike")
+	# Declare player_id on a script: a dynamic set() on a bare StaticBody3D does
+	# not create a real property, so get("player_id") in RocketProjectile sees null.
+	var dummy_script := GDScript.new()
+	dummy_script.source_code = "extends StaticBody3D\nvar player_id: String = ''\n"
+	dummy_script.reload()
+	lethal_dummy.set_script(dummy_script)
+	lethal_dummy.set("player_id", "lethal-dummy")
+	var lcol := CollisionShape3D.new()
+	var lbox := BoxShape3D.new()
+	lbox.size = Vector3(1.0, 1.0, 1.0)
+	lcol.shape = lbox
+	lethal_dummy.add_child(lcol)
+	var lethal_ctrl := Node3D.new()
+	lethal_ctrl.name = "CombatController"
+	lethal_ctrl.set_script(lethal_stub)
+	lethal_dummy.add_child(lethal_ctrl)
+	dr.add_child(lethal_dummy)
+	lethal_dummy.global_position = Vector3(400.0, 0.5, 400.0)
+	await physics_frame
+	var hit_rkt := Node3D.new()
+	hit_rkt.set_script(cb_rkt_gd)
+	dr.add_child(hit_rkt)
+	hit_rkt.call("setup", "p1", null, Vector3.ZERO, Vector3.FORWARD, 38.0, 90.0, "t-lethal", Color.ORANGE, 0.5, "rocket")
+	hit_rkt.call("_detonate", lethal_dummy.global_position, lethal_dummy)
+	_check(bool(lethal_ctrl.get("lethal")), "Rocket direct hit calls take_lethal_hit (100% kill)")
+	_check(str(lethal_ctrl.get("last_tok")).ends_with(":vlethal-dummy"),
+			"Rocket direct hit uses a victim-suffixed token for host multi-kill credit (got %s)" % str(lethal_ctrl.get("last_tok")))
+	_check(is_equal_approx(float(lethal_ctrl.get("last_dmg")), 90.0),
+			"Rocket blast removes a flat 90%% health (got %.1f)" % float(lethal_ctrl.get("last_dmg")))
+	hit_rkt.queue_free()
+	lethal_dummy.queue_free()
+	await process_frame
 
 	var m_gd := load("res://src/game/MeteorStrike.gd") as GDScript
 	var m_lt := Node3D.new()

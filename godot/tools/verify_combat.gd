@@ -67,6 +67,13 @@ func _run() -> void:
 	combat.call("take_damage", NAN, "enemy-nan", Vector3.ZERO)
 	_check(float(combat.get("health")) == h_before, "take_damage(NAN) leaves health unchanged")
 
+	# Rocket direct hit: 100% lethal, and it ignores shields / spawn invuln.
+	combat.set("_shield_until", Time.get_ticks_msec() / 1000.0 + 10.0)
+	combat.call("take_lethal_hit", "enemy-rocket", Vector3.ZERO, "rocket-token")
+	_check(not bool(combat.get("alive")) and float(combat.get("health")) == 0.0,
+			"take_lethal_hit is 100%% lethal even through an active shield")
+	combat.call("reset_state")
+
 	# F-08 regression: reset_state() after _die() must restore collision and clear active buffs
 	combat.call("apply_pickup", "overdrive")
 	combat.call("apply_pickup", "rapid")

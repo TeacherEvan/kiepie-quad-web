@@ -1,11 +1,14 @@
 extends Node3D
-## Heavy Rocket Launcher projectile: fires once every 1.5 seconds, deals 2x
-## machine-gun damage, and detonates on impact with a small blast radius (4.5 m).
+## Heavy Rocket Launcher projectile: fires once every 1.5 seconds. A direct hit
+## is always lethal; anything else inside the 4.5 m blast radius loses 90% of
+## its health (90 damage). NARDUS fires a massive cigar instead of a rocket.
 
 signal hit(target: Node, point: Vector3)
 
 const SPEED := 38.0
 const BLAST_RADIUS := 4.5
+## 90% of CombatController.MAX_HEALTH (100) — flat across the whole blast.
+const BLAST_DAMAGE := 90.0
 const VFX := preload("res://src/game/VfxFactory.gd")
 const COMBAT_AOE := preload("res://src/game/CombatAoe.gd")
 
@@ -33,6 +36,11 @@ static var _plume_mesh: SphereMesh = null
 static var _trail_mesh: SphereMesh = null
 static var _trail_ramp: GradientTexture1D = null
 static var _cash_trail_ramp: GradientTexture1D = null
+static var _cigar_trail_ramp: GradientTexture1D = null
+static var _cigar_body_mesh: CylinderMesh = null
+static var _cigar_band_mesh: CylinderMesh = null
+static var _cigar_ember_mesh: SphereMesh = null
+static var _cigar_ash_mesh: SphereMesh = null
 
 
 static func _ensure_meshes() -> void:
@@ -113,6 +121,61 @@ static func _ensure_meshes() -> void:
 			Color(0.18, 0.85, 0.42, 0.72),
 			Color(0.08, 0.42, 0.18, 0.0),
 		])
+	if _cigar_trail_ramp == null:
+		_cigar_trail_ramp = VFX._ramp([
+			Color(0.96, 0.80, 0.54, 0.92),
+			Color(0.44, 0.27, 0.16, 0.62),
+			Color(0.12, 0.10, 0.10, 0.0),
+		])
+	if _cigar_body_mesh == null:
+		var cb := CylinderMesh.new()
+		cb.top_radius = 0.20
+		cb.bottom_radius = 0.22
+		cb.height = 1.90
+		cb.radial_segments = 20
+		cb.rings = 6
+		var cbm := StandardMaterial3D.new()
+		cbm.albedo_color = Color(0.37, 0.19, 0.09)
+		cbm.roughness = 0.74
+		cb.material = cbm
+		_cigar_body_mesh = cb
+	if _cigar_band_mesh == null:
+		var bd := CylinderMesh.new()
+		bd.top_radius = 0.226
+		bd.bottom_radius = 0.226
+		bd.height = 0.15
+		bd.radial_segments = 20
+		var bdm := StandardMaterial3D.new()
+		bdm.albedo_color = Color(0.88, 0.63, 0.14)
+		bdm.metallic = 0.68
+		bdm.roughness = 0.30
+		bd.material = bdm
+		_cigar_band_mesh = bd
+	if _cigar_ember_mesh == null:
+		var em := SphereMesh.new()
+		em.radius = 0.175
+		em.height = 0.13
+		em.radial_segments = 14
+		em.rings = 5
+		var emm := StandardMaterial3D.new()
+		emm.albedo_color = Color(1.0, 0.44, 0.10)
+		emm.emission_enabled = true
+		emm.emission = Color(1.0, 0.30, 0.06)
+		emm.emission_energy_multiplier = 5.0
+		emm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		em.material = emm
+		_cigar_ember_mesh = em
+	if _cigar_ash_mesh == null:
+		var ash := SphereMesh.new()
+		ash.radius = 0.100
+		ash.height = 0.07
+		ash.radial_segments = 14
+		ash.rings = 4
+		var am := StandardMaterial3D.new()
+		am.albedo_color = Color(0.28, 0.26, 0.25)
+		am.roughness = 0.95
+		ash.material = am
+		_cigar_ash_mesh = ash
 
 
 func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
@@ -123,7 +186,7 @@ func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
 	owner_node = p_owner_node
 	global_position = p_origin
 	blast_radius = p_blast_radius
-	visual_style = p_visual_style if p_visual_style in ["rocket", "cash_bag"] else "rocket"
+	visual_style = p_visual_style if p_visual_style in ["rocket", "cash_bag", "cigar"] else "rocket"
 	if p_direction.length_squared() < 1e-8 or not is_finite(p_direction.x + p_direction.y + p_direction.z):
 		velocity = Vector3.ZERO
 		_inert = true
@@ -141,7 +204,30 @@ func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
 
 func _build_visual() -> void:
 	_ensure_meshes()
-	if visual_style == "cash_bag":
+	if visual_style == "cigar":
+		# NARDUS's "massive cigar": a fat tobacco-brown cylinder with a gold
+		# band and a glowing cherry at the forward (-Z) tip.
+		_visual = Node3D.new()
+		_visual.name = "Cigar"
+		add_child(_visual)
+		var body := MeshInstance3D.new()
+		body.mesh = _cigar_body_mesh
+		body.rotation_degrees.x = 90.0
+		_visual.add_child(body)
+		var band := MeshInstance3D.new()
+		band.mesh = _cigar_band_mesh
+		band.rotation_degrees.x = 90.0
+		band.position.z = -0.58
+		_visual.add_child(band)
+		var ember := MeshInstance3D.new()
+		ember.mesh = _cigar_ember_mesh
+		ember.position.z = -0.96
+		_visual.add_child(ember)
+		var ash := MeshInstance3D.new()
+		ash.mesh = _cigar_ash_mesh
+		ash.position.z = -1.04
+		_visual.add_child(ash)
+	elif visual_style == "cash_bag":
 		_visual = CashBagVisual.build_bag(1.15)
 		add_child(_visual)
 	else:
@@ -184,9 +270,10 @@ func _build_visual() -> void:
 
 	if Settings.quality_multiplier() >= 0.5:
 		_light = OmniLight3D.new()
-		_light.light_color = Color(0.32, 0.92, 0.48) if visual_style == "cash_bag" else Color(1.0, 0.52, 0.14)
+		_light.light_color = Color(0.32, 0.92, 0.48) if visual_style == "cash_bag" \
+				else (Color(1.0, 0.38, 0.10) if visual_style == "cigar" else Color(1.0, 0.52, 0.14))
 		_light.light_energy = 4.2
-		_light.omni_range = 4.5
+		_light.omni_range = 8.0 if visual_style == "cigar" else 4.5
 		_light.add_to_group("vfx_light")
 		add_child(_light)
 		VFX._cap_group(self, "vfx_light", VFX.MAX_IMPACT_LIGHTS)
@@ -204,7 +291,11 @@ func _build_visual() -> void:
 		pm.initial_velocity_max = 2.6
 		pm.scale_min = 0.24
 		pm.scale_max = 0.65
-		pm.color_ramp = _cash_trail_ramp if visual_style == "cash_bag" else _trail_ramp
+		pm.color_ramp = _cash_trail_ramp if visual_style == "cash_bag" \
+				else (_cigar_trail_ramp if visual_style == "cigar" else _trail_ramp)
+		if visual_style == "cigar":
+			pm.scale_min = 0.8
+			pm.scale_max = 1.6
 		_trail.process_material = pm
 		_trail.draw_pass_1 = _trail_mesh
 		add_child(_trail)
@@ -233,7 +324,9 @@ func _physics_process(delta: float) -> void:
 		if visual_style == "cash_bag":
 			_visual.rotate_object_local(Vector3(1.0, 0.7, 0.4).normalized(), delta * 10.0)
 		else:
-			_visual.rotate_object_local(Vector3(0.0, 0.0, 1.0), delta * 12.0)
+			# A massive cigar tumbles lazily; a rocket spins fast.
+			_visual.rotate_object_local(Vector3(0.0, 0.0, 1.0),
+					delta * (5.0 if visual_style == "cigar" else 12.0))
 	var world := get_world_3d()
 	if world == null:
 		return
@@ -260,7 +353,9 @@ func _detonate(point: Vector3, direct_collider: Object) -> void:
 	var fx := get_parent() as Node3D
 	if fx == null and get_tree() != null:
 		fx = get_tree().current_scene as Node3D
-	if visual_style == "cash_bag":
+	if visual_style == "cigar":
+		VFX.particle_explosion(fx, point, Color(0.58, 0.34, 0.14), 3.0, false)
+	elif visual_style == "cash_bag":
 		VFX.cash_explosion(fx, point, false)
 	else:
 		VFX.particle_explosion(fx, point, Color(1.0, 0.42, 0.10), 1.55, false)
@@ -283,8 +378,46 @@ func _detonate(point: Vector3, direct_collider: Object) -> void:
 		if (direct_collider as Node).has_method("smash"):
 			(direct_collider as Node).call("smash", velocity.normalized() * 14.0)
 
+	# A direct hit is an instant kill, for every launcher and every vehicle.
+	# Resolve through parents so a collider that is a wheel/child still maps to
+	# the bike root, then let the victim's own controller apply the lethal hit
+	# (we never mutate a remote proxy from the shooter's client).
+	var direct_bike: Node3D = null
+	var lethal_controller: Node = null
+	var walk: Object = direct_collider
+	while walk is Node:
+		var n := walk as Node
+		if n.is_in_group("bike"):
+			direct_bike = n as Node3D
+			break
+		walk = n.get_parent()
+	if direct_bike != null and direct_bike != owner_node:
+		lethal_controller = direct_bike.get_node_or_null("CombatController")
+		if lethal_controller == null or not lethal_controller.has_method("take_lethal_hit"):
+			lethal_controller = null
+			for child in direct_bike.get_children():
+				if child.has_method("take_lethal_hit"):
+					lethal_controller = child
+					break
+		if lethal_controller != null:
+			# Same-shot multi-kill token contract as CombatAoe: the host's rate
+			# limiter only grants the burst exemption for "<base>:<suffix>" tokens.
+			# A raw token here would lose the guaranteed kill if an AOE victim's
+			# sub-token kill is processed first.
+			var vid_variant: Variant = direct_bike.get("player_id")
+			var victim_id := str(vid_variant) if vid_variant != null else ""
+			var lethal_tok := ("%s:v%s" % [token, victim_id]) if token != "" and victim_id != "" else token
+			lethal_controller.call("take_lethal_hit", owner_id, point, lethal_tok)
+
 	var tree := get_tree()
 	if tree == null:
 		return
-	COMBAT_AOE.apply_blast(tree, fx, point, blast_radius, damage, 0.65, 0.75,
-			owner_id, owner_node, token, true, 12.0, true)
+	# Flat 90% health loss for everyone else inside the blast — no falloff.
+	# Skip a directly-hit remote proxy (identified by its player_id): its
+	# authoritative 100-damage number comes from the victim's own client via
+	# the "hurt" event. Controller-bearing local/dummy bikes still take the 90.
+	var proxy_id_variant: Variant = direct_bike.get("player_id") if direct_bike != null else null
+	var is_remote_proxy := proxy_id_variant != null and str(proxy_id_variant) != ""
+	var skip_proxy: Node = direct_bike if (is_remote_proxy and lethal_controller == null) else null
+	COMBAT_AOE.apply_blast(tree, fx, point, blast_radius, BLAST_DAMAGE, 1.0, 1.0,
+			owner_id, owner_node, token, true, 12.0, true, true, skip_proxy)

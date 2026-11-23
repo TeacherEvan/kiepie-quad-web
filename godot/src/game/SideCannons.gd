@@ -1,7 +1,9 @@
 extends Node3D
 ## Player weapon mount & 3-weapon arsenal manager:
-## - "primary": Twin Machine Gun (Quad) / Dual Banana Cannon (Nardus)
-## - "rocket":  Rocket Launcher (1.5s cooldown, 2x MG damage, 4.5m small blast radius)
+## - "primary": Twin Machine Gun (Quad) / Dual Banana Cannon (Nardus) / F1 Autocannon (Big-Ben)
+## - "rocket":  Rocket Launcher (1.5s cooldown). Direct hit = instant kill;
+##              anything else inside 4.5m loses 90% health. NARDUS launches a
+##              massive CIGAR; BIG-BEN launches a CASH BAG; Quad a normal rocket.
 ## - "meteor":  Meteor Shower (6.0s cooldown, practical ground aim reticle, 2.0s sky-fall delay, massive 3.5x AOE damage)
 
 signal fired(token: String)
@@ -21,7 +23,6 @@ const SHOT_SPREAD := 0.055
 
 const WEAPON_ORDER := ["primary", "rocket", "meteor"]
 const ROCKET_COOLDOWN := 1.5
-const ROCKET_DAMAGE_MULT := 2.0
 const ROCKET_BLAST_RADIUS := 4.5
 const METEOR_COOLDOWN := 6.0
 const METEOR_FALL_TIME := 2.0
@@ -168,6 +169,9 @@ func weapon_display_name(w_id: String = "") -> String:
 	var w := current_weapon if w_id == "" else w_id
 	match w:
 		"rocket":
+			# Three distinct launchers — do not mix their identities up.
+			if weapon_profile == "pogo":
+				return "CIGAR LAUNCHER"
 			if weapon_profile == "aston":
 				return "CASH BAG LAUNCHER"
 			return "ROCKET LAUNCHER"
@@ -535,7 +539,8 @@ func fire() -> void:
 			VFX.casing(fx_parent, muzzle.global_position, right_vec * side + Vector3(0, 0.35, 0))
 
 	if active_weapon == "rocket":
-		# Rocket Launcher: single center-forward finned rocket, 2x MG damage, 4.5m blast radius
+		# Rocket Launcher: NARDUS = massive cigar, BIG-BEN = cash bag, Quad =
+		# finned rocket. All three share the lethal-direct / 90%-blast rules.
 		var muzzle_pos := owner_node.global_position + Vector3(0.0, 0.68, 0.0) \
 				+ owner_node.global_transform.basis.z.normalized() * 0.85
 		if not _muzzles.is_empty() and is_instance_valid(_muzzles[0]):
@@ -543,11 +548,14 @@ func fire() -> void:
 			if _muzzles.size() >= 2 and is_instance_valid(_muzzles[1]):
 				muzzle_pos = (_muzzles[0].global_position + _muzzles[1].global_position) * 0.5
 		var dir := owner_node.global_transform.basis.z.normalized()
-		var rocket_dmg := Match.damage() * ROCKET_DAMAGE_MULT
+		# Flat 90% health loss in the blast; direct hits are handled lethally in
+		# RocketProjectile._detonate(). Match.damage() does not scale rockets.
+		var rocket_dmg := ROCKET.BLAST_DAMAGE
 		var rocket := Node3D.new()
 		rocket.set_script(ROCKET)
 		fx_parent.add_child(rocket)
-		var rocket_style := "cash_bag" if weapon_profile == "aston" else "rocket"
+		var rocket_style := "cigar" if weapon_profile == "pogo" \
+				else ("cash_bag" if weapon_profile == "aston" else "rocket")
 		rocket.setup(owner_id, owner_node, muzzle_pos, dir, ROCKET_SPEED,
 				rocket_dmg, token, Color(1.0, 0.38, 0.10), ROCKET_BLAST_RADIUS, rocket_style)
 		if not practice:

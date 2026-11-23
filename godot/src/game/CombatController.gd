@@ -150,21 +150,38 @@ func take_damage(amount: float, attacker_id: String, point: Vector3, token: Stri
 		# Absorbed damage still needs a read — otherwise a shield looks broken.
 		VFX.shield_block(_fx_parent(), point, Color(0.30, 0.88, 1.0))
 		return
-	health = maxf(0.0, health - amount)
+	_commit_hit(maxf(0.0, health - amount), amount, attacker_id, point, token,
+			0.18, Color(1.0, 0.35, 0.3))
+
+
+## Rocket direct hit: 100% lethal, ignores shield and spawn invulnerability.
+## Displayed damage reads 100 (the whole health bar) rather than an oversized value.
+func take_lethal_hit(attacker_id: String, point: Vector3, token: String = "") -> void:
+	if not alive or (not practice_mode and not Match.is_playing()):
+		return
+	_commit_hit(0.0, MAX_HEALTH, attacker_id, point, token, 0.4,
+			Color(1.0, 0.28, 0.18))
+
+
+## Single commit point for ordinary and lethal hits. Keeping telemetry, VFX and
+## the death/token path here prevents the two entry points from drifting again.
+func _commit_hit(new_health: float, shown_amount: float, attacker_id: String,
+		point: Vector3, token: String, shake: float, num_color: Color) -> void:
+	health = new_health
 	health_changed.emit(health, MAX_HEALTH)
-	hurt.emit(amount, attacker_id)
+	hurt.emit(shown_amount, attacker_id)
 	# Victim-authoritative telemetry: peers render exact post-mitigation damage
 	# numbers on the victim's proxy (validated by alias in TaloBackend).
 	if not practice_mode:
 		Supabase.broadcast("hurt", {
 			"victim": Supabase.user_id,
 			"attacker": attacker_id,
-			"dmg": int(roundf(amount)),
+			"dmg": int(roundf(shown_amount)),
 		})
 	VFX.impact(_fx_parent(), point, player_color, Vector3.ZERO, "bike")
-	VFX.damage_number(_fx_parent(), point, amount, Color(1.0, 0.35, 0.3))
+	VFX.damage_number(_fx_parent(), point, shown_amount, num_color)
 	_play_sfx("impact")
-	_shake(0.18)
+	_shake(shake)
 	if health <= 0.0:
 		_last_hit_token = token
 		_die(attacker_id)
