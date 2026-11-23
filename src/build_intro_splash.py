@@ -32,13 +32,18 @@ import random
 import struct
 import subprocess
 import sys
+import tempfile
 import wave
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT_MP4 = ROOT / "web-assets" / "kiepie-quad-splash.mp4"
 SFX_DIR = ROOT / "godot" / "assets" / "sfx"
-FONT_PATH = "/usr/share/fonts/truetype/roboto/unhinted/RobotoTTF/Roboto-Black.ttf"
+_FONT_CANDIDATES = (
+    "/usr/share/fonts/truetype/roboto/unhinted/RobotoTTF/Roboto-Black.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+)
+FONT_PATH = next((p for p in _FONT_CANDIDATES if Path(p).is_file()), "")
 
 FPS = 24
 TOTAL_FRAMES = 300  # 12.5 s
@@ -53,7 +58,7 @@ def parse_args() -> argparse.Namespace:
     else:
         argv = argv[1:]
     p = argparse.ArgumentParser(description="Render Kiepie-Quad intro splash video.")
-    p.add_argument("--frames-dir", type=str, default="/tmp/kiepie_splash_frames")
+    p.add_argument("--frames-dir", type=str, default=str(Path(tempfile.gettempdir()) / "kiepie_splash_frames"))
     p.add_argument("--start", type=int, default=0)
     p.add_argument("--end", type=int, default=TOTAL_FRAMES - 1)
     p.add_argument("--preview-frames", type=str, default="")
@@ -231,16 +236,20 @@ def encode_video(frames_dir: Path) -> None:
         "-i", str(wav_path),
         "-c:v", "libx264",
         "-pix_fmt", "yuv420p",
-        "-crf", "21",
-        "-preset", "medium",
+        "-crf", "28",
+        "-preset", "slow",
         "-movflags", "+faststart",
         "-c:a", "aac",
-        "-b:a", "160k",
+        "-b:a", "96k",
         "-shortest",
         str(tmp_mp4),
     ]
-    subprocess.run(cmd, check=True, timeout=120)
-    os.replace(tmp_mp4, OUT_MP4)
+    try:
+        subprocess.run(cmd, check=True, timeout=120)
+        os.replace(tmp_mp4, OUT_MP4)
+    except BaseException:
+        tmp_mp4.unlink(missing_ok=True)
+        raise
     print(f"Encoded {OUT_MP4} ({OUT_MP4.stat().st_size / 1024:.1f} KiB)")
 
 

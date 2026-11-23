@@ -64,7 +64,7 @@ PCK="$ROOT/web/index.pck"
 SIZE=$(stat -c %s "$PCK" 2>/dev/null || echo 0)
 echo "   index.pck: $((SIZE / 1024 / 1024)) MB ($SIZE bytes)"
 if [ "$SIZE" -gt 4194304 ]; then
-	echo "DEPLOY ABORTED: pck unexpectedly large (expected ~3.4 MB, saw $SIZE)"
+	echo "DEPLOY ABORTED: pck unexpectedly large (expected ~3.55 MB, saw $SIZE)"
 	exit 1
 fi
 for f in index.html index.js index.wasm index.manifest.json index.service.worker.js; do
