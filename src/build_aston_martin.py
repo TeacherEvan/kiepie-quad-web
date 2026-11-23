@@ -29,6 +29,10 @@ REAR_TRACK_HALF = 0.565
 WHEEL_R = 0.255
 F_TIRE_W = 0.220
 R_TIRE_W = 0.280
+# BIG-BEN's floor/diffuser used to sit only ~16 mm off the deck and visibly
+# dragged under braking. Lift the whole body shell slightly; the wheels and
+# their steering pivots stay on the ground datum (minZ = 0.000).
+BODY_LIFT = 0.06
 
 
 def parse_args():
@@ -518,6 +522,14 @@ def build_aston_martin(previews_dir=""):
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
         chassis_parts.append(muzzle_ring)
 
+    # Lift the body shell uniformly so nothing scrapes the deck. Suspension
+    # rods stay put: they are the visible link between the raised body and the
+    # wheel hubs that remain on the ground.
+    for ob in chassis_parts:
+        if ob is not None and not ob.name.startswith("Susp_"):
+            ob.location.z += BODY_LIFT
+    bpy.context.view_layer.update()
+
     chassis = join_objects("Chassis", chassis_parts, col)
 
     # 10) "BIG-BEN" Back License Plate (closed backing + UV-mapped front face, tilted 12° upward)
@@ -563,7 +575,7 @@ def build_aston_martin(previews_dir=""):
     link_obj(plate_ob, col)
     plate_me.materials.append(mats["CARBON"])
     plate_me.materials.append(mats["PLATE"])
-    plate_ob.location = (0.0, yc, zc)
+    plate_ob.location = (0.0, yc, zc + BODY_LIFT)
     plate_ob.rotation_euler = (-tilt, 0.0, 0.0)
     bpy.context.view_layer.update()
     bpy.ops.object.select_all(action="DESELECT")
@@ -597,7 +609,7 @@ def build_aston_martin(previews_dir=""):
         emp = bpy.data.objects.new(m_name, None)
         emp.empty_display_type = "PLAIN_AXES"
         emp.empty_display_size = 0.07
-        emp.location = m_loc
+        emp.location = (m_loc[0], m_loc[1], m_loc[2] + BODY_LIFT)
         link_obj(emp, col)
 
     # 13) QA check + Save .blend + Export .glb

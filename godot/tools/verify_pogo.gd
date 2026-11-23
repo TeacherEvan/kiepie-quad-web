@@ -173,6 +173,12 @@ func _run() -> void:
 					"pogo does 2x damage")
 			_check(prof is Dictionary and str((prof as Dictionary).get("sfx", "")) == "pop",
 					"pogo fires banana pop sfx")
+			# NARDUS's rocket launcher is a massive cigar — its own identity,
+			# not Big-Ben's cash bag and not the Quad's plain rocket.
+			_check(str(cannons.call("weapon_display_name", "rocket")) == "CIGAR LAUNCHER",
+					"NARDUS rocket launcher is the CIGAR LAUNCHER")
+			_check(str(cannons.call("weapon_display_name", "meteor")) == "METEOR SHOWER",
+					"NARDUS meteor is the METEOR SHOWER (Big-Ben keeps CASH BAG DROP)")
 		var muzzle_count: int = 0
 		if cannons != null:
 			var mu: Variant = cannons.get("_muzzles")

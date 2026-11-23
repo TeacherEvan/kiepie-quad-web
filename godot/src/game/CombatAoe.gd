@@ -11,7 +11,7 @@ static func apply_blast(tree: SceneTree, fx: Node3D, center: Vector3, radius: fl
 		base_damage: float, full_frac: float, edge_mult: float, owner_id: String,
 		owner_node: Variant, token: String, skip_owner: bool = true,
 		smash_impulse: float = 12.0, hit_destructibles: bool = true,
-		chain_hazards: bool = true) -> bool:
+		chain_hazards: bool = true, skip_bike: Node = null) -> bool:
 	if tree == null:
 		return false
 
@@ -29,6 +29,10 @@ static func apply_blast(tree: SceneTree, fx: Node3D, center: Vector3, radius: fl
 			continue
 		var bike_node := b as Node3D
 		if not bike_node.visible or bike_node.get("is_respawning") == true:
+			continue
+		# A rocket's directly-hit proxy is lethal on the victim's own client;
+		# showing a 90 number here would suppress the authoritative 100 number.
+		if skip_bike != null and bike_node == skip_bike:
 			continue
 		var dist := bike_node.global_position.distance_to(center)
 		if dist > radius:

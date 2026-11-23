@@ -48,7 +48,7 @@ Sweep rule: changing any row means grepping the name **and** the old literal acr
 | --- | --- | --- |
 | Gate suite size | **29** (25 headless + 1 xvfb multi-touch + GdUnit4 + scene_sync + web_hygiene) | `godot/tools/run_gates.sh` |
 | Remote shot rate cap | **24 shots/s** per sender (twin-barrel rapid ≈ 22/s legit) | `godot/src/game/ArenaNet.gd` |
-| Cannon cooldown (QUAD / NARDUS) | Primary: 0.20 / 0.09 s normal / 0.40 / 0.18 s rapid · Rocket Launcher: 1.5 s (2× dmg, 4.5 m blast) · Meteor Shower: 6.0 s (2.0 s sky-fall, 3.5× dmg, 7.5 m blast) | `godot/src/game/SideCannons.gd` |
+| Cannon cooldown (QUAD / NARDUS) | Primary: 0.20 / 0.09 s normal / 0.40 / 0.18 s rapid · Rocket Launcher: 1.5 s (instant kill on direct hit, flat 90 dmg / 4.5 m blast; NARDUS = Cigar, BIG-BEN = Cash Bag, Quad = rocket) · Meteor Shower: 6.0 s (2.0 s sky-fall, 3.5× dmg, 7.5 m blast) | `godot/src/game/SideCannons.gd`, `RocketProjectile.gd` |
 | Kill registration | 1 s per-killer cooldown, 20/min window | `godot/src/net/TaloBackend.gd` |
 | Armour / default damage / repair | 100 / 30 / +45 | `CombatController.gd`, `Match` defaults, `Pickup.gd` |
 | Dodge | 1.0 s cooldown, 0.72 s duration, ground-only | `godot/src/KiepieBike.gd` |

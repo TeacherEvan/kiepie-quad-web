@@ -337,11 +337,13 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 	var aston := VehicleRegistry.is_aston(vehicle)
 	var combat := get_tree().get_first_node_in_group("local_combat")
 	if weapon_kind == "rocket":
-		var rocket_dmg := Match.damage() * 2.0
+		# Match the shooter's launcher exactly: NARDUS = massive cigar,
+		# BIG-BEN = cash bag, Quad = finned rocket. Damage rules are shared.
+		var rocket_dmg := ROCKET.BLAST_DAMAGE
 		var rocket := Node3D.new()
 		rocket.set_script(ROCKET)
 		add_child(rocket)
-		var rocket_style := "cash_bag" if aston else "rocket"
+		var rocket_style := "cigar" if pogo else ("cash_bag" if aston else "rocket")
 		rocket.setup(owner_id, _remote.get(owner_id), o, d, 38.0, rocket_dmg,
 				str(p.get("token", "")), Color(1.0, 0.38, 0.10), 4.5, rocket_style)
 		return

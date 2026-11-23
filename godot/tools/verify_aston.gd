@@ -124,6 +124,24 @@ func _run() -> void:
 				min_y = minf(min_y, pt.y); max_y = maxf(max_y, pt.y)
 				min_z = minf(min_z, pt.z); max_z = maxf(max_z, pt.z)
 		_check(min_y >= -0.02 and min_y <= 0.06, "Aston Martin ground datum min_y=%.3f" % min_y)
+		# BIG-BEN used to drag its diffuser (~0.016 m). The body shell is lifted
+		# slightly while the wheels stay on the datum — lock that clearance.
+		var chassis_min_y := 1.0e9
+		for mesh2 in model.find_children("*", "MeshInstance3D", true, false):
+			var mi2 := mesh2 as MeshInstance3D
+			if mi2.name != "Chassis" or mi2.mesh == null:
+				continue
+			var aabb2 := mi2.get_aabb()
+			var xf2 := Transform3D.IDENTITY
+			var cur2: Node = mi2
+			while cur2 != null and cur2 != model:
+				if cur2 is Node3D:
+					xf2 = (cur2 as Node3D).transform * xf2
+				cur2 = cur2.get_parent()
+			for ci2 in range(8):
+				chassis_min_y = minf(chassis_min_y, (xf2 * aabb2.get_endpoint(ci2)).y)
+		_check(chassis_min_y >= 0.06 and chassis_min_y <= 0.10,
+				"BIG-BEN body lifted clear of the deck (chassis min_y=%.3f)" % chassis_min_y)
 		_check((max_x - min_x) >= 1.2 and (max_x - min_x) <= 2.2, "Aston width in [1.2, 2.2] (%.2f)" % (max_x - min_x))
 		_check((max_z - min_z) >= 2.5 and (max_z - min_z) <= 3.3, "Aston length in [2.5, 3.3] (%.2f)" % (max_z - min_z))
 		_check((max_y - min_y) >= 0.65 and (max_y - min_y) <= 1.05, "Aston height in [0.65, 1.05] (%.2f)" % (max_y - min_y))
@@ -151,6 +169,8 @@ func _run() -> void:
 		var cannons: Node = combat.get("cannons") if combat != null else null
 		_check(cannons != null and str(cannons.call("weapon_display_name")) == "F1 AUTOCANNON",
 				"Aston primary weapon is F1 AUTOCANNON")
+		_check(cannons != null and str(cannons.call("weapon_display_name", "rocket")) == "CASH BAG LAUNCHER",
+				"BIG-BEN rocket stays CASH BAG LAUNCHER (NARDUS alone uses CIGAR LAUNCHER)")
 		var flames := bike.get_node_or_null("ExhaustFlames") as Node3D
 		_check(flames != null and absf(flames.position.x) < 0.05 and flames.position.z < -1.0,
 				"Aston ExhaustFlames positioned at center rear tailpipe (%.2f, %.2f, %.2f)" % [

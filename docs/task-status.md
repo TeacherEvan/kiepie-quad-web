@@ -6,6 +6,16 @@ gate names, or live checks — not assumptions.
 
 **Last verified:** 2026-11-23 — `scene_sync OK`, `web_hygiene OK`, full gate suite **29/29** green after completing the 2026-11-23 Rev 2 Surgical Audit remediation.
 
+## 2026-11-23 — Rocket contract + vehicle-specific launchers + BIG-BEN ground clearance
+
+| Change | Detail | Evidence |
+| --- | --- | --- |
+| NARDUS cigar launcher | `RocketProjectile` `"cigar"` style — **1.9 m** fat wrapper (vs 0.52 m rocket), gold band, glowing cherry + ash cap, heavy smoke trail and 3.0-scale blast — wired only for `weapon_profile == "pogo"`; HUD reads `CIGAR LAUNCHER`. Visually proven side-by-side against the standard rocket under the real renderer | `SideCannons.gd`, `ArenaNet.gd`, `verify_pogo.gd`, `verify_deathrace.gd` |
+| Distinct launcher identities | BIG-BEN keeps `CASH BAG LAUNCHER` / `CASH BAG DROP`; Quad keeps plain `ROCKET LAUNCHER` / `LIGHTNING STRIKE`; no cross-vehicle style bleed | `SideCannons.weapon_display_name()`, `verify_aston.gd` |
+| Universal rocket damage | Direct hit → `CombatController.take_lethal_hit()` (bypasses shield/spawn invuln); near miss → flat `RocketProjectile.BLAST_DAMAGE = 90.0` (90% of 100 HP), no falloff; client-authoritative so remote rockets hit the local victim too | `RocketProjectile._detonate()`, `CombatAoe.apply_blast()`, `verify_deathrace.gd` |
+| BIG-BEN ground drag | `src/build_aston_martin.py` lifts the body shell `BODY_LIFT = 0.06` (chassis min_y 0.016 → 0.076) while wheels/steer pivots stay at minZ 0.000; suspension rods excluded so they still bridge body↔hub | rebuilt `Aston_Martin.blend` / `Aston_Martin.glb` (177 KB, 0 non-manifold), `verify_aston.gd` |
+| Independent review fixes | direct-hit token now `"<base>:v<victim>"` so a same-shot AOE kill cannot steal the host's 1 s rate-limit slot; shooter-side AOE skips the directly-hit proxy so the victim's authoritative `-100` number shows; `take_damage`/`take_lethal_hit` share `_commit_hit()` | code review, `verify_deathrace.gd` token + damage assertions |
+
 ## Audit remediation — Surgical Audit Rev 2 (2026-11-23)
 
 Source report: [audits/kiepie-quad-surgical-audit-2026-11-23-rev2.md](audits/kiepie-quad-surgical-audit-2026-11-23-rev2.md) + [SARIF 2.1.0](audits/kiepie-quad-surgical-audit-2026-11-23-rev2.sarif).
