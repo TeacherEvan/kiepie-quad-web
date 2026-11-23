@@ -173,6 +173,10 @@ static func _ensure_assets() -> void:
 	_bill_mesh.material = _bill_mat
 
 
+static func prewarm() -> void:
+	_ensure_assets()
+
+
 static func get_bill_mesh() -> QuadMesh:
 	_ensure_assets()
 	return _bill_mesh

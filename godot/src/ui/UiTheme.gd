@@ -234,3 +234,27 @@ static func style_scroll(scroll: ScrollContainer) -> void:
 		grab_hi.bg_color = GOLD
 		bar.add_theme_stylebox_override("grabber_highlight", grab_hi)
 		bar.add_theme_stylebox_override("grabber_pressed", grab_hi)
+
+
+static func apply_safe_area(ctrl: Control, margin: MarginContainer, min_t_std: float = 20.0,
+		min_t_very_short: float = -1.0, min_b_very_short: float = -1.0) -> Vector2:
+	var vp := ctrl.get_viewport_rect().size
+	if not DisplayServer.has_method("get_display_safe_area"):
+		return vp
+	var win := DisplayServer.window_get_size()
+	if win.x <= 0 or win.y <= 0:
+		return vp
+	var sa := DisplayServer.get_display_safe_area()
+	var sx := vp.x / float(win.x)
+	var sy := vp.y / float(win.y)
+	var short := vp.y <= 480.0
+	var very_short := vp.y <= 420.0
+	var narrow := vp.x <= 480.0
+	var min_lr := 12.0 if narrow else 24.0
+	var min_t := min_t_very_short if (very_short and min_t_very_short >= 0.0) else (6.0 if short else min_t_std)
+	var min_b := min_b_very_short if (very_short and min_b_very_short >= 0.0) else (6.0 if short else (16.0 if vp.x < 720.0 else 56.0))
+	margin.set("theme_override_constants/margin_left", int(maxf(min_lr, float(sa.position.x) * sx)))
+	margin.set("theme_override_constants/margin_top", int(maxf(min_t, float(sa.position.y) * sy)))
+	margin.set("theme_override_constants/margin_right", int(maxf(min_lr, float(win.x - sa.end.x) * sx)))
+	margin.set("theme_override_constants/margin_bottom", int(maxf(min_b, float(win.y - sa.end.y) * sy)))
+	return vp
