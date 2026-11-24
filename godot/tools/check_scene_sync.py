@@ -51,18 +51,8 @@ def normalize(text: str) -> str:
     # so swapping two script assignments between nodes slipped through.
     ext_map: dict[str, str] = {}
     sub_map: dict[str, str] = {}
-    cur_sub_id: str | None = None
-    cur_sub_type: str = "SubResource"
-    cur_sub_lines: list[str] = []
     for raw in raw_lines:
         stripped = raw.strip()
-        if stripped.startswith("["):
-            if cur_sub_id is not None:
-                norm_sub = [re.sub(r'ExtResource\("([^"]*)"\)', lambda m: 'ExtResource(%s)' % ext_map.get(m.group(1), "X"), ln) for ln in cur_sub_lines]
-                body_hash = hashlib.sha256("\n".join(norm_sub).encode("utf-8")).hexdigest()[:8]
-                sub_map[cur_sub_id] = f"{cur_sub_type}:{body_hash}"
-                cur_sub_id = None
-                cur_sub_lines = []
         if stripped.startswith("[ext_resource"):
             attrs = _attrs(stripped)
             if "id" in attrs and "path" in attrs:
@@ -70,15 +60,7 @@ def normalize(text: str) -> str:
         elif stripped.startswith("[sub_resource"):
             attrs = _attrs(stripped)
             if "id" in attrs:
-                cur_sub_id = attrs["id"]
-                cur_sub_type = attrs.get("type", "SubResource")
-                cur_sub_lines = []
-        elif cur_sub_id is not None:
-            cur_sub_lines.append(stripped)
-    if cur_sub_id is not None:
-        norm_sub = [re.sub(r'ExtResource\("([^"]*)"\)', lambda m: 'ExtResource(%s)' % ext_map.get(m.group(1), "X"), ln) for ln in cur_sub_lines]
-        body_hash = hashlib.sha256("\n".join(norm_sub).encode("utf-8")).hexdigest()[:8]
-        sub_map[cur_sub_id] = f"{cur_sub_type}:{body_hash}"
+                sub_map[attrs["id"]] = attrs.get("type", "SubResource")
     out: list[str] = []
     for raw in raw_lines:
         line = raw.rstrip()
