@@ -58,7 +58,8 @@ def normalize(text: str) -> str:
         stripped = raw.strip()
         if stripped.startswith("["):
             if cur_sub_id is not None:
-                body_hash = hashlib.sha256("\n".join(cur_sub_lines).encode("utf-8")).hexdigest()[:8]
+                norm_sub = [re.sub(r'ExtResource\("([^"]*)"\)', lambda m: 'ExtResource(%s)' % ext_map.get(m.group(1), "X"), ln) for ln in cur_sub_lines]
+                body_hash = hashlib.sha256("\n".join(norm_sub).encode("utf-8")).hexdigest()[:8]
                 sub_map[cur_sub_id] = f"{cur_sub_type}:{body_hash}"
                 cur_sub_id = None
                 cur_sub_lines = []
@@ -75,7 +76,8 @@ def normalize(text: str) -> str:
         elif cur_sub_id is not None:
             cur_sub_lines.append(stripped)
     if cur_sub_id is not None:
-        body_hash = hashlib.sha256("\n".join(cur_sub_lines).encode("utf-8")).hexdigest()[:8]
+        norm_sub = [re.sub(r'ExtResource\("([^"]*)"\)', lambda m: 'ExtResource(%s)' % ext_map.get(m.group(1), "X"), ln) for ln in cur_sub_lines]
+        body_hash = hashlib.sha256("\n".join(norm_sub).encode("utf-8")).hexdigest()[:8]
         sub_map[cur_sub_id] = f"{cur_sub_type}:{body_hash}"
     out: list[str] = []
     for raw in raw_lines:
