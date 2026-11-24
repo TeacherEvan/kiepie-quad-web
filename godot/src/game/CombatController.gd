@@ -99,7 +99,7 @@ func _physics_process(delta: float) -> void:
 
 
 func apply_pickup(kind: String) -> void:
-	if not alive:
+	if not alive or (not practice_mode and not Match.is_playing()):
 		return
 	var now := Time.get_ticks_msec() / 1000.0
 	match kind:
@@ -191,8 +191,13 @@ func _die(by: String) -> void:
 	alive = false
 	# never name an attacker the lobby doesn't know: broadcasts relay unverified
 	# wire strings verbatim, and every honest peer would score them
+	var is_env := (by == "hazard-pit")
 	var attributable := by
-	if practice_mode or Match.players.is_empty() or Match.players.has(by):
+	var kill_tok := _last_hit_token
+	if is_env:
+		attributable = "hazard-pit"
+		kill_tok = "env:hazard-pit:%d" % Time.get_ticks_msec()
+	elif practice_mode or Match.players.is_empty() or Match.players.has(by):
 		attributable = by
 	else:
 		attributable = ""
@@ -216,7 +221,7 @@ func _die(by: String) -> void:
 		Supabase.broadcast("kill", {
 			"killer": attributable,
 			"victim": Supabase.user_id,
-			"token": _last_hit_token,
+			"token": kill_tok,
 			"at": Time.get_ticks_msec(),
 		})
 	bike.visible = false
@@ -330,8 +335,11 @@ func reset_state() -> void:
 	_rapid_until = 0.0
 	_overdrive_until = 0.0
 	_shield_until = 0.0
+	_last_hit_token = ""
 	if cannons != null:
 		cannons.call("set_rapid", false)
+		if cannons.has_method("reset_cooldowns"):
+			cannons.call("reset_cooldowns")
 	if "overdrive_active" in bike:
 		bike.set("overdrive_active", false)
 	bike.freeze = false
@@ -370,7 +378,7 @@ func _touch_overlay() -> Node:
 
 
 func _on_weapon_switch_requested() -> void:
-	if not alive or cannons == null:
+	if not alive or (not practice_mode and not Match.is_playing()) or cannons == null:
 		return
 	if cannons.has_method("cycle_weapon"):
 		cannons.call("cycle_weapon", 1)

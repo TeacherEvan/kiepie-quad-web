@@ -176,7 +176,7 @@ func _on_broadcast(event: String, payload: Variant) -> void:
 			var feed := get_tree().get_first_node_in_group("match_hud")
 			# The victim broadcasts its death; only the killer's client awards
 			# the point through the authoritative RPC (the server owns scores).
-			if killer == Supabase.user_id and victim != Supabase.user_id:
+			if killer == Supabase.user_id and victim != Supabase.user_id and killer != "hazard-pit":
 				_streak += 1
 				Match.register_kill(victim, token)
 				_play_sfx("kill")
@@ -274,6 +274,8 @@ func _create_remote(id: String) -> void:
 
 
 func _spawn_remote_shot(p: Dictionary) -> void:
+	if Match != null and not Match.lobby.is_empty() and not Match.is_playing():
+		return
 	var owner_id := str(p.get("id", ""))
 	if owner_id == "" or owner_id == Supabase.user_id:
 		return

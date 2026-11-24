@@ -149,7 +149,7 @@ func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
 	owner_node = p_owner_node
 	global_position = p_origin
 	_age = 0.0
-	if p_direction.length_squared() < 1e-8 or not is_finite(p_direction.x + p_direction.y + p_direction.z):
+	if p_direction.length_squared() < 1e-8 or not is_finite(p_direction.x + p_direction.y + p_direction.z) or not is_finite(p_speed) or p_speed <= 0.0:
 		velocity = Vector3.ZERO
 		_inert = true
 		_life = 0.05

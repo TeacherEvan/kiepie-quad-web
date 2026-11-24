@@ -93,8 +93,9 @@ static func _sprite_quad(additive: bool, key: String, quad_size: float) -> QuadM
 
 
 static func _ring_quad(parent: Node3D, pos: Vector3, radius: float,
-		color: Color, grow: float = 1.8, duration: float = 0.25) -> void:
-	S._ring_quad(parent, pos, radius, color, grow, duration)
+		color: Color, grow: float = 1.8, duration: float = 0.25, matte: bool = false,
+		normal: Vector3 = Vector3.UP) -> MeshInstance3D:
+	return S._ring_quad(parent, pos, radius, color, grow, duration, matte, normal)
 
 
 static func _particle(parent: Node3D, pos: Vector3, amount: int, lifetime: float,
@@ -119,9 +120,9 @@ static func casing(parent: Node3D, pos: Vector3, eject_dir: Vector3) -> void:
 
 
 static func impact(parent: Node3D, pos: Vector3, color: Color,
-		normal: Vector3 = Vector3.UP, kind: String = "spark",
-		incoming_dir: Vector3 = Vector3.ZERO) -> void:
-	CORE.impact(parent, pos, color, normal, kind, incoming_dir)
+		dir: Vector3 = Vector3.ZERO, surface: String = "metal",
+		normal: Vector3 = Vector3.UP) -> void:
+	CORE.impact(parent, pos, color, dir, surface, normal)
 
 
 static func scar(parent: Node3D, pos: Vector3, normal: Vector3,
@@ -138,7 +139,7 @@ static func dust_puff(parent: Node3D, local_pos: Vector3, amount: int = 64) -> v
 
 
 static func dust_ring(parent: Node3D, pos: Vector3, radius: float = 1.2,
-		amount: int = 24) -> void:
+		amount: float = 5.0) -> void:
 	CORE.dust_ring(parent, pos, radius, amount)
 
 
@@ -184,8 +185,8 @@ static func mushroom_cloud_explosion(parent: Node3D, pos: Vector3,
 
 
 static func particle_explosion(parent: Node3D, pos: Vector3, color: Color, scale: float = 1.0,
-		spawn_scorch: bool = true) -> void:
-	HEAVY.particle_explosion(parent, pos, color, scale, spawn_scorch)
+		mushroom: bool = false) -> void:
+	HEAVY.particle_explosion(parent, pos, color, scale, mushroom)
 
 
 static func dramatic_death_explosion(parent: Node3D, pos: Vector3, basis: Basis,

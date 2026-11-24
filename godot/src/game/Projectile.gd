@@ -110,7 +110,7 @@ func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
 	global_position = p_origin
 	# Defence in depth: every caller passes a valid direction today, but a
 	# degenerate vector would otherwise yield an immortal zero-velocity bolt.
-	if p_direction.length_squared() < 1e-8 or not is_finite(p_direction.x + p_direction.y + p_direction.z):
+	if p_direction.length_squared() < 1e-8 or not is_finite(p_direction.x + p_direction.y + p_direction.z) or not is_finite(p_speed) or p_speed <= 0.0:
 		velocity = Vector3.ZERO
 		_inert = true
 		_life = 0.05  # immortal zero-velocity bolt guard

@@ -142,6 +142,8 @@ func _process(delta: float) -> void:
 		if _follow_dir.length_squared() < 0.01:
 			_follow_dir = fwd
 		else:
+			if _follow_dir.dot(fwd) < -0.999:
+				_follow_dir = (_follow_dir + Vector3(-fwd.z, 0.0, fwd.x) * 0.05).normalized()
 			_follow_dir = _follow_dir.lerp(fwd, 1.0 - exp(-14.5 * dt)).normalized()
 		var desired := _target.global_transform.origin - _follow_dir * distance + _cam_up * height
 		global_position = global_position.lerp(desired, 1.0 - exp(-maxf(follow_speed, 20.0) * dt))

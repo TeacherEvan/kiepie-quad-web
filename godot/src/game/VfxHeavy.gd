@@ -304,29 +304,30 @@ static func _build_death_wreck(pos: Vector3, basis: Basis, is_pogo: bool,
 			rng.randf_range(-10, 10), rng.randf_range(-14, 14))
 	wreck.add_to_group("death_wreck")
 	# Continuous fire-and-soot plume streaming off the wreck (one_shot = false)
-	var plume := GPUParticles3D.new()
-	plume.amount = maxi(4, int(26 * S._q()))
-	plume.lifetime = 0.85
-	plume.one_shot = false
-	plume.local_coords = false
-	plume.explosiveness = 0.0
-	plume.visibility_aabb = AABB(Vector3(-4, -6, -4), Vector3(8, 14, 8))
-	var pm := ParticleProcessMaterial.new()
-	pm.direction = Vector3.UP
-	pm.spread = 24.0
-	pm.initial_velocity_min = 0.6
-	pm.initial_velocity_max = 2.2
-	pm.gravity = Vector3(0, 2.6, 0)
-	pm.scale_min = 0.28
-	pm.scale_max = 0.85
-	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
-	pm.emission_sphere_radius = 0.28
-	pm.color_ramp = S._ramp([Color(1.0, 0.62, 0.12, 0.9), Color(0.75, 0.22, 0.05, 0.6),
-			Color(0.12, 0.11, 0.12, 0.0)])
-	plume.process_material = pm
-	plume.draw_pass_1 = S._sprite_quad(false, "fire", 0.55)
-	wreck.add_child(plume)
-	plume.emitting = true
+	if S._q() > 0.0:
+		var plume := GPUParticles3D.new()
+		plume.amount = maxi(4, int(26 * S._q()))
+		plume.lifetime = 0.85
+		plume.one_shot = false
+		plume.local_coords = false
+		plume.explosiveness = 0.0
+		plume.visibility_aabb = AABB(Vector3(-4, -6, -4), Vector3(8, 14, 8))
+		var pm := ParticleProcessMaterial.new()
+		pm.direction = Vector3.UP
+		pm.spread = 24.0
+		pm.initial_velocity_min = 0.6
+		pm.initial_velocity_max = 2.2
+		pm.gravity = Vector3(0, 2.6, 0)
+		pm.scale_min = 0.28
+		pm.scale_max = 0.85
+		pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+		pm.emission_sphere_radius = 0.28
+		pm.color_ramp = S._ramp([Color(1.0, 0.62, 0.12, 0.9), Color(0.75, 0.22, 0.05, 0.6),
+				Color(0.12, 0.11, 0.12, 0.0)])
+		plume.process_material = pm
+		plume.draw_pass_1 = S._sprite_quad(false, "fire", 0.55)
+		wreck.add_child(plume)
+		plume.emitting = true
 	return wreck
 
 

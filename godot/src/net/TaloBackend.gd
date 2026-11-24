@@ -48,6 +48,8 @@ const GUEST_LAP_RETRY_S := 2.5
 const MAX_RECONNECT_ATTEMPTS := 5
 
 var _prop_gen := 0                    # guards interleaved channel-prop writes
+var _join_gen := 0                    # guards interleaved join/create RPCs & host_ack loops
+var _handing_off := false             # suppresses heartbeat writes during host handoff
 var _reconnecting := false
 var _reconnect_attempts := 0          # exponential backoff for socket re-open
 var _host_ack := false
@@ -141,7 +143,7 @@ func _process(delta: float) -> void:
 		# Heartbeat lives in channel props, so it must keep flowing during a
 		# match — otherwise non-hosts polling it cannot tell host-silence from
 		# host-aliveness. Skip only once the lobby is finished.
-		if status == "finished":
+		if status == "finished" or _handing_off:
 			_heartbeat_accum = 0.0
 			return
 		_heartbeat_accum += delta
@@ -291,8 +293,10 @@ func join_lobby_channel(lobby_id: String) -> void:
 
 
 func leave_lobby_channel() -> void:
-	# Bump _prop_gen so any in-flight _write_props() response cannot resurrect _channel.
+	# Bump _prop_gen and _join_gen so any in-flight _write_props() or join/create
+	# coroutine cannot resurrect _channel or tear down a newer lobby.
 	_prop_gen += 1
+	_join_gen += 1
 	_state_seq = 0
 	_last_state_seq = -1
 	_last_state_host = ""
@@ -355,6 +359,8 @@ func _make_lobby(code: String, name: String, settings: Dictionary) -> Dictionary
 
 
 func _create_lobby(args: Dictionary) -> Dictionary:
+	var gen := _join_gen + 1
+	_join_gen = gen
 	var settings: Dictionary = args.get("p_settings", {})
 	var code := _new_code()
 	var props := {
@@ -370,6 +376,10 @@ func _create_lobby(args: Dictionary) -> Dictionary:
 		"roster": JSON.stringify({user_id: _player_row(args)}),
 	}
 	var channel = await Talo.channels.create(code, true, props)
+	if gen != _join_gen:
+		if channel != null:
+			Talo.channels.leave(int(channel.id))
+		return {}
 	if channel == null:
 		backend_error.emit("Could not create Talo channel")
 		return {}
@@ -411,8 +421,12 @@ func _fetch_all_channels(max_pages: int = 10) -> Array:
 
 
 func _join_auto(args: Dictionary) -> Dictionary:
+	var gen := _join_gen + 1
+	_join_gen = gen
 	var wanted_mode := str(args.get("p_game_mode", ""))
 	var raw_channels: Array = await _fetch_all_channels(10)
+	if gen != _join_gen:
+		return {}
 	var now_unix := Time.get_unix_time_from_system()
 	var candidates: Array = []
 	for ch in raw_channels:
@@ -432,16 +446,22 @@ func _join_auto(args: Dictionary) -> Dictionary:
 		return float(str(a.get_prop("heartbeat", "0"))) > float(str(b.get_prop("heartbeat", "0"))))
 	for channel in candidates:
 		_host_ack = false
-		if await _try_join(channel, args):
+		if await _try_join(channel, args, gen):
+			if gen != _join_gen:
+				return {}
 			if _is_host():
 				return {"lobby": _lobby, "player": _roster.get(user_id, {})}
 			var deadline := Time.get_ticks_msec() + HOST_ACK_TIMEOUT_MS
-			while is_inside_tree() and not _host_ack and Time.get_ticks_msec() < deadline:
+			while is_inside_tree() and gen == _join_gen and not _host_ack and Time.get_ticks_msec() < deadline:
 				await get_tree().process_frame
+			if gen != _join_gen:
+				return {}
 			if _host_ack:
 				return {"lobby": _lobby, "player": _roster.get(user_id, {})}
 			# Host vanished before heartbeat expired — leave zombie room and try next.
 			leave_lobby_channel()
+	if gen != _join_gen:
+		return {}
 	var create_args := args.duplicate(true)
 	if wanted_mode != "" and not create_args.has("p_settings"):
 		create_args["p_settings"] = {
@@ -459,8 +479,12 @@ func _join_auto(args: Dictionary) -> Dictionary:
 
 
 func _join_by_code(args: Dictionary) -> Dictionary:
+	var gen := _join_gen + 1
+	_join_gen = gen
 	var code := str(args.get("p_code", "")).strip_edges().to_upper()
 	var channels: Array = await _fetch_all_channels(10)
+	if gen != _join_gen:
+		return {}
 	var saw_protocol_mismatch := false
 	var saw_stale := false
 	var now_unix := Time.get_unix_time_from_system()
@@ -476,14 +500,18 @@ func _join_by_code(args: Dictionary) -> Dictionary:
 			saw_stale = true
 			continue
 		_host_ack = false
-		if await _try_join(channel, args):
+		if await _try_join(channel, args, gen):
+			if gen != _join_gen:
+				return {}
 			if _is_host():
 				return {"lobby": _lobby, "player": _roster.get(user_id, {})}
 			# Guests must prove the host is alive before committing, exactly like
 			# join_auto — otherwise every ready_request goes unanswered forever.
 			var deadline := Time.get_ticks_msec() + HOST_ACK_TIMEOUT_MS
-			while is_inside_tree() and not _host_ack and Time.get_ticks_msec() < deadline:
+			while is_inside_tree() and gen == _join_gen and not _host_ack and Time.get_ticks_msec() < deadline:
 				await get_tree().process_frame
+			if gen != _join_gen:
+				return {}
 			if _host_ack:
 				return {"lobby": _lobby, "player": _roster.get(user_id, {})}
 			leave_lobby_channel()
@@ -495,7 +523,7 @@ func _join_by_code(args: Dictionary) -> Dictionary:
 	return {}
 
 
-func _try_join(channel, args: Dictionary) -> bool:
+func _try_join(channel, args: Dictionary, expected_gen: int = -1) -> bool:
 	if not protocol_ok(channel):
 		backend_error.emit("Protocol mismatch — room is on a different game version")
 		return false
@@ -506,6 +534,10 @@ func _try_join(channel, args: Dictionary) -> bool:
 	if int(channel.member_count) >= max_players:
 		return false
 	var joined = await Talo.channels.join(int(channel.id))
+	if expected_gen >= 0 and expected_gen != _join_gen:
+		if joined != null:
+			Talo.channels.leave(int(channel.id))
+		return false
 	if joined == null:
 		return false
 	_channel = joined
@@ -547,6 +579,7 @@ func _handoff_host_before_leave(leaving_id: int) -> void:
 			break
 	if next_host == "":
 		return
+	_handing_off = true
 	var new_roster := _roster.duplicate(true)
 	new_roster.erase(user_id)
 	var new_lobby := _lobby.duplicate(true)
@@ -554,23 +587,27 @@ func _handoff_host_before_leave(leaving_id: int) -> void:
 	var prop_array := PROTO.build_prop_array(new_lobby, new_roster)
 	for attempt in range(2):
 		if _channel_id != leaving_id or leaving_id <= 0:
+			_handing_off = false
 			return
 		var res: Variant = await Talo.channels.client.make_request(
 				HTTPClient.METHOD_PUT, "/%s" % leaving_id,
 				{"ownerAliasId": int(next_host), "props": prop_array})
 		if _channel_id != leaving_id:
+			_handing_off = false
 			return
 		var status_code := int((res as Dictionary).get("status", 0)) if res is Dictionary else -1
 		if status_code == 200:
 			# Broadcast the new host only AFTER Talo commits ownerAliasId, so
 			# guests never switch to a host whose channel PUTs fail with 403.
 			_broadcast_state(new_lobby, new_roster)
+			_handing_off = false
 			return
 		if attempt == 0:
 			continue  # one retry for transient failures
 		var err_status := str((res as Dictionary).get("status", "?")) if res is Dictionary else "null"
 		backend_error.emit(
 				"Host hand-off failed (%s) — the lobby may be abandoned" % err_status)
+	_handing_off = false
 
 
 func _load_state() -> void:
@@ -982,6 +1019,10 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 					_roster[uid] = PROTO.sanitize_join_row(uid, p, prev)
 				else:
 					_roster.erase(uid)
+					_kill_cooldowns.erase(uid)
+					_kill_window.erase(uid)
+					_lap_timestamps.erase(uid)
+					_hurt_log.erase(uid)
 					# The host is gone mid-match or in waiting lobby: void cleanly now
 					# instead of waiting up to ~105 s for the heartbeat poll to notice.
 					var st := str(_lobby.get("status", ""))
@@ -1067,6 +1108,8 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 					return
 				broadcast_received.emit("state", payload)
 		"shot":
+			if not _lobby.is_empty() and str(_lobby.get("status", "")) != "playing":
+				return
 			if payload is Dictionary:
 				var p := payload as Dictionary
 				var oid := str(p.get("id", ""))

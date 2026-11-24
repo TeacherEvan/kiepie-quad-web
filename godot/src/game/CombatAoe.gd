@@ -33,6 +33,9 @@ static func apply_blast(tree: SceneTree, fx: Node3D, center: Vector3, radius: fl
 		# A rocket's directly-hit proxy is lethal on the victim's own client;
 		# showing a 90 number here would suppress the authoritative 100 number.
 		if skip_bike != null and bike_node == skip_bike:
+			var skip_tid := str(bike_node.get("player_id")) if "player_id" in bike_node else ""
+			if owner_id != "" and owner_id == local_uid and skip_tid != local_uid:
+				hit_any_enemy = true
 			continue
 		var dist := bike_node.global_position.distance_to(center)
 		if dist > radius:

@@ -36,6 +36,7 @@ var _hurt_gen := 0
 var _hit_gen := 0
 var _announce_gen := 0
 var _scores_open := false
+var kill_feed_ttl: float = 4.0
 
 
 func _init() -> void:
@@ -679,7 +680,7 @@ func add_kill(killer_id: String, victim_id: String) -> void:
 			(old as Node).queue_free()
 	var w_self: WeakRef = weakref(self)
 	var w_line: WeakRef = weakref(line)
-	var timer := get_tree().create_timer(4.0)
+	var timer := get_tree().create_timer(kill_feed_ttl)
 	timer.timeout.connect(func() -> void:
 		var me := w_self.get_ref() as Node
 		var lbl := w_line.get_ref() as Label
@@ -703,6 +704,8 @@ func add_kill(killer_id: String, victim_id: String) -> void:
 # ------------------------------------------------------------------ helpers ---
 
 func _name_for(uid: String) -> String:
+	if uid == "hazard-pit":
+		return "MOLTEN PIT"
 	# O(1) lookup into Match.players (cached roster) — the previous
 	# O(N log N) Match.scoreboard() sort per name ran at the HUD 60 Hz.
 	var row: Variant = Match.players.get(uid, null) if Match != null else null

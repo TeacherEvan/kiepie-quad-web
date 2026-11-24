@@ -96,6 +96,11 @@ static func _profile_for(profile_id: String) -> Dictionary:
 	return base
 
 
+func reset_cooldowns() -> void:
+	for k in _cooldowns.keys():
+		_cooldowns[k] = 0.0
+
+
 func setup(p_owner: Node3D, p_owner_id: String, p_hit_callback: Callable, p_color: Color,
 		p_profile: String = "bike") -> void:
 	owner_node = p_owner

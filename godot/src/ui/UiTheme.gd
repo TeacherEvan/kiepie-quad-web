@@ -239,6 +239,8 @@ static func style_scroll(scroll: ScrollContainer) -> void:
 static func apply_safe_area(ctrl: Control, margin: MarginContainer, min_t_std: float = 20.0,
 		min_t_very_short: float = -1.0, min_b_very_short: float = -1.0) -> Vector2:
 	var vp := ctrl.get_viewport_rect().size
+	if margin == null:
+		return vp
 	if not DisplayServer.has_method("get_display_safe_area"):
 		return vp
 	var win := DisplayServer.window_get_size()

@@ -133,7 +133,7 @@ func apply_state(data: Dictionary) -> void:
 	var p: Variant = data.get("p", null)
 	if p is Array and (p as Array).size() >= 3:
 		var cand := Vector3(float(p[0]), float(p[1]), float(p[2]))
-		if is_finite(cand.x) and is_finite(cand.y) and is_finite(cand.z):
+		if is_finite(cand.x) and is_finite(cand.y) and is_finite(cand.z) and cand.length() <= 600.0 and absf(cand.y) <= 120.0:
 			_target_pos = cand
 	var r: Variant = data.get("r", null)
 	if r is Array and (r as Array).size() >= 4:

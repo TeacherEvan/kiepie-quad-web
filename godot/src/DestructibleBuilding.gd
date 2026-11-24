@@ -94,6 +94,7 @@ func smash(impulse: Vector3 = Vector3.ZERO) -> void:
 	if not _intact:
 		return
 	_intact = false
+	set_process(false)
 	# report the smash first, so the HUD counts it even if debris code fails
 	var hud := get_tree().get_first_node_in_group("hud") if get_tree() != null else null
 	if hud == null and get_parent() != null:
@@ -118,6 +119,8 @@ func smash(impulse: Vector3 = Vector3.ZERO) -> void:
 	# spawn pooled debris boxes (zero new BoxMesh/StandardMaterial3D/BoxShape3D per crash)
 	_ensure_debris_pool()
 	var parent := get_parent()
+	if parent == null:
+		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(building_name) + int(abs(origin.x * 1000.0)) + int(abs(origin.z * 977.0))
 	var q := Settings.quality_multiplier()
