@@ -85,6 +85,7 @@ func _run() -> void:
 	var dr_packed := load("res://scenes/DeathRace.tscn") as PackedScene
 	_check(dr_packed != null, "DeathRace.tscn loads")
 	if dr_packed == null:
+		guard.call("restore", root, cfg_snap)
 		quit(1)
 		return
 	var dr := dr_packed.instantiate() as Node3D
@@ -712,8 +713,21 @@ func _run() -> void:
 	r_freed.queue_free()
 	m_freed.queue_free()
 
+	var pit := dr.get_node_or_null("HazardPit0") as Area3D
+	if pit != null and combat != null and bike != null:
+		combat.call("reset_state")
+		combat.set("_shield_until", 0.0)
+		combat.set("_invuln_until", 0.0)
+		var h_pre := float(combat.get("health"))
+		pit.call("_on_body_entered", bike)
+		pit.call("_physics_process", 0.35)
+		_check(float(combat.get("health")) < h_pre, "HazardPit0 deals thermal damage to local bike")
+		pit.call("_on_body_exited", bike)
+		combat.call("reset_state")
+
 	dr.free()
 	match_node.set("lobby", prev_lobby)
 	match_node.set("players", prev_players)
+	guard.call("restore", root, cfg_snap)
 	print("DEATHRACE VERIFY: %d failure(s)" % _fail)
 	quit(1 if _fail > 0 else 0)

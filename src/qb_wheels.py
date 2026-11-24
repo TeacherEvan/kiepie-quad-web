@@ -68,10 +68,11 @@ def build_tyre(name, center, r_out, hw, coll, mats, rows=2, per_row=16,
 
 
 
-def build_rim(name, center, width, coll, mats):
+def build_rim(name, center, width, coll, mats, side=1):
     """Steel quad wheel: flat dished centre panel, hub, beadlock bolt ring."""
     rr = SPEC['rim_r']
     hw = width / 2.0
+    s = 1.0 if side >= 0 else -1.0
     mb = MB()
     prof = [
         (rr - 0.018, -hw),
@@ -89,13 +90,13 @@ def build_rim(name, center, width, coll, mats):
     # flat outboard face (the big dark disc seen in the reference photos)
     face = add_cyl(name + '_Face', rr - 0.008, 0.013, (0, 0, 0), axis='X', seg=44,
                    mat=mats['wheel_metal'], coll=coll)
-    face.location = center + Vector((hw - 0.020, 0, 0))
+    face.location = center + Vector((s * (hw - 0.020), 0, 0))
     parts.append(face)
 
     # dished centre (inboard)
     panel = add_cyl(name + '_Panel', rr - 0.030, 0.012, (0, 0, 0), axis='X',
                     seg=40, mat=mats['wheel_metal'], coll=coll)
-    panel.location = center + Vector((-hw + 0.018, 0, 0))
+    panel.location = center + Vector((-s * (hw - 0.018), 0, 0))
     parts.append(panel)
 
     hub = add_cyl(name + '_Hub', 0.052, 0.140, (0, 0, 0), axis='X', seg=24,
@@ -105,7 +106,7 @@ def build_rim(name, center, width, coll, mats):
 
     hubcap = add_cyl(name + '_HubCap', 0.058, 0.020, (0, 0, 0), axis='X', seg=20,
                      mat=mats['alu'], coll=coll)
-    hubcap.location = center + Vector((hw - 0.005, 0, 0))
+    hubcap.location = center + Vector((s * (hw - 0.005), 0, 0))
     parts.append(hubcap)
 
     # beadlock style bolt ring on the outboard face
@@ -115,7 +116,7 @@ def build_rim(name, center, width, coll, mats):
         bolts.cylinder((0.0, (rr - 0.030) * math.cos(a), (rr - 0.030) * math.sin(a)),
                        0.0105, 0.022, axis='X', seg=8)
     ring = bolts.to_object(name + '_Bolts', mats['alu'], coll)
-    ring.location = center + Vector((hw - 0.014, 0, 0))
+    ring.location = center + Vector((s * (hw - 0.014), 0, 0))
     parts.append(ring)
 
     # outer lip (a ring, not a solid disc)
@@ -124,7 +125,7 @@ def build_rim(name, center, width, coll, mats):
                    (rr - 0.010, 0.010), (rr - 0.016, 0.006),
                    (rr - 0.016, -0.006)], (0, 0, 0), axis='X', seg=44)
     lip = lipmb.to_object(name + '_Lip', mats['alu'], coll, smooth=True)
-    lip.location = center + Vector((hw - 0.004, 0, 0))
+    lip.location = center + Vector((s * (hw - 0.004), 0, 0))
     parts.append(lip)
 
     # wheel nuts
@@ -134,7 +135,7 @@ def build_rim(name, center, width, coll, mats):
         nuts.cylinder((0.0, 0.036 * math.cos(a), 0.036 * math.sin(a)),
                       0.012, 0.022, axis='X', seg=6)
     nutobj = nuts.to_object(name + '_Nuts', mats['alu'], coll)
-    nutobj.location = center + Vector((hw - 0.028, 0, 0))
+    nutobj.location = center + Vector((s * (hw - 0.028), 0, 0))
     parts.append(nutobj)
 
     rim = join(parts, name)
@@ -177,7 +178,7 @@ def build_wheel(side, front, coll, mats):
                       lug_ax=0.056 if front else 0.062,
                       lug_tan=0.048 if front else 0.052,
                       lug_rad=0.024 if front else 0.028)
-    rim = build_rim('Rim_' + tag, center, hw * 1.30, coll, mats)
+    rim = build_rim('Rim_' + tag, center, hw * 1.30, coll, mats, side=side)
     disc, cal = build_brake('Brake_' + tag, center, coll, mats, side=side)
     axle = add_cyl('Axle_' + tag, 0.030, 0.150, (0, 0, 0), axis='X', seg=16,
                    mat=mats['alu'], coll=coll)

@@ -63,5 +63,15 @@ func _run() -> void:
 			await process_frame
 		_check(float(combat.get("health")) < 100.0, "drum blast damaged the player")
 
+	if combat != null and pickups.size() > 0:
+		var p_node := pickups[0] as Area3D
+		combat.set("health", 50.0)
+		p_node.set("kind", "repair")
+		p_node.call("_on_body_entered", bike)
+		_check(float(combat.get("health")) > 50.0, "Pickup(repair) heals local bike")
+		if sfx != null and sfx.has_method("play"):
+			sfx.call("play", "pickup")
+			_check(true, "Sfx.play('pickup') executes cleanly")
+
 	arena.queue_free()
 	quit(1 if _fail > 0 else 0)

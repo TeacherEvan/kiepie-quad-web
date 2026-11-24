@@ -217,19 +217,18 @@ def build_plastics(coll, mats):
         r_f = SPEC['front_tyre_r'] + 0.030
         x_in, x_out = side * 0.430, side * 0.655
         parts.append(build_fender('Fender_Front_' + s, c, r_f,
-                                  R(-48), R(30), min(x_in, x_out), max(x_in, x_out),
+                                  R(-48), R(30), x_in, x_out,
                                   coll, mats['paint_blue'], thickness=0.012,
                                   nphi=20, nx=10, taper=0.40, dome=0.026,
                                   skirt=0.055))
-        lo, hi = min(x_in, x_out), max(x_in, x_out)
-        w = hi - lo
+        w = x_out - x_in
         parts.append(build_fender_stripe('Stripe_Front_' + s, c, r_f,
-                                         R(-46), R(26), lo + 0.05 * w, lo + 0.34 * w,
+                                         R(-46), R(26), x_in + 0.05 * w, x_in + 0.34 * w,
                                          coll, mats['graphic_lime'],
                                          nphi=16, nx=6, swoosh=-0.055 * side, dome=0.030,
                                          skirt=0.075))
         parts.append(build_fender_stripe('Stripe2_Front_' + s, c, r_f,
-                                         R(-16), R(14), lo + 0.38 * w, lo + 0.52 * w,
+                                         R(-16), R(14), x_in + 0.38 * w, x_in + 0.52 * w,
                                          coll, mats['graphic_white'],
                                          nphi=12, nx=5, swoosh=0.045 * side, dome=0.030,
                                          skirt=0.075))
@@ -246,19 +245,18 @@ def build_plastics(coll, mats):
         r_f = SPEC['rear_tyre_r'] + 0.036
         x_in, x_out = side * 0.400, side * 0.735
         parts.append(build_fender('Fender_Rear_' + s, c, r_f,
-                                  R(-50), R(66), min(x_in, x_out), max(x_in, x_out),
+                                  R(-50), R(66), x_in, x_out,
                                   coll, mats['paint_blue'], thickness=0.013,
                                   nphi=24, nx=11, taper=0.36, dome=0.028,
                                   skirt=0.062))
-        lo, hi = min(x_in, x_out), max(x_in, x_out)
-        w = hi - lo
+        w = x_out - x_in
         parts.append(build_fender_stripe('Stripe_Rear_' + s, c, r_f,
-                                         R(-28), R(56), lo + 0.06 * w, lo + 0.36 * w,
+                                         R(-28), R(56), x_in + 0.06 * w, x_in + 0.36 * w,
                                          coll, mats['graphic_lime'],
                                          nphi=16, nx=6, swoosh=-0.070 * side, dome=0.032,
                                          skirt=0.080))
         parts.append(build_fender_stripe('Stripe2_Rear_' + s, c, r_f,
-                                         R(-6), R(40), lo + 0.40 * w, lo + 0.54 * w,
+                                         R(-6), R(40), x_in + 0.40 * w, x_in + 0.54 * w,
                                          coll, mats['graphic_white'],
                                          nphi=12, nx=5, swoosh=0.060 * side, dome=0.032,
                                          skirt=0.080))

@@ -138,7 +138,8 @@ def write_victory_fanfare_wav(wav_path: str, duration_s: float = 2.0, sr: int = 
         for t0, t1, freq in notes:
             if t0 <= t <= t1:
                 local_t = t - t0
-                env = min(1.0, local_t / 0.02) * math.exp(-local_t * (1.4 if t1 > 1.0 else 3.2))
+                fade_out = min(1.0, (t1 - t) / 0.010)
+                env = min(1.0, local_t / 0.02) * fade_out * math.exp(-local_t * (1.4 if t1 > 1.0 else 3.2))
                 # Rich triad harmony on the final sustained chord
                 val += env * (
                     0.50 * math.sin(math.tau * freq * t)
@@ -210,15 +211,22 @@ try:
     write_victory_fanfare_wav(wav_path, duration_s=TOTAL_FRAMES / 24.0)
 
     os.makedirs(os.path.dirname(OUT_MP4), exist_ok=True)
-    subprocess.check_call([
-        "ffmpeg", "-y",
-        "-framerate", "24", "-i", os.path.join(tmpdir, "frame_%03d.png"),
-        "-i", wav_path,
-        "-c:v", "libx264", "-preset", "fast", "-crf", "25",
-        "-c:a", "aac", "-b:a", "96k",
-        "-pix_fmt", "yuv420p", "-shortest", "-movflags", "+faststart",
-        OUT_MP4,
-    ])
+    out_tmp = OUT_MP4 + ".tmp.mp4"
+    try:
+        subprocess.check_call([
+            "ffmpeg", "-y",
+            "-framerate", "24", "-i", os.path.join(tmpdir, "frame_%03d.png"),
+            "-i", wav_path,
+            "-c:v", "libx264", "-preset", "fast", "-crf", "25",
+            "-c:a", "aac", "-b:a", "96k",
+            "-pix_fmt", "yuv420p", "-shortest", "-movflags", "+faststart",
+            out_tmp,
+        ], timeout=120)
+        os.replace(out_tmp, OUT_MP4)
+    except BaseException:
+        if os.path.exists(out_tmp):
+            os.unlink(out_tmp)
+        raise
     print("VICTORY_SPLASH_SAVED", OUT_MP4, os.path.getsize(OUT_MP4))
 finally:
     shutil.rmtree(tmpdir, ignore_errors=True)

@@ -121,10 +121,10 @@ def build_bike():
                 gmin = min(gmin, w.z)
     if gmin != float('inf') and abs(gmin) > 1e-6:
         dz = -gmin
-        # gmin is a WORLD-space measurement: shift object origins, not mesh
-        # vertices. Transforming local Z moves rotated parts sideways.
+        # Shift only top-level parentless objects (including Bike_Root / EMPTY pivots)
+        # so children and wheels move rigidly without vertical eccentricity.
         for ob in bpy.data.objects:
-            if ob.type == 'MESH':
+            if ob.parent is None:
                 ob.location.z += dz
         bpy.context.view_layer.update()
         print('seated bike to ground: dz', round(dz, 5))

@@ -489,7 +489,8 @@ def build_aston_martin(previews_dir=""):
 
     # 8) Central rear titanium exhaust tailpipe + glowing red FIA rain light
     ex_prof = [(0.0, 0.036), (0.12, 0.036), (0.12, 0.028), (0.0, 0.028)]
-    ex = lathe_x_solid("ExhaustPipe", (0.0, 1.32, 0.39), ex_prof, mats["CHROME"], col, seg=16, closed=True)
+    ex = lathe_x_solid("ExhaustPipe", (0.0, 0.0, 0.0), ex_prof, mats["CHROME"], col, seg=16, closed=True)
+    ex.location = (0.0, 1.32, 0.39)
     ex.rotation_euler = (0, 0, math.pi * 0.5)
     bpy.context.view_layer.update()
     bpy.ops.object.select_all(action="DESELECT")
@@ -576,7 +577,7 @@ def build_aston_martin(previews_dir=""):
     plate_me.materials.append(mats["CARBON"])
     plate_me.materials.append(mats["PLATE"])
     plate_ob.location = (0.0, yc, zc + BODY_LIFT)
-    plate_ob.rotation_euler = (-tilt, 0.0, 0.0)
+    plate_ob.rotation_euler = (tilt, 0.0, 0.0)
     bpy.context.view_layer.update()
     bpy.ops.object.select_all(action="DESELECT")
     plate_ob.select_set(True)

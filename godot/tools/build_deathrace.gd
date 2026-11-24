@@ -626,6 +626,14 @@ func _add_stunt_loop(root: Node, name: String, pos: Vector3, rot_y_deg: float, r
 	var low_fric := PhysicsMaterial.new()
 	low_fric.friction = 0.02
 	low_fric.bounce = 0.0
+	var shared_sh := BoxShape3D.new()
+	shared_sh.size = Vector3(deck_w, 0.32, chord_len)
+	var shared_bm := BoxMesh.new()
+	shared_bm.size = Vector3(deck_w, 0.32, chord_len)
+	shared_bm.material = deck_mat
+	var shared_rbm := BoxMesh.new()
+	shared_rbm.size = Vector3(0.18, 0.42, chord_len)
+	shared_rbm.material = rail_mat
 
 	for i in range(seg_count):
 		var frac := (float(i) + 0.5) / float(seg_count)
@@ -642,25 +650,17 @@ func _add_stunt_loop(root: Node, name: String, pos: Vector3, rot_y_deg: float, r
 		seg.rotation.x = -theta
 
 		var col := CollisionShape3D.new()
-		var sh := BoxShape3D.new()
-		sh.size = Vector3(deck_w, 0.32, chord_len)
-		col.shape = sh
+		col.shape = shared_sh
 		seg.add_child(col)
 
 		var mi := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3(deck_w, 0.32, chord_len)
-		bm.material = deck_mat
-		mi.mesh = bm
+		mi.mesh = shared_bm
 		seg.add_child(mi)
 
 		# Glowing edge guide rails along both sides of the loop deck
 		for sgn in [-1.0, 1.0]:
 			var rail := MeshInstance3D.new()
-			var rbm := BoxMesh.new()
-			rbm.size = Vector3(0.18, 0.42, chord_len)
-			rbm.material = rail_mat
-			rail.mesh = rbm
+			rail.mesh = shared_rbm
 			rail.position = Vector3(sgn * (deck_w * 0.5 - 0.05), 0.08, 0.0)
 			seg.add_child(rail)
 

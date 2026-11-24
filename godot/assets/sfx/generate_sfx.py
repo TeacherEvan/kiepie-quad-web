@@ -49,18 +49,20 @@ def clamp(v):
 
 
 def write_wav(filename, samples, target_peak=0.96):
-    """Normalise to target_peak, quantise to int16 and write a mono WAV."""
+    """Normalise to target_peak, quantise to int16 and write a mono WAV atomically."""
     peak = max(1e-9, max(abs(s) for s in samples))
     scale = target_peak / peak
     pcm = bytearray()
     for s in samples:
         pcm.extend(struct.pack("<h", int(clamp(s * scale) * 32767.0)))
     path = os.path.join(OUT_DIR, filename)
-    with wave.open(path, "wb") as w:
+    tmp_path = path + ".tmp"
+    with wave.open(tmp_path, "wb") as w:
         w.setnchannels(1)
         w.setsampwidth(2)
         w.setframerate(SR)
         w.writeframes(bytes(pcm))
+    os.replace(tmp_path, path)
     return path
 
 
@@ -176,13 +178,15 @@ def explosion():
 def pop():
     n = int(SR * 0.22)
     out = [0.0] * n
+    phase = 0.0
     for i in range(n):
         t = i / SR
-        freq = 720.0 - 380.0 * math.exp(-t / 0.060)   # squeaky pitch drop
+        freq = 340.0 + 380.0 * math.exp(-t / 0.060)   # squeaky pitch drop
         vib = 1.0 + 0.08 * math.sin(TAU * 27.0 * t)   # cartoon wobble
-        env = math.exp(-t / 0.055)
-        tone = math.sin(TAU * freq * vib * t) * env
-        tone += 0.4 * math.sin(TAU * freq * 1.5 * vib * t) * math.exp(-t / 0.04)
+        phase += TAU * freq * vib / SR
+        env = math.exp(-t / 0.055) * min(1.0, t / 0.003) * min(1.0, (0.22 - t) / 0.012)
+        tone = math.sin(phase) * env
+        tone += 0.4 * math.sin(phase * 1.5) * math.exp(-t / 0.04) * min(1.0, t / 0.003)
         out[i] = 0.80 * tone
     return out
 
@@ -326,9 +330,10 @@ def dink():
     lp = 0.0
     for i in range(n):
         t = i / SR
+        ramp = min(1.0, t / 0.003) * min(1.0, (0.07 - t) / 0.015)
         ping = math.sin(TAU * (2100.0 + 1400.0 * math.exp(-t / 0.04)) * t) * math.exp(-t / 0.10)
         lp = one_pole_lp(lp, random.uniform(-1.0, 1.0), 3400.0 * math.exp(-t / 0.007))
-        out[i] = 0.55 * ping + 0.30 * lp
+        out[i] = ramp * (0.55 * ping + 0.30 * lp)
     return out
 
 
@@ -343,11 +348,12 @@ def scrape():
     for i in range(n):
         t = i / SR
         u = min(1.0, t / 0.35)
+        ramp = min(1.0, t / 0.003) * min(1.0, (0.35 - t) / 0.015)
         sweep = 700.0 - 640.0 * u
         lp = one_pole_lp(lp, random.uniform(-1.0, 1.0), sweep)
         out[i] = 0.40 * lp
         phase += TAU * (0.55 * sweep + 45.0) / SR
-        out[i] += 0.20 * math.sin(phase) * math.exp(-t / 0.9)
+        out[i] = ramp * (out[i] + 0.20 * math.sin(phase) * math.exp(-t / 0.9))
     return out
 
 
@@ -380,7 +386,6 @@ def engine_loop():
 
     mean = sum(out) / n
     out = [s - mean for s in out]
-    out[-1] = out[0]  # exact seam match — no click when looped
     return out
 
 

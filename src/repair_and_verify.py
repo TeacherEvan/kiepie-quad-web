@@ -65,9 +65,6 @@ def main():
     bpy.context.view_layer.update()
     bpy.ops.wm.save_as_mainfile(filepath=BLEND)
     build_quad.export_glb(coll)
-    godot_glb = os.path.join(PROJECT, 'godot', 'assets', 'Kiepie_Bike.glb')
-    if os.path.isdir(os.path.dirname(godot_glb)):
-        shutil.copy2(GLB, godot_glb)
     build_quad.export_glb(coll, filepath=DRACO, draco=True)
 
     # ---- re-export the STL (bike collection meshes only) for the QA gate ----
@@ -113,9 +110,14 @@ def main():
     print('VERIFY size [%.3f %.3f %.3f]' % tuple(gmax[i] - gmin[i] for i in range(3)))
     print('VERIFY minZ %.4f  open_edges %d  non_manifold_after_weld %d' % (
         gmin[2], open_edges, non_manifold))
+    assert abs(gmin[2]) <= 0.005, f'Expected |minZ| <= 0.005, got {gmin[2]}'
+    assert non_manifold == 0, f'Expected non_manifold == 0, got {non_manifold}'
+    godot_glb = os.path.join(PROJECT, 'godot', 'assets', 'Kiepie_Bike.glb')
+    if os.path.isdir(os.path.dirname(godot_glb)):
+        shutil.copy2(GLB, godot_glb)
 
     # ---------------- previews ---------------------------------------------
-    bpy.ops.wm.read_homefile(filepath=BLEND)
+    bpy.ops.wm.open_mainfile(filepath=BLEND)
     scene = bpy.context.scene
     scene.render.engine = 'BLENDER_WORKBENCH'
     scene.render.resolution_x, scene.render.resolution_y = 760, 540

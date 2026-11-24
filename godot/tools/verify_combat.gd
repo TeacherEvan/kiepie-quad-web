@@ -67,6 +67,11 @@ func _run() -> void:
 	combat.call("take_damage", NAN, "enemy-nan", Vector3.ZERO)
 	_check(float(combat.get("health")) == h_before, "take_damage(NAN) leaves health unchanged")
 
+	# Normal take_damage is blocked by active _shield_until
+	combat.set("_shield_until", Time.get_ticks_msec() / 1000.0 + 10.0)
+	combat.call("take_damage", 30.0, "enemy-blocked", Vector3.ZERO)
+	_check(float(combat.get("health")) == h_before, "take_damage is blocked by active _shield_until")
+
 	# Rocket direct hit: 100% lethal, and it ignores shields / spawn invuln.
 	combat.set("_shield_until", Time.get_ticks_msec() / 1000.0 + 10.0)
 	combat.call("take_lethal_hit", "enemy-rocket", Vector3.ZERO, "rocket-token")

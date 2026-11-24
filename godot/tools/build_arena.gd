@@ -188,7 +188,7 @@ func _initialize() -> void:
 	# ---------------- camera rig + camera
 	var rig := Node3D.new()
 	rig.name = "CameraRig"
-	rig.position = Vector3(0.0, 1.6, 13.0)
+	rig.position = Vector3(33.0, 2.2, 0.0)
 	var cam := Camera3D.new()
 	cam.name = "Camera3D"
 	cam.current = true
@@ -464,6 +464,23 @@ func _add_match_hud(root: Node) -> void:
 	_style_button(menu_btn, Color(0.42, 0.50, 0.62, 0.72))
 	menu_btn.add_theme_font_size_override("font_size", 12)
 	hud.add_child(menu_btn)
+
+	var speed_lbl := Label.new()
+	speed_lbl.name = "SpeedLabel"
+	speed_lbl.text = "0 km/h"
+	speed_lbl.anchor_left = 0.5
+	speed_lbl.anchor_right = 0.5
+	speed_lbl.anchor_top = 1.0
+	speed_lbl.anchor_bottom = 1.0
+	speed_lbl.offset_left = -74.0
+	speed_lbl.offset_right = 74.0
+	speed_lbl.offset_top = -54.0
+	speed_lbl.offset_bottom = -20.0
+	speed_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	speed_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	speed_lbl.add_theme_color_override("font_color", Color(0.92, 0.96, 1.0, 0.95))
+	speed_lbl.add_theme_font_size_override("font_size", 20)
+	hud.add_child(speed_lbl)
 
 	root.add_child(hud)
 

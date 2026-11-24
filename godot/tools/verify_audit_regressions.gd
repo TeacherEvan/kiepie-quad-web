@@ -404,3 +404,29 @@ func _phase1_audit_regressions() -> void:
 	nb.call("apply_state", {"n": 2, "p": [1e30, 0.0, 0.0]})
 	_check((nb.get("_target_pos") as Vector3).length() < 1.0, "P2-4: NetworkedBike.apply_state rejects 1e30 position")
 	nb.free()
+
+	# P1-3: MatchHud._name_for("hazard-pit") == "MOLTEN PIT"
+	var mh := CanvasLayer.new()
+	mh.set_script(load("res://src/ui/MatchHud.gd"))
+	root.add_child(mh)
+	_check(str(mh.call("_name_for", "hazard-pit")) == "MOLTEN PIT", "P1-3: MatchHud formats hazard-pit as MOLTEN PIT")
+	mh.free()
+
+	# P2-1: VfxHeavy._build_death_wreck spawns 0 GPUParticles3D at particles=0.0
+	var settings := root.get_node("Settings")
+	var cfg: Dictionary = (settings.get("data") as Dictionary).duplicate(true)
+	var vid: Dictionary = (cfg.get("video", {}) as Dictionary).duplicate(true)
+	vid["particles"] = 0.0
+	cfg["video"] = vid
+	settings.set("data", cfg)
+	var vh := load("res://src/game/VfxHeavy.gd") as GDScript
+	var wreck: RigidBody3D = vh.call("_build_death_wreck", Vector3.ZERO, Basis.IDENTITY, Color.ORANGE, false, "bike")
+	var wreck_parts := 0
+	for c in wreck.get_children():
+		if c is GPUParticles3D:
+			wreck_parts += 1
+	_check(wreck_parts == 0, "P2-1: _build_death_wreck spawns 0 GPUParticles3D at particles=0.0")
+	wreck.free()
+	vid["particles"] = 1.0
+	cfg["video"] = vid
+	settings.set("data", cfg)

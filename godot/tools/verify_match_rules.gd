@@ -48,15 +48,18 @@ func _run() -> void:
 	_check(str(reuse.get("reason", "")) == "token_consumed", "reason is token_consumed")
 
 	(sb.get("mock") as Node).call("reset_cooldown_for_test")
-	await match_state.call("set_lobby_settings", {"kill_target": 2, "game_mode": "death_race", "damage": 55})
-	_check(int(match_state.call("kill_target")) == 2 and str(match_state.call("game_mode")) == "death_race" and int(match_state.call("damage")) == 55,
-			"host settings updated to kill_target=2, death_race, damage=55")
+	await match_state.call("set_lobby_settings", {"kill_target": 2, "damage": 55})
+	_check(int(match_state.call("kill_target")) == 2 and int(match_state.call("damage")) == 55,
+			"host settings updated to kill_target=2, damage=55")
 	var second: Dictionary = await match_state.call("issue_shot")
 	(sb.get("mock") as Node).call("reset_cooldown_for_test")
 	var finish: Dictionary = await match_state.call("register_kill", "target-gamma", str(second.get("token", "")))
 	_check(bool(finish.get("ok", false)), "second kill accepted")
 	_check(str(finish.get("lobby_status", "")) == "finished", "match finished at kill target")
 	_check(bool(match_state.call("is_finished")), "match state marked finished")
+	await match_state.call("set_lobby_settings", {"game_mode": "death_race", "damage": 55})
+	_check(str(match_state.call("game_mode")) == "death_race" and int(match_state.call("damage")) == 55,
+			"game_mode mutated to death_race before leave()")
 
 	lobby.call("leave")
 	_check(match_state.get("lobby").is_empty(), "Lobby.leave() immediately empties Match.lobby (P1-2)")

@@ -122,7 +122,7 @@ func _initialize() -> void:
 	# ---------------- camera rig + camera
 	var rig := Node3D.new()
 	rig.name = "CameraRig"
-	rig.position = Vector3(0.0, 1.6, 13.0)
+	rig.position = Vector3(0.0, 2.0, 3.2)
 	var cam := Camera3D.new()
 	cam.name = "Camera3D"
 	cam.current = true
@@ -332,10 +332,11 @@ func _add_touch_controls(root: Node) -> void:
 
 
 func _add_cone_ring(root: Node, radius: float, count: int) -> void:
+	var positions: Array = []
 	for i in range(count):
 		var angle := TAU * float(i) / float(count)
-		var pos := Vector3(cos(angle) * radius, 0.35, sin(angle) * radius)
-		_add_cones(root, [pos])
+		positions.append(Vector3(cos(angle) * radius, 0.35, sin(angle) * radius))
+	_add_cones(root, positions)
 
 
 func _add_cones(root: Node, positions: Array) -> void:
