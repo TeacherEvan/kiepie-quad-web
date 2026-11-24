@@ -3,6 +3,7 @@
 import os
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -31,9 +32,10 @@ def main() -> int:
     if n != 1:
         print("patch_web_html: could not locate charset meta anchor", file=sys.stderr)
         return 1
-    tmp = path.with_suffix(path.suffix + ".tmp")
+    fd, tmp_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=str(path.parent))
+    tmp = Path(tmp_name)
     try:
-        with tmp.open("w", encoding="utf-8") as fh:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(out)
             fh.flush()
             os.fsync(fh.fileno())

@@ -28,8 +28,8 @@ fi
 SETTINGS_CFG="$ROOT/godot/addons/talo/settings.cfg"
 SETTINGS_BAK=""
 if [ -f "$SETTINGS_CFG" ]; then
-	SETTINGS_BAK="$(mktemp "${TMPDIR:-/tmp}/talo-settings.XXXXXX")"
-	cp -p "$SETTINGS_CFG" "$SETTINGS_BAK"
+	SETTINGS_BAK="$(mktemp "${TMPDIR:-/tmp}/talo-settings.XXXXXX")" || exit 1
+	cp -p "$SETTINGS_CFG" "$SETTINGS_BAK" || exit 1
 fi
 cleanup() {
 	if [ -n "$SETTINGS_BAK" ]; then
@@ -57,17 +57,17 @@ echo "== web export (staging: web/ — git-ignored)"
 # Start from a clean slate: leftover chunks from an older export would mix in.
 rm -rf "$ROOT/web"
 mkdir -p "$ROOT/web"
-"$GODOT" --headless --path godot --export-release "Web" "$ROOT/web/index.html" || {
+timeout --foreground 240 "$GODOT" --headless --path godot --export-release "Web" "$ROOT/web/index.html" || {
 	echo "DEPLOY ABORTED: export failed"; exit 1;
 }
 PCK="$ROOT/web/index.pck"
 SIZE=$(stat -c %s "$PCK" 2>/dev/null || echo 0)
 echo "   index.pck: $((SIZE / 1024 / 1024)) MB ($SIZE bytes)"
-if [ "$SIZE" -gt 4194304 ]; then
-	echo "DEPLOY ABORTED: pck unexpectedly large (expected ~3.55 MB, saw $SIZE)"
+if [ "$SIZE" -lt 1048576 ] || [ "$SIZE" -gt 4194304 ]; then
+	echo "DEPLOY ABORTED: pck size out of range [1 MiB, 4 MiB] (saw $SIZE)"
 	exit 1
 fi
-for f in index.html index.js index.wasm index.manifest.json index.service.worker.js; do
+for f in index.html index.js index.wasm index.pck index.manifest.json index.service.worker.js index.audio.worklet.js index.offline.html; do
 	[ -s "$ROOT/web/$f" ] || { echo "DEPLOY ABORTED: missing $f"; exit 1; }
 done
 # Godot 4.3's generated PWA service worker precaches index.worker.js (missing on

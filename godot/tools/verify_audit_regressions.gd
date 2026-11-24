@@ -420,13 +420,12 @@ func _phase1_audit_regressions() -> void:
 	cfg["video"] = vid
 	settings.set("data", cfg)
 	var vh := load("res://src/game/VfxHeavy.gd") as GDScript
-	var wreck: RigidBody3D = vh.call("_build_death_wreck", Vector3.ZERO, Basis.IDENTITY, Color.ORANGE, false, "bike")
-	var wreck_parts := 0
-	for c in wreck.get_children():
-		if c is GPUParticles3D:
-			wreck_parts += 1
-	_check(wreck_parts == 0, "P2-1: _build_death_wreck spawns 0 GPUParticles3D at particles=0.0")
-	wreck.free()
+	var wreck_holder := Node3D.new()
+	root.add_child(wreck_holder)
+	vh.call("dramatic_death_explosion", wreck_holder, Vector3.ZERO, Basis.IDENTITY, Color.ORANGE, false, "bike")
+	var wreck_parts := wreck_holder.find_children("*", "GPUParticles3D", true, false).size()
+	_check(wreck_parts == 0, "P2-1: dramatic_death_explosion spawns 0 GPUParticles3D at particles=0.0")
+	wreck_holder.free()
 	vid["particles"] = 1.0
 	cfg["video"] = vid
 	settings.set("data", cfg)

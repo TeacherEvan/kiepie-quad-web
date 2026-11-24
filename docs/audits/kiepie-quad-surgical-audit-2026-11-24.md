@@ -229,3 +229,20 @@ Served pristine `git archive HEAD` over a local COOP/COEP/CORP HTTP server in he
 - Never upgrade `godot/addons/talo/` (pinned `0.20.0` for Godot 4.3).
 - Keep `KIEPIE_MOCK_BACKEND=1` in all gates; preserve `not Match.lobby.is_empty()` in `ArenaNet._spawn_remote_shot()`.
 - Always run `repair_and_verify.py` + `blender_qa_reviewer.py` after Blender edits.
+
+---
+
+## 6. Post-Remediation Verification & Re-Score
+
+All 4 phases of the remediation plan were executed locally (zero `git push`) and empirically verified:
+
+- **Commits:**
+  - Phase 1 (`aa14285`): Runtime gameplay, networking, VFX facade, and WCAG 2.1.1 splash-skip keyboard activation (`index.html` + `export_presets.cfg`).
+  - Phase 2 (`7a3a5a6`): Hollow-test eradication, `_gate_settings_guard.gd` isolation, and Phase 1–2 regression proofs.
+  - Phase 3 (`cf14239`): 3D GLB rigs/symmetry (`Aston_Martin.glb` & `Kiepie_Bike.glb` both `non_manifold_edges = 0`, `minZ = 0.0000`, `blender_qa_reviewer.py` `APPROVED`), scene builders (`-4,295` lines of unshared `.tscn` subresource bloat removed), and SFX/splash generators.
+  - Phase 4: Deploy/SW hardening (`deploy_web.sh`, `patch_web_html.py`) and final 29-gate verification.
+- **Final Gate Suite:** `bash godot/tools/run_gates.sh --no-build` → **PASS — all 29 gates green** (`exit 0`, GdUnit4 `6 tests | 0 errors | 0 failures | 0 orphans | PASSED 1s 178ms`).
+- **Post-Remediation Health Score (`score_audit.py`):**
+  - `Effective LOC = 25,975`, `P0 = 0`, `P1 = 0`, `P2 = 1` (`P2-14` God-file structural debt intentionally deferred), `P3 = 0`
+  - `M_kill = 20 / 20 = 100.0%`, `P_test = 0.0`
+  - **`S_health = 99 / 100` — Risk Level: `LOW`**
