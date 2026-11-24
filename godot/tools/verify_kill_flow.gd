@@ -44,9 +44,9 @@ func _run() -> void:
 			break
 	_check(int(match_state.call("my_score")) == 1, "killer scored from the death broadcast")
 
-	# A second client receiving the same event must NOT award another point.
+	# A second client receiving a fresh kill for another killer must NOT award us a point.
 	net.call("_on_broadcast", "kill", {
-		"killer": "someone-else", "victim": "victim-1", "token": token,
+		"killer": "someone-else", "victim": "victim-2", "token": "spectator-tok-2",
 	})
 	for i in range(4):
 		await process_frame

@@ -35,16 +35,19 @@ func _set_setting(section: String, key: String, value: Variant) -> void:
 
 func _run() -> void:
 	await process_frame
+	var guard := load("res://tools/_gate_settings_guard.gd") as GDScript
+	var cfg_snap: Dictionary = guard.call("backup", root)
 	vf = load("res://src/game/VfxFactory.gd") as GDScript
 	_textures()
 	_scaling()
 	await _effects()
-	_meteor_clamp()
+	await _meteor_clamp()
 	await _anchored()
 	_death_vfx()
 	await _bike_world_vfx()
 	_decal_caps()
 	await _layout()
+	guard.call("restore", root, cfg_snap)
 	print("VFX: %d failure(s)" % _fail)
 	quit(1 if _fail > 0 else 0)
 
@@ -516,16 +519,25 @@ func _pooling_and_settings() -> void:
 				"BananaProjectile._recycle() clears on_hit Callable")
 		bp.queue_free()
 
-	# ArenaNet 40-shot remote pool cap
+	# ArenaNet 40-shot remote pool cap (with real initialised remote peer)
 	var net_script := load("res://src/game/ArenaNet.gd") as GDScript
 	if net_script != null:
 		var net := Node3D.new()
 		net.set_script(net_script)
 		root.add_child(net)
+		var peer_stub_gd := GDScript.new()
+		peer_stub_gd.source_code = "extends Node3D\nvar _initialised := true\nvar is_respawning := false\n"
+		peer_stub_gd.reload()
+		var peer_node := Node3D.new()
+		peer_node.set_script(peer_stub_gd)
+		net.add_child(peer_node)
+		(net.get("_remote") as Dictionary)["peer-2"] = peer_node
 		for _r in range(40):
+			if _r == 20:
+				(net.get("_shot_log") as Dictionary).clear()
 			net.call("_spawn_remote_shot", {"id": "peer-2", "o": [0.0, 0.0, 0.0], "d": [0.0, 0.0, 1.0], "token": "tok"})
 		var rpool: Array = net.get("_remote_proj_pool")
-		_check(rpool.size() <= 32, "ArenaNet 40 remote shots caps _remote_proj_pool <= 32 (got %d)" % rpool.size())
+		_check(rpool.size() > 0 and rpool.size() <= 32, "ArenaNet 40 remote shots caps _remote_proj_pool in (0..32] (got %d)" % rpool.size())
 
 		# P1-9a: mixed Quad ("user-42") + Nardus ("peer-1") alternating shots reuse pooled slots without thrashing
 		var mix_net := Node3D.new()

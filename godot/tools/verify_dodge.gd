@@ -61,11 +61,13 @@ func _trial(action: String, expected_side_sign: float, label: String) -> void:
 	# is `_dodge_cd > 0.0` short-circuit in KiepieBike._try_dodge (verified by
 	# reading — a refire is impossible while cd is positive).
 	_release_all()
-	await _spin(2)
+	await _spin(12)
+	var cd_before := float(bike.get("_dodge_cd"))
 	Input.action_press(action)
 	await _spin(6)
-	var cd := float(bike.get("_dodge_cd"))
-	_check(cd > 0.0, "%s respects cooldown (cd=%.2fs)" % [label, cd])
+	var cd_after := float(bike.get("_dodge_cd"))
+	_check(cd_before > 0.0 and cd_after > 0.0 and cd_after <= cd_before,
+			"%s respects cooldown (before=%.2fs after=%.2fs)" % [label, cd_before, cd_after])
 	_release_all()
 
 	# Recovery: within 4 simulated seconds it must be upright again.

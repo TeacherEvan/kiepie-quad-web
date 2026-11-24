@@ -28,10 +28,12 @@ func _initialize() -> void:
 			print("t=%d pos=(%.2f,%.2f,%.2f) vel=(%.2f,%.2f,%.2f) %s" % [
 				i, bike.global_position.x, bike.global_position.y, bike.global_position.z,
 				bike.linear_velocity.x, bike.linear_velocity.y, bike.linear_velocity.z, contact_txt])
+	Input.action_release("move_forward")
 	print("MIN_UP_Y: %.3f (expect > 0.80)" % min_up)
 	_check(min_up > 0.80, "bike stayed upright (min_up_y=%.3f)" % min_up)
-	_check(bike.linear_velocity.length() > 5.0,
-			"bike accelerated past 5 m/s (%.2f)" % bike.linear_velocity.length())
+	_check(bike.linear_velocity.z > 5.0,
+			"bike accelerated forward (+Z) past 5 m/s (%.2f)" % bike.linear_velocity.z)
 	_check(fl.has_method("is_in_contact") and bool(fl.call("is_in_contact")),
 			"front-left wheel in contact at rest/after drive")
+	root_node.free()
 	quit(1 if _failures > 0 else 0)

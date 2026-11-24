@@ -193,8 +193,8 @@ func _initialize() -> void:
 
 	# B-P1-4 & P1-3 regressions: leave_lobby_channel increments _prop_gen and drops ALL subsequent socket messages
 	var gen_before := int(dr_backend.get("_prop_gen"))
-	var post_leave_sigs := 0
-	dr_backend.connect("broadcast_received", func(_e: String, _p: Variant) -> void: post_leave_sigs += 1)
+	var post_leave_sigs := [0]
+	dr_backend.connect("broadcast_received", func(_e: String, _p: Variant) -> void: post_leave_sigs[0] += 1)
 	dr_backend.leave_lobby_channel()
 	_check(int(dr_backend.get("_prop_gen")) > gen_before,
 			"B-P1-4: leave_lobby_channel increments _prop_gen to invalidate in-flight writes")
@@ -203,7 +203,7 @@ func _initialize() -> void:
 			"playerAlias": {"id": 2},
 			"message": JSON.stringify({"k": kind, "p": {"id": "2", "victim": "2", "user_id": "2"}}),
 		})
-	_check(post_leave_sigs == 0,
+	_check(post_leave_sigs[0] == 0,
 			"P1-3: shot/hurt/kill/leave frames are all dropped after leave_lobby_channel")
 	dr_backend.free()
 
@@ -278,13 +278,18 @@ func _initialize() -> void:
 	var ho := _new_backend()
 	get_root().add_child(ho)
 	var ho_lost := [false]
+	var ho_bcast := [0]
 	ho.connect("host_lost", func() -> void: ho_lost[0] = true)
+	ho.connect("broadcast_received", func(_e: String, _p: Variant) -> void: ho_bcast[0] += 1)
 	ho._channel_id = 99
 	await ho.call("_handoff_host_before_leave", 42)
+	_check(str((ho._lobby as Dictionary).get("host_id", "")) == "1" and ho_bcast[0] == 0,
+			"P1-7: _handoff_host_before_leave(mismatch) aborts without mutating host_id or broadcasting")
 	ho._channel_id = 0
 	await ho.call("_poll_host_alive")
-	_check(not ho_lost[0], "P1-7: _handoff_host_before_leave(mismatch) and _poll_host_alive(_channel_id=0) do not emit host_lost")
+	_check(not ho_lost[0], "P1-7: _poll_host_alive(_channel_id=0) does not emit host_lost")
 	ho.free()
+	backend.free()
 
 	# P1-8: checked-in addons/talo/settings.cfg keeps auto_connect_socket=false
 	var talo_cfg := ConfigFile.new()

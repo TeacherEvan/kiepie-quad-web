@@ -20,6 +20,8 @@ func _initialize() -> void:
 func _run() -> void:
 	await process_frame
 	await process_frame
+	var guard := load("res://tools/_gate_settings_guard.gd") as GDScript
+	var cfg_snap: Dictionary = guard.call("backup", root)
 	await _state_spoof()
 	await _net_security_and_roster()
 	await _join_allowlist_and_channel_guards()
@@ -28,6 +30,8 @@ func _run() -> void:
 	_malformed_shot()
 	_respawn_deadline()
 	_stale_leave_lobby_protection()
+	await _phase1_audit_regressions()
+	guard.call("restore", root, cfg_snap)
 	print("AUDIT REGRESSIONS: %d failure(s)" % _fail)
 	quit(1 if _fail > 0 else 0)
 
@@ -67,13 +71,13 @@ func _join_allowlist_and_channel_guards() -> void:
 			"P0-1: join omitting laps/kills preserves trusted roster state (laps=2 kills=3 score=2)")
 	# 3. After leave_lobby_channel (_channel_id == -1), live join/bike_state
 	#    frames are dropped: roster stays empty, zero signals emitted.
-	var sig := 0
-	b.connect("broadcast_received", func(_e: String, _p: Variant) -> void: sig += 1)
+	var sig := [0]
+	b.connect("broadcast_received", func(_e: String, _p: Variant) -> void: sig[0] += 1)
 	b.leave_lobby_channel()
 	var join3 := JSON.stringify({"k": "join", "p": {"user_id": "2", "display_name": "RIDER"}})
 	await b.call("_on_socket_message", "v1.channels.message",
 			{"playerAlias": {"id": 2}, "message": join3})
-	_check(b.get("_roster").is_empty() and sig == 0,
+	_check(b.get("_roster").is_empty() and sig[0] == 0,
 			"P1-3: join dropped after leave_lobby_channel (roster empty, 0 signals)")
 	await b.call("_on_socket_message", "v1.channels.message",
 			{"playerAlias": {"id": 2}, "message": JSON.stringify({"k": "bike_state", "p": {}})})
@@ -83,7 +87,7 @@ func _join_allowlist_and_channel_guards() -> void:
 			{"playerAlias": {"id": 2}, "message": JSON.stringify({"k": "hurt", "p": {"victim": "2", "amount": 30}})})
 	await b.call("_on_socket_message", "v1.channels.message",
 			{"playerAlias": {"id": 2}, "message": JSON.stringify({"k": "kill", "p": {"victim": "2", "killer": "1"}})})
-	_check(b.get("_roster").is_empty() and sig == 0,
+	_check(b.get("_roster").is_empty() and sig[0] == 0,
 			"P1-3: bike_state/shot/hurt/kill dropped after leave_lobby_channel (roster empty, 0 signals)")
 	b.free()
 
@@ -340,3 +344,63 @@ func _stale_leave_lobby_protection() -> void:
 				"P1-3: MatchState.set_lobby clears stale players on lobby id swap")
 		m.set("lobby", prev_lobby)
 		m.set("players", prev_players)
+
+
+func _phase1_audit_regressions() -> void:
+	# P1-1: leave_lobby_channel increments _join_gen
+	var tb := (load("res://src/net/TaloBackend.gd") as GDScript).new() as Node
+	root.add_child(tb)
+	var jg0 := int(tb.get("_join_gen"))
+	tb.leave_lobby_channel()
+	_check(int(tb.get("_join_gen")) == jg0 + 1, "P1-1: leave_lobby_channel increments _join_gen")
+	tb.free()
+
+	# P1-2: VfxFactory 4-arg particle_explosion does not spawn mushroom stem; 3-arg dust_ring is not 57m
+	var vf := load("res://src/game/VfxFactory.gd") as GDScript
+	var fx_h := Node3D.new()
+	root.add_child(fx_h)
+	vf.particle_explosion(fx_h, Vector3.ZERO, Color.ORANGE, 1.0)
+	var expl := fx_h.get_node_or_null("Explosion")
+	var rings := 0
+	if expl != null:
+		for c in expl.get_children():
+			if c is MeshInstance3D and (c as MeshInstance3D).mesh is QuadMesh:
+				rings += 1
+	_check(rings <= 3, "P1-2: 4-arg VfxFactory.particle_explosion does not trigger mushroom shockwave rings (quads=%d)" % rings)
+	vf.dust_ring(fx_h, Vector3.ZERO, 1.0)
+	var max_ring_scale := 0.0
+	for c in fx_h.get_children():
+		if c is MeshInstance3D and (c as MeshInstance3D).mesh is QuadMesh:
+			max_ring_scale = maxf(max_ring_scale, ((c as MeshInstance3D).mesh as QuadMesh).size.x)
+	_check(max_ring_scale < 10.0, "P1-2: 3-arg VfxFactory.dust_ring uses 5.0 default, not 24")
+	fx_h.free()
+
+	# P1-4: finished lobby drops _spawn_remote_shot
+	var m := root.get_node("Match")
+	var prev_l: Dictionary = (m.get("lobby") as Dictionary).duplicate(true)
+	m.set("lobby", {"id": "1", "status": "finished"})
+	var net := Node3D.new()
+	net.set_script(load("res://src/game/ArenaNet.gd"))
+	root.add_child(net)
+	var before := net.get_child_count()
+	net.call("_spawn_remote_shot", {"id": "enemy", "o": [0, 0, 0], "d": [0, 0, 1], "token": "t"})
+	_check(net.get_child_count() == before, "P1-4: finished lobby drops _spawn_remote_shot")
+	net.free()
+	m.set("lobby", prev_l)
+
+	# P2-2: Projectile / BananaProjectile / RocketProjectile mark NAN/0 speed inert
+	for ppath in ["res://src/game/Projectile.gd", "res://src/game/BananaProjectile.gd", "res://src/game/RocketProjectile.gd"]:
+		var pn := Node3D.new()
+		pn.set_script(load(ppath))
+		root.add_child(pn)
+		pn.call("setup", "u1", null, Vector3.ZERO, Vector3.FORWARD, NAN, 10.0, "t", Color.WHITE)
+		_check(bool(pn.get("_inert")), "P2-2: %s marks NAN speed inert" % ppath.get_file())
+		pn.free()
+
+	# P2-4: NetworkedBike.apply_state rejects out-of-bounds 1e30
+	var nb := (load("res://src/game/NetworkedBike.gd") as GDScript).new() as StaticBody3D
+	root.add_child(nb)
+	nb.call("apply_state", {"n": 1, "p": [0.0, 0.0, 0.0], "r": [0.0, 0.0, 0.0, 1.0]})
+	nb.call("apply_state", {"n": 2, "p": [1e30, 0.0, 0.0]})
+	_check((nb.get("_target_pos") as Vector3).length() < 1.0, "P2-4: NetworkedBike.apply_state rejects 1e30 position")
+	nb.free()

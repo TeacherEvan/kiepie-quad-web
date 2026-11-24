@@ -183,6 +183,7 @@ func _initialize() -> void:
 		root.add_child(rt_stub)
 		root.add_child(hud)
 		await process_frame
+		hud.set("kill_feed_ttl", 0.08)
 		for k in range(6):
 			hud.call("add_kill", "Player%d" % k, "Victim%d" % k)
 		await process_frame
@@ -194,7 +195,7 @@ func _initialize() -> void:
 				"P2-2: solo Death Race victory banner reads DEATH RACE CHAMPION (got %s)" % vbanner.text)
 		rt_stub.queue_free()
 		hud.queue_free()
-		await create_timer(0.15).timeout
-		_check(true, "MatchHud freed with pending kill-feed timers without crash")
+		await create_timer(0.20).timeout
+		_check(not is_instance_valid(hud), "MatchHud freed with expired kill-feed timers without crash")
 
 	quit(1 if _fail > 0 else 0)

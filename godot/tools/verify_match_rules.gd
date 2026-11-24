@@ -48,8 +48,9 @@ func _run() -> void:
 	_check(str(reuse.get("reason", "")) == "token_consumed", "reason is token_consumed")
 
 	(sb.get("mock") as Node).call("reset_cooldown_for_test")
-	await match_state.call("set_lobby_settings", {"kill_target": 2})
-	_check(int(match_state.call("kill_target")) == 2, "host kill target updated to 2")
+	await match_state.call("set_lobby_settings", {"kill_target": 2, "game_mode": "death_race", "damage": 55})
+	_check(int(match_state.call("kill_target")) == 2 and str(match_state.call("game_mode")) == "death_race" and int(match_state.call("damage")) == 55,
+			"host settings updated to kill_target=2, death_race, damage=55")
 	var second: Dictionary = await match_state.call("issue_shot")
 	(sb.get("mock") as Node).call("reset_cooldown_for_test")
 	var finish: Dictionary = await match_state.call("register_kill", "target-gamma", str(second.get("token", "")))

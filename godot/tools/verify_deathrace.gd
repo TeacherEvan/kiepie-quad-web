@@ -23,6 +23,8 @@ func _initialize() -> void:
 func _run() -> void:
 	await process_frame
 	await process_frame
+	var guard := load("res://tools/_gate_settings_guard.gd") as GDScript
+	var cfg_snap: Dictionary = guard.call("backup", root)
 	var sb: Node = root.get_node_or_null("Supabase")
 	if sb == null or not bool(sb.get("use_mock")):
 		printerr("LIVE BACKEND — refusing to run gate (KIEPIE_MOCK_BACKEND=1 not effective)")

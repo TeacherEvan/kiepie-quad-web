@@ -97,7 +97,7 @@ func _run() -> void:
 		var sens := sm.get_node_or_null("SafeMargin/VBox/Scroll/Rows/SteerSensitivityRow/SteerSensitivity") as HSlider
 		if sens != null:
 			sens.value = 1.65
-			settings.call("set_value", "gameplay", "show_fps", true)
+			settings.call("set_value", "video", "show_fps", true)
 			await create_timer(0.20).timeout
 			_check(is_equal_approx(sens.value, 1.65),
 					"P1-8: pending slider drag (1.65) is not overwritten by 150ms _refresh_all (got %.2f)" % sens.value)

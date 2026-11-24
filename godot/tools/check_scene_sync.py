@@ -22,6 +22,7 @@ scenes). Exit 1 = drift detected (offenders printed).
 
 from __future__ import annotations
 
+import hashlib
 import re
 import subprocess
 import sys
@@ -50,8 +51,17 @@ def normalize(text: str) -> str:
     # so swapping two script assignments between nodes slipped through.
     ext_map: dict[str, str] = {}
     sub_map: dict[str, str] = {}
+    cur_sub_id: str | None = None
+    cur_sub_type: str = "SubResource"
+    cur_sub_lines: list[str] = []
     for raw in raw_lines:
         stripped = raw.strip()
+        if stripped.startswith("["):
+            if cur_sub_id is not None:
+                body_hash = hashlib.sha256("\n".join(cur_sub_lines).encode("utf-8")).hexdigest()[:8]
+                sub_map[cur_sub_id] = f"{cur_sub_type}:{body_hash}"
+                cur_sub_id = None
+                cur_sub_lines = []
         if stripped.startswith("[ext_resource"):
             attrs = _attrs(stripped)
             if "id" in attrs and "path" in attrs:
@@ -59,7 +69,14 @@ def normalize(text: str) -> str:
         elif stripped.startswith("[sub_resource"):
             attrs = _attrs(stripped)
             if "id" in attrs:
-                sub_map[attrs["id"]] = attrs.get("type", "SubResource")
+                cur_sub_id = attrs["id"]
+                cur_sub_type = attrs.get("type", "SubResource")
+                cur_sub_lines = []
+        elif cur_sub_id is not None:
+            cur_sub_lines.append(stripped)
+    if cur_sub_id is not None:
+        body_hash = hashlib.sha256("\n".join(cur_sub_lines).encode("utf-8")).hexdigest()[:8]
+        sub_map[cur_sub_id] = f"{cur_sub_type}:{body_hash}"
     out: list[str] = []
     for raw in raw_lines:
         line = raw.rstrip()
@@ -85,7 +102,7 @@ def normalize(text: str) -> str:
 def head_content(path: str) -> str | None:
     try:
         return subprocess.check_output(
-            ["git", "show", f"HEAD:{path}"], cwd=ROOT, text=True
+            ["git", "show", f"HEAD:{path}"], cwd=ROOT, text=True, timeout=15
         )
     except Exception:
         return None

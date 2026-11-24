@@ -153,7 +153,7 @@ run_gate_gdunit() {
 	local rc=$?
 	# gdUnit4 exit codes: 0 = all pass, 100 = failure, 101 = pass with orphan
 	# warnings (dummy-renderer RIDs in headless; benign here), 103/104 = env errors
-	if [ "$rc" -eq 0 ] || [ "$rc" -eq 101 ]; then
+	if ( [ "$rc" -eq 0 ] || [ "$rc" -eq 101 ] ) && ! grep -q "SCRIPT ERROR" "$log"; then
 		note "   ok  (exit $rc$([ $rc -eq 101 ] && printf ' — pass with orphan warnings (headless RIDs)'))"
 		grep -E "PASSED|Statistics" "$log" | tail -2 | sed 's/^/     /'
 		PASS=$((PASS + 1))

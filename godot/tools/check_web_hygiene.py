@@ -103,6 +103,8 @@ def main() -> int:
             failures.append("index.html still suppresses intro splash via localStorage (kiepie_splash_seen)")
         if "splash=1" in html:
             failures.append("index.html still contains ?splash=1 query workaround")
+        if "getElementById('victory-skip')" not in html or "addEventListener('click',drop)" not in html:
+            failures.append("index.html missing WCAG 2.1.1 click listener on splash skip buttons")
 
     if failures:
         for f in failures:
