@@ -653,15 +653,9 @@ func fire() -> void:
 		var right := owner_node.global_transform.basis.x.normalized()
 		var side := -1.0 if i == 0 else 1.0
 		var dir := (forward + right * side * spread).normalized()
-		# Evan's sound waves are short-lived and script-specific: never recycle
-		# a pooled bolt whose script belongs to another vehicle profile.
-		var proj: Node3D
-		if weapon_profile == "evan":
-			proj = Node3D.new()
-			proj.set_script(SOUNDWAVE)
-			fx_parent.add_child(proj)
-		else:
-			proj = _acquire_pooled_proj(proj_script, fx_parent)
+		# _acquire_pooled_proj() replaces a slot whose script differs, so Evan's
+		# sound waves share the pool safely with the other vehicle profiles.
+		var proj := _acquire_pooled_proj(proj_script, fx_parent)
 		var barrel_tok := ("%s:b%d" % [token, i]) if token != "" else ""
 		proj.setup(owner_id, owner_node, muzzle.global_position, dir,
 				speed, dmg, barrel_tok, _color)

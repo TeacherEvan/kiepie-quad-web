@@ -321,7 +321,9 @@ func _damage_bike(bike_node: Node, point: Vector3) -> void:
 	# The shooter must never mutate a remote proxy — the victim's own client
 	# resolves its damage against its authoritative local bike.
 	var local_uid := _local_uid()
-	if local_uid != "" and victim_id != "" and victim_id != local_uid:
+	# Fail closed: an unidentified bike (or any peer id other than ours) is a
+	# remote proxy and must never be mutated from the shooter's client.
+	if local_uid == "" or victim_id == "" or victim_id != local_uid:
 		return
 	var controller: Node = root.get_node_or_null("CombatController")
 	if controller == null or not controller.has_method("take_damage"):

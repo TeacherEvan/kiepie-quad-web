@@ -6,6 +6,9 @@ const PROJECTILE := preload("res://src/game/Projectile.gd")
 const BANANA := preload("res://src/game/BananaProjectile.gd")
 const ROCKET := preload("res://src/game/RocketProjectile.gd")
 const METEOR := preload("res://src/game/MeteorStrike.gd")
+const SOUNDWAVE := preload("res://src/game/SoundWaveProjectile.gd")
+const BOOMERANG := preload("res://src/game/BoomerangGuitar.gd")
+const DEVIL_HAND := preload("res://src/game/DevilHandStrike.gd")
 const VFX := preload("res://src/game/VfxFactory.gd")
 const KT := preload("res://src/core/KiepieTime.gd")
 const SEND_HZ := 15.0
@@ -337,17 +340,20 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 	var vehicle := VehicleRegistry.resolve_for_player(owner_id, roster_keys, pref)
 	var pogo := VehicleRegistry.is_pogo(vehicle)
 	var aston := VehicleRegistry.is_aston(vehicle)
+	var evan := VehicleRegistry.is_evan(vehicle)
 	var combat := get_tree().get_first_node_in_group("local_combat")
 	if weapon_kind == "rocket":
-		# Match the shooter's launcher exactly: NARDUS = massive cigar,
-		# BIG-BEN = cash bag, Quad = finned rocket. Damage rules are shared.
+		# Match the shooter's launcher exactly: EVAN = boomerang guitar,
+		# NARDUS = massive cigar, BIG-BEN = cash bag, Quad = finned rocket.
+		# Wire kind stays "rocket" so PROTOCOL_VERSION is unchanged.
 		var rocket_dmg := ROCKET.BLAST_DAMAGE
 		var rocket := Node3D.new()
-		rocket.set_script(ROCKET)
+		rocket.set_script(BOOMERANG if evan else ROCKET)
 		add_child(rocket)
-		var rocket_style := "cigar" if pogo else ("cash_bag" if aston else "rocket")
+		var rocket_style := "boomerang" if evan else ("cigar" if pogo else ("cash_bag" if aston else "rocket"))
+		var rocket_color := Color(0.95, 0.10, 0.46) if evan else Color(1.0, 0.38, 0.10)
 		rocket.setup(owner_id, _remote.get(owner_id), o, d, 38.0, rocket_dmg,
-				str(p.get("token", "")), Color(1.0, 0.38, 0.10), 4.5, rocket_style)
+				str(p.get("token", "")), rocket_color, 4.5, rocket_style)
 		return
 	elif weapon_kind == "meteor":
 		if d.length() > 65.0:
@@ -355,15 +361,16 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 		var target_pos := o + d
 		var meteor_dmg := Match.damage() * 3.5
 		var strike := Node3D.new()
-		strike.set_script(METEOR)
+		strike.set_script(DEVIL_HAND if evan else METEOR)
 		add_child(strike)
-		var meteor_style := "cash_bag" if aston else ("meteor" if pogo else "lightning")
+		var meteor_style := "devil_hand" if evan else ("cash_bag" if aston else ("meteor" if pogo else "lightning"))
+		var strike_color := Color(0.85, 0.06, 0.20) if evan else Color(1.0, 0.28, 0.06)
 		strike.setup(owner_id, _remote.get(owner_id), target_pos, meteor_dmg,
-				str(p.get("token", "")), Color(1.0, 0.28, 0.06), 2.0, 7.5, meteor_style)
+				str(p.get("token", "")), strike_color, 2.0, 7.5, meteor_style)
 		return
-	var proj_script: GDScript = BANANA if pogo else PROJECTILE
+	var proj_script: GDScript = SOUNDWAVE if evan else (BANANA if pogo else PROJECTILE)
 	var dmg := Match.damage() * VehicleRegistry.damage_multiplier(vehicle)
-	var shot_color := Color(1.0, 0.9, 0.25) if pogo else (Color(0.68, 1.0, 0.20) if aston else Color(1.0, 0.35, 0.25))
+	var shot_color := Color(0.95, 0.10, 0.46) if evan else (Color(1.0, 0.9, 0.25) if pogo else (Color(0.68, 1.0, 0.20) if aston else Color(1.0, 0.35, 0.25)))
 	var proj := _acquire_remote_proj(proj_script)
 	# Keep in sync with SideCannons.SHOT_SPEED.
 	proj.setup(owner_id, _remote.get(owner_id), o, d, 52.0, dmg,

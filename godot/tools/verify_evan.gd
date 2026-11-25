@@ -148,7 +148,7 @@ func _run() -> void:
 		for corner_i in range(8):
 			min_y = minf(min_y, (xf * aabb.get_endpoint(corner_i)).y)
 		for s in range(mi.mesh.get_surface_count()):
-			tri_count += int(mi.mesh.surface_get_array_len(s) / 3.0)
+			tri_count += int(mi.mesh.surface_get_array_index_len(s) / 3.0)
 	_check(min_y >= -0.02 and min_y < 0.06, "ground datum (min_y=%.3f)" % min_y)
 	_check(tri_count > 0 and tri_count < 10000, "under 10k tris (%d)" % tri_count)
 	model.free()

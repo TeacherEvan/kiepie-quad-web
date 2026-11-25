@@ -101,13 +101,21 @@ func _run() -> void:
 	if ride_ps != null:
 		var ride := ride_ps.instantiate() as Node3D
 		get_root().add_child(ride)
-		await process_frame
-		await process_frame
 		var b := ride.get_node_or_null("KiepieBike") as Node3D
-		var eng: AudioStreamPlayer3D = b.get("_engine_player") as AudioStreamPlayer3D if b != null else null
+		# CombatController assigns _engine_player via call_deferred in _ready;
+		# wait for it instead of assuming two frames is enough under a loaded suite.
+		var eng: AudioStreamPlayer3D = null
+		for _w in range(30):
+			await process_frame
+			if b != null:
+				eng = b.get("_engine_player") as AudioStreamPlayer3D
+			if eng != null:
+				break
 		if eng == null and b != null:
 			eng = b.find_child("*Engine*", true, false) as AudioStreamPlayer3D
 		var idle_pitch: float = eng.pitch_scale if eng != null else 0.78
+		Input.action_release("move_forward")
+		Input.action_release("turbo")
 		Input.action_press("move_forward")
 		Input.action_press("turbo")
 		for _f in range(45):

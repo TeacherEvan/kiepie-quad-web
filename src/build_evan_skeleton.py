@@ -15,8 +15,9 @@ photo). A concrete authored dimension spec is emitted to
 Deliverables
 ------------
 * ``Evan_Skeleton.blend``                    editable source
-* ``godot/assets/Evan_Skeleton.glb``         Draco GLB, 52-bone humanoid rig,
-                                             4 baked NLA actions
+* ``godot/assets/Evan_Skeleton.glb``         plain GLB (Godot 4.3 here has no
+                                             Draco importer), 52-bone humanoid
+                                             rig, 4 baked NLA actions
 * ``Evan_Skeleton.stl``                      QA mesh (watertight, minZ = 0)
 * ``evan_spatial_manifest.json``             authored dim spec for QA
 * optional ``--previews DIR``                4-angle material renders
@@ -505,11 +506,21 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
     # material are rigid-bound identically, so joining them is lossless and
     # measurably shrinks the uncompressed GLB (~830 KB -> ~726 KB).
     from collections import defaultdict
+    # Runtime code and gates resolve these by exact node name — never merge them.
+    LANDMARKS = {
+        "RiffMuzzle_L", "RiffMuzzle_R", "GuitarBody",
+        "Skull_Cranium", "Tyre_F_L", "Tyre_R_R",
+    }
     batches: dict[tuple[str, str], list[Any]] = defaultdict(list)
     for ob, bone_name in parts:
+        if ob.name in LANDMARKS:
+            continue
         mat_name = ob.data.materials[0].name if ob.data.materials else ""
         batches[(bone_name, mat_name)].append(ob)
     merged: list[tuple[Any, str]] = []
+    for ob, bone_name in parts:
+        if ob.name in LANDMARKS:
+            merged.append((ob, bone_name))
     for (bone_name, mat_name), obs in batches.items():
         if len(obs) == 1:
             merged.append((obs[0], bone_name))

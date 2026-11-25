@@ -23,6 +23,18 @@ var _prior_user_id: Variant
 var _prior_reduced_motion: Variant
 
 
+## Records lethal hits so the gate can prove apply_lethal_blast really fires.
+class LethalSink extends Node:
+	var calls: Array[Dictionary] = []
+	func take_lethal_hit(attacker: String, point: Vector3, token: String) -> void:
+		calls.append({"attacker": attacker, "point": point, "token": token})
+
+
+class BikeStub extends Node3D:
+	var player_id: String = ""
+	var is_respawning: bool = false
+
+
 func _check(condition: bool, label: String) -> void:
 	if condition:
 		print("PASS ", label)
@@ -96,6 +108,7 @@ func _run() -> void:
 	if settings != null:
 		_prior_reduced_motion = settings.call("get_value", "gameplay", "reduced_motion", false)
 
+	var dh_probe: Node = null
 	var soundwave := _load(P_SOUNDWAVE, "SoundWaveProjectile")
 	var boomerang := _load(P_BOOMERANG, "BoomerangGuitar")
 	var devilhand := _load(P_DEVILHAND, "DevilHandStrike")
@@ -212,6 +225,7 @@ func _run() -> void:
 		dh.set_script(devilhand)
 		holder.add_child(dh)
 		dh.set_physics_process(false)
+		dh_probe = dh
 		await process_frame
 		_check(is_instance_valid(dh) and dh.has_method("setup"),
 				"DevilHandStrike exposes setup()")
@@ -242,6 +256,55 @@ func _run() -> void:
 				"CombatAoe.apply_blast still exists (static)")
 		_check(combat_aoe.has_method("apply_lethal_blast"),
 				"CombatAoe.apply_lethal_blast exists (static)")
+
+		# Actually invoke it — existence alone would pass a no-op stub.
+		var local_uid := str(sb.get("user_id"))
+		var victim_id := local_uid if local_uid != "" else "evan-victim"
+		var center := Vector3.ZERO
+		var owner_bike := BikeStub.new()
+		owner_bike.name = "OwnerBike"
+		owner_bike.set("player_id", "evan-owner")
+		owner_bike.add_to_group("bike")
+		holder.add_child(owner_bike)
+		var victim_bike := BikeStub.new()
+		victim_bike.name = "VictimBike"
+		victim_bike.set("player_id", victim_id)
+		victim_bike.add_to_group("bike")
+		holder.add_child(victim_bike)
+		var far_bike := BikeStub.new()
+		far_bike.name = "FarBike"
+		far_bike.set("player_id", "evan-far")
+		far_bike.position = Vector3(60.0, 0.0, 0.0)
+		far_bike.add_to_group("bike")
+		holder.add_child(far_bike)
+		var owner_sink := LethalSink.new()
+		owner_sink.name = "CombatController"
+		owner_bike.add_child(owner_sink)
+		var victim_sink := LethalSink.new()
+		victim_sink.name = "CombatController"
+		victim_bike.add_child(victim_sink)
+		var far_sink := LethalSink.new()
+		far_sink.name = "CombatController"
+		far_bike.add_child(far_sink)
+		await process_frame
+		combat_aoe.call("apply_lethal_blast", self, holder, center, 7.5,
+				local_uid if local_uid != "" else "evan-gate", owner_bike, "lethal-tok", true)
+		_check(victim_sink.calls.size() == 1,
+				"apply_lethal_blast kills the in-zone victim (%d calls)" % victim_sink.calls.size())
+		_check(victim_sink.calls.size() == 1
+				and str(victim_sink.calls[0].get("token", "")) == "lethal-tok:v%s" % victim_id,
+				"lethal hit uses the ':v<victim>' sub-token contract (saw %s, want %s)"
+				% [str(victim_sink.calls[0].get("token", "")) if victim_sink.calls.size() > 0 else "<none>",
+					"lethal-tok:v%s" % victim_id])
+		_check(owner_sink.calls.is_empty(), "apply_lethal_blast skips the owner")
+		_check(far_sink.calls.is_empty(), "apply_lethal_blast skips out-of-zone riders")
+
+		# Prove DevilHandStrike actually calls the resolver on detonation.
+		if dh_probe != null and is_instance_valid(dh_probe):
+			dh_probe.call("_detonate")
+			_check(victim_sink.calls.size() == 2
+					and str(victim_sink.calls[1].get("token", "")) == "evan-hand-token:v%s" % victim_id,
+					"DevilHandStrike._detonate() invokes the lethal resolver")
 
 	# ---- 5. SideCannons "evan" wiring + the three signature display names.
 	if cannons_script != null:
