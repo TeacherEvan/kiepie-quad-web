@@ -35,8 +35,6 @@ def main() -> int:
             ]
             if disallowed:
                 failures.append(f".vercelignore leaks non-runtime files: {disallowed[:5]}")
-            if len(shipped) < 13:
-                failures.append(f".vercelignore ships too few runtime files ({len(shipped)})")
         except (subprocess.CalledProcessError, FileNotFoundError):
             # Outside a .git worktree (e.g., git archive export): verify runtime files exist on disk.
             shipped = [
@@ -45,6 +43,17 @@ def main() -> int:
                 if p.is_file() and (p.name.startswith("index.") or p.name == "favicon.ico" or "web-assets/" in p.relative_to(ROOT).as_posix())
             ]
             print("web_hygiene NOTE: not a git worktree; skipped git check-ignore")
+
+    # Apply the allowlist/count checks to BOTH the git and git-archive paths.
+    if shipped:
+        leaked = [
+            f for f in shipped
+            if not (f.startswith("index.") or f == "favicon.ico" or f.startswith("web-assets/"))
+        ]
+        if leaked:
+            failures.append(f"shipped file allowlist leaks non-runtime files: {leaked[:5]}")
+        if len(shipped) < 13:
+            failures.append(f"too few runtime files shipped ({len(shipped)})")
 
     # 2. vercel.json must define COOP, COEP, nosniff, Referrer-Policy per route rule
     vj = ROOT / "vercel.json"
@@ -81,6 +90,15 @@ def main() -> int:
                     )
                 if "referrer-policy" not in root_rule_headers:
                     failures.append("vercel.json /(.*) missing header: referrer-policy")
+                if root_rule_headers.get("cross-origin-resource-policy") != "same-origin":
+                    failures.append("vercel.json /(.*) expected CORP='same-origin'")
+            asset_rules = [r for r in headers_rules if r.get("source") == "/web-assets/(.*)"]
+            if not asset_rules:
+                failures.append("vercel.json missing /web-assets/(.*) header rule")
+            else:
+                amap = {h["key"].lower(): h["value"] for h in asset_rules[0].get("headers", [])}
+                if "immutable" not in amap.get("cache-control", ""):
+                    failures.append("vercel.json /web-assets/(.*) missing immutable Cache-Control")
         except Exception as exc:
             failures.append(f"vercel.json parse error: {exc}")
 
@@ -95,10 +113,21 @@ def main() -> int:
             failures.append(f"index.html expected 1 viewport meta tag, found {len(metas)}")
         elif "user-scalable=no" in metas[0].lower():
             failures.append(f"index.html viewport meta still contains user-scalable=no: {metas[0]}")
+        else:
+            meta = metas[0].lower()
+            if "width=device-width" not in meta or "initial-scale" not in meta:
+                failures.append(f"index.html viewport must set width=device-width and initial-scale: {metas[0]}")
 
         # 4. index.html must play the intro splash on every launch (no localStorage suppression or ?splash=1 hack)
-        if "web-assets/kiepie-quad-splash.mp4" not in html:
+        splash_tag = re.search(r"<video[^>]*kiepie-quad-splash\.mp4[^>]*>", html, flags=re.IGNORECASE)
+        if splash_tag is None:
             failures.append("index.html missing intro splash video reference")
+        else:
+            tag = splash_tag.group(0).lower()
+            if "autoplay" not in tag or "muted" not in tag:
+                failures.append("index.html splash video must be autoplay+muted for Web autoplay policy")
+        if "prefers-reduced-motion" not in html:
+            failures.append("index.html missing prefers-reduced-motion splash bypass")
         if "kiepie_splash_seen" in html:
             failures.append("index.html still suppresses intro splash via localStorage (kiepie_splash_seen)")
         if "splash=1" in html:
