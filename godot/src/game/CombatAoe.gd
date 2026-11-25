@@ -124,6 +124,10 @@ static func apply_lethal_blast(tree: SceneTree, fx: Node3D, center: Vector3,
 		if skip_owner and is_instance_valid(owner_node) and bike_node == owner_node:
 			continue
 		var target_id := str(bike_node.get("player_id")) if "player_id" in bike_node else ""
+		# Fail closed: a remote proxy (or an unidentified bike) is never killed
+		# from this client; the victim's own CombatController resolves its death.
+		if local_uid == "" or target_id == "" or target_id != local_uid:
+			continue
 		var controller: Node = bike_node.get_node_or_null("CombatController")
 		if controller == null or not controller.has_method("take_lethal_hit"):
 			controller = null

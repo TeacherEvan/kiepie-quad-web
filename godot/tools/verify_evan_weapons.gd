@@ -286,6 +286,16 @@ func _run() -> void:
 		var far_sink := LethalSink.new()
 		far_sink.name = "CombatController"
 		far_bike.add_child(far_sink)
+		# A remote proxy that happens to expose take_lethal_hit must never be
+		# mutated from the shooter's client (AUD P2 fail-closed guard).
+		var proxy_bike := BikeStub.new()
+		proxy_bike.name = "RemoteProxyBike"
+		proxy_bike.set("player_id", "remote-peer")
+		proxy_bike.add_to_group("bike")
+		holder.add_child(proxy_bike)
+		var proxy_sink := LethalSink.new()
+		proxy_sink.name = "CombatController"
+		proxy_bike.add_child(proxy_sink)
 		await process_frame
 		combat_aoe.call("apply_lethal_blast", self, holder, center, 7.5,
 				local_uid if local_uid != "" else "evan-gate", owner_bike, "lethal-tok", true)
@@ -298,6 +308,7 @@ func _run() -> void:
 					"lethal-tok:v%s" % victim_id])
 		_check(owner_sink.calls.is_empty(), "apply_lethal_blast skips the owner")
 		_check(far_sink.calls.is_empty(), "apply_lethal_blast skips out-of-zone riders")
+		_check(proxy_sink.calls.is_empty(), "apply_lethal_blast never mutates a remote proxy")
 
 		# Prove DevilHandStrike actually calls the resolver on detonation.
 		if dh_probe != null and is_instance_valid(dh_probe):
@@ -305,6 +316,7 @@ func _run() -> void:
 			_check(victim_sink.calls.size() == 2
 					and str(victim_sink.calls[1].get("token", "")) == "evan-hand-token:v%s" % victim_id,
 					"DevilHandStrike._detonate() invokes the lethal resolver")
+			_check(proxy_sink.calls.is_empty(), "DevilHandStrike detonation leaves remote proxies untouched")
 
 	# ---- 5. SideCannons "evan" wiring + the three signature display names.
 	if cannons_script != null:
