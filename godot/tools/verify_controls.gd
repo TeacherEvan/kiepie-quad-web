@@ -113,9 +113,19 @@ func _run() -> void:
 				break
 		if eng == null and b != null:
 			eng = b.find_child("*Engine*", true, false) as AudioStreamPlayer3D
-		var idle_pitch: float = eng.pitch_scale if eng != null else 0.78
+		# Sfx.start_engine() can return null when earlier gates exhaust its voice
+		# slots. Give the probe its own player so this checks KiepieBike's pitch
+		# logic, not global audio-slot availability.
+		if b != null and eng == null:
+			eng = AudioStreamPlayer3D.new()
+			eng.name = "ProbeEngine"
+			b.add_child(eng)
+			b.set("_engine_player", eng)
 		Input.action_release("move_forward")
 		Input.action_release("turbo")
+		for _s in range(12):
+			await physics_frame
+		var idle_pitch: float = eng.pitch_scale if eng != null else 0.78
 		Input.action_press("move_forward")
 		Input.action_press("turbo")
 		for _f in range(45):
