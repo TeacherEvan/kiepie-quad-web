@@ -294,6 +294,11 @@ func _assign_vehicle() -> StringName:
 		if mp is Dictionary and not (mp as Dictionary).is_empty():
 			roster_keys = (mp as Dictionary).keys()
 	var assigned := VehicleRegistry.resolve_for_player(lookup_id, roster_keys, _resolve_vehicle_pref(lookup_id))
+	# Fail safe: never commit an identity whose model cannot be loaded, or the
+	# bike keeps an Evan/Pogo profile with the previous vehicle's visible shell.
+	if assigned != VehicleRegistry.VEHICLE_BIKE and load(VehicleRegistry.model_path(assigned)) == null:
+		push_warning("VehicleRegistry: could not load %s; keeping previous assignment" % VehicleRegistry.model_path(assigned))
+		return _assigned_vehicle
 	_assigned_vehicle = assigned
 	vehicle_profile = VehicleRegistry.profile(assigned)
 	if assigned != VehicleRegistry.VEHICLE_BIKE:
@@ -314,9 +319,13 @@ func refresh_vehicle_assignment() -> void:
 	var assigned := VehicleRegistry.resolve_for_player(lookup_id, roster_keys, _resolve_vehicle_pref(lookup_id))
 	if assigned == _assigned_vehicle:
 		return
+	var glb_path := VehicleRegistry.model_path(assigned)
+	if assigned != VehicleRegistry.VEHICLE_BIKE and load(glb_path) == null:
+		push_warning("VehicleRegistry: could not load %s; retrying on next roster sync" % glb_path)
+		return
 	_assigned_vehicle = assigned
 	vehicle_profile = VehicleRegistry.profile(assigned)
-	_swap_model(assigned, VehicleRegistry.model_path(assigned))
+	_swap_model(assigned, glb_path)
 	if _flames != null:
 		_flames.position = _exhaust_position()
 	var combat := get_node_or_null("CombatController")

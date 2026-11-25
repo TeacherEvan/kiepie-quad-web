@@ -12,6 +12,7 @@ var player_color := Color(1.0, 0.5, 0.2)
 var is_respawning := false
 var turbo_active := false
 var _assigned_vehicle: StringName = &""
+var _model_load_attempts: Dictionary = {}  # vehicle id -> bounded retry counter
 
 var _target_pos := Vector3.ZERO
 var _target_basis := Basis.IDENTITY
@@ -65,12 +66,19 @@ func _apply_roster_vehicle(force: bool = false) -> void:
 	var vehicle := VehicleRegistry.resolve_for_player(player_id, roster_keys, pref)
 	if not force and vehicle == _assigned_vehicle:
 		return
-	_assigned_vehicle = vehicle
 	var pogo := VehicleRegistry.is_pogo(vehicle)
 	var model_path := VehicleRegistry.model_path(vehicle)
 	var glb: PackedScene = load(model_path)
 	if glb == null:
+		# Do NOT commit the id: the equality guard at the top would otherwise
+		# make this failure permanent, leaving a wrong shell with Evan weapons.
+		var attempts := int(_model_load_attempts.get(vehicle, 0)) + 1
+		_model_load_attempts[vehicle] = attempts
+		if attempts == 1:
+			push_error("NetworkedBike: could not load %s; will retry on next roster sync" % model_path)
 		return
+	_model_load_attempts.erase(vehicle)
+	_assigned_vehicle = vehicle
 	var old := get_node_or_null("Model")
 	if old != null:
 		remove_child(old)
