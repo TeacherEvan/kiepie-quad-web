@@ -375,7 +375,7 @@ fire fixes, host-leave/join/reconnect handshakes, monotonic relay ticks and VFX 
 caching. Per-finding evidence and the remaining deferred items:
 [docs/task-status.md](docs/task-status.md).
 
-Web export produces `web/index.pck` (~2.7 MB; the bundle check aborts above 4 MB) plus PWA
+Web export produces `web/index.pck` (~3.88 MiB; the bundle check aborts above 4 MiB) plus PWA
 manifest/service worker. `web/` is a git-ignored staging folder; `godot/tools/deploy_web.sh --apply`
 syncs the bundle into the repo root, commits `index.*` and pushes `main` — **pushes to `main`
 auto-deploy to Vercel** (verified 2026-11-18, ~5 s per production deploy). The gate suite also

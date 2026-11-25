@@ -4,9 +4,9 @@ Concrete done-vs-pending ledger. Companion to [project-plan.md](project-plan.md)
 navigation in [index.md](index.md). Statuses are evidence-backed: commit hashes,
 gate names, or live checks — not assumptions.
 
-**Last verified:** 2026-11-25 — full gate suite **29/29** green, `web_hygiene OK`, `_check_scripts.gd` **47/47**.
+**Last verified:** 2026-11-25 — full gate suite **29/29** green, `web_hygiene OK`, `_check_scripts.gd` **47/47** (`28651c2`, `983c0d0`, live web deploy `eee389a`).
 
-## 2026-11-25 — Disappearing visuals fix & Death Race track upgrade
+## 2026-11-25 — Disappearing visuals fix & Death Race track upgrade (`28651c2`, `983c0d0`, live `eee389a`)
 
 ### Disappearing visuals (Death Race mobile: sky only, 0 km/h)
 - **Root cause:** Freezing a `VehicleBody3D` in Godot 4.3 while its wheels and collision are active produces a `NaN` transform, and `FollowCam` then latches onto the `NaN` (rendering only sky/horizon and `0 km/h`), compounded by Godot 4.3 `gl_compatibility` mobile WebGL2 sub-FBO scaling drops.
@@ -23,9 +23,9 @@ gate names, or live checks — not assumptions.
 - **Features:** Serpent Esses, Furnace Bend, Canyon Switchback, and Victory Carousel with physical black-and-yellow `>>>` chevron turn boards, continuous mitered concrete jersey barriers (`BarrierConcrete` + `BarrierTopRail` + impact attenuators), curved split pit lane with `PitGantry`, `LoopApron0/1` and `LoopBackstop0/1`, tiered stadium grandstands, and high-contrast jump ramps.
 - **Bounds:** 28 m collision-only containment walls on all four sides; desert-turf stadium floor expanded to 250×210 with a 560×560 horizon skirt.
 - **Layout:** Checkpoints, loops, finish line (non-Z-fighting dark fascia + 5 start-light pods), spline-anchored pickups/drums, and spawns repositioned.
-- **Gate result:** `run_gates.sh` passes **29/29**.
+- **Gate result:** `run_gates.sh` passes **29/29** (`28651c2`, `983c0d0`); `index.pck` = 4,063,712 bytes (`eee389a`).
 
-## Audit remediation — Surgical Audit Rev 2 (2026-11-24)
+## Audit remediation — Surgical Audit Rev 2 (2026-11-24 · landed in `28651c2`)
 
 Source report: [audits/kiepie-quad-surgical-audit-2026-11-24-rev2.md](audits/kiepie-quad-surgical-audit-2026-11-24-rev2.md) + [SARIF 2.1.0](audits/kiepie-quad-surgical-audit-2026-11-24-rev2.sarif).
 

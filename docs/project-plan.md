@@ -53,7 +53,7 @@ Sweep rule: changing any row means grepping the name **and** the old literal acr
 | Armour / default damage / repair | 100 / 30 / +45 | `CombatController.gd`, `Match` defaults, `Pickup.gd` |
 | Dodge | 1.0 s cooldown, 0.72 s duration, ground-only | `godot/src/KiepieBike.gd` |
 | Wire protocol | `PROTOCOL_VERSION = 3` (bump only on wire-breaking change) | `godot/src/net/TaloBackend.gd` |
-| Web pck size | currently **~3.7 MB**; deploy aborts above **4 MB** | root `index.pck`, `deploy_web.sh` |
+| Web pck size | currently **~3.88 MiB** (4.06 MB); deploy aborts above **4 MB** | root `index.pck`, `deploy_web.sh` |
 | Scorch / scar caps | MAX_SCORCH = 12 / MAX_SCAR = 24 | `godot/src/game/VfxFactory.gd` |
 | Level counts | Arena 10 ramps / 7 buildings · TestRide 6 ramps / 4 buildings · DeathRace 8 ramps / 2 loops / 3 hazard pits / 4 checkpoints / FinishLine | `build_arena.gd`, `build_testride.gd`, `build_deathrace.gd` |
 
