@@ -1,0 +1,322 @@
+extends Node3D
+## LEA UNICORN rocket slot — HORN BEAM.
+## The unicorn charges a swirling particle vortex in front of her horn for
+## 0.55 s, then fires a straight plasma/laser beam for 0.35 s. Every bike on
+## the line takes the launcher's damage; a direct hit on a locally-controlled
+## bike is lethal, exactly like the other rocket-slot weapons.
+## Wire kind stays "rocket" (no protocol bump); victim authority is preserved.
+
+signal hit(target: Node, point: Vector3)
+
+const CHARGE_TIME := 0.55
+const BEAM_TIME := 0.35
+const MAX_LENGTH := 55.0
+const MAX_TARGETS := 8
+const VFX := preload("res://src/game/VfxFactory.gd")
+
+var owner_id := ""
+var owner_node: Node
+var velocity := Vector3.FORWARD * 38.0
+var damage := 90.0
+var token := ""
+var hit_color := Color(0.45, 0.92, 1.0)
+var blast_radius := 4.5
+var visual_style := "horn_beam"
+var on_hit: Callable
+
+var _age := 0.0
+var _armed := false
+var _beaming := false
+var _done := false
+var _inert := true
+var _base_token := ""
+var _direction := Vector3.FORWARD
+var _charge: Node3D = null
+var _vortex: GPUParticles3D = null
+var _charge_ring: MeshInstance3D = null
+var _beam: MeshInstance3D = null
+var _light: OmniLight3D = null
+var _hit_nodes: Array[Node] = []
+var _ray: PhysicsRayQueryParameters3D = null
+
+static var _beam_mesh: BoxMesh = null
+static var _beam_mat: StandardMaterial3D = null
+static var _spark_mesh: SphereMesh = null
+static var _spark_ramp: GradientTexture1D = null
+static var _ring_mesh: TorusMesh = null
+
+
+static func _ensure_meshes() -> void:
+	if _beam_mesh == null:
+		_bm_setup()
+
+
+static func _bm_setup() -> void:
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.34, 0.34, 1.0)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.62, 0.96, 1.0, 0.92)
+	mat.emission_enabled = true
+	mat.emission = Color(0.30, 0.82, 1.0)
+	mat.emission_energy_multiplier = 6.5
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	bm.material = mat
+	_beam_mesh = bm
+	_beam_mat = mat
+	var sm := SphereMesh.new()
+	sm.radius = 0.055
+	sm.height = 0.11
+	sm.radial_segments = 6
+	sm.rings = 3
+	var smat := StandardMaterial3D.new()
+	smat.albedo_color = Color(1.0, 0.96, 0.70, 0.95)
+	smat.emission_enabled = true
+	smat.emission = Color(1.0, 0.86, 0.40)
+	smat.emission_energy_multiplier = 4.2
+	smat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	smat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	sm.material = smat
+	_spark_mesh = sm
+	_spark_ramp = VFX._ramp([
+		Color(1.0, 0.96, 0.72, 0.98),
+		Color(0.42, 0.88, 1.0, 0.72),
+		Color(0.20, 0.36, 0.90, 0.0),
+	])
+	var rm := TorusMesh.new()
+	rm.inner_radius = 0.22
+	rm.outer_radius = 0.30
+	rm.rings = 16
+	rm.ring_segments = 6
+	var rmat := StandardMaterial3D.new()
+	rmat.albedo_color = Color(0.60, 0.92, 1.0, 0.72)
+	rmat.emission_enabled = true
+	rmat.emission = Color(0.40, 0.86, 1.0)
+	rmat.emission_energy_multiplier = 3.4
+	rmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	rmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	rmat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	rm.material = rmat
+	_ring_mesh = rm
+
+
+func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
+		p_direction: Vector3, p_speed: float, p_damage: float,
+		p_token: String, p_color: Color, p_blast_radius: float = 4.5,
+		p_visual_style: String = "horn_beam") -> void:
+	# Fail closed on every number that arrives from a socket or a bad frame.
+	if not is_finite(p_damage) or not is_finite(p_speed) or p_speed <= 0.0:
+		push_warning("HornBeam.setup: rejecting non-finite/invalid parameters")
+		_inert = true
+		return
+	if not is_finite(p_direction.x + p_direction.y + p_direction.z) \
+			or p_direction.length_squared() < 1e-8:
+		_inert = true
+		return
+	owner_id = p_owner_id
+	owner_node = p_owner_node
+	global_position = p_origin
+	_direction = p_direction.normalized()
+	velocity = _direction * p_speed
+	damage = clampf(p_damage, 0.0, 200.0)
+	token = p_token
+	_base_token = p_token
+	hit_color = p_color
+	blast_radius = clampf(p_blast_radius, 0.0, 4.5)
+	visual_style = "horn_beam"
+	_age = 0.0
+	_armed = true
+	_beaming = false
+	_done = false
+	_inert = false
+	_hit_nodes.clear()
+	var model := p_owner_node.get_node_or_null("Model") if is_instance_valid(p_owner_node) else null
+	if model != null and model.has_method("trigger_charge"):
+		model.call("trigger_charge", 1.0)
+	_ensure_meshes()
+	_build_charge()
+
+
+func _release_light() -> void:
+	if is_instance_valid(_light):
+		if _light.is_in_group("vfx_light"):
+			_light.remove_from_group("vfx_light")
+		_light.queue_free()
+	_light = null
+
+
+func _ensure_light() -> void:
+	if get_tree() == null or Settings.quality_multiplier() < 0.5:
+		return
+	if is_instance_valid(_light) and _light.is_in_group("vfx_light"):
+		return
+	_release_light()
+	_light = OmniLight3D.new()
+	_light.name = "BeamLight"
+	_light.light_color = Color(0.40, 0.88, 1.0)
+	_light.light_energy = 2.6
+	_light.omni_range = 5.0
+	_light.add_to_group("vfx_light")
+	add_child(_light)
+	VFX._cap_group(self, "vfx_light", VFX.MAX_IMPACT_LIGHTS)
+
+
+func _build_charge() -> void:
+	_charge = Node3D.new()
+	_charge.name = "ChargeVortex"
+	add_child(_charge)
+	_charge.basis = Basis.looking_at(_direction, Vector3.UP if absf(_direction.y) < 0.99 else Vector3.FORWARD)
+	_charge_ring = MeshInstance3D.new()
+	_charge_ring.name = "ChargeRing"
+	_charge_ring.mesh = _ring_mesh
+	_charge_ring.rotation_degrees.x = 90.0
+	_charge.position.z = -0.55
+	_charge.add_child(_charge_ring)
+	if not Settings.reduced_motion() and Settings.quality_multiplier() > 0.0:
+		_vortex = GPUParticles3D.new()
+		_vortex.name = "ChargeSparks"
+		_vortex.amount = maxi(8, int(30 * Settings.quality_multiplier()))
+		_vortex.lifetime = 0.34
+		_vortex.local_coords = true
+		_vortex.visibility_aabb = AABB(Vector3(-1.4, -1.4, -1.4), Vector3(2.8, 2.8, 2.8))
+		var pm := ParticleProcessMaterial.new()
+		pm.direction = Vector3(0.0, 0.0, 1.0)
+		pm.spread = 0.0
+		pm.gravity = Vector3.ZERO
+		pm.initial_velocity_min = 0.8
+		pm.initial_velocity_max = 2.2
+		pm.scale_min = 0.35
+		pm.scale_max = 0.95
+		pm.color_ramp = _spark_ramp
+		pm.tangential_accel = Vector2(16.0, 0.0)
+		_vortex.process_material = pm
+		_vortex.draw_pass_1 = _spark_mesh
+		_charge.add_child(_vortex)
+		_vortex.emitting = true
+	_ensure_light()
+
+
+func _start_beam() -> void:
+	_beaming = true
+	if _charge != null:
+		_charge.queue_free()
+		_charge = null
+		_charge_ring = null
+		_vortex = null
+	_ray = PhysicsRayQueryParameters3D.new()
+	_ray.collide_with_areas = false
+	_ray.collide_with_bodies = true
+	_ray.exclude = [(owner_node as CollisionObject3D).get_rid()] \
+			if (is_instance_valid(owner_node) and owner_node is CollisionObject3D) else []
+	var endpoint := global_position + _direction * MAX_LENGTH
+	# Probe the whole line once (up to MAX_TARGETS) so every bike on it is hit,
+	# and advance past each collider to avoid hitting the same body twice.
+	var cursor := global_position
+	for _i in range(MAX_TARGETS):
+		_ray.from = cursor
+		_ray.to = endpoint
+		var space := get_world_3d()
+		if space == null:
+			break
+		var result := space.direct_space_state.intersect_ray(_ray)
+		if result.is_empty():
+			break
+		var collider: Object = result.get("collider", null)
+		var point: Vector3 = result.get("position", endpoint)
+		if collider is Node and not _hit_nodes.has(collider as Node):
+			_hit_nodes.append(collider as Node)
+			_apply_hit(collider as Node, point)
+		cursor = point + _direction * 0.12
+		if cursor.distance_to(global_position) >= MAX_LENGTH:
+			break
+	var end_point := cursor if cursor != global_position else endpoint
+	var span: float = clampf(end_point.distance_to(global_position), 0.5, MAX_LENGTH)
+	_beam = MeshInstance3D.new()
+	_beam.name = "PlasmaBeam"
+	_beam.mesh = _beam_mesh
+	_beam.basis = Basis.looking_at(_direction, Vector3.UP if absf(_direction.y) < 0.99 else Vector3.FORWARD)
+	_beam.position = -_direction * (span * 0.5)
+	_beam.scale = Vector3(1.0, 1.0, span)
+	add_child(_beam)
+	_ensure_light()
+	hit.emit(null, end_point)
+
+
+func _apply_hit(collider: Node, point: Vector3) -> void:
+	hit.emit(collider, point)
+	# Per-victim sub-token keeps the host's same-shot kill burst exemption.
+	var target_id := ""
+	if collider.is_in_group("bike"):
+		var vv: Variant = collider.get("player_id")
+		target_id = str(vv) if vv != null else ""
+	token = ("%s:v%s" % [_base_token, target_id]) if (_base_token != "" and target_id != "") else _base_token
+	if on_hit.is_valid():
+		on_hit.call(collider, point, self)
+	token = _base_token
+	# Local victim authority: a direct hit is lethal, mirroring RocketProjectile.
+	if collider.is_in_group("bike") and collider != owner_node:
+		var controller: Node = collider.get_node_or_null("CombatController")
+		if controller == null or not controller.has_method("take_lethal_hit"):
+			for child in collider.get_children():
+				if child.has_method("take_lethal_hit"):
+					controller = child
+					break
+		if controller != null and controller.has_method("take_lethal_hit"):
+			var lethal_tok := ("%s:v%s" % [_base_token, target_id]) if (_base_token != "" and target_id != "") else _base_token
+			controller.call("take_lethal_hit", owner_id, point, lethal_tok)
+	if not collider.is_in_group("bike") and not collider.is_in_group("hazard"):
+		var fx := get_parent() as Node3D
+		if fx == null and get_tree() != null:
+			fx = get_tree().current_scene as Node3D
+		if fx != null:
+			VFX.impact(fx, point, hit_color, _direction, "metal")
+
+
+func _finish() -> void:
+	if _done:
+		return
+	_done = true
+	if is_in_group("rocket_beam"):
+		remove_from_group("rocket_beam")
+	_release_light()
+	if not Settings.reduced_motion():
+		var fx := get_parent() as Node3D
+		if fx == null and get_tree() != null:
+			fx = get_tree().current_scene as Node3D
+		if fx != null and _beam != null:
+			VFX.impact(fx, global_position + _direction * 1.0, hit_color, _direction, "metal")
+	if _beam != null:
+		_beam.queue_free()
+		_beam = null
+	queue_free()
+
+
+func _exit_tree() -> void:
+	_release_light()
+
+
+func _physics_process(delta: float) -> void:
+	if _inert or not _armed:
+		return
+	_age += delta
+	if not _beaming:
+		if _charge_ring != null:
+			var t := clampf(_age / CHARGE_TIME, 0.0, 1.0)
+			var s := 0.45 + t * 1.55
+			_charge_ring.scale = Vector3(s, s, 1.0)
+			_charge_ring.rotation.z += delta * 6.0
+		if _age >= CHARGE_TIME:
+			_start_beam()
+		return
+	if _beam != null:
+		var t := clampf((_age - CHARGE_TIME) / BEAM_TIME, 0.0, 1.0)
+		var mat := _beam.material_override as StandardMaterial3D
+		if mat == null:
+			mat = _beam_mat.duplicate() as StandardMaterial3D
+			_beam.material_override = mat
+		mat.albedo_color.a = 0.92 * (1.0 - t)
+		if _age >= CHARGE_TIME + BEAM_TIME:
+			_finish()
