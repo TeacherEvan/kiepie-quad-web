@@ -15,6 +15,10 @@ gate names, or live checks — not assumptions.
 - **Review hardening:** remote proxies now reconstruct all three Evan weapons (`ArenaNet._spawn_remote_shot`), sound waves reuse the pooled projectile slots, the boomerang's victim guard fails closed, and `verify_controls.gd` waits for the deferred engine-player assignment (removed a pre-existing flake). `verify_evan_weapons.gd` now invokes `apply_lethal_blast()` on typed bike stubs instead of only checking it exists.
 - **Web:** root `index.*` refreshed locally via `deploy_web.sh` staging path (pck 4,277,536 bytes; `web_hygiene OK`). Deploy guard raised 4 -> 4.5 MiB for Evan's non-Draco GLB. **Not pushed — no live Vercel deploy was performed.**
 
+## 2026-11-25 — Evan plastic-surgery visual pass (`2150cc8`, `0fba377`)
+
+Material-only polish of `src/build_evan_skeleton.py`: warmer ivory bones (`BoneIvory` with a low emission floor), deeper `BoneShadow`/`EyeSocket`, crimson `MohawkMagenta`, vivid `GuitarHotPink`, brighter chrome/frame and richer strap/tyres. Geometry, 52 joints, 4 clips, 71 meshes, 12 material names, landmark names and `minZ = 0.000` are byte-contract unchanged. QA reviewer **APPROVED** (4,062 verts / 7,354 faces / 0 non-manifold / IoU 1.0); GLB budget 95/100 (the unresolved uncompressed-geometry advisory is the accepted Godot 4.3 no-Draco constraint). Root `index.*` refreshed **locally only** (pck 4,279,840 bytes; `web_hygiene OK`) — no push, no Vercel deploy. Out-of-scope lint finding deferred: shipped `index.html` `#canvas:focus{outline:none}` needs a `:focus-visible` replacement plus export-preset `head_include` sync.
+
 ## 2026-11-25 — Evan audit remediation
 
 Source report: [audits/kiepie-quad-surgical-audit-evan-2026-11-25.md](audits/kiepie-quad-surgical-audit-evan-2026-11-25.md) (62/100 HIGH, 0 P0 / 3 P1 / 10 P2 / 9 P3). Every fix was proved red-first (or by mechanical revert) and followed by `bash godot/tools/run_gates.sh` green; one concern per commit.
