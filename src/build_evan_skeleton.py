@@ -83,7 +83,12 @@ def make_mat(name: str, color: tuple[float, float, float], rough: float = 0.6,
 def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
     if argv is None:
         argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    previews = argv[argv.index("--previews") + 1] if "--previews" in argv else None
+    previews = None
+    if "--previews" in argv:
+        _idx = argv.index("--previews")
+        if _idx + 1 >= len(argv) or not argv[_idx + 1].strip():
+            raise SystemExit("--previews requires a non-empty directory argument")
+        previews = argv[_idx + 1]
     if previews:
         os.makedirs(previews, exist_ok=True)
 
@@ -705,15 +710,27 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
                   "Playable vehicle stand-in: 22-inch tyres, ground datum minZ=0.000."),
     }
     manifest_path = os.path.join(REPO_ROOT, "evan_spatial_manifest.json")
-    with open(manifest_path, "w", encoding="utf-8") as fh:
+    # Never truncate the shipped manifest in place: an interrupted build must
+    # leave the previous, self-consistent artifact in place.
+    tmp_manifest = manifest_path + ".tmp"
+    with open(tmp_manifest, "w", encoding="utf-8") as fh:
         json.dump(manifest, fh, indent=2)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp_manifest, manifest_path)
 
     # -------------------------------------------------------------- save / export
     blend_path = os.path.join(REPO_ROOT, "Evan_Skeleton.blend")
-    bpy.ops.wm.save_as_mainfile(filepath=blend_path)
+    # A user preference of save_version >= 1 would emit an undeclared .blend1.
+    _filepaths = bpy.context.preferences.filepaths
+    _prev_versions = _filepaths.save_version
+    try:
+        _filepaths.save_version = 0
+        bpy.ops.wm.save_as_mainfile(filepath=blend_path)
+    finally:
+        _filepaths.save_version = _prev_versions
     print("SAVED", blend_path)
 
-    EXCLUDE = {"KeyWarm", "RimPink", "RimCyan", "TopSlate", "Camera"}
     bpy.ops.object.select_all(action="DESELECT")
     for ob, _ in parts:
         ob.select_set(True)
