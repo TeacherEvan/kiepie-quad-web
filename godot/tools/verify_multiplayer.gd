@@ -218,6 +218,12 @@ func _run() -> void:
 
 	# Check local bike spawn slot assignment for host vs guest
 	if sp0 != null and local_bike != null and net != null:
+		# A client not yet in the roster must not silently claim SpawnPoint0.
+		var before_unknown := local_bike.global_position
+		sb.set("user_id", "unknown-peer")
+		net.call("_place_local_bike_at_roster_slot")
+		_check(local_bike.global_position.distance_to(before_unknown) < 0.01,
+				"AUD-1: a non-roster local uid does not claim a spawn slot")
 		sb.set("user_id", "peer-2")
 		net.call("_place_local_bike_at_roster_slot")
 		_check(local_bike.global_position.distance_to(sp0.global_position + Vector3(0, 0.6, 0)) > 5.0,

@@ -41,6 +41,7 @@ const LOCAL_DMG_DEDUP_S := 0.28
 const REMOTE_PROJ_POOL_SIZE := 32
 var _remote_proj_pool: Array[Node3D] = []
 var _remote_proj_idx := 0
+var _spawn_applied := false
 
 
 func _ready() -> void:
@@ -48,11 +49,30 @@ func _ready() -> void:
 	_send_accum = 1.0 / SEND_HZ
 	Supabase.broadcast_received.connect(_on_broadcast)
 	Match.roster_changed.connect(_sync_roster)
+	Match.roster_changed.connect(_on_roster_changed_for_spawn)
 	_sync_roster()
+
+
+func _on_roster_changed_for_spawn() -> void:
+	## A client can become ready before its own roster row arrives. Re-run the
+	## placement once the uid is present, but never after the match has started
+	## (that would teleport a driving player back to a spawn point).
+	if _spawn_applied:
+		return
+	if Match != null and Match.is_playing():
+		_spawn_applied = true
+		return
+	var uids: Array = Match.players.keys() if Match != null else []
+	if not uids.has(Supabase.user_id):
+		return
+	_place_local_bike_at_roster_slot()
+	_spawn_applied = true
 
 
 func _place_local_bike_at_roster_slot() -> void:
 	if Match == null or Match.players.size() <= 1:
+		return
+	if not (Match.players as Dictionary).has(Supabase.user_id):
 		return
 	var bike := get_node_or_null(local_bike_path) as VehicleBody3D
 	if bike == null:
