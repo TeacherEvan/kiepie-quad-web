@@ -59,6 +59,19 @@ func _run() -> void:
 			await process_frame
 			_check(str(main_menu.get("selected_game_mode")) == "battle_royale",
 					"Clicking Battle Royale switches Dashboard mode back to battle_royale")
+
+			# AUD-2: every lobby-entry path must carry the selected game mode.
+			if main_menu.has_method("_prepare_lobby"):
+				main_menu.set("selected_game_mode", "death_race")
+				main_menu.call("_prepare_lobby", "join_code", "ABCD")
+				var lobby_script: GDScript = load("res://src/ui/LobbyMenu.gd")
+				_check(str(lobby_script.get("pending_game_mode")) == "death_race"
+						and str(lobby_script.get("pending_mode")) == "join_code"
+						and str(lobby_script.get("pending_code")) == "ABCD",
+						"join-by-code carries mode, intent and room code into the lobby")
+				main_menu.set("selected_game_mode", "battle_royale")
+			else:
+				_check(false, "MainMenu exposes one shared lobby-intent helper")
 		main_menu.free()
 
 	# ---- 2. Victory Splash video asset exists in web-assets/ outside godot/

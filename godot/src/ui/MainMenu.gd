@@ -231,6 +231,19 @@ func _on_practice() -> void:
 		get_tree().change_scene_to_file(SCENE_TEST_RIDE)
 
 
+func _prepare_lobby(mode: String, code: String) -> bool:
+	## Single source of truth for the three LobbyMenu statics. All entry paths
+	## (create, auto-join, join-by-code) must carry the selected game mode.
+	var lobby_script = load("res://src/ui/LobbyMenu.gd")
+	if lobby_script == null:
+		_set_status("UI unavailable — lobby could not load", COL_WARN)
+		return false
+	lobby_script.pending_mode = mode
+	lobby_script.pending_code = code
+	lobby_script.pending_game_mode = selected_game_mode
+	return true
+
+
 func _on_create() -> void:
 	Sfx.play_ui("ui_click")
 	if _busy:
@@ -241,12 +254,9 @@ func _on_create() -> void:
 		_set_status("Reconnecting to backend…", COL_INFO)
 		Supabase.reconnect()
 		return
-	# Static var on the LobbyMenu script survives the scene change (no new autoload).
-	var lobby_script = load("res://src/ui/LobbyMenu.gd")
-	if lobby_script:
-		lobby_script.pending_mode = "create"
-		lobby_script.pending_code = ""
-		lobby_script.pending_game_mode = selected_game_mode
+	# Static vars on the LobbyMenu script survive the scene change (no new autoload).
+	if not _prepare_lobby("create", ""):
+		return
 	get_tree().change_scene_to_file(SCENE_LOBBY)
 
 
@@ -261,11 +271,8 @@ func _on_join_auto() -> void:
 		Supabase.reconnect()
 		return
 	# Joining lands in the lobby room: the host must start the match there.
-	var lobby_script = load("res://src/ui/LobbyMenu.gd")
-	if lobby_script:
-		lobby_script.pending_mode = "join_auto"
-		lobby_script.pending_code = ""
-		lobby_script.pending_game_mode = selected_game_mode
+	if not _prepare_lobby("join_auto", ""):
+		return
 	get_tree().change_scene_to_file(SCENE_LOBBY)
 
 
@@ -283,10 +290,8 @@ func _on_join_code(_text: String = "") -> void:
 		_set_status("Reconnecting to backend…", COL_INFO)
 		Supabase.reconnect()
 		return
-	var lobby_script = load("res://src/ui/LobbyMenu.gd")
-	if lobby_script:
-		lobby_script.pending_mode = "join_code"
-		lobby_script.pending_code = code.to_upper()
+	if not _prepare_lobby("join_code", code.to_upper()):
+		return
 	get_tree().change_scene_to_file(SCENE_LOBBY)
 
 
