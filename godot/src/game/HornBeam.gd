@@ -111,10 +111,12 @@ func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
 	if not is_finite(p_damage) or not is_finite(p_speed) or p_speed <= 0.0:
 		push_warning("HornBeam.setup: rejecting non-finite/invalid parameters")
 		_inert = true
+		queue_free()  # callers have already add_child()ed this node
 		return
 	if not is_finite(p_direction.x + p_direction.y + p_direction.z) \
 			or p_direction.length_squared() < 1e-8:
 		_inert = true
+		queue_free()
 		return
 	owner_id = p_owner_id
 	owner_node = p_owner_node
@@ -126,7 +128,7 @@ func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
 	_base_token = p_token
 	hit_color = p_color
 	blast_radius = clampf(p_blast_radius, 0.0, 4.5)
-	visual_style = "horn_beam"
+	visual_style = p_visual_style if p_visual_style != "" else "horn_beam"
 	_age = 0.0
 	_armed = true
 	_beaming = false
@@ -220,6 +222,7 @@ func _start_beam() -> void:
 	# Probe the whole line once (up to MAX_TARGETS) so every bike on it is hit,
 	# and advance past each collider to avoid hitting the same body twice.
 	var cursor := trace_origin
+	var direct_bike: Node = null
 	for _i in range(MAX_TARGETS):
 		_ray.from = cursor
 		_ray.to = endpoint
@@ -233,7 +236,14 @@ func _start_beam() -> void:
 		var point: Vector3 = result.get("position", endpoint)
 		if collider is Node and not _hit_nodes.has(collider as Node):
 			_hit_nodes.append(collider as Node)
-			_apply_hit(collider as Node, point)
+			var is_bike := (collider as Node).is_in_group("bike")
+			var is_direct := is_bike and direct_bike == null
+			if is_direct:
+				direct_bike = collider as Node
+			# Only the FIRST rider on the line is a lethal direct hit. Everyone
+			# else takes the launcher's flat 90 damage through on_hit — the same
+			# rule as the other rocket-slot weapons, not a multi-kill laser.
+			_apply_hit(collider as Node, point, is_direct)
 		cursor = point + _direction * 0.12
 		if cursor.distance_to(trace_origin) >= MAX_LENGTH:
 			break
@@ -244,13 +254,15 @@ func _start_beam() -> void:
 	_beam.mesh = _beam_mesh
 	_beam.basis = Basis.looking_at(_direction, Vector3.UP if absf(_direction.y) < 0.99 else Vector3.FORWARD)
 	_beam.position = -_direction * (span * 0.5)
-	_beam.scale = Vector3(1.0, 1.0, span)
+	# The supplied blast radius governs the beam's visible width (and therefore
+	# its readability); damage itself uses the launcher's flat blast damage.
+	_beam.scale = Vector3(blast_radius / 4.5, blast_radius / 4.5, span)
 	add_child(_beam)
 	_ensure_light()
 	hit.emit(null, end_point)
 
 
-func _apply_hit(collider: Node, point: Vector3) -> void:
+func _apply_hit(collider: Node, point: Vector3, is_direct: bool) -> void:
 	hit.emit(collider, point)
 	# Per-victim sub-token keeps the host's same-shot kill burst exemption.
 	var target_id := ""
@@ -261,8 +273,13 @@ func _apply_hit(collider: Node, point: Vector3) -> void:
 	if on_hit.is_valid():
 		on_hit.call(collider, point, self)
 	token = _base_token
-	# Local victim authority: a direct hit is lethal, mirroring RocketProjectile.
-	if collider.is_in_group("bike") and collider != owner_node:
+	# Fail-closed victim authority, identical to CombatAoe.apply_lethal_blast:
+	# only THIS client's own bike may be killed from a direct-hit ray. A remote
+	# proxy never receives a lethal call from the shooter's client, even if it
+	# later gains a controller-like child.
+	var local_uid := str(Supabase.user_id) if Supabase != null else ""
+	if is_direct and collider != owner_node and target_id != "" and local_uid != "" \
+			and target_id == local_uid:
 		var controller: Node = collider.get_node_or_null("CombatController")
 		if controller == null or not controller.has_method("take_lethal_hit"):
 			for child in collider.get_children():
@@ -270,7 +287,7 @@ func _apply_hit(collider: Node, point: Vector3) -> void:
 					controller = child
 					break
 		if controller != null and controller.has_method("take_lethal_hit"):
-			var lethal_tok := ("%s:v%s" % [_base_token, target_id]) if (_base_token != "" and target_id != "") else _base_token
+			var lethal_tok := ("%s:v%s" % [_base_token, target_id]) if _base_token != "" else ""
 			controller.call("take_lethal_hit", owner_id, point, lethal_tok)
 	if not collider.is_in_group("bike") and not collider.is_in_group("hazard"):
 		var fx := get_parent() as Node3D

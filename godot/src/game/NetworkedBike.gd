@@ -104,7 +104,7 @@ func _apply_roster_vehicle(force: bool = false) -> void:
 		for s in range(mi.mesh.get_surface_count()):
 			var mat := mi.get_active_material(s)
 			if mat is StandardMaterial3D:
-				if str((mat as Material).resource_name) == "BigBenPlate":
+				if str((mat as Material).resource_name) in ["BigBenPlate", "HornGlow"]:
 					continue
 				var tinted: StandardMaterial3D = tinted_cache.get(mat)
 				if tinted == null:

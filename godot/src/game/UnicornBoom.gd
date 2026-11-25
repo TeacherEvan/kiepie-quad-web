@@ -124,6 +124,7 @@ func setup(p_owner_id: String, p_owner_node: Node, p_target_pos: Vector3,
 	if not is_finite(p_damage) or not is_finite(p_blast_radius) or p_blast_radius <= 0.0 \
 			or not is_finite(p_target_pos.x + p_target_pos.y + p_target_pos.z):
 		push_warning("UnicornBoom.setup: rejecting non-finite/invalid strike parameters")
+		queue_free()  # callers have already add_child()ed this node
 		return
 	owner_id = p_owner_id
 	owner_node = p_owner_node
@@ -131,7 +132,7 @@ func setup(p_owner_id: String, p_owner_node: Node, p_target_pos: Vector3,
 	damage = maxf(0.0, p_damage)
 	token = p_token
 	hit_color = p_color
-	visual_style = "unicorn_boom"
+	visual_style = p_visual_style if p_visual_style != "" else "unicorn_boom"
 	fall_duration = clampf(p_fall_duration, 0.1, 6.0)
 	blast_radius = minf(p_blast_radius, 7.5)
 	_age = 0.0

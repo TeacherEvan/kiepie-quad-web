@@ -17,7 +17,12 @@ var _had_cfg := false
 var _prior_user_id: Variant
 var _prior_reduced: Variant
 var _beam_hits: Array = []
+var _bolt_hits: Array = []
 var _owner_bike: Node3D = null
+
+
+func _on_bolt_hit(target: Node, _point: Vector3, _proj: Node) -> void:
+	_bolt_hits.append(target)
 
 
 func _on_beam_hit(target: Node, _point: Vector3, _proj: Node) -> void:
@@ -133,8 +138,39 @@ func _run() -> void:
 				52.0, 30.0, "bolt-tok", Color(1, 0.82, 0.28))
 		_check(bool(bolt.get("_inert")) and (bolt.get("on_hit") as Callable).is_null(),
 				"pooled horn bolt clears stale callbacks and parks inert")
-		bolt.set_physics_process(false)
-		bolt.queue_free()
+		if is_instance_valid(bolt):
+			bolt.set_physics_process(false)
+			bolt.queue_free()
+
+		# Real swept-ray proof: a bolt fired from chassis height must hit a
+		# rider-sized collider, which is the bug a horn-tip-only origin hides.
+		var bolt_target := TargetBody.new()
+		bolt_target.name = "BoltTarget"
+		bolt_target.player_id = "lea-weapons-gate"
+		bolt_target.position = Vector3(0.0, 0.55, -4.0)
+		var bshape := CollisionShape3D.new()
+		var bbox := BoxShape3D.new()
+		bbox.size = Vector3(0.95, 0.52, 0.95)
+		bshape.shape = bbox
+		bolt_target.add_child(bshape)
+		bolt_target.add_to_group("bike")
+		holder.add_child(bolt_target)
+		var live_bolt := Node3D.new()
+		live_bolt.set_script(bolt_script)
+		holder.add_child(live_bolt)
+		live_bolt.call("setup", "lea-owner", holder, Vector3(0, 0.55, 0), Vector3(0, 0, -1),
+				52.0, 30.0, "bolt-live", Color(1, 0.82, 0.28))
+		live_bolt.on_hit = Callable(self, "_on_bolt_hit")
+		for _i in range(20):
+			await physics_frame
+			if not is_instance_valid(live_bolt) or _bolt_hits.size() > 0:
+				break
+		_check(_bolt_hits.size() > 0, "horn bolt fired at chassis height hits a rider collider")
+		if is_instance_valid(live_bolt):
+			live_bolt.set_physics_process(false)
+			live_bolt.queue_free()
+		bolt_target.queue_free()
+		await process_frame
 
 	# ---- 2. Horn beam: fail-closed parameters, charge -> straight-line hit.
 	if beam_script != null:
@@ -144,7 +180,7 @@ func _run() -> void:
 		bad.call("setup", "lea-owner", holder, Vector3.ZERO, Vector3(0, 0, 1),
 				38.0, NAN, "beam-bad", Color.WHITE)
 		_check(bool(bad.get("_inert")), "horn beam rejects NaN damage (fail closed)")
-		bad.queue_free()
+		# setup() self-frees rejected nodes; no second queue_free() here.
 
 		var target := TargetBody.new()
 		target.name = "BeamTarget"
@@ -160,6 +196,22 @@ func _run() -> void:
 		var sink := LethalSink.new()
 		sink.name = "CombatController"
 		target.add_child(sink)
+		# A second rider on the same line must take beam damage but NOT a
+		# lethal direct hit — one rocket-slot shot must not queue-kill everyone.
+		var second := TargetBody.new()
+		second.name = "BeamSecondTarget"
+		second.player_id = "lea-weapons-gate"
+		second.position = Vector3(0.0, 0.8, -8.0)
+		var shape2 := CollisionShape3D.new()
+		var box2 := BoxShape3D.new()
+		box2.size = Vector3(1.2, 1.2, 1.2)
+		shape2.shape = box2
+		second.add_child(shape2)
+		second.add_to_group("bike")
+		holder.add_child(second)
+		var second_sink := LethalSink.new()
+		second_sink.name = "CombatController"
+		second.add_child(second_sink)
 
 		var beam := Node3D.new()
 		beam.set_script(beam_script)
@@ -179,10 +231,14 @@ func _run() -> void:
 		_check(sink.calls.size() == 1
 				and str(sink.calls[0].get("token", "")) == "beam-tok:vlea-weapons-gate",
 				"horn beam lethally hits a rider on the line with a victim sub-token")
-		_check(_beam_hits.size() >= 1, "horn beam invokes the on_hit callback")
-		beam.set_physics_process(false)
-		beam.queue_free()
+		_check(_beam_hits.size() >= 2, "horn beam invokes on_hit for every rider on the line")
+		_check(second_sink.calls.is_empty(),
+				"only the first rider on the beam line is a lethal direct hit")
+		if is_instance_valid(beam):
+			beam.set_physics_process(false)
+			beam.queue_free()
 		target.queue_free()
+		second.queue_free()
 		await process_frame
 
 	# ---- 3. Unicorn Boom: bounded setup, real lethal resolver invocation.
@@ -193,7 +249,7 @@ func _run() -> void:
 		bad_boom.call("setup", "lea-owner", holder, Vector3.ZERO,
 				NAN, "boom-bad", Color.WHITE, 2.0, 7.5)
 		_check(not bool(bad_boom.get("_armed")), "unicorn boom rejects NaN damage")
-		bad_boom.queue_free()
+		# setup() self-frees rejected nodes; no second queue_free() here.
 
 		var owner_bike := BikeStub.new()
 		_owner_bike = owner_bike
@@ -244,8 +300,9 @@ func _run() -> void:
 		_check(e_sink.calls.size() == 1, "unicorn boom kills a rider at exactly 7.5 m")
 		_check(o_sink.calls.is_empty(), "unicorn boom spares a rider at 7.51 m")
 		_check(p_sink.calls.is_empty(), "unicorn boom never mutates a remote proxy")
-		boom.set_physics_process(false)
-		boom.queue_free()
+		if is_instance_valid(boom):
+			boom.set_physics_process(false)
+			boom.queue_free()
 
 	if aoe_script != null:
 		_check(aoe_script.has_method("apply_blast") and aoe_script.has_method("apply_lethal_blast"),
@@ -277,7 +334,8 @@ func _run() -> void:
 		b2.call("setup", "lea-owner", holder, Vector3.ZERO, Vector3(0, 0, -1),
 				38.0, 90.0, "reduced-beam", Color.WHITE)
 		_check(not bool(b2.get("_inert")), "horn beam arms safely with reduced motion")
-		b2.set_physics_process(false); b2.queue_free()
+		if is_instance_valid(b2):
+			b2.set_physics_process(false); b2.queue_free()
 		var u2 := Node3D.new()
 		u2.set_script(boom_script)
 		holder.add_child(u2)
@@ -285,7 +343,8 @@ func _run() -> void:
 				105.0, "reduced-boom", Color.WHITE, 0.2, 7.5)
 		_check(bool(u2.get("_armed")), "unicorn boom arms safely with reduced motion")
 		u2.call("_detonate")
-		u2.set_physics_process(false); u2.queue_free()
+		if is_instance_valid(u2):
+			u2.set_physics_process(false); u2.queue_free()
 
 	holder.queue_free()
 	await process_frame

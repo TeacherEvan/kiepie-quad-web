@@ -699,11 +699,19 @@ func fire() -> void:
 		var right := owner_node.global_transform.basis.x.normalized()
 		var side := -1.0 if i == 0 else 1.0
 		var dir := (forward + right * side * spread).normalized()
+		# Lea's horn meshes sit ~1.8 m above the bike, but every bike hitbox tops
+		# out near 0.9 m. Muzzle flashes stay at the horn (cosmetic); damage rays
+		# start at chassis height so rapid bolts can actually hit riders. The
+		# same origin is broadcast, so remote reconstruction matches exactly.
+		var shot_origin := muzzle.global_position
+		if weapon_profile == "lea":
+			shot_origin = owner_node.global_position + Vector3(0.0, 0.55, 0.0) \
+					+ forward * 0.45 + right * side * 0.10
 		# _acquire_pooled_proj() replaces a slot whose script differs, so Evan's
 		# sound waves share the pool safely with the other vehicle profiles.
 		var proj := _acquire_pooled_proj(proj_script, fx_parent)
 		var barrel_tok := ("%s:b%d" % [token, i]) if token != "" else ""
-		proj.setup(owner_id, owner_node, muzzle.global_position, dir,
+		proj.setup(owner_id, owner_node, shot_origin, dir,
 				speed, dmg, barrel_tok, _color)
 		if hit_callback.is_valid():
 			proj.on_hit = hit_callback
@@ -711,7 +719,7 @@ func fire() -> void:
 			Supabase.broadcast("shot", {
 				"id": owner_id,
 				"w": "primary",
-				"o": [muzzle.global_position.x, muzzle.global_position.y, muzzle.global_position.z],
+				"o": [shot_origin.x, shot_origin.y, shot_origin.z],
 				"d": [dir.x, dir.y, dir.z],
 				"token": barrel_tok,
 			})
