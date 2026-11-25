@@ -228,6 +228,20 @@ func _run() -> void:
 			if not is_instance_valid(beam) or bool(beam.get("_beaming")):
 				break
 		_check(bool(beam.get("_beaming")), "horn beam transitions from charge to straight beam")
+		# Visual-skin contract (Plastic Surgery): the additive beam must sit on
+		# the forward half of the firing ray. Basis.looking_at aims local -Z at
+		# the direction, so an inverted centre sign draws the glow out the rear.
+		var beam_mesh := beam.get_node_or_null("PlasmaBeam") as MeshInstance3D
+		if beam_mesh != null:
+			var fwd := Vector3(0, 0, -1)
+			var half := beam_mesh.scale.z * 0.5
+			# global_transform already carries the beam's Z scale — multiplying
+			# the basis by `half` again double-counts it.
+			var far_a := beam_mesh.global_transform * Vector3(0, 0, -0.5)
+			var far_b := beam_mesh.global_transform * Vector3(0, 0, 0.5)
+			_check(maxf(far_a.dot(fwd), far_b.dot(fwd)) > half * 0.9
+					and minf(far_a.dot(fwd), far_b.dot(fwd)) > -0.02,
+					"horn beam visual extends forward along the firing ray")
 		_check(sink.calls.size() == 1
 				and str(sink.calls[0].get("token", "")) == "beam-tok:vlea-weapons-gate",
 				"horn beam lethally hits a rider on the line with a victim sub-token")

@@ -253,7 +253,11 @@ func _start_beam() -> void:
 	_beam.name = "PlasmaBeam"
 	_beam.mesh = _beam_mesh
 	_beam.basis = Basis.looking_at(_direction, Vector3.UP if absf(_direction.y) < 0.99 else Vector3.FORWARD)
-	_beam.position = -_direction * (span * 0.5)
+	# Basis.looking_at aims local -Z at the firing direction, so a box scaled on
+	# local Z extends toward -_direction from its centre. Centre it FORWARD of
+	# the horn (+_direction) so the additive glow travels with the damage ray
+	# instead of shooting out the rear of the unicorn.
+	_beam.position = _direction * (span * 0.5)
 	# The supplied blast radius governs the beam's visible width (and therefore
 	# its readability); damage itself uses the launcher's flat blast damage.
 	_beam.scale = Vector3(blast_radius / 4.5, blast_radius / 4.5, span)

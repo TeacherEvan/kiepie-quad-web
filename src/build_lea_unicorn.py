@@ -135,11 +135,15 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
     # -------------------------------------------------------------- palette
     # Pastel reference: pearlescent ivory coat, pink/lavender mane, rainbow
     # feather gradients, gold horn and hooves, sapphire eyes.
-    coat = make_mat("PearlCoat", (0.945, 0.935, 0.915), 0.42, emission=0.022)
-    coat_shade = make_mat("CoatShadow", (0.76, 0.75, 0.79), 0.58)
+    # Plastic Surgery skin pass: the references show an iridescent blue-white
+    # pearlescent coat, not a warm white. Keep luminance high (~0.90) so the
+    # body still reads against the dark arena backdrop. Geometry, rig and all
+    # landmark material names are untouched — this is albedo/roughness only.
+    coat = make_mat("PearlCoat", (0.87, 0.90, 0.97), 0.38, emission=0.030)
+    coat_shade = make_mat("CoatShadow", (0.68, 0.71, 0.84), 0.56)
     muzzle_mat = make_mat("MuzzleVelvet", (0.70, 0.64, 0.64), 0.74)
-    mane_pink = make_mat("ManePink", (0.96, 0.36, 0.71), 0.38, emission=0.04)
-    mane_lav = make_mat("ManeLavender", (0.74, 0.52, 0.94), 0.40, emission=0.035)
+    mane_pink = make_mat("ManePink", (0.96, 0.36, 0.71), 0.38, emission=0.05)
+    mane_lav = make_mat("ManeLavender", (0.74, 0.52, 0.94), 0.40, emission=0.045)
     feather_pink = make_mat("FeatherPink", (0.99, 0.52, 0.78), 0.44, emission=0.03)
     feather_lav = make_mat("FeatherLavender", (0.72, 0.58, 0.96), 0.42, emission=0.03)
     feather_cyan = make_mat("FeatherCyan", (0.42, 0.85, 0.96), 0.38, emission=0.035)
@@ -818,7 +822,7 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
             "estimated_stories": 1, "roof_pitch_deg": 0.0,
             "wall_thickness_ext": 0.0, "wall_thickness_int": 0.0,
         },
-        "pbr_palette_srgb": ["#f1efea", "#f25cb5", "#bd85ef", "#6fd8f4", "#f2b83d"],
+        "pbr_palette_srgb": ["#dee6f7", "#f25cb5", "#bd85ef", "#6fd8f4", "#f2b83d"],
         "rig": {
             "bone_count": BONE_COUNT, "profile": "creature-winged-equine",
             "actions": list(ACTION_NAMES), "skinning": "rigid-1.0-vertex-groups",
