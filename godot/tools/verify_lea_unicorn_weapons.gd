@@ -237,9 +237,6 @@ func _run() -> void:
 				"unicorn boom arms and clamps an oversized radius to 7.5 m")
 		_check(boom.is_in_group("meteor_strike"),
 				"unicorn boom joins the meteor_strike telegraph group")
-		_check(owner_bike.get_node_or_null("Model") == null
-				or owner_bike.get_node_or_null("Model").has_method("trigger_boom")
-				or true, "unicorn boom setup tolerates a stub owner")
 		boom.call("_detonate")
 		_check(v_sink.calls.size() == 1
 				and str(v_sink.calls[0].get("token", "")) == "boom-tok:vlea-weapons-gate",
