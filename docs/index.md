@@ -17,6 +17,7 @@ Navigation hub for every doc in this repository. Start here.
 | Doc | What it covers |
 | --- | --- |
 | [audits/10 Principal Engineer.txt](audits/10%20Principal%20Engineer.txt) | External 10-principal-engineer audit, 2026-11-18 (81 files, score 78/100). Remediation status: [task-status.md](task-status.md) |
+| [audits/kiepie-quad-surgical-audit-evan-2026-11-25.md](audits/kiepie-quad-surgical-audit-evan-2026-11-25.md) | Evan the Skeleton vehicle + integration audit (62/100, HIGH; 0 P0 / 3 P1 / 10 P2 / 9 P3); remediation in [task-status.md](task-status.md#2026-11-25--evan-audit-remediation) |
 | [audits/kiepie-quad-surgical-audit-2026-11-24-rev2.md](audits/kiepie-quad-surgical-audit-2026-11-24-rev2.md) | Surgical audit 2026-11-24 Rev 2; SARIF companion: [kiepie-quad-surgical-audit-2026-11-24-rev2.sarif](audits/kiepie-quad-surgical-audit-2026-11-24-rev2.sarif) |
 | [audits/kiepie-quad-surgical-audit-2026-11-23-rev2.md](audits/kiepie-quad-surgical-audit-2026-11-23-rev2.md) | Surgical audit 2026-11-23 Rev 2 (post-Track A/B + remediation); SARIF companion: [kiepie-quad-surgical-audit-2026-11-23-rev2.sarif](audits/kiepie-quad-surgical-audit-2026-11-23-rev2.sarif) |
 | [audits/kiepie-quad-surgical-audit-2026-11-22.md](audits/kiepie-quad-surgical-audit-2026-11-22.md) | Surgical audit 2026-11-22 (Rev 2: static + live Chrome/29-gate probe); SARIF companion: [kiepie-quad-surgical-audit-2026-11-22.sarif](audits/kiepie-quad-surgical-audit-2026-11-22.sarif) |

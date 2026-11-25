@@ -4,7 +4,7 @@ Concrete done-vs-pending ledger. Companion to [project-plan.md](project-plan.md)
 navigation in [index.md](index.md). Statuses are evidence-backed: commit hashes,
 gate names, or live checks — not assumptions.
 
-**Last verified:** 2026-11-25 — full gate suite **29/29** green, `web_hygiene OK`, `_check_scripts.gd` **47/47** (`28651c2`, `983c0d0`, live web deploy `eee389a`).
+**Last verified:** 2026-11-25 — full gate suite **31/31** green, `web_hygiene OK`, `_check_scripts.gd` clean (Evan audit remediation `778db4d`..`24bebba`; live web deploy `eee389a` predates Evan).
 
 ## 2026-11-25 — EVAN THE SKELETON (new playable vehicle + bespoke arsenal)
 
@@ -14,6 +14,27 @@ gate names, or live checks — not assumptions.
 - **Gates:** `verify_evan.gd` (0 failures) + `verify_evan_weapons.gd` (42 PASS / 0 FAIL after the lethal-blast invocation checks); `run_gates.sh` grew 29 -> 31 gates, all green.
 - **Review hardening:** remote proxies now reconstruct all three Evan weapons (`ArenaNet._spawn_remote_shot`), sound waves reuse the pooled projectile slots, the boomerang's victim guard fails closed, and `verify_controls.gd` waits for the deferred engine-player assignment (removed a pre-existing flake). `verify_evan_weapons.gd` now invokes `apply_lethal_blast()` on typed bike stubs instead of only checking it exists.
 - **Web:** root `index.*` refreshed locally via `deploy_web.sh` staging path (pck 4,277,536 bytes; `web_hygiene OK`). Deploy guard raised 4 -> 4.5 MiB for Evan's non-Draco GLB. **Not pushed — no live Vercel deploy was performed.**
+
+## 2026-11-25 — Evan audit remediation
+
+Source report: [audits/kiepie-quad-surgical-audit-evan-2026-11-25.md](audits/kiepie-quad-surgical-audit-evan-2026-11-25.md) (62/100 HIGH, 0 P0 / 3 P1 / 10 P2 / 9 P3). Every fix was proved red-first (or by mechanical revert) and followed by `bash godot/tools/run_gates.sh` green; one concern per commit.
+
+| Finding | Fix / evidence | Commit |
+| --- | --- | --- |
+| P1 shot trust boundary | `ArenaNet` rejects non-roster ids, validates `w` before the rate-log append, dedups bounded tokens and caps global strikes; forged-id regression added to `verify_multiplayer.gd` | `778db4d` |
+| P1 vacuous gates | `verdict()` requires evidence lines + rejects `Parse Error`; empty-log proof flips from PASS to FAIL | `b2e9ad4` |
+| P1 deploy sync / artifact blindness | atomic per-file replace with rollback snapshot, all-bundle live hash check, `index.pck` + SW precache assertions in `web_hygiene`; dry-run export verified | `fa64fcd` |
+| P2 remote speed divergence | delta-normalised clamped smoothing; gate observed ~10⁸⁷ before the fix, 30.0 after | `d255b03` |
+| P2 lethal victim authority | fail-closed identity guard in `apply_lethal_blast`; remote-proxy stub stays untouched | `3a82f1b` |
+| P2 boomerang hit conflation | `hit` emits only for actionable enemy contact; scenery-contact regression | `3f76fd7` |
+| P2 unsanitised kill radius | rejects non-finite damage, clamps radius to 7.5 m, removes dead branch | `b2b4c47` |
+| P2 fail-open model commit | local + remote identity committed only after GLB load, bounded retry | `d20eac3` |
+| P2 stale pooled callbacks | explicit `on_hit`/visibility/physics reset on reuse; regression via forced slot reuse | `0f98278` |
+| P2 spawn slot / lobby mode | spawn slot re-syncs when roster fills and rejects unknown uid; all three lobby-entry paths carry `pending_game_mode` | `cd3a6cb`, `d1b92f5` |
+| P2 test pathology | removed drag-only return OR; added 7.5 m radius boundary, zero-direction, real clip tracks and invoked recoil hook | `f930b47` |
+| P3 hardening | squared-distance radius filters, negative-tick rejection, atomic collider toggle, atomic manifest writes / validated `--previews`, tightened viewport/splash/CORP hygiene | `9dd4e38`, `d82f5ad`, `24bebba` |
+
+Deliberately not changed: `apply_blast` keeps its existing synthetic-fixture damage contract (a guard there broke `verify_deathrace.gd`, so the domain rule was restored rather than the fixture edited); the hand-maintained vehicle-id vocabulary and duplicated resolution pipeline remain as a documented P3 refactor; no push and no live deploy.
 
 ## 2026-11-25 — Disappearing visuals fix & Death Race track upgrade (`28651c2`, `983c0d0`, live `eee389a`)
 
