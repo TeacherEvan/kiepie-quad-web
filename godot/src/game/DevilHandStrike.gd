@@ -178,15 +178,21 @@ func setup(p_owner_id: String, p_owner_node: Node, p_target_pos: Vector3,
 		p_damage: float, p_token: String, p_color: Color = Color(0.85,0.06,0.20),
 		p_fall_duration: float = 2.0, p_blast_radius: float = 7.5,
 		p_visual_style: String = "devil_hand") -> void:
+	# Net-driven setup is untrusted: a NaN/Inf or an oversized radius would
+	# widen an instant-kill zone without bound. Reject invalid values and
+	# clamp to the authored Meteor-shower envelope.
+	if not is_finite(p_damage) or not is_finite(p_blast_radius) or p_blast_radius <= 0.0:
+		push_warning("DevilHandStrike.setup: rejecting non-finite/invalid strike parameters")
+		return
 	owner_id = p_owner_id
 	owner_node = p_owner_node
 	target_pos = p_target_pos
-	damage = p_damage
+	damage = maxf(0.0, p_damage)
 	token = p_token
 	hit_color = p_color
-	visual_style = p_visual_style if p_visual_style in ["devil_hand"] else "devil_hand"
+	visual_style = "devil_hand"
 	fall_duration = maxf(0.1, p_fall_duration)
-	blast_radius = p_blast_radius
+	blast_radius = minf(p_blast_radius, 7.5)
 	global_position = target_pos
 	_age = 0.0
 	_armed = true

@@ -272,6 +272,27 @@ func _run() -> void:
 				"DevilHandStrike propagates owner_id")
 		_check(is_equal_approx(float(dh.get("blast_radius")), 7.5),
 				"DevilHandStrike carries the 7.5 m blast radius")
+
+		# Net-supplied instant-kill parameters must be sanitised (AUD P2).
+		var dh_big := Node3D.new()
+		dh_big.set_script(devilhand)
+		holder.add_child(dh_big)
+		dh_big.set_physics_process(false)
+		await process_frame
+		dh_big.call("setup", "evan-gate", owner, target, 105.0, "evan-big-token",
+				Color(0.90, 0.05, 0.18), 2.0, 50.0, "devil_hand")
+		_check(float(dh_big.get("blast_radius")) <= 7.5,
+				"DevilHandStrike clamps an oversized blast radius to 7.5 m (%.2f)"
+				% float(dh_big.get("blast_radius")))
+		var dh_bad := Node3D.new()
+		dh_bad.set_script(devilhand)
+		holder.add_child(dh_bad)
+		dh_bad.set_physics_process(false)
+		await process_frame
+		dh_bad.call("setup", "evan-gate", owner, target, NAN, "evan-nan-token",
+				Color(0.90, 0.05, 0.18), 2.0, 7.5, "devil_hand")
+		_check(not bool(dh_bad.get("_armed")),
+				"DevilHandStrike rejects non-finite damage instead of arming")
 		dh.set_physics_process(false)
 
 	# ---- 4. CombatAoe's shared resolver: old blast plus the new lethal version.
