@@ -211,10 +211,15 @@ func _start_beam() -> void:
 	_ray.collide_with_bodies = true
 	_ray.exclude = [(owner_node as CollisionObject3D).get_rid()] \
 			if (is_instance_valid(owner_node) and owner_node is CollisionObject3D) else []
-	var endpoint := global_position + _direction * MAX_LENGTH
+	# The visual beam leaves the horn tip (~1.9 m) but a horizontal ray at that
+	# height sails over every bike hitbox (top ~0.95 m). Trace at chassis height
+	# while the additive beam mesh stays anchored at the horn. The same -1.05 m
+	# correction is derived from the broadcast origin on remote proxies.
+	var trace_origin := global_position + Vector3(0.0, -1.05, 0.0)
+	var endpoint := trace_origin + _direction * MAX_LENGTH
 	# Probe the whole line once (up to MAX_TARGETS) so every bike on it is hit,
 	# and advance past each collider to avoid hitting the same body twice.
-	var cursor := global_position
+	var cursor := trace_origin
 	for _i in range(MAX_TARGETS):
 		_ray.from = cursor
 		_ray.to = endpoint
@@ -230,9 +235,9 @@ func _start_beam() -> void:
 			_hit_nodes.append(collider as Node)
 			_apply_hit(collider as Node, point)
 		cursor = point + _direction * 0.12
-		if cursor.distance_to(global_position) >= MAX_LENGTH:
+		if cursor.distance_to(trace_origin) >= MAX_LENGTH:
 			break
-	var end_point := cursor if cursor != global_position else endpoint
+	var end_point := cursor if cursor != trace_origin else endpoint
 	var span: float = clampf(end_point.distance_to(global_position), 0.5, MAX_LENGTH)
 	_beam = MeshInstance3D.new()
 	_beam.name = "PlasmaBeam"

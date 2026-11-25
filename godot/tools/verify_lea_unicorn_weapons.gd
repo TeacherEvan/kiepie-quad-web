@@ -149,7 +149,7 @@ func _run() -> void:
 		var target := TargetBody.new()
 		target.name = "BeamTarget"
 		target.player_id = "lea-weapons-gate"
-		target.position = Vector3(0.0, 1.0, -4.0)
+		target.position = Vector3(0.0, 0.8, -4.0)
 		var shape := CollisionShape3D.new()
 		var box := BoxShape3D.new()
 		box.size = Vector3(1.2, 1.2, 1.2)
@@ -164,7 +164,7 @@ func _run() -> void:
 		var beam := Node3D.new()
 		beam.set_script(beam_script)
 		holder.add_child(beam)
-		beam.call("setup", "lea-owner", holder, Vector3(0, 1, 0), Vector3(0, 0, -1),
+		beam.call("setup", "lea-owner", holder, Vector3(0, 1.9, 0), Vector3(0, 0, -1),
 				38.0, 90.0, "beam-tok", Color(0.40, 0.90, 1.0))
 		_check(not bool(beam.get("_inert")) and not bool(beam.get("_beaming")),
 				"horn beam starts in the charge phase")
