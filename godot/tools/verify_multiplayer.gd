@@ -356,12 +356,37 @@ func _run() -> void:
 	lag_stub.set("is_respawning", false)
 	lag_stub.global_position = Vector3.ZERO
 	net_lag.set("_remote", {"peer-lag": lag_stub})
+	# The shot sender must be a roster member; add the probe peer before firing.
+	var shot_roster: Dictionary = (match_node.get("players") as Dictionary).duplicate(true)
+	shot_roster["peer-lag"] = {"user_id": "peer-lag"}
+	match_node.set("players", shot_roster)
 	var before_lag := net_lag.get_child_count()
 	net_lag.call("_spawn_remote_shot", {"id": "peer-lag", "o": [8.0, 0.5, 0.0], "d": [0.0, 0.0, 1.0], "token": "lag-ok"})
 	_check(net_lag.get_child_count() > before_lag, "P1-3: ArenaNet accepts 8.0 m high-speed lag muzzle offset")
 	var after_lag := net_lag.get_child_count()
 	net_lag.call("_spawn_remote_shot", {"id": "peer-lag", "o": [25.0, 0.5, 0.0], "d": [0.0, 0.0, 1.0], "token": "lag-spoof"})
 	_check(net_lag.get_child_count() == after_lag, "P1-3: ArenaNet still rejects 25.0 m spoofed shot origin")
+
+	# AUD-1: a non-roster id with an initialised proxy must not spawn damaging strikes.
+	var rogue_stub := StaticBody3D.new()
+	rogue_stub.set_script(load("res://src/game/NetworkedBike.gd"))
+	root.add_child(rogue_stub)
+	rogue_stub.set("_initialised", true)
+	rogue_stub.set("is_respawning", false)
+	rogue_stub.global_position = Vector3.ZERO
+	var remote_dict: Dictionary = net_lag.get("_remote")
+	remote_dict["rogue-peer"] = rogue_stub
+	net_lag.set("_remote", remote_dict)
+	var before_rogue := net_lag.get_child_count()
+	net_lag.call("_spawn_remote_shot", {"id": "rogue-peer", "o": [0.0, 0.5, 0.0], "d": [0.0, 0.0, 1.0], "token": "rogue-rocket", "w": "rocket"})
+	_check(net_lag.get_child_count() == before_rogue, "AUD-1: ArenaNet rejects shots from a non-roster peer")
+	# AUD-1: malformed wire kinds must not consume the legitimate rate window.
+	var before_kind := net_lag.get_child_count()
+	var log_before_kind: int = ((net_lag.get("_shot_log") as Dictionary).get("peer-lag", []) as Array).size()
+	net_lag.call("_spawn_remote_shot", {"id": "peer-lag", "o": [0.0, 0.5, 0.0], "d": [0.0, 0.0, 1.0], "token": "bad-kind", "w": "nuke"})
+	_check(net_lag.get_child_count() == before_kind, "AUD-1: ArenaNet rejects unknown weapon kinds")
+	var log_after_kind: int = ((net_lag.get("_shot_log") as Dictionary).get("peer-lag", []) as Array).size()
+	_check(log_after_kind == log_before_kind, "AUD-1: rejected kind does not consume the sender's shot window")
 
 	# P1-4: ArenaNet._on_broadcast("kill") rejects non-playing, unknown victim, and duplicate tokens
 	var my_uid := str(root.get_node("Supabase").get("user_id"))

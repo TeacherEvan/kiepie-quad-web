@@ -25,6 +25,10 @@ var _hitstop := false
 var _shot_log: Dictionary = {}   # owner_id -> Array of msec timestamps (1 s, max 24)
 var _rocket_last: Dictionary = {} # owner_id -> sec timestamp of last remote rocket
 var _meteor_last: Dictionary = {} # owner_id -> sec timestamp of last remote meteor
+var _seen_shot_tokens: Dictionary = {}  # token -> true (dedupes replayed "shot" broadcasts)
+var _strike_log: Array = []             # global rocket/meteor strikes in the last second
+const MAX_SEEN_SHOT_TOKENS := 256
+const MAX_REMOTE_STRIKES_PER_S := 12
 const REMOTE_ROCKET_MIN_S := 1.15
 const REMOTE_METEOR_MIN_S := 5.5
 var _state_tick := 0             # monotonic relay sequence for bike_state
@@ -282,6 +286,10 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 	var owner_id := str(p.get("id", ""))
 	if owner_id == "" or owner_id == Supabase.user_id:
 		return
+	# Mirrors the "state" gate at _on_broadcast: a departed or rogue peer cannot
+	# inject damaging shots just because it left an initialised proxy behind.
+	if Match != null and not Match.players.is_empty() and not Match.players.has(owner_id):
+		return
 	var origin_a: Variant = p.get("o", null)
 	var dir_a: Variant = p.get("d", null)
 	# Socket payloads are untrusted: a short array would index out of bounds
@@ -312,6 +320,13 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 	# per-sender rate limit: 24 remote shots per second. Twin-barrel rapid fire
 	# emits 2 shots every 0.09 s (~22/s) — the old 12/s cap silently dropped
 	# legitimate tracers on fast fire. Still bounds any forged shot flood.
+	var weapon_kind := str(p.get("w", "primary"))
+	# Validate before logging: a junk packet must not consume a real shooter's
+	# 24/s tracer window, and a replayed token must not consume it twice.
+	if weapon_kind != "primary" and weapon_kind != "rocket" and weapon_kind != "meteor":
+		return
+	if not _claim_shot_token(str(p.get("token", ""))):
+		return
 	var now := Time.get_ticks_msec() / 1000.0
 	var window: Array = _shot_log.get(owner_id, [])
 	var kept: Array = []
@@ -322,9 +337,6 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 		return
 	kept.append(now)
 	_shot_log[owner_id] = kept
-	var weapon_kind := str(p.get("w", "primary"))
-	if weapon_kind != "primary" and weapon_kind != "rocket" and weapon_kind != "meteor":
-		return
 	if weapon_kind == "rocket":
 		if now - float(_rocket_last.get(owner_id, -REMOTE_ROCKET_MIN_S)) < REMOTE_ROCKET_MIN_S:
 			return
@@ -333,6 +345,17 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 		if now - float(_meteor_last.get(owner_id, -REMOTE_METEOR_MIN_S)) < REMOTE_METEOR_MIN_S:
 			return
 		_meteor_last[owner_id] = now
+	if weapon_kind != "primary":
+		# Per-id limits cannot stop a forged id from multiplying strikes across
+		# the roster. One global budget bounds damaging nodes regardless of id.
+		var fresh_strikes: Array = []
+		for t in _strike_log:
+			if now - float(t) < 1.0:
+				fresh_strikes.append(t)
+		if fresh_strikes.size() >= MAX_REMOTE_STRIKES_PER_S:
+			return
+		fresh_strikes.append(now)
+		_strike_log = fresh_strikes
 	var roster_keys: Array = Match.players.keys() if Match != null else []
 	var pref := ""
 	if Match != null and Match.players.has(owner_id) and Match.players[owner_id] is Dictionary:
@@ -377,6 +400,22 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 			str(p.get("token", "")), shot_color)
 	if combat != null and combat.has_method("_on_projectile_hit"):
 		proj.on_hit = Callable(combat, "_on_projectile_hit")
+
+
+func _claim_shot_token(token: String) -> bool:
+	## Bounded replay dedup for socket "shot" broadcasts. Un-tokened legacy
+	## packets pass through; Talo v1 cannot bind a token to an authenticated
+	## sender, so this only stops verbatim replays, not id spoofing.
+	if token == "":
+		return true
+	if _seen_shot_tokens.has(token):
+		return false
+	_seen_shot_tokens[token] = true
+	if _seen_shot_tokens.size() > MAX_SEEN_SHOT_TOKENS:
+		var keys := _seen_shot_tokens.keys()
+		for k in keys.slice(0, 64):
+			_seen_shot_tokens.erase(k)
+	return true
 
 
 func _acquire_remote_proj(proj_script: GDScript) -> Node3D:
