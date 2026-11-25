@@ -233,6 +233,34 @@ func _run() -> void:
 		if is_instance_valid(boom):
 			boom.set_physics_process(false)
 
+		# Verify BoomerangGuitar hides & restores owner's EvanVisual held guitar
+		var boom_evan_glb: PackedScene = load("res://assets/Evan_Skeleton.glb")
+		var evan_visual_script: GDScript = load("res://src/game/EvanVisual.gd")
+		if boom_evan_glb != null and evan_visual_script != null:
+			var evan_owner := Node3D.new()
+			evan_owner.name = "EvanBoomOwner"
+			holder.add_child(evan_owner)
+			var evan_model := boom_evan_glb.instantiate() as Node3D
+			evan_model.name = "Model"
+			evan_model.set_script(evan_visual_script)
+			evan_owner.add_child(evan_model)
+			await process_frame
+			var g_body := evan_model.find_child("GuitarBody", true, false) as Node3D
+			var sync_boom := Node3D.new()
+			sync_boom.set_script(boomerang)
+			holder.add_child(sync_boom)
+			sync_boom.set_physics_process(false)
+			await process_frame
+			sync_boom.call("setup", "evan-gate", evan_owner, origin, Vector3.RIGHT,
+					18.0, 55.0, "evan-sync-token", Color(1.0, 0.20, 0.55), 4.5, "boomerang")
+			_check(g_body != null and not g_body.visible,
+					"BoomerangGuitar.setup hides owner's held GuitarBody")
+			sync_boom.call("_finish", true)
+			_check(g_body != null and g_body.visible,
+					"BoomerangGuitar._finish restores owner's held GuitarBody")
+			evan_owner.queue_free()
+			await process_frame
+
 		# A scenery-only contact must not emit the enemy "hit" confirmation.
 		var scenery := Node3D.new()
 		scenery.name = "Ground"
@@ -280,6 +308,14 @@ func _run() -> void:
 				"DevilHandStrike propagates owner_id")
 		_check(is_equal_approx(float(dh.get("blast_radius")), 7.5),
 				"DevilHandStrike carries the 7.5 m blast radius")
+		_check(dh.find_child("Veins", true, false) != null,
+				"DevilHandStrike builds anatomical Veins group")
+		var nail_count := 0
+		for fi in range(1, 6):
+			var fn := dh.find_child("Finger%d" % fi, true, false)
+			if fn != null and fn.find_child("Fingernail", true, false) != null:
+				nail_count += 1
+		_check(nail_count == 5, "DevilHandStrike builds curved Fingernail on all 5 fingers (%d/5)" % nail_count)
 
 		# Net-supplied instant-kill parameters must be sanitised (AUD P2).
 		var dh_big := Node3D.new()

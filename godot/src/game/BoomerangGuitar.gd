@@ -4,12 +4,13 @@ extends Node3D
 ## owner. Contacts damage once per target; the weapon never detonates mid-flight.
 
 signal hit(target: Node, point: Vector3)
+signal returned(was_caught: bool)
 
 const SPEED := 34.0
-const OUTBOUND_TIME := 0.95
-const OUTBOUND_DIST := 30.0
-const RETURN_ARRIVE := 1.5
-const SPIN_RATE := 12.0
+const OUTBOUND_TIME := 0.72
+const OUTBOUND_DIST := 26.0
+const RETURN_ARRIVE := 1.75
+const SPIN_RATE := 16.0
 const SMASH_IMPULSE := 14.0
 const PINK := Color(1.0, 0.10, 0.46)
 const VFX := preload("res://src/game/VfxFactory.gd")
@@ -24,16 +25,21 @@ var blast_radius := 4.5
 var visual_style := "boomerang"
 
 var _age := 0.0
-var _life := 3.5
+var _life := 2.9
 var _inert := true
 var _outbound := true
+var _return_age := 0.0
 var _outbound_dist := 0.0
 var _outbound_origin := Vector3.ZERO
 var _base_speed := 0.0
 var _hit_ids := {}
+var _hit_outbound := {}
 var _did_hit_any := false
 var _first_target: Node = null
 var _first_point := Vector3.ZERO
+var _notified_throw := false
+var _notified_return := false
+var _finished := false
 var _visual: Node3D
 var _spinner: Node3D
 var _trail: GPUParticles3D
@@ -193,12 +199,17 @@ func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
 	visual_style = p_visual_style
 	_age = 0.0
 	_outbound = true
+	_return_age = 0.0
 	_outbound_dist = 0.0
 	_outbound_origin = p_origin
 	_hit_ids.clear()
+	_hit_outbound.clear()
 	_did_hit_any = false
 	_first_target = null
 	_first_point = p_origin
+	_notified_throw = false
+	_notified_return = false
+	_finished = false
 	damage = p_damage
 	token = p_token
 	hit_color = p_color
@@ -211,18 +222,35 @@ func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
 	_base_speed = p_speed
 	velocity = p_direction.normalized() * p_speed
 	_inert = false
-	_life = 3.5
+	_life = 2.9
 	_build_visual()
+	var ev := _owner_evan_visual()
+	if ev != null:
+		ev.call("on_boomerang_thrown")
+		_notified_throw = true
+
+
+func _owner_evan_visual() -> Node:
+	if is_instance_valid(owner_node):
+		var model := owner_node.get_node_or_null("Model")
+		if model != null and model.has_method("on_boomerang_thrown"):
+			return model
+	return null
 
 
 func _build_visual() -> void:
 	_ensure_meshes()
 	_visual = Node3D.new()
 	_visual.name = "BoomerangGuitar"
+	_visual.scale = Vector3.ONE * 1.18
 	add_child(_visual)
+	var tilt := Node3D.new()
+	tilt.name = "GuitarTilt"
+	tilt.rotation_degrees.z = 14.0
+	_visual.add_child(tilt)
 	_spinner = Node3D.new()
 	_spinner.name = "GuitarSpinner"
-	_visual.add_child(_spinner)
+	tilt.add_child(_spinner)
 
 	var body := MeshInstance3D.new()
 	body.mesh = _body_mesh
@@ -308,6 +336,12 @@ func _release_light() -> void:
 
 func _exit_tree() -> void:
 	_release_light()
+	if _notified_throw and not _notified_return:
+		_notified_return = true
+		var ev := _owner_evan_visual()
+		if ev != null:
+			ev.call("on_boomerang_caught", false)
+		returned.emit(false)
 
 
 static func _resolve_bike(node: Node) -> Node3D:
@@ -337,7 +371,7 @@ func _fx_parent() -> Node3D:
 	return fx
 
 
-func _damage_bike(bike_node: Node, point: Vector3) -> void:
+func _damage_bike(bike_node: Node, point: Vector3, dmg_amount: float, sub_suffix: String) -> void:
 	var root := _resolve_bike(bike_node)
 	if root == null or root == owner_node:
 		return
@@ -345,6 +379,19 @@ func _damage_bike(bike_node: Node, point: Vector3) -> void:
 	# The shooter must never mutate a remote proxy — the victim's own client
 	# resolves its damage against its authoritative local bike.
 	var local_uid := _local_uid()
+	if local_uid != "" and owner_id == local_uid and victim_id != "" and victim_id != local_uid:
+		var tree := get_tree()
+		if tree != null:
+			var combat := tree.get_first_node_in_group("local_combat")
+			if combat != null:
+				combat.emit_signal("hit_confirmed")
+			if tree.current_scene != null:
+				var net := tree.current_scene.get_node_or_null("ArenaNet")
+				if net != null and net.has_method("note_local_damage_shown"):
+					net.call("note_local_damage_shown", victim_id)
+		VFX.damage_number(_fx_parent(), point + Vector3(0.0, 0.45, 0.0),
+				dmg_amount, Color(1.0, 0.88, 0.26))
+		return
 	# Fail closed: an unidentified bike (or any peer id other than ours) is a
 	# remote proxy and must never be mutated from the shooter's client.
 	if local_uid == "" or victim_id == "" or victim_id != local_uid:
@@ -357,8 +404,8 @@ func _damage_bike(bike_node: Node, point: Vector3) -> void:
 				break
 	if controller == null or not controller.has_method("take_damage"):
 		return
-	var sub := ("%s:v%s" % [token, victim_id]) if token != "" else ""
-	controller.call("take_damage", damage, owner_id, root.global_position, sub)
+	var sub := ("%s:v%s%s" % [token, victim_id, sub_suffix]) if token != "" else ""
+	controller.call("take_damage", dmg_amount, owner_id, root.global_position, sub)
 
 
 func _on_contact(collider: Object, point: Vector3, normal: Vector3) -> void:
@@ -371,6 +418,8 @@ func _on_contact(collider: Object, point: Vector3, normal: Vector3) -> void:
 	if _hit_ids.has(id):
 		return
 	_hit_ids[id] = true
+	var dmg_amount := damage * 0.55 if (not _outbound and _hit_outbound.has(id)) else damage
+	var sub_suffix := ":o" if _outbound else ":r"
 	# `hit` is an enemy-hit confirmation, so scenery contact must not latch it.
 	# Only a bike / destructible / hazard that actually took an action counts.
 	var actionable := false
@@ -380,7 +429,7 @@ func _on_contact(collider: Object, point: Vector3, normal: Vector3) -> void:
 		surface = "ground"
 	if node.is_in_group("bike"):
 		actionable = true
-		_damage_bike(node, point)
+		_damage_bike(node, point, dmg_amount, sub_suffix)
 	elif node.is_in_group("destructible"):
 		if node.has_method("smash"):
 			actionable = true
@@ -398,9 +447,18 @@ func _on_contact(collider: Object, point: Vector3, normal: Vector3) -> void:
 	VFX.impact(_fx_parent(), point, PINK, dir, surface, normal)
 
 
-func _finish() -> void:
+func _finish(was_caught: bool = false) -> void:
+	if _finished:
+		return
+	_finished = true
 	if _did_hit_any and _first_target != null:
 		hit.emit(_first_target, _first_point)
+	if _notified_throw and not _notified_return:
+		_notified_return = true
+		var ev := _owner_evan_visual()
+		if ev != null:
+			ev.call("on_boomerang_caught", was_caught)
+	returned.emit(was_caught)
 	_release_light()
 	queue_free()
 
@@ -408,9 +466,14 @@ func _finish() -> void:
 func _steer_return(delta: float) -> void:
 	var target := _outbound_origin
 	if is_instance_valid(owner_node) and owner_node is Node3D:
-		target = (owner_node as Node3D).global_position + Vector3(0.0, 0.7, 0.0)
+		var ev := _owner_evan_visual()
+		if ev != null and ev.has_method("get_guitar_world_pos"):
+			target = ev.call("get_guitar_world_pos")
+		else:
+			target = (owner_node as Node3D).global_position + Vector3(0.0, 1.05, 0.0)
 	var to_target := target - global_position
-	if to_target.length_squared() < 1e-8:
+	var dist_to_owner := to_target.length()
+	if dist_to_owner < 1e-4:
 		return
 	# Rotate the heading along the great-circle arc rather than lerping the
 	# velocity vector: a lerp between opposite directions passes through ~zero
@@ -419,7 +482,7 @@ func _steer_return(delta: float) -> void:
 	var dir_target := to_target.normalized()
 	var dot := clampf(dir_now.dot(dir_target), -1.0, 1.0)
 	var angle := acos(dot)
-	var blend := clampf(delta * 5.5, 0.0, 1.0)
+	var blend := clampf(delta * (6.8 + _return_age * 6.0), 0.0, 1.0)
 	if angle > 1e-4:
 		var axis := dir_now.cross(dir_target)
 		if axis.length_squared() < 1e-8:
@@ -427,26 +490,36 @@ func _steer_return(delta: float) -> void:
 			if axis.length_squared() < 1e-8:
 				axis = dir_now.cross(Vector3.RIGHT)
 		dir_now = dir_now.rotated(axis.normalized(), minf(angle * blend, angle))
-	# Keep a brisk, constant homing speed so the return always completes
-	# inside the hard life cap even after a long outbound leg.
-	var home_speed := maxf(_base_speed * 0.85, 12.0)
+	# Keep a brisk homing speed with a close-range catch boost so it snaps right into Evan's hands.
+	var home_speed := maxf(_base_speed * 0.96, 18.0) + (8.0 if dist_to_owner < 10.0 else 0.0)
 	velocity = dir_now.normalized() * home_speed
 
 
 func _physics_process(delta: float) -> void:
 	_age += delta
 	if _inert or _age >= _life:
-		_finish()
+		_finish(false)
 		return
 	if _visual != null and not Settings.reduced_motion():
-		_spinner.rotate_object_local(Vector3(0.0, 0.0, 1.0), delta * SPIN_RATE)
+		_spinner.rotate_object_local(Vector3.UP, delta * SPIN_RATE)
 
-	if _outbound and (_age >= OUTBOUND_TIME or _outbound_dist >= OUTBOUND_DIST):
-		_outbound = false
+	if _outbound:
+		if _age >= OUTBOUND_TIME * 0.78 or _outbound_dist >= OUTBOUND_DIST * 0.78:
+			var cur_dir := velocity.normalized() if velocity.length_squared() > 1e-6 else Vector3.FORWARD
+			var right := cur_dir.cross(Vector3.UP)
+			right = right.normalized() if right.length_squared() > 1e-6 else Vector3.RIGHT
+			var curved_dir := (cur_dir + right * (0.30 * delta)).normalized()
+			velocity = curved_dir * maxf(_base_speed * 0.65, velocity.length() * (1.0 - 1.5 * delta))
+		if _age >= OUTBOUND_TIME or _outbound_dist >= OUTBOUND_DIST:
+			_outbound = false
+			_return_age = 0.0
+			_hit_outbound = _hit_ids.duplicate()
+			_hit_ids.clear()
 	if not _outbound:
+		_return_age += delta
 		if is_instance_valid(owner_node) and owner_node is Node3D \
-				and global_position.distance_to((owner_node as Node3D).global_position) <= RETURN_ARRIVE:
-			_finish()
+				and global_position.distance_to((owner_node as Node3D).global_position + Vector3(0.0, 0.9, 0.0)) <= RETURN_ARRIVE:
+			_finish(true)
 			return
 		_steer_return(delta)
 
@@ -464,9 +537,17 @@ func _physics_process(delta: float) -> void:
 	var step := velocity * delta
 	var to := from + step
 	_outbound_dist += step.length()
-	_ray_query.from = from
-	_ray_query.to = to
-	var result := world.direct_space_state.intersect_ray(_ray_query)
+	var sweep_dir := velocity.normalized() if velocity.length_squared() > 1e-8 else Vector3.FORWARD
+	var sweep_right := sweep_dir.cross(Vector3.UP)
+	sweep_right = sweep_right.normalized() if sweep_right.length_squared() > 1e-6 else Vector3.RIGHT
+	var result: Dictionary = {}
+	for offset_x in [0.0, 0.38, -0.38]:
+		var off := sweep_right * float(offset_x)
+		_ray_query.from = from + off
+		_ray_query.to = to + off
+		result = world.direct_space_state.intersect_ray(_ray_query)
+		if not result.is_empty():
+			break
 	if result.is_empty():
 		global_position = to
 		return

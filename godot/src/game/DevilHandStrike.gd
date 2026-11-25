@@ -35,6 +35,8 @@ var _portal: MeshInstance3D
 var _rune_ring: Node3D
 var _telegraph_cracks: Array[MeshInstance3D] = []
 var _finger_chains: Array[Dictionary] = []
+var _vein_mat: StandardMaterial3D = null
+var _hand_base_yaw := 0.0
 var _light: OmniLight3D
 
 static var _ring_mesh: CylinderMesh = null
@@ -45,13 +47,118 @@ static var _forearm_mesh: CylinderMesh = null
 static var _cuff_mesh: TorusMesh = null
 static var _spur_mesh: CylinderMesh = null
 static var _palm_mesh: BoxMesh = null
+static var _palm_pad_mesh: SphereMesh = null
+static var _tendon_mesh: CylinderMesh = null
 static var _sigil_mesh: CylinderMesh = null
 static var _knuckle_mesh: SphereMesh = null
+static var _joint_mesh: SphereMesh = null
 static var _proximal_mesh: CylinderMesh = null
 static var _middle_mesh: CylinderMesh = null
 static var _distal_mesh: CylinderMesh = null
-static var _claw_mesh: CylinderMesh = null
+static var _nail_mesh: ArrayMesh = null
+static var _cuticle_mesh: TorusMesh = null
+static var _vein_main_mesh: ArrayMesh = null
+static var _vein_branch_mesh: ArrayMesh = null
 static var _crack_mesh: BoxMesh = null
+
+
+static func _build_vein_mesh(length: float, radius: float, amp: float, freq: float) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var rings := 12
+	var segs := 6
+	var pts: Array[Vector3] = []
+	var rads: Array[float] = []
+	for i in range(rings + 1):
+		var t := float(i) / float(rings)
+		var y := t * length
+		var x := sin(t * freq) * amp
+		var z := cos(t * freq * 0.72) * amp * 0.45
+		pts.append(Vector3(x, y, z))
+		var swell := 1.0 + 0.24 * sin(t * freq * 2.1)
+		var taper := 1.0 - 0.35 * t
+		rads.append(radius * swell * taper)
+	var verts: Array[Array] = []
+	for i in range(rings + 1):
+		var c := pts[i]
+		var r := rads[i]
+		var ring_v: Array[Vector3] = []
+		for j in range(segs):
+			var ang := TAU * float(j) / float(segs)
+			ring_v.append(c + Vector3(cos(ang) * r, 0.0, sin(ang) * r))
+		verts.append(ring_v)
+	for i in range(rings):
+		for j in range(segs):
+			var jn := (j + 1) % segs
+			var a: Vector3 = verts[i][j]
+			var b: Vector3 = verts[i][jn]
+			var c2: Vector3 = verts[i + 1][jn]
+			var d: Vector3 = verts[i + 1][j]
+			st.add_vertex(a); st.add_vertex(b); st.add_vertex(c2)
+			st.add_vertex(a); st.add_vertex(c2); st.add_vertex(d)
+	st.generate_normals()
+	return st.commit()
+
+
+static func _build_nail_mesh() -> ArrayMesh:
+	## Curved obsidian-keratin demonic fingernail: arches across dorsal (-Z) tip
+	## of the distal phalanx and hooks forward/inward (+Z) to a razor talon point.
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var rows := 7
+	var cols := 5
+	var grid: Array[Array] = []
+	for i in range(rows):
+		var t := float(i) / float(rows - 1)  # 0 = cuticle root, 1 = hooked tip
+		var half_w := lerpf(0.155, 0.014, pow(t, 1.35))
+		var thick := lerpf(0.038, 0.010, t)
+		var y := lerpf(0.22, 1.32, t) - 0.14 * pow(t, 2.6)
+		# Dorsal is -Z; tip hooks forward/inward toward +Z palm grip
+		var z_center := -0.175 + 0.30 * pow(t, 2.05)
+		var row_top: Array[Vector3] = []
+		var row_bot: Array[Vector3] = []
+		for j in range(cols):
+			var u := (float(j) / float(cols - 1)) * 2.0 - 1.0  # -1..1 across width
+			var arch := (1.0 - u * u) * lerpf(0.065, 0.015, t)
+			row_top.append(Vector3(u * half_w, y, z_center - arch - thick * 0.5))
+			row_bot.append(Vector3(u * half_w, y, z_center - arch + thick * 0.5))
+		grid.append([row_top, row_bot])
+	for i in range(rows - 1):
+		var t0: Array = grid[i][0]
+		var b0: Array = grid[i][1]
+		var t1: Array = grid[i + 1][0]
+		var b1: Array = grid[i + 1][1]
+		for j in range(cols - 1):
+			# Dorsal surface (-Z)
+			var p_t00: Vector3 = t0[j]; var p_t10: Vector3 = t1[j]
+			var p_t11: Vector3 = t1[j + 1]; var p_t01: Vector3 = t0[j + 1]
+			var p_b00: Vector3 = b0[j]; var p_b10: Vector3 = b1[j]
+			var p_b11: Vector3 = b1[j + 1]; var p_b01: Vector3 = b0[j + 1]
+			st.add_vertex(p_t00); st.add_vertex(p_t10); st.add_vertex(p_t11)
+			st.add_vertex(p_t00); st.add_vertex(p_t11); st.add_vertex(p_t01)
+			# Ventral underside (+Z)
+			st.add_vertex(p_b00); st.add_vertex(p_b11); st.add_vertex(p_b10)
+			st.add_vertex(p_b00); st.add_vertex(p_b01); st.add_vertex(p_b11)
+		# Side edges
+		var s_t0L: Vector3 = t0[0]; var s_b0L: Vector3 = b0[0]
+		var s_b1L: Vector3 = b1[0]; var s_t1L: Vector3 = t1[0]
+		st.add_vertex(s_t0L); st.add_vertex(s_b0L); st.add_vertex(s_b1L)
+		st.add_vertex(s_t0L); st.add_vertex(s_b1L); st.add_vertex(s_t1L)
+		var s_t0R: Vector3 = t0[cols - 1]; var s_t1R: Vector3 = t1[cols - 1]
+		var s_b1R: Vector3 = b1[cols - 1]; var s_b0R: Vector3 = b0[cols - 1]
+		st.add_vertex(s_t0R); st.add_vertex(s_t1R); st.add_vertex(s_b1R)
+		st.add_vertex(s_t0R); st.add_vertex(s_b1R); st.add_vertex(s_b0R)
+	st.generate_normals()
+	var am := st.commit()
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.05, 0.012, 0.018)
+	mat.emission_enabled = true
+	mat.emission = Color(0.55, 0.02, 0.04)
+	mat.emission_energy_multiplier = 0.35
+	mat.metallic = 0.28
+	mat.roughness = 0.16
+	am.surface_set_material(0, mat)
+	return am
 
 
 static func _ensure_meshes() -> void:
@@ -170,6 +277,25 @@ static func _ensure_meshes() -> void:
 		pmat2.roughness = 0.54
 		pm2.material = pmat2
 		_palm_mesh = pm2
+	if _palm_pad_mesh == null:
+		var pp := SphereMesh.new()
+		pp.radius = 0.56
+		pp.height = 1.05
+		pp.radial_segments = 10
+		pp.rings = 6
+		pp.material = _palm_mesh.material
+		_palm_pad_mesh = pp
+	if _tendon_mesh == null:
+		var td := CylinderMesh.new()
+		td.top_radius = 0.065
+		td.bottom_radius = 0.085
+		td.height = 1.85
+		td.radial_segments = 6
+		var tdmat := StandardMaterial3D.new()
+		tdmat.albedo_color = Color(0.11, 0.01, 0.025)
+		tdmat.roughness = 0.65
+		td.material = tdmat
+		_tendon_mesh = td
 	if _sigil_mesh == null:
 		var sm := CylinderMesh.new()
 		sm.top_radius = 0.62
@@ -198,6 +324,14 @@ static func _ensure_meshes() -> void:
 		kmat.roughness = 0.48
 		km.material = kmat
 		_knuckle_mesh = km
+	if _joint_mesh == null:
+		var jm := SphereMesh.new()
+		jm.radius = 0.25
+		jm.height = 0.36
+		jm.radial_segments = 8
+		jm.rings = 4
+		jm.material = _knuckle_mesh.material
+		_joint_mesh = jm
 	if _proximal_mesh == null:
 		var px := CylinderMesh.new()
 		px.top_radius = 0.24
@@ -240,20 +374,26 @@ static func _ensure_meshes() -> void:
 		dmat2.roughness = 0.44
 		dm2.material = dmat2
 		_distal_mesh = dm2
-	if _claw_mesh == null:
-		var cl := CylinderMesh.new()
-		cl.top_radius = 0.008
-		cl.bottom_radius = 0.15
-		cl.height = 0.72
-		cl.radial_segments = 8
-		var clmat := StandardMaterial3D.new()
-		clmat.albedo_color = Color(1.0, 0.35, 0.28)
-		clmat.emission_enabled = true
-		clmat.emission = Color(1.0, 0.18, 0.12)
-		clmat.emission_energy_multiplier = 4.6
-		clmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		cl.material = clmat
-		_claw_mesh = cl
+	if _nail_mesh == null:
+		_nail_mesh = _build_nail_mesh()
+	if _cuticle_mesh == null:
+		var cu := TorusMesh.new()
+		cu.inner_radius = 0.11
+		cu.outer_radius = 0.175
+		cu.rings = 10
+		cu.ring_segments = 6
+		var cumat := StandardMaterial3D.new()
+		cumat.albedo_color = Color(1.0, 0.18, 0.10)
+		cumat.emission_enabled = true
+		cumat.emission = Color(1.0, 0.12, 0.06)
+		cumat.emission_energy_multiplier = 3.2
+		cumat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		cu.material = cumat
+		_cuticle_mesh = cu
+	if _vein_main_mesh == null:
+		_vein_main_mesh = _build_vein_mesh(3.8, 0.068, 0.11, 7.2)
+	if _vein_branch_mesh == null:
+		_vein_branch_mesh = _build_vein_mesh(1.35, 0.044, 0.07, 5.5)
 	if _crack_mesh == null:
 		var cm2 := BoxMesh.new()
 		cm2.size = Vector3(0.14, 0.025, 2.40)
@@ -347,13 +487,51 @@ func _build_visual() -> void:
 	_hand = Node3D.new()
 	_hand.name = "DevilHand"
 	_hand.position.y = RISE_START_Y
+	_hand_base_yaw = 0.35
+	if is_instance_valid(owner_node) and owner_node is Node3D:
+		var to_caster := (owner_node as Node3D).global_position - target_pos
+		to_caster.y = 0.0
+		if to_caster.length_squared() > 0.25:
+			_hand_base_yaw = atan2(to_caster.x, to_caster.z) + 0.35
+	_hand.rotation.y = _hand_base_yaw
 	add_child(_hand)
+
+	# Per-instance pulsing glowing vein material
+	_vein_mat = StandardMaterial3D.new()
+	_vein_mat.albedo_color = Color(0.85, 0.06, 0.08)
+	_vein_mat.emission_enabled = true
+	_vein_mat.emission = Color(1.0, 0.16, 0.05)
+	_vein_mat.emission_energy_multiplier = 2.0
+	_vein_mat.roughness = 0.35
 
 	var forearm := MeshInstance3D.new()
 	forearm.name = "Forearm"
 	forearm.mesh = _forearm_mesh
 	forearm.position = Vector3(0.0, -2.50, 0.0)
 	_hand.add_child(forearm)
+
+	# Bulging sinuous veins + forked tributaries spiraling up the forearm
+	var veins_root := Node3D.new()
+	veins_root.name = "Veins"
+	_hand.add_child(veins_root)
+	for vi in range(6):
+		var v_ang := TAU * float(vi) / 6.0 + 0.25
+		var v_rad := 0.96
+		var vm := MeshInstance3D.new()
+		vm.name = "ForearmVein%d" % vi
+		vm.mesh = _vein_main_mesh
+		vm.material_override = _vein_mat
+		vm.position = Vector3(sin(v_ang) * v_rad, -4.35, cos(v_ang) * v_rad)
+		vm.rotation.y = v_ang
+		veins_root.add_child(vm)
+		if vi < 4:
+			var vb := MeshInstance3D.new()
+			vb.name = "ForearmVeinBranch%d" % vi
+			vb.mesh = _vein_branch_mesh
+			vb.material_override = _vein_mat
+			vb.position = Vector3(sin(v_ang + 0.2) * 0.92, -2.45 - float(vi % 2) * 0.85, cos(v_ang + 0.2) * 0.92)
+			vb.rotation = Vector3(0.18, v_ang + 0.3, 0.26 if vi % 2 == 0 else -0.26)
+			veins_root.add_child(vb)
 
 	var cuff := MeshInstance3D.new()
 	cuff.name = "WristCuff"
@@ -375,6 +553,51 @@ func _build_visual() -> void:
 	palm.mesh = _palm_mesh
 	palm.position = Vector3(0.0, 0.72, 0.0)
 	_hand.add_child(palm)
+
+	# Muscular thenar (thumb heel) & hypothenar (outer palm) pads
+	var thenar := MeshInstance3D.new()
+	thenar.name = "ThenarPad"
+	thenar.mesh = _palm_pad_mesh
+	thenar.position = Vector3(-0.78, 0.35, 0.32)
+	thenar.scale = Vector3(1.05, 1.15, 0.72)
+	_hand.add_child(thenar)
+
+	var hypothenar := MeshInstance3D.new()
+	hypothenar.name = "HypothenarPad"
+	hypothenar.mesh = _palm_pad_mesh
+	hypothenar.position = Vector3(0.76, 0.55, 0.22)
+	hypothenar.scale = Vector3(0.88, 1.25, 0.68)
+	_hand.add_child(hypothenar)
+
+	# Dorsal extensor tendons & metacarpal veins across back of hand (-Z)
+	for ti in range(4):
+		var tx := -0.78 + float(ti) * 0.52
+		var tendon := MeshInstance3D.new()
+		tendon.name = "DorsalTendon%d" % ti
+		tendon.mesh = _tendon_mesh
+		tendon.position = Vector3(tx * 0.72, 0.74, -0.46)
+		tendon.rotation.z = -tx * 0.14
+		_hand.add_child(tendon)
+
+	for dvi in range(5):
+		var dx := -0.95 + float(dvi) * 0.48
+		var dv := MeshInstance3D.new()
+		dv.name = "DorsalVein%d" % dvi
+		dv.mesh = _vein_branch_mesh
+		dv.material_override = _vein_mat
+		dv.position = Vector3(dx * 0.65, 0.15, -0.48)
+		dv.rotation.z = -dx * 0.24
+		dv.scale = Vector3(1.15, 1.35, 1.15)
+		veins_root.add_child(dv)
+
+	for pvi in range(2):
+		var pv := MeshInstance3D.new()
+		pv.name = "PalmVein%d" % pvi
+		pv.mesh = _vein_branch_mesh
+		pv.material_override = _vein_mat
+		pv.position = Vector3(-0.42 + float(pvi) * 0.84, 0.05, 0.48)
+		pv.rotation.z = 0.22 if pvi == 0 else -0.22
+		veins_root.add_child(pv)
 
 	var sigil := MeshInstance3D.new()
 	sigil.name = "PalmSigil"
@@ -409,16 +632,37 @@ func _build_visual() -> void:
 		prox.position = Vector3(0.0, 0.68, 0.0)
 		mcp.add_child(prox)
 
+		var prox_vein := MeshInstance3D.new()
+		prox_vein.name = "VeinProx"
+		prox_vein.mesh = _vein_branch_mesh
+		prox_vein.material_override = _vein_mat
+		prox_vein.position = Vector3(0.0, 0.05, -0.24)
+		prox_vein.scale = Vector3(0.75, 0.92, 0.75)
+		mcp.add_child(prox_vein)
+
 		var pip := Node3D.new()
 		pip.name = "PIP"
 		pip.position = Vector3(0.0, 1.32, 0.0)
 		pip.rotation.x = 0.22
 		mcp.add_child(pip)
 
+		var pip_joint := MeshInstance3D.new()
+		pip_joint.name = "PIPJoint"
+		pip_joint.mesh = _joint_mesh
+		pip.add_child(pip_joint)
+
 		var mid := MeshInstance3D.new()
 		mid.mesh = _middle_mesh
 		mid.position = Vector3(0.0, 0.52, 0.0)
 		pip.add_child(mid)
+
+		var mid_vein := MeshInstance3D.new()
+		mid_vein.name = "VeinMid"
+		mid_vein.mesh = _vein_branch_mesh
+		mid_vein.material_override = _vein_mat
+		mid_vein.position = Vector3(0.0, 0.04, -0.19)
+		mid_vein.scale = Vector3(0.58, 0.72, 0.58)
+		pip.add_child(mid_vein)
 
 		var dip := Node3D.new()
 		dip.name = "DIP"
@@ -426,17 +670,28 @@ func _build_visual() -> void:
 		dip.rotation.x = 0.28
 		pip.add_child(dip)
 
+		var dip_joint := MeshInstance3D.new()
+		dip_joint.name = "DIPJoint"
+		dip_joint.mesh = _joint_mesh
+		dip_joint.scale = Vector3.ONE * 0.80
+		dip.add_child(dip_joint)
+
 		var dist := MeshInstance3D.new()
 		dist.mesh = _distal_mesh
 		dist.position = Vector3(0.0, 0.38, 0.0)
 		dip.add_child(dist)
 
-		var claw := MeshInstance3D.new()
-		claw.name = "Claw"
-		claw.mesh = _claw_mesh
-		claw.position = Vector3(0.0, 0.98, 0.08)
-		claw.rotation.x = 0.32
-		dip.add_child(claw)
+		var cuticle := MeshInstance3D.new()
+		cuticle.name = "NailCuticle"
+		cuticle.mesh = _cuticle_mesh
+		cuticle.position = Vector3(0.0, 0.24, -0.06)
+		cuticle.rotation_degrees.x = 22.0
+		dip.add_child(cuticle)
+
+		var nail := MeshInstance3D.new()
+		nail.name = "Fingernail"
+		nail.mesh = _nail_mesh
+		dip.add_child(nail)
 
 		_finger_chains.append({
 			"mcp": mcp, "pip": pip, "dip": dip,
@@ -510,14 +765,29 @@ func _physics_process(delta: float) -> void:
 							maxi(10, int(28 * quality)), 0.55, Vector3.UP, 38.0,
 							4.0, 10.0, [Color(1.0, 0.22, 0.15, 0.9), Color(0.25, 0.02, 0.04, 0.0)],
 							0.5, Vector3(0.0, -9.8, 0.0), true, {"tex": "fire", "quad": 0.45, "explosiveness": 0.9})
+			var sfx := get_node_or_null("/root/Sfx")
+			if sfx != null and sfx.has_method("play_3d"):
+				sfx.call("play_3d", "impact", target_pos, 1.4, 0.55)
+			if not reduced and get_tree() != null:
+				var cam := get_tree().get_first_node_in_group("camera_rig")
+				if cam != null and cam.has_method("add_shake"):
+					var cam_dist := (cam as Node3D).global_position.distance_to(target_pos) if cam is Node3D else 0.0
+					cam.call("add_shake", 0.22 * clampf(1.0 - cam_dist / 65.0, 0.15, 1.0))
 
 		var rise_t := clampf((t - 0.14) / 0.64, 0.0, 1.0)
 		var eased := 1.0 - pow(1.0 - rise_t, 3.0)  # powerful cubic-out eruption
 		_hand.position.y = lerpf(RISE_START_Y, RISE_END_Y, eased)
+		if _vein_mat != null:
+			if reduced:
+				_vein_mat.emission_energy_multiplier = 2.6
+			else:
+				var freq := lerpf(5.5, 20.0, t)
+				var beat := pow(0.5 + 0.5 * sin(_age * freq), 2.0)
+				_vein_mat.emission_energy_multiplier = lerpf(1.6, 4.8, t) + (0.6 + 1.4 * t) * beat
 		if is_instance_valid(_light):
 			_light.light_energy = lerpf(6.5, 12.0, clampf((t - 0.4) / 0.6, 0.0, 1.0))
 		if not reduced:
-			_hand.rotation.y = sin(_age * 3.8) * 0.14 * (1.0 - t * 0.4)
+			_hand.rotation.y = _hand_base_yaw + sin(_age * 3.8) * 0.14 * (1.0 - t * 0.4)
 			_hand.rotation.z = sin(_age * 2.4) * 0.06 * (1.0 - t * 0.4)
 			var pre_curl := -0.18 * (1.0 - clampf(t / 0.68, 0.0, 1.0)) + 0.44 * clampf((t - 0.72) / 0.28, 0.0, 1.0)
 			_apply_finger_curl(pre_curl)

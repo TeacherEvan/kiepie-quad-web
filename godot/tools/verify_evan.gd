@@ -113,12 +113,13 @@ func _run() -> void:
 	_check(players.size() >= 1, "AnimationPlayer present")
 	if players.size() >= 1:
 		var ap := players[0] as AnimationPlayer
-		for clip in ["Idle_Sway", "Play_Strum", "Headbang_Riff", "Action_BigFinish"]:
+		for clip in ["Idle_Sway", "Play_Strum", "Headbang_Riff", "Action_BigFinish",
+				"Run_NoGuitar", "Action_GuitarThrow", "Action_GuitarCatch"]:
 			_check(ap.has_animation(clip), "NLA clip %s baked" % clip)
 			var anim: Animation = ap.get_animation(clip)
 			_check(anim != null and anim.get_track_count() > 0 and anim.length > 0.0,
 					"NLA clip %s has real tracks and duration" % clip)
-			if clip in ["Play_Strum", "Headbang_Riff"] and anim != null:
+			if clip in ["Play_Strum", "Headbang_Riff", "Run_NoGuitar"] and anim != null:
 				var has_thigh := false
 				var has_calf := false
 				for ti in range(anim.get_track_count()):
@@ -197,7 +198,7 @@ func _run() -> void:
 		var vs := mm.get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/VehicleRow/VehicleSelect") as OptionButton
 		_check(vs != null, "VehicleSelect exists")
 		if vs != null:
-			_check(vs.item_count == 5 and vs.get_item_text(4) == "EVAN THE SKELETON",
+			_check(vs.item_count == 6 and vs.get_item_text(4) == "EVAN THE SKELETON",
 					"VehicleSelect has EVAN THE SKELETON option")
 			vs.select(4)
 			vs.item_selected.emit(4)
@@ -227,11 +228,26 @@ func _run() -> void:
 			var script: Variant = evan_model.get_script()
 			_check(script != null and str(script.resource_path).ends_with("EvanVisual.gd"),
 					"Model carries EvanVisual.gd")
-			# Invoke the hook, not just has_method(): a no-op body must fail.
+			# Light primary recoil must NOT hijack running into Action_BigFinish
+			evan_model.call("trigger_recoil", 0.75)
+			_check(float(evan_model.get("_finish_cd")) == 0.0,
+					"light primary recoil does not hijack running with Action_BigFinish")
+			# Invoke heavy hook, not just has_method(): a no-op body must fail.
 			evan_model.call("trigger_recoil", 1.0)
 			_check(float(evan_model.get("_finish_cd")) > 0.0
 					and str(evan_model.get("_last_clip")) == "Action_BigFinish",
 					"trigger_recoil actually arms the finish clip and lockout")
+			# Boomerang throw/catch hides and restores the held GuitarBody
+			var held_guitar := _find(evan_model, "GuitarBody") as Node3D
+			evan_model.call("on_boomerang_thrown")
+			_check(held_guitar != null and not held_guitar.visible
+					and int(evan_model.get("_guitar_out_count")) > 0
+					and str(evan_model.get("_last_clip")) == "Action_GuitarThrow",
+					"on_boomerang_thrown hides held guitar and plays Action_GuitarThrow")
+			evan_model.call("on_boomerang_caught", true)
+			_check(held_guitar != null and held_guitar.visible
+					and int(evan_model.get("_guitar_out_count")) == 0,
+					"on_boomerang_caught restores held guitar visibility")
 		var combat: Node = bike.get_node_or_null("CombatController")
 		var cannons: Node = combat.get("cannons") if combat != null else null
 		_check(cannons != null and str(cannons.get("weapon_profile")) == "evan",

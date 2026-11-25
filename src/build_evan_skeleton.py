@@ -53,7 +53,15 @@ SPEC = {
 }
 
 BONE_COUNT = 52
-ACTION_NAMES = ("Idle_Sway", "Play_Strum", "Headbang_Riff", "Action_BigFinish")
+ACTION_NAMES = (
+    "Idle_Sway",
+    "Play_Strum",
+    "Headbang_Riff",
+    "Action_BigFinish",
+    "Run_NoGuitar",
+    "Action_GuitarThrow",
+    "Action_GuitarCatch",
+)
 
 
 def ensure_node_tree(datablock: Any) -> Any:
@@ -404,10 +412,11 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
         eb.tail = Vector(item["tail"])
         if item["parent"]:
             eb.parent = created[item["parent"]]
-        # Align Z-axis forward (-Y) on torso, head, and leg chains so +X rotation
-        # is a consistent pitch axis across the entire rig.
+        # Align Z-axis forward (-Y) on torso, head, arm, and leg chains so
+        # local X/Y/Z axes are deterministic across the entire rig.
         if any(item["name"].startswith(p) for p in (
             "Hips", "Spine", "Chest", "UpperChest", "Neck", "Head",
+            "Shoulder", "UpperArm", "ForeArm", "Hand",
             "Thigh", "Calf", "Foot", "Toes",
         )):
             eb.align_roll(Vector((0.0, -1.0, 0.0)))
@@ -705,7 +714,7 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
         bind(ob, "UpperChest")
 
     # Sinuous trailing cable bound to Hips
-    bind(tube("GuitarCable", [
+    cable_ob = bind(tube("GuitarCable", [
         Vector((-0.17, -0.20, 0.90)),
         Vector((-0.24, -0.16, 0.72)),
         Vector((-0.21, -0.06, 0.52)),
@@ -713,6 +722,7 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
         Vector((-0.20, 0.12, 0.16)),
         Vector((-0.22, 0.16, 0.04)),
     ], 0.0055, strap_brown, 6), "Hips")
+    guitar_set = set(guitar_parts) | {cable_ob}
 
     # -------------------------------------------------------------- rigid skin binding
     for ob, bone_name in parts:
@@ -724,23 +734,25 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
         mod.use_vertex_groups = True
         mod.use_bone_envelopes = False
 
-    # -------------------------------------------------------------- batch by bone + material
+    # -------------------------------------------------------------- batch by bone + material + guitar
     LANDMARKS = {
         "RiffMuzzle_L", "RiffMuzzle_R", "GuitarBody",
         "Skull_Cranium", "Skull_Jaw", "GuitarStrap", "GuitarCable",
     }
-    batches: dict[tuple[str, str], list[Any]] = defaultdict(list)
+    batches: dict[tuple[str, str, bool], list[Any]] = defaultdict(list)
     for ob, bone_name in parts:
         if ob.name in LANDMARKS:
             continue
         mat_name = ob.data.materials[0].name if ob.data.materials else ""
-        batches[(bone_name, mat_name)].append(ob)
+        batches[(bone_name, mat_name, ob in guitar_set)].append(ob)
     merged: list[tuple[Any, str]] = []
     for ob, bone_name in parts:
         if ob.name in LANDMARKS:
             merged.append((ob, bone_name))
-    for (bone_name, mat_name), obs in batches.items():
+    for (bone_name, mat_name, is_guitar), obs in batches.items():
+        target_name = f"GuitarPart_{mat_name}" if is_guitar else f"Evan_{bone_name}_{mat_name}"
         if len(obs) == 1:
+            obs[0].name = target_name
             merged.append((obs[0], bone_name))
             continue
         bpy.ops.object.select_all(action="DESELECT")
@@ -749,100 +761,168 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
         bpy.context.view_layer.objects.active = obs[0]
         bpy.ops.object.join()
         joined = obs[0]
-        joined.name = f"Evan_{bone_name}_{mat_name}"
+        joined.name = target_name
         merged.append((joined, bone_name))
     parts = merged
     print(f"[QA] batched into {len(parts)} skinned meshes")
 
-    # -------------------------------------------------------------- 4 baked NLA actions
+    # -------------------------------------------------------------- 7 baked NLA actions
     pose = arm.pose.bones
     for pb in pose:
         pb.rotation_mode = "XYZ"
 
-    # Verify knee flexion sign: negative local X on Calf must move ankle +Y (backward)
+    # Biomechanical axis verification assertions (local +Y = World +Z UP on Hips)
+    pose["Hips"].location = (0.0, 0.10, 0.0)
+    bpy.context.view_layer.update()
+    assert pose["Hips"].head.z > bone_heads["Hips"].z + 0.05, \
+        f"Hips local +Y did not move world +Z: {pose['Hips'].head.z} vs {bone_heads['Hips'].z}"
+    pose["Hips"].location = (0.0, 0.0, 0.0)
+
+    pose["Thigh.L"].rotation_euler = (0.5, 0.0, 0.0)
+    bpy.context.view_layer.update()
+    assert pose["Thigh.L"].tail.y < bone_tails["Thigh.L"].y - 0.10, \
+        f"Thigh.L +X did not swing knee forward (-Y): {pose['Thigh.L'].tail.y} vs {bone_tails['Thigh.L'].y}"
+    pose["Thigh.L"].rotation_euler = (0.0, 0.0, 0.0)
+
     pose["Calf.L"].rotation_euler = (-0.8, 0.0, 0.0)
     bpy.context.view_layer.update()
-    assert pose["Calf.L"].tail.y > bone_tails["Calf.L"].y, \
-        "Calf.L negative X rotation did not flex knee backward!"
+    assert pose["Calf.L"].tail.y > bone_tails["Calf.L"].y + 0.10, \
+        f"Calf.L -X did not flex knee backward (+Y): {pose['Calf.L'].tail.y} vs {bone_tails['Calf.L'].y}"
     pose["Calf.L"].rotation_euler = (0.0, 0.0, 0.0)
+
+    pose["Foot.L"].rotation_euler = (0.4, 0.0, 0.0)
+    bpy.context.view_layer.update()
+    assert pose["Foot.L"].tail.z > bone_tails["Foot.L"].z + 0.02, \
+        f"Foot.L +X did not dorsiflex toes UP (+Z): {pose['Foot.L'].tail.z} vs {bone_tails['Foot.L'].z}"
+    pose["Foot.L"].rotation_euler = (0.0, 0.0, 0.0)
+    bpy.context.view_layer.update()
+
+    ANIMATED_BONES = (
+        "Hips", "Spine", "Chest", "UpperChest", "Neck", "Head",
+        "Shoulder.L", "UpperArm.L", "ForeArm.L", "Hand.L", "Index1.L", "Middle1.L",
+        "Shoulder.R", "UpperArm.R", "ForeArm.R", "Hand.R",
+        "Thigh.L", "Calf.L", "Foot.L", "Toes.L",
+        "Thigh.R", "Calf.R", "Foot.R", "Toes.R",
+    )
+
+    def _periodic_curve(u: float, knots: tuple[float, ...]) -> float:
+        """C1-smooth periodic Catmull-Rom spline over u in [0, 1)."""
+        n = len(knots)
+        scaled = (u % 1.0) * n
+        i1 = int(math.floor(scaled)) % n
+        t = scaled - math.floor(scaled)
+        p0 = knots[(i1 - 1) % n]
+        p1 = knots[i1]
+        p2 = knots[(i1 + 1) % n]
+        p3 = knots[(i1 + 2) % n]
+        t2 = t * t
+        t3 = t2 * t
+        return 0.5 * (
+            (2.0 * p1)
+            + (-p0 + p2) * t
+            + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t2
+            + (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * t3
+        )
 
     def commit(action_name: str, frame_end: int, evaluator: Any) -> None:
         act = bpy.data.actions.new(name=action_name)
         arm.animation_data_create()
         arm.animation_data.action = act
+        denom = max(1, frame_end - 1)
         for f in range(1, frame_end + 1):
             scene.frame_set(f)
+            u = (f - 1) / denom
             for pb in pose:
                 pb.rotation_euler = (0.0, 0.0, 0.0)
                 pb.location = (0.0, 0.0, 0.0)
-            evaluator(pose, f, frame_end)
-            for pb in pose:
-                pb.keyframe_insert(data_path="rotation_euler", frame=f)
+            evaluator(pose, u)
+            for bname in ANIMATED_BONES:
+                pose[bname].keyframe_insert(data_path="rotation_euler", frame=f)
             pose["Hips"].keyframe_insert(data_path="location", frame=f)
         track = arm.animation_data.nla_tracks.new()
         track.name = action_name
         track.strips.new(action_name, 1, act)
         arm.animation_data.action = None
 
-    def idle(pb: Any, f: int, total: int) -> None:
-        t = (f / total) * 2.0 * math.pi
+    def idle(pb: Any, u: float) -> None:
+        t = u * 2.0 * math.pi
         w = math.sin(t)
-        bounce = abs(math.sin(t))
-        pb["Hips"].location = (0.0, 0.0, -0.025 * bounce)
-        pb["Hips"].rotation_euler = (0.02 * w, 0.0, 0.03 * w)
+        bounce = 0.5 - 0.5 * math.cos(2.0 * t)
+        # Hips local +Y = world +Z UP
+        pb["Hips"].location = (0.012 * w, -0.024 * bounce, 0.0)
+        pb["Hips"].rotation_euler = (0.03 * bounce, 0.04 * w, 0.03 * w)
         pb["Thigh.L"].rotation_euler = (0.14 * bounce, 0.0, 0.0)
         pb["Calf.L"].rotation_euler = (-0.28 * bounce, 0.0, 0.0)
         pb["Foot.L"].rotation_euler = (0.14 * bounce, 0.0, 0.0)
         pb["Thigh.R"].rotation_euler = (0.14 * bounce, 0.0, 0.0)
         pb["Calf.R"].rotation_euler = (-0.28 * bounce, 0.0, 0.0)
         pb["Foot.R"].rotation_euler = (0.14 * bounce, 0.0, 0.0)
-        pb["Chest"].rotation_euler = (0.04 * w, 0.0, 0.0)
-        pb["Head"].rotation_euler = (-0.08 * bounce, math.sin(t * 0.5) * 0.06, 0.03 * w)
-        pb["ForeArm.R"].rotation_euler = (0.09 * math.sin(t * 2.0), 0.0, 0.0)
+        pb["Chest"].rotation_euler = (0.04 * w, -0.03 * w, 0.0)
+        pb["Head"].rotation_euler = (-0.08 * bounce, math.sin(t * 0.5) * 0.05, 0.03 * w)
+        pb["ForeArm.R"].rotation_euler = (0.10 * math.sin(t * 2.0), 0.0, 0.0)
         pb["Index1.L"].rotation_euler = (0.0, 0.0, 0.16 * w)
 
-    def _apply_run_legs(pb: Any, t: float, stride: float, tuck: float,
-                        bounce_amp: float, lean: float) -> None:
-        # Double-frequency vertical run bounce (peaks during flight phase)
-        pb["Hips"].location = (0.0, 0.0, bounce_amp * (0.35 - math.cos(2.0 * t) * 0.65))
-        pb["Hips"].rotation_euler = (lean * 0.35, 0.0, math.sin(t) * 0.10)
-        pb["Spine"].rotation_euler = (lean * 0.35, 0.0, -math.sin(t) * 0.07)
-        pb["Chest"].rotation_euler = (lean * 0.30, 0.0, -math.sin(t) * 0.06)
-        for side, phase in (("L", t), ("R", t + math.pi)):
-            s = math.sin(phase)
-            swing_fwd = max(0.0, -math.cos(phase))
-            hip_x = s * stride + 0.12
-            knee_x = -0.18 - tuck * (0.55 + 0.45 * math.cos(phase)) if s < 0.15 else -0.15 - 0.35 * swing_fwd
-            foot_x = -0.25 * s - 0.18 * swing_fwd
-            pb[f"Thigh.{side}"].rotation_euler = (hip_x, 0.0, 0.0)
-            pb[f"Calf.{side}"].rotation_euler = (min(-0.08, knee_x), 0.0, 0.0)
-            pb[f"Foot.{side}"].rotation_euler = (foot_x, 0.0, 0.0)
-            pb[f"Toes.{side}"].rotation_euler = (0.25 * max(0.0, -s), 0.0, 0.0)
+    # 8-knot periodic gait curves (u=0.0 heel strike -> u=0.25 toe-off -> u=0.625 high-knee swing)
+    THIGH_KNOTS = (0.58, 0.06, -0.66, -0.48, 0.12, 0.88, 1.04, 0.82)
+    CALF_KNOTS = (-0.24, -0.46, -0.14, -1.55, -1.82, -1.25, -0.55, -0.20)
+    FOOT_KNOTS = (0.18, 0.34, -0.52, -0.30, 0.12, 0.26, 0.22, 0.14)
+    TOES_KNOTS = (0.05, 0.10, 0.48, 0.05, 0.00, 0.00, 0.00, 0.02)
 
-    def strum(pb: Any, f: int, total: int) -> None:
-        t = (f / total) * 2.0 * math.pi
-        _apply_run_legs(pb, t, stride=0.82, tuck=1.05, bounce_amp=0.085, lean=0.18)
+    def _apply_run_legs(pb: Any, u: float, stride_scale: float, tuck_scale: float,
+                        bounce_amp: float, lean: float) -> None:
+        t = u * 2.0 * math.pi
+        # Hips local +Y = World +Z UP; lowest at mid-stance (u=0.125,0.625), highest in flight (u=0.375,0.875)
+        bounce_y = -math.sin(4.0 * math.pi * u) * bounce_amp + bounce_amp * 0.15
+        sway_x = math.sin(t) * 0.028
+        pb["Hips"].location = (sway_x, bounce_y, 0.0)
+        pelvis_yaw = -math.cos(t) * 0.16 * stride_scale
+        pelvis_drop = math.sin(t) * 0.08
+        pb["Hips"].rotation_euler = (lean * 0.30, pelvis_yaw, pelvis_drop)
+        # Torso counter-twist against pelvis + sprinter forward lean
+        pb["Spine"].rotation_euler = (lean * 0.36, -pelvis_yaw * 0.45, -pelvis_drop * 0.4)
+        pb["Chest"].rotation_euler = (lean * 0.34, -pelvis_yaw * 0.55, -pelvis_drop * 0.4)
+        pb["UpperChest"].rotation_euler = (0.04 * math.sin(2.0 * t), -pelvis_yaw * 0.30, 0.0)
+        # Head counter-pitch keeps gaze forward while sprinting
+        pb["Neck"].rotation_euler = (-lean * 0.36, 0.0, 0.0)
+        pb["Head"].rotation_euler = (-lean * 0.36 + 0.06 * math.cos(2.0 * t), math.sin(t) * 0.05, -pelvis_drop * 0.3)
+
+        for side, phase_u in (("L", u), ("R", (u + 0.5) % 1.0)):
+            hip_x = _periodic_curve(phase_u, THIGH_KNOTS) * stride_scale
+            knee_x = min(-0.08, _periodic_curve(phase_u, CALF_KNOTS) * tuck_scale)
+            foot_x = _periodic_curve(phase_u, FOOT_KNOTS)
+            toes_x = _periodic_curve(phase_u, TOES_KNOTS)
+            pb[f"Thigh.{side}"].rotation_euler = (hip_x, 0.0, 0.0)
+            pb[f"Calf.{side}"].rotation_euler = (knee_x, 0.0, 0.0)
+            pb[f"Foot.{side}"].rotation_euler = (foot_x, 0.0, 0.0)
+            pb[f"Toes.{side}"].rotation_euler = (toes_x, 0.0, 0.0)
+
+    def strum(pb: Any, u: float) -> None:
+        t = u * 2.0 * math.pi
+        _apply_run_legs(pb, u, stride_scale=0.92, tuck_scale=0.95, bounce_amp=0.065, lean=0.22)
         s = math.sin(t * 2.0)
         pb["ForeArm.R"].rotation_euler = (s * 0.42, 0.0, s * 0.08)
-        pb["Hand.R"].rotation_euler = (s * 0.20, 0.0, 0.0)
+        pb["Hand.R"].rotation_euler = (s * 0.22, 0.0, 0.0)
         pb["Index1.L"].rotation_euler = (0.0, 0.0, s * 0.25)
         pb["Middle1.L"].rotation_euler = (0.0, 0.0, -s * 0.20)
-        pb["Head"].rotation_euler = (-0.06 + math.cos(2.0 * t) * 0.08, 0.0, math.sin(t) * 0.05)
+        pb["Head"].rotation_euler = (
+            pb["Head"].rotation_euler[0] + math.cos(2.0 * t) * 0.06,
+            pb["Head"].rotation_euler[1],
+            math.sin(t) * 0.05,
+        )
 
-    def headbang(pb: Any, f: int, total: int) -> None:
-        t = (f / total) * 2.0 * math.pi
-        _apply_run_legs(pb, t, stride=1.02, tuck=1.22, bounce_amp=0.12, lean=0.26)
+    def headbang(pb: Any, u: float) -> None:
+        t = u * 2.0 * math.pi
+        _apply_run_legs(pb, u, stride_scale=1.12, tuck_scale=1.08, bounce_amp=0.088, lean=0.34)
         s2 = math.sin(t * 2.0)
-        pb["Neck"].rotation_euler = (0.28 * s2, 0.0, 0.0)
-        pb["Head"].rotation_euler = (0.34 * s2, math.sin(t) * 0.12, 0.0)
-        pb["UpperChest"].rotation_euler = (0.10 * s2, 0.0, 0.0)
+        pb["Neck"].rotation_euler = (-0.08 + 0.26 * s2, 0.0, 0.0)
+        pb["Head"].rotation_euler = (-0.08 + 0.34 * s2, math.sin(t) * 0.12, 0.0)
+        pb["UpperChest"].rotation_euler = (0.10 * s2, pb["UpperChest"].rotation_euler[1], 0.0)
         pb["ForeArm.R"].rotation_euler = (s2 * 0.55, 0.0, 0.0)
 
-    def finish(pb: Any, f: int, total: int) -> None:
+    def finish(pb: Any, u: float) -> None:
         # Iconic mid-air punk rock scissor-kick leap matching Evan the skeleton.jpeg!
-        u = f / total
         env = math.sin(min(u, 1.0) * math.pi)
-        pb["Hips"].location = (0.0, 0.0, 0.24 * env)
+        pb["Hips"].location = (0.0, 0.28 * env, 0.0)
         pb["Hips"].rotation_euler = (-0.08 * env, 0.0, -0.10 * env)
         pb["Chest"].rotation_euler = (-0.12 * env, 0.0, 0.0)
         pb["Head"].rotation_euler = (-0.32 * env, 0.12 * env, 0.0)
@@ -855,13 +935,118 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
         pb["Foot.R"].rotation_euler = (0.35 * env, 0.0, 0.0)
         pb["ForeArm.R"].rotation_euler = (0.65 * math.sin(u * 2.0 * math.pi), 0.0, 0.0)
 
-    commit("Idle_Sway", 60, idle)
+    def run_noguitar(pb: Any, u: float) -> None:
+        """Full 100m sprinter arm-pumping in anti-phase with legs while guitar is in flight."""
+        _apply_run_legs(pb, u, stride_scale=1.02, tuck_scale=1.02, bounce_amp=0.078, lean=0.28)
+        t = u * 2.0 * math.pi
+        # Left arm drives forward when Right thigh drives forward (-cos(t) = +1 at u=0.5)
+        arm_swing = math.cos(t)
+        # Un-cross rest guitar pose so elbows clear the ribcage cleanly
+        pb["Shoulder.L"].rotation_euler = (0.0, 0.08 * arm_swing, 0.05)
+        pb["UpperArm.L"].rotation_euler = (-0.65 * arm_swing + 0.10, 0.0, 0.22)
+        pb["ForeArm.L"].rotation_euler = (0.95 - 0.35 * arm_swing, -0.25, -0.18)
+        pb["Hand.L"].rotation_euler = (0.15, 0.0, 0.0)
+
+        pb["Shoulder.R"].rotation_euler = (0.0, -0.08 * arm_swing, -0.05)
+        pb["UpperArm.R"].rotation_euler = (0.65 * arm_swing + 0.10, 0.0, -0.26)
+        pb["ForeArm.R"].rotation_euler = (1.15 + 0.35 * arm_swing, 0.35, 0.42)
+        pb["Hand.R"].rotation_euler = (0.15, 0.0, 0.0)
+
+    def guitar_throw(pb: Any, u: float) -> None:
+        """Explosive sidearm boomerang guitar hurl while keeping athletic leg drive."""
+        _apply_run_legs(pb, (u * 0.65) % 1.0, stride_scale=0.88, tuck_scale=0.88, bounce_amp=0.055, lean=0.24)
+        if u < 0.24:
+            # Coiled wind-up: torso twists right, right arm draws back
+            k = math.sin((u / 0.24) * math.pi * 0.5)
+            twist = -0.52 * k
+            arm_fwd = -0.45 * k
+            arm_out = -0.78 * k
+            elbow_ext = 0.20 * k
+            l_back = 0.35 * k
+        elif u < 0.58:
+            # Whip forward & release toward -Y (world forward)
+            k = (u - 0.24) / 0.34
+            s = math.sin(k * math.pi * 0.5)
+            twist = -0.52 + 1.06 * s
+            arm_fwd = -0.45 + 1.95 * s
+            arm_out = -0.78 + 0.62 * s
+            elbow_ext = 0.20 + 0.35 * s
+            l_back = 0.35 - 0.95 * s
+        else:
+            # Follow-through settling into sprinter posture
+            k = (u - 0.58) / 0.42
+            s = 1.0 - math.sin(k * math.pi * 0.5)
+            twist = 0.54 * s
+            arm_fwd = 1.50 * s + 0.20 * (1.0 - s)
+            arm_out = -0.16 * s - 0.24 * (1.0 - s)
+            elbow_ext = 0.55 * s + 0.95 * (1.0 - s)
+            l_back = -0.60 * s + 0.15 * (1.0 - s)
+
+        pb["Chest"].rotation_euler = (pb["Chest"].rotation_euler[0] + 0.10, twist * 0.55, 0.0)
+        pb["UpperChest"].rotation_euler = (0.05, twist * 0.45, 0.0)
+        pb["Head"].rotation_euler = (-0.18, -twist * 0.45, 0.0)
+        pb["UpperArm.R"].rotation_euler = (arm_fwd, 0.0, arm_out)
+        pb["ForeArm.R"].rotation_euler = (elbow_ext, 0.45, 0.38)
+        pb["Hand.R"].rotation_euler = (0.20, 0.0, 0.0)
+        pb["UpperArm.L"].rotation_euler = (l_back, 0.0, 0.28)
+        pb["ForeArm.L"].rotation_euler = (0.85, -0.25, -0.15)
+
+    def guitar_catch(pb: Any, u: float) -> None:
+        """Reach out and absorb the returning guitar back into playing stance."""
+        _apply_run_legs(pb, (u * 0.45) % 1.0, stride_scale=0.68, tuck_scale=0.72, bounce_amp=0.04, lean=0.14)
+        if u < 0.32:
+            k = math.sin((u / 0.32) * math.pi * 0.5)
+            reach = 0.85 * k
+            recoil = 0.0
+        elif u < 0.68:
+            k = (u - 0.32) / 0.36
+            reach = 0.85 * (1.0 - k)
+            recoil = math.sin(k * math.pi)
+        else:
+            k = (u - 0.68) / 0.32
+            reach = 0.0
+            recoil = 0.0 * (1.0 - k)
+
+        pb["Hips"].location = (pb["Hips"].location[0], pb["Hips"].location[1] - 0.045 * recoil, 0.0)
+        pb["Chest"].rotation_euler = (pb["Chest"].rotation_euler[0] - 0.14 * recoil, 0.0, 0.0)
+        pb["Head"].rotation_euler = (-0.12 * recoil, 0.0, 0.0)
+        pb["UpperArm.R"].rotation_euler = (reach * 0.90, 0.0, -0.15 * reach)
+        pb["ForeArm.R"].rotation_euler = (reach * 0.55 + 0.30 * recoil, 0.25 * reach, 0.22 * reach)
+        pb["UpperArm.L"].rotation_euler = (reach * 0.65, 0.0, 0.12 * reach)
+        pb["ForeArm.L"].rotation_euler = (reach * 0.45 + 0.20 * recoil, -0.15 * reach, 0.0)
+
+    commit("Idle_Sway", 48, idle)
     commit("Play_Strum", 24, strum)
-    commit("Headbang_Riff", 36, headbang)
-    commit("Action_BigFinish", 40, finish)
+    commit("Headbang_Riff", 24, headbang)
+    commit("Action_BigFinish", 36, finish)
+    commit("Run_NoGuitar", 24, run_noguitar)
+    commit("Action_GuitarThrow", 20, guitar_throw)
+    commit("Action_GuitarCatch", 16, guitar_catch)
+
+    # Pose-world verification assertions for Run_NoGuitar & Action_GuitarThrow
+    arm.animation_data.use_nla = False
     for pb in pose:
         pb.rotation_euler = (0.0, 0.0, 0.0)
         pb.location = (0.0, 0.0, 0.0)
+    run_noguitar(pose, 0.0)
+    bpy.context.view_layer.update()
+    assert abs(pose["Hand.L"].tail.x) >= 0.14 and abs(pose["Hand.R"].tail.x) >= 0.14, \
+        f"Run_NoGuitar arms clip torso: L.x={pose['Hand.L'].tail.x:.3f}, R.x={pose['Hand.R'].tail.x:.3f}"
+    assert pose["Hand.R"].tail.y < pose["Hand.L"].tail.y, \
+        f"Run_NoGuitar u=0 should swing R arm forward (-Y) vs L: R.y={pose['Hand.R'].tail.y:.3f}, L.y={pose['Hand.L'].tail.y:.3f}"
+
+    for pb in pose:
+        pb.rotation_euler = (0.0, 0.0, 0.0)
+        pb.location = (0.0, 0.0, 0.0)
+    guitar_throw(pose, 0.52)
+    bpy.context.view_layer.update()
+    assert pose["Hand.R"].tail.y < -0.32, \
+        f"Action_GuitarThrow release frame did not extend Hand.R forward (-Y): y={pose['Hand.R'].tail.y:.3f}"
+
+    for pb in pose:
+        pb.rotation_euler = (0.0, 0.0, 0.0)
+        pb.location = (0.0, 0.0, 0.0)
+    arm.animation_data.use_nla = True
     scene.frame_set(1)
 
     # -------------------------------------------------------------- proof studio
@@ -903,6 +1088,9 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
 
     # -------------------------------------------------------------- QA metrics
     arm.animation_data.use_nla = False
+    for pb in pose:
+        pb.rotation_euler = (0.0, 0.0, 0.0)
+        pb.location = (0.0, 0.0, 0.0)
     bpy.context.view_layer.update()
     depsgraph = bpy.context.evaluated_depsgraph_get()
     verts = 0
@@ -990,6 +1178,10 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
     print("GLB_SAVED", glb_path)
 
     arm.animation_data.use_nla = False
+    for pb in pose:
+        pb.rotation_euler = (0.0, 0.0, 0.0)
+        pb.location = (0.0, 0.0, 0.0)
+    bpy.context.view_layer.update()
     bpy.ops.object.select_all(action="DESELECT")
     for ob, _ in parts:
         ob.select_set(True)
@@ -1009,16 +1201,19 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
             "side": ((2.8, 0.0, 1.05), 36, None),
             "back34": ((1.7, 2.5, 1.15), 36, None),
             "front": ((0.0, -2.9, 1.10), 36, None),
-            "run_stride": ((2.4, -1.2, 1.08), 36, (strum, 6, 24)),
-            "bigfinish_leap": ((1.1, -2.6, 1.18), 36, (finish, 20, 40)),
+            "run_stride": ((2.4, -1.2, 1.08), 36, (strum, 0.625)),
+            "run_pushoff": ((2.6, -0.5, 1.05), 36, (strum, 0.25)),
+            "run_noguitar": ((2.3, -1.4, 1.08), 36, (run_noguitar, 0.50)),
+            "throw": ((1.9, -2.1, 1.15), 36, (guitar_throw, 0.52)),
+            "bigfinish_leap": ((1.1, -2.6, 1.18), 36, (finish, 0.50)),
         }
         for name, (loc, lens, pose_spec) in views.items():
             for pb in pose:
                 pb.rotation_euler = (0.0, 0.0, 0.0)
                 pb.location = (0.0, 0.0, 0.0)
             if pose_spec is not None:
-                fn, f_num, f_tot = pose_spec
-                fn(pose, f_num, f_tot)
+                fn, u_val = pose_spec
+                fn(pose, u_val)
             bpy.context.view_layer.update()
             cam.location = loc
             cam.data.lens = lens

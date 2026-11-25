@@ -17,6 +17,9 @@ const CLIP_IDLE := "Idle_Sway"
 const CLIP_STRUM := "Play_Strum"
 const CLIP_HEADBANG := "Headbang_Riff"
 const CLIP_FINISH := "Action_BigFinish"
+const CLIP_RUN_NO_GUITAR := "Run_NoGuitar"
+const CLIP_THROW := "Action_GuitarThrow"
+const CLIP_CATCH := "Action_GuitarCatch"
 
 const VFX := preload("res://src/game/VfxFactory.gd")
 
@@ -27,7 +30,16 @@ var _settings: Node = null
 
 var _last_clip := ""
 var _finish_cd := 0.0
+var _action_cd := 0.0
+var _action_clip := ""
 var _reduced := false
+var _is_running := false
+var _anim_rate := 1.0
+
+var _guitar_meshes: Array[Node3D] = []
+var _guitar_anchor: Node3D = null
+var _guitar_out_count := 0
+var _guitar_out_safety_t := 0.0
 
 var _base_pos := Vector3.ZERO
 var _base_rot := Vector3.ZERO
@@ -36,6 +48,7 @@ var _base_scale := Vector3.ONE
 # Sub-stepped springs & expDecay dynamics
 var _pitch := 0.0
 var _roll := 0.0
+var _yaw_lean := 0.0
 var _squash := 0.0
 var _squash_v := 0.0
 var _recoil := 0.0
@@ -68,6 +81,19 @@ func _ready() -> void:
 	_base_pos = position
 	_base_rot = rotation
 	_base_scale = scale
+
+	for mesh in find_children("*", "MeshInstance3D", true, false):
+		var m := mesh as Node3D
+		if m == null:
+			continue
+		var mname := str(m.name)
+		if mname in ["GuitarBody", "GuitarStrap", "GuitarCable", "RiffMuzzle_L", "RiffMuzzle_R"] \
+				or mname.begins_with("GuitarPart_"):
+			_guitar_meshes.append(m)
+		if mname == "GuitarBody":
+			_guitar_anchor = m
+	_set_guitar_visible(true)
+
 	for candidate in find_children("*", "AnimationPlayer", true, false):
 		if candidate is AnimationPlayer:
 			_anim = candidate as AnimationPlayer
@@ -75,19 +101,91 @@ func _ready() -> void:
 	if _anim == null:
 		push_warning("EvanVisual: no AnimationPlayer found — GLB animation clips unavailable")
 		return
+	for loop_clip in [CLIP_IDLE, CLIP_STRUM, CLIP_HEADBANG, CLIP_RUN_NO_GUITAR]:
+		if _anim.has_animation(loop_clip):
+			_anim.get_animation(loop_clip).loop_mode = Animation.LOOP_LINEAR
+	for oneshot_clip in [CLIP_FINISH, CLIP_THROW, CLIP_CATCH]:
+		if _anim.has_animation(oneshot_clip):
+			_anim.get_animation(oneshot_clip).loop_mode = Animation.LOOP_NONE
 	if _anim.has_animation(CLIP_IDLE):
 		_anim.play(CLIP_IDLE)
 		_last_clip = CLIP_IDLE
 	_anim.speed_scale = 1.0
 
 
-func trigger_recoil(strength: float = 1.0) -> void:
-	## SideCannons hook: punk rock leap / riff flourish when Evan fires.
-	_recoil_v += 4.2 * strength
-	if _anim == null or not _anim.has_animation(CLIP_FINISH):
+func _set_guitar_visible(vis: bool) -> void:
+	for gm in _guitar_meshes:
+		if is_instance_valid(gm):
+			gm.visible = vis
+
+
+func is_guitar_out() -> bool:
+	return _guitar_out_count > 0
+
+
+func get_guitar_world_pos() -> Vector3:
+	if is_instance_valid(_guitar_anchor):
+		return _guitar_anchor.global_position
+	if is_instance_valid(_host):
+		return _host.global_position + Vector3(0.0, 1.05, 0.0)
+	return global_position + Vector3(0.0, 1.05, 0.0)
+
+
+func on_boomerang_thrown() -> void:
+	## Called by BoomerangGuitar.setup() for both local player and remote proxies.
+	_guitar_out_count += 1
+	_guitar_out_safety_t = 3.5
+	_set_guitar_visible(false)
+	_recoil_v += 3.8
+	if _anim != null and _anim.has_animation(CLIP_THROW):
+		_action_cd = 0.42
+		_action_clip = CLIP_THROW
+		_anim_rate = 1.15 if not _reduced else 0.65
+		_anim.speed_scale = _anim_rate
+		_anim.play(CLIP_THROW, 0.06)
+		_last_clip = CLIP_THROW
+
+
+func on_boomerang_caught(was_caught: bool = true) -> void:
+	## Called when BoomerangGuitar returns to Evan or expires/cleans up.
+	_guitar_out_count = maxi(0, _guitar_out_count - 1)
+	if _guitar_out_count > 0:
 		return
-	_finish_cd = 0.68 if strength >= 1.0 else 0.28
-	_anim.speed_scale = 1.0 if not _reduced else 0.55
+	_guitar_out_safety_t = 0.0
+	_set_guitar_visible(true)
+	if not was_caught:
+		return
+	_recoil_v -= 3.2
+	_squash_v += 1.2
+	if _anim != null and _anim.has_animation(CLIP_CATCH):
+		_action_cd = 0.28
+		_action_clip = CLIP_CATCH
+		_anim_rate = 1.15 if not _reduced else 0.65
+		_anim.speed_scale = _anim_rate
+		_anim.play(CLIP_CATCH, 0.06)
+		_last_clip = CLIP_CATCH
+	if not _reduced and is_inside_tree():
+		var q := 1.0
+		if _settings != null and _settings.has_method("quality_multiplier"):
+			q = float(_settings.call("quality_multiplier"))
+		if q > 0.0:
+			VFX.impact(_fx_parent(), get_guitar_world_pos(), Color(1.0, 0.14, 0.52), Vector3.UP, "metal")
+	if _bike != null and is_inside_tree():
+		var sfx := get_node_or_null("/root/Sfx")
+		if sfx != null and sfx.has_method("play"):
+			sfx.call("play", "pop", 1.45, 0.42)
+
+
+func trigger_recoil(strength: float = 1.0) -> void:
+	## SideCannons hook: heavy special/jump triggers Action_BigFinish; light
+	## primary shots add spring kick without hijacking the running stride.
+	_recoil_v += 4.2 * strength
+	if strength < 1.0 or _anim == null or not _anim.has_animation(CLIP_FINISH):
+		return
+	_finish_cd = 0.68
+	_action_cd = 0.0
+	_anim_rate = 1.0 if not _reduced else 0.55
+	_anim.speed_scale = _anim_rate
 	_anim.play(CLIP_FINISH, 0.10)
 	_last_clip = CLIP_FINISH
 
@@ -205,21 +303,34 @@ func _physics_process(delta: float) -> void:
 	var target_pitch := (speed_lean + accel_lean + air_lean - _recoil * 0.45) * motion_scale
 	var target_roll := clampf(-steer * clampf(0.25 + speed * 0.022, 0.20, 0.42), -0.22, 0.22) * motion_scale
 
+	if _guitar_out_count > 0:
+		if not _host.visible:
+			_guitar_out_count = 0
+			_guitar_out_safety_t = 0.0
+			_set_guitar_visible(true)
+		else:
+			_guitar_out_safety_t -= dt
+			if _guitar_out_safety_t <= 0.0:
+				_guitar_out_count = 0
+				_set_guitar_visible(true)
+
+	var target_yaw := clampf(-steer * 0.22, -0.14, 0.14) * motion_scale
 	_pitch = _exp_decay(_pitch, target_pitch, 10.0, dt)
 	_roll = _exp_decay(_roll, target_roll, 11.0, dt)
-	rotation = _base_rot + Vector3(_pitch, 0.0, _roll)
+	_yaw_lean = _exp_decay(_yaw_lean, target_yaw, 10.0, dt)
+	rotation = _base_rot + Vector3(_pitch, _yaw_lean, _roll)
 	var sq_xz := 1.0 + _squash * 0.55
 	var sq_y := 1.0 - _squash
 	scale = Vector3(_base_scale.x * sq_xz, _base_scale.y * sq_y, _base_scale.z * sq_xz)
 	position = _base_pos - Vector3(0.0, maxf(0.0, _squash) * 0.18, 0.0)
 
-	# ---- 3. Alternating footstep dust kicks while running on the ground
-	if grounded and speed > 3.5:
-		_run_phase += clampf(speed * 0.42, 0.6, 5.2) * dt
+	# ---- 3. Alternating footstep dust kicks synced to stride cadence
+	if grounded and speed > 0.55:
+		_run_phase += absf(_anim_rate) * dt * 1.05
 		var step_half := int(floorf(_run_phase * 2.0))
 		if step_half != _last_step_half:
 			_last_step_half = step_half
-			if not _reduced and _settings != null:
+			if speed > 3.5 and not _reduced and _settings != null:
 				var q := float(_settings.call("quality_multiplier")) if _settings.has_method("quality_multiplier") else 1.0
 				if q >= 0.4 and _host.is_inside_tree():
 					var side := -0.15 if (step_half % 2 == 0) else 0.15
@@ -233,23 +344,40 @@ func _physics_process(delta: float) -> void:
 		if _finish_cd > 0.0:
 			return
 		_last_clip = ""  # force a clean crossfade back into a loop next frame
+	if _action_cd > 0.0:
+		_action_cd = maxf(0.0, _action_cd - dt)
+		if _action_cd > 0.0:
+			return
+		_action_clip = ""
+		_last_clip = ""
 
+	if _is_running and speed < 0.35:
+		_is_running = false
+	elif not _is_running and speed > 0.55:
+		_is_running = true
+
+	var reversing := _bike != null and fwd_speed < -0.55
 	var want := CLIP_IDLE
 	var rate := 1.0
-	if turbo and not _reduced:
+	if _guitar_out_count > 0:
+		if not grounded and _air_time > 0.14 and not _reduced:
+			want = CLIP_FINISH
+			rate = 1.0
+		elif _is_running and _anim.has_animation(CLIP_RUN_NO_GUITAR):
+			want = CLIP_RUN_NO_GUITAR
+			rate = clampf(0.55 + speed * 0.125, 0.55, 2.75) * (-1.0 if reversing else 1.0)
+	elif turbo and not _reduced:
 		want = CLIP_HEADBANG
-		rate = clampf(1.30 + speed * 0.08, 1.30, 2.55)
-	elif not grounded and _air_time > 0.12 and not _reduced:
+		rate = clampf(1.25 + speed * 0.09, 1.25, 2.65)
+	elif not grounded and _air_time > 0.14 and not _reduced:
 		want = CLIP_FINISH
 		rate = 1.0
-	elif speed > 0.75:
+	elif _is_running:
 		want = CLIP_STRUM
-		if _bike != null and fwd_speed < -0.75:
-			rate = -clampf(0.80 + speed * 0.11, 0.80, 1.90)
-		else:
-			rate = clampf(0.85 + speed * 0.13, 0.85, 2.75)
+		rate = clampf(0.50 + speed * 0.125, 0.50, 2.70) * (-1.0 if reversing else 1.0)
 
-	_anim.speed_scale = rate * (0.55 if _reduced else 1.0)
+	_anim_rate = _exp_decay(_anim_rate, rate * (0.55 if _reduced else 1.0), 12.0, dt)
+	_anim.speed_scale = _anim_rate
 	if want != _last_clip and _anim.has_animation(want):
 		_anim.play(want, 0.22)
 		_last_clip = want
