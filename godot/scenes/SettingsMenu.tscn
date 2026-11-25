@@ -1,15 +1,15 @@
 [gd_scene load_steps=95 format=3]
 
-[ext_resource type="Script" path="res://src/ui/SettingsMenu.gd" id="1_p0jxf"]
+[ext_resource type="Script" path="res://src/ui/SettingsMenu.gd" id="1_5uj4j"]
 
-[sub_resource type="LabelSettings" id="LabelSettings_8eiki"]
+[sub_resource type="LabelSettings" id="LabelSettings_ipfwv"]
 font_size = 28
 font_color = Color(1, 0.82, 0.42, 1)
 shadow_size = 6
 shadow_color = Color(0, 0, 0, 0.8)
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2qblt"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ie8of"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -28,7 +28,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4wfbu"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_d506l"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -47,7 +47,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8aes6"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_47p3c"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -66,7 +66,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bkqdo"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bbgvh"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -85,7 +85,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nw0us"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ossvm"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -104,7 +104,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_57qds"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xh3ng"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -123,7 +123,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_quc8g"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4apmo"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -142,7 +142,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yr36q"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_emevh"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -161,7 +161,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tg8ro"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_m7qcy"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -180,7 +180,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ktcmp"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0ltdg"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -199,7 +199,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kjh71"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_l3lnb"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.06, 0.08, 0.11, 0.95)
@@ -208,7 +208,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_icivu"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_c4fos"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.95, 0.55, 0.12, 0.96)
@@ -217,7 +217,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jnuvi"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tkg1c"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(1, 0.72, 0.25, 1)
@@ -226,7 +226,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="Image" id="Image_3en56"]
+[sub_resource type="Image" id="Image_i6rk1"]
 data = {
 "data": PackedByteArray(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 45, 7, 255, 76, 45, 7, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 76, 45, 7, 255, 76, 45, 7, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 45, 7, 255, 76, 45, 7, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 76, 45, 7, 255, 76, 45, 7, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 45, 7, 255, 76, 45, 7, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 76, 45, 7, 255, 76, 45, 7, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 45, 7, 255, 76, 45, 7, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 76, 45, 7, 255, 76, 45, 7, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 45, 7, 255, 76, 45, 7, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 76, 45, 7, 255, 76, 45, 7, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 45, 7, 255, 76, 45, 7, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 76, 45, 7, 255, 76, 45, 7, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 255, 198, 76, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 76, 45, 7, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 "format": "RGBA8",
@@ -235,10 +235,10 @@ data = {
 "width": 18
 }
 
-[sub_resource type="ImageTexture" id="ImageTexture_j4jb3"]
-image = SubResource("Image_3en56")
+[sub_resource type="ImageTexture" id="ImageTexture_n6oqe"]
+image = SubResource("Image_i6rk1")
 
-[sub_resource type="Image" id="Image_njvxh"]
+[sub_resource type="Image" id="Image_ik1ck"]
 data = {
 "data": PackedByteArray(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 242, 183, 255, 255, 242, 183, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 242, 183, 255, 255, 242, 183, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 242, 183, 255, 255, 242, 183, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 242, 183, 255, 255, 242, 183, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 242, 183, 255, 255, 242, 183, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 242, 183, 255, 255, 242, 183, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 242, 183, 255, 255, 242, 183, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 242, 183, 255, 255, 242, 183, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 242, 183, 255, 255, 242, 183, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 242, 183, 255, 255, 242, 183, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 242, 183, 255, 255, 242, 183, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 242, 183, 255, 255, 242, 183, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 234, 140, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 255, 242, 183, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 "format": "RGBA8",
@@ -247,10 +247,10 @@ data = {
 "width": 18
 }
 
-[sub_resource type="ImageTexture" id="ImageTexture_k4uqq"]
-image = SubResource("Image_njvxh")
+[sub_resource type="ImageTexture" id="ImageTexture_nm7xd"]
+image = SubResource("Image_ik1ck")
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kh064"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_egnmm"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -269,7 +269,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qde8h"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yqwb6"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -288,7 +288,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6jfy1"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_aca31"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -307,7 +307,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8agyl"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xktmj"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -326,7 +326,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_18tu3"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_l6egw"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -345,7 +345,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_x0rs6"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xtghp"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.06, 0.08, 0.11, 0.95)
@@ -354,7 +354,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_v72is"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_oblgs"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.95, 0.55, 0.12, 0.96)
@@ -363,7 +363,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_d04n8"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_r5ob0"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(1, 0.72, 0.25, 1)
@@ -372,7 +372,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_buifw"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tye38"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -391,7 +391,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ktp17"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_phvuu"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -410,7 +410,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_g662m"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7k7se"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -429,7 +429,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5ft4m"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_16xxp"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -448,7 +448,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5h5vi"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rb7w7"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -467,7 +467,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tnohw"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3dijg"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -486,7 +486,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jx2d6"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0iq5v"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -505,7 +505,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kluyb"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0xsvf"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -524,7 +524,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_utf6n"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tlcyo"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -543,7 +543,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2m22w"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_m1sok"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -562,7 +562,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fgfnj"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gi5j7"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.06, 0.08, 0.11, 0.95)
@@ -571,7 +571,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4ex8y"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_o1vs1"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.95, 0.55, 0.12, 0.96)
@@ -580,7 +580,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wef2h"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_et1l3"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(1, 0.72, 0.25, 1)
@@ -589,7 +589,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rljdn"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tk8jh"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -608,7 +608,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_71pn6"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_if4yx"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -627,7 +627,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2e6qk"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ituq3"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -646,7 +646,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_irayl"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rg5u6"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -665,7 +665,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_db56j"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_r8wdh"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -684,7 +684,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3firv"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8jvfb"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.06, 0.08, 0.11, 0.95)
@@ -693,7 +693,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5mto5"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vj822"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.95, 0.55, 0.12, 0.96)
@@ -702,7 +702,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_df6wl"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5imrq"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(1, 0.72, 0.25, 1)
@@ -711,7 +711,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_m1dly"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_82u74"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.06, 0.08, 0.11, 0.95)
@@ -720,7 +720,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rb1u8"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_abg35"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.95, 0.55, 0.12, 0.96)
@@ -729,7 +729,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4sjkf"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sr0qg"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(1, 0.72, 0.25, 1)
@@ -738,7 +738,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kbern"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bugjp"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.06, 0.08, 0.11, 0.95)
@@ -747,7 +747,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7gcga"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_eb67v"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.95, 0.55, 0.12, 0.96)
@@ -756,7 +756,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_t22te"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_h3m0j"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(1, 0.72, 0.25, 1)
@@ -765,7 +765,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4em7m"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_doqr5"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.06, 0.08, 0.11, 0.95)
@@ -774,7 +774,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rywpm"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pg634"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.95, 0.55, 0.12, 0.96)
@@ -783,7 +783,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1qww0"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vhhen"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(1, 0.72, 0.25, 1)
@@ -792,7 +792,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_enjcu"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2n6u0"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -811,7 +811,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_27q38"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1vt57"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -830,7 +830,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tc5j2"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_88um3"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -849,7 +849,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5tqtw"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8oocm"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -868,7 +868,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_d33g7"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_30rkl"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -887,7 +887,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ukgw8"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_won6t"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.06, 0.08, 0.11, 0.95)
@@ -896,7 +896,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_j8oww"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5gq8q"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.95, 0.55, 0.12, 0.96)
@@ -905,7 +905,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_00pe4"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0uvln"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(1, 0.72, 0.25, 1)
@@ -914,7 +914,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vlfm8"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fjdjy"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.06, 0.08, 0.11, 0.95)
@@ -923,7 +923,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tw3t3"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_a8gqb"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.95, 0.55, 0.12, 0.96)
@@ -932,7 +932,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cm748"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_aeu43"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(1, 0.72, 0.25, 1)
@@ -941,7 +941,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1ouh6"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_m5fe8"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -960,7 +960,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xdbmj"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_74u5d"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -979,7 +979,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_g8sxh"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ieyq1"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -998,7 +998,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_en0di"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_m6fr5"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1017,7 +1017,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4bfsx"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_djurs"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1036,7 +1036,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sg0g4"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5d6pm"]
 content_margin_left = 12.0
 content_margin_top = 7.0
 content_margin_right = 12.0
@@ -1055,7 +1055,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4gjvw"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yrj5d"]
 content_margin_left = 12.0
 content_margin_top = 7.0
 content_margin_right = 12.0
@@ -1074,7 +1074,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ywb20"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_meky8"]
 content_margin_left = 12.0
 content_margin_top = 7.0
 content_margin_right = 12.0
@@ -1093,7 +1093,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_x1cgp"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8cxnd"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1112,7 +1112,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0fox7"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_oxrlr"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1131,7 +1131,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_32coj"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vwtpi"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1150,7 +1150,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xgpkb"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hv76k"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1169,7 +1169,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_iprfl"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_q0cqg"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1188,7 +1188,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mtsas"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_d3p78"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.06, 0.08, 0.11, 0.95)
@@ -1197,7 +1197,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yad0e"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_quwdn"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(0.95, 0.55, 0.12, 0.96)
@@ -1206,7 +1206,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mxvdm"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5msgc"]
 content_margin_top = 5.0
 content_margin_bottom = 5.0
 bg_color = Color(1, 0.72, 0.25, 1)
@@ -1215,7 +1215,7 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_54pp0"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kmsm7"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1234,7 +1234,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pgwpm"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wm5lk"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1253,7 +1253,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kweb6"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0o4jc"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1272,7 +1272,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_m8bpo"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3d5or"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1291,7 +1291,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fs523"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cmui7"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1310,7 +1310,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3co4g"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qw3rn"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1329,7 +1329,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3f3bu"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_t6to2"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1348,7 +1348,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jek0o"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ql18v"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1367,7 +1367,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ruvt2"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6worn"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1386,7 +1386,7 @@ shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 10
 shadow_offset = Vector2(0, 3)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jhxrm"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4b85t"]
 content_margin_left = 14.0
 content_margin_top = 7.0
 content_margin_right = 14.0
@@ -1410,7 +1410,7 @@ layout_mode = 3
 anchors_preset = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
-script = ExtResource("1_p0jxf")
+script = ExtResource("1_5uj4j")
 
 [node name="Background" type="ColorRect" parent="."]
 layout_mode = 0
@@ -1441,16 +1441,16 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 28
 theme_override_colors/font_color = Color(1, 0.82, 0.42, 1)
 text = "SETTINGS"
-label_settings = SubResource("LabelSettings_8eiki")
+label_settings = SubResource("LabelSettings_ipfwv")
 
 [node name="BtnBack" type="Button" parent="SafeMargin/VBox/TopBar"]
 custom_minimum_size = Vector2(110, 52)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_2qblt")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_4wfbu")
-theme_override_styles/hover = SubResource("StyleBoxFlat_8aes6")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_bkqdo")
-theme_override_styles/focus = SubResource("StyleBoxFlat_nw0us")
+theme_override_styles/normal = SubResource("StyleBoxFlat_ie8of")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_d506l")
+theme_override_styles/hover = SubResource("StyleBoxFlat_47p3c")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_bbgvh")
+theme_override_styles/focus = SubResource("StyleBoxFlat_ossvm")
 theme_override_colors/font_color = Color(0.91, 0.929, 0.969, 1)
 theme_override_colors/font_focus_color = Color(1, 0.82, 0.42, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.93, 0.62, 1)
@@ -1491,11 +1491,11 @@ text = "Quality"
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/normal = SubResource("StyleBoxFlat_57qds")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_quc8g")
-theme_override_styles/hover = SubResource("StyleBoxFlat_yr36q")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_tg8ro")
-theme_override_styles/focus = SubResource("StyleBoxFlat_ktcmp")
+theme_override_styles/normal = SubResource("StyleBoxFlat_xh3ng")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_4apmo")
+theme_override_styles/hover = SubResource("StyleBoxFlat_emevh")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_m7qcy")
+theme_override_styles/focus = SubResource("StyleBoxFlat_0ltdg")
 theme_override_colors/font_color = Color(0.91, 0.929, 0.969, 1)
 theme_override_colors/font_focus_color = Color(1, 0.82, 0.42, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.93, 0.62, 1)
@@ -1527,11 +1527,11 @@ text = "Resolution"
 custom_minimum_size = Vector2(96, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/slider = SubResource("StyleBoxFlat_kjh71")
-theme_override_styles/grabber_area = SubResource("StyleBoxFlat_icivu")
-theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_jnuvi")
-theme_override_icons/grabber = SubResource("ImageTexture_j4jb3")
-theme_override_icons/grabber_highlight = SubResource("ImageTexture_k4uqq")
+theme_override_styles/slider = SubResource("StyleBoxFlat_l3lnb")
+theme_override_styles/grabber_area = SubResource("StyleBoxFlat_c4fos")
+theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_tkg1c")
+theme_override_icons/grabber = SubResource("ImageTexture_n6oqe")
+theme_override_icons/grabber_highlight = SubResource("ImageTexture_nm7xd")
 min_value = 0.5
 max_value = 1.0
 step = 0.05
@@ -1560,11 +1560,11 @@ text = "Shadows"
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/normal = SubResource("StyleBoxFlat_kh064")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_qde8h")
-theme_override_styles/hover = SubResource("StyleBoxFlat_6jfy1")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_8agyl")
-theme_override_styles/focus = SubResource("StyleBoxFlat_18tu3")
+theme_override_styles/normal = SubResource("StyleBoxFlat_egnmm")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_yqwb6")
+theme_override_styles/hover = SubResource("StyleBoxFlat_aca31")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_xktmj")
+theme_override_styles/focus = SubResource("StyleBoxFlat_l6egw")
 theme_override_colors/font_color = Color(0.91, 0.929, 0.969, 1)
 theme_override_colors/font_focus_color = Color(1, 0.82, 0.42, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.93, 0.62, 1)
@@ -1588,11 +1588,11 @@ text = "Particles"
 custom_minimum_size = Vector2(96, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/slider = SubResource("StyleBoxFlat_x0rs6")
-theme_override_styles/grabber_area = SubResource("StyleBoxFlat_v72is")
-theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_d04n8")
-theme_override_icons/grabber = SubResource("ImageTexture_j4jb3")
-theme_override_icons/grabber_highlight = SubResource("ImageTexture_k4uqq")
+theme_override_styles/slider = SubResource("StyleBoxFlat_xtghp")
+theme_override_styles/grabber_area = SubResource("StyleBoxFlat_oblgs")
+theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_r5ob0")
+theme_override_icons/grabber = SubResource("ImageTexture_n6oqe")
+theme_override_icons/grabber_highlight = SubResource("ImageTexture_nm7xd")
 max_value = 1.0
 step = 0.05
 value = 1.0
@@ -1620,11 +1620,11 @@ text = "Glow"
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/normal = SubResource("StyleBoxFlat_buifw")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_ktp17")
-theme_override_styles/hover = SubResource("StyleBoxFlat_g662m")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_5ft4m")
-theme_override_styles/focus = SubResource("StyleBoxFlat_5h5vi")
+theme_override_styles/normal = SubResource("StyleBoxFlat_tye38")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_phvuu")
+theme_override_styles/hover = SubResource("StyleBoxFlat_7k7se")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_16xxp")
+theme_override_styles/focus = SubResource("StyleBoxFlat_rb7w7")
 theme_override_colors/font_color = Color(0.91, 0.929, 0.969, 1)
 theme_override_colors/font_focus_color = Color(1, 0.82, 0.42, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.93, 0.62, 1)
@@ -1648,11 +1648,11 @@ text = "Fullscreen"
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/normal = SubResource("StyleBoxFlat_tnohw")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_jx2d6")
-theme_override_styles/hover = SubResource("StyleBoxFlat_kluyb")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_utf6n")
-theme_override_styles/focus = SubResource("StyleBoxFlat_2m22w")
+theme_override_styles/normal = SubResource("StyleBoxFlat_3dijg")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_0iq5v")
+theme_override_styles/hover = SubResource("StyleBoxFlat_0xsvf")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_tlcyo")
+theme_override_styles/focus = SubResource("StyleBoxFlat_m1sok")
 theme_override_colors/font_color = Color(0.91, 0.929, 0.969, 1)
 theme_override_colors/font_focus_color = Color(1, 0.82, 0.42, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.93, 0.62, 1)
@@ -1676,11 +1676,11 @@ text = "Field of view"
 custom_minimum_size = Vector2(96, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/slider = SubResource("StyleBoxFlat_fgfnj")
-theme_override_styles/grabber_area = SubResource("StyleBoxFlat_4ex8y")
-theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_wef2h")
-theme_override_icons/grabber = SubResource("ImageTexture_j4jb3")
-theme_override_icons/grabber_highlight = SubResource("ImageTexture_k4uqq")
+theme_override_styles/slider = SubResource("StyleBoxFlat_gi5j7")
+theme_override_styles/grabber_area = SubResource("StyleBoxFlat_o1vs1")
+theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_et1l3")
+theme_override_icons/grabber = SubResource("ImageTexture_n6oqe")
+theme_override_icons/grabber_highlight = SubResource("ImageTexture_nm7xd")
 min_value = 50.0
 value = 62.0
 
@@ -1707,11 +1707,11 @@ text = "Show FPS"
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/normal = SubResource("StyleBoxFlat_rljdn")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_71pn6")
-theme_override_styles/hover = SubResource("StyleBoxFlat_2e6qk")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_irayl")
-theme_override_styles/focus = SubResource("StyleBoxFlat_db56j")
+theme_override_styles/normal = SubResource("StyleBoxFlat_tk8jh")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_if4yx")
+theme_override_styles/hover = SubResource("StyleBoxFlat_ituq3")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_rg5u6")
+theme_override_styles/focus = SubResource("StyleBoxFlat_r8wdh")
 theme_override_colors/font_color = Color(0.91, 0.929, 0.969, 1)
 theme_override_colors/font_focus_color = Color(1, 0.82, 0.42, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.93, 0.62, 1)
@@ -1741,11 +1741,11 @@ text = "Master"
 custom_minimum_size = Vector2(96, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/slider = SubResource("StyleBoxFlat_3firv")
-theme_override_styles/grabber_area = SubResource("StyleBoxFlat_5mto5")
-theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_df6wl")
-theme_override_icons/grabber = SubResource("ImageTexture_j4jb3")
-theme_override_icons/grabber_highlight = SubResource("ImageTexture_k4uqq")
+theme_override_styles/slider = SubResource("StyleBoxFlat_8jvfb")
+theme_override_styles/grabber_area = SubResource("StyleBoxFlat_vj822")
+theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_5imrq")
+theme_override_icons/grabber = SubResource("ImageTexture_n6oqe")
+theme_override_icons/grabber_highlight = SubResource("ImageTexture_nm7xd")
 max_value = 1.0
 step = 0.05
 value = 0.9
@@ -1773,11 +1773,11 @@ text = "Effects"
 custom_minimum_size = Vector2(96, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/slider = SubResource("StyleBoxFlat_m1dly")
-theme_override_styles/grabber_area = SubResource("StyleBoxFlat_rb1u8")
-theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_4sjkf")
-theme_override_icons/grabber = SubResource("ImageTexture_j4jb3")
-theme_override_icons/grabber_highlight = SubResource("ImageTexture_k4uqq")
+theme_override_styles/slider = SubResource("StyleBoxFlat_82u74")
+theme_override_styles/grabber_area = SubResource("StyleBoxFlat_abg35")
+theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_sr0qg")
+theme_override_icons/grabber = SubResource("ImageTexture_n6oqe")
+theme_override_icons/grabber_highlight = SubResource("ImageTexture_nm7xd")
 max_value = 1.0
 step = 0.05
 value = 0.9
@@ -1805,11 +1805,11 @@ text = "Engine"
 custom_minimum_size = Vector2(96, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/slider = SubResource("StyleBoxFlat_kbern")
-theme_override_styles/grabber_area = SubResource("StyleBoxFlat_7gcga")
-theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_t22te")
-theme_override_icons/grabber = SubResource("ImageTexture_j4jb3")
-theme_override_icons/grabber_highlight = SubResource("ImageTexture_k4uqq")
+theme_override_styles/slider = SubResource("StyleBoxFlat_bugjp")
+theme_override_styles/grabber_area = SubResource("StyleBoxFlat_eb67v")
+theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_h3m0j")
+theme_override_icons/grabber = SubResource("ImageTexture_n6oqe")
+theme_override_icons/grabber_highlight = SubResource("ImageTexture_nm7xd")
 max_value = 1.0
 step = 0.05
 value = 0.7
@@ -1837,11 +1837,11 @@ text = "UI"
 custom_minimum_size = Vector2(96, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/slider = SubResource("StyleBoxFlat_4em7m")
-theme_override_styles/grabber_area = SubResource("StyleBoxFlat_rywpm")
-theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_1qww0")
-theme_override_icons/grabber = SubResource("ImageTexture_j4jb3")
-theme_override_icons/grabber_highlight = SubResource("ImageTexture_k4uqq")
+theme_override_styles/slider = SubResource("StyleBoxFlat_doqr5")
+theme_override_styles/grabber_area = SubResource("StyleBoxFlat_pg634")
+theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_vhhen")
+theme_override_icons/grabber = SubResource("ImageTexture_n6oqe")
+theme_override_icons/grabber_highlight = SubResource("ImageTexture_nm7xd")
 max_value = 1.0
 step = 0.05
 value = 0.6
@@ -1869,11 +1869,11 @@ text = "Mute all"
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/normal = SubResource("StyleBoxFlat_enjcu")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_27q38")
-theme_override_styles/hover = SubResource("StyleBoxFlat_tc5j2")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_5tqtw")
-theme_override_styles/focus = SubResource("StyleBoxFlat_d33g7")
+theme_override_styles/normal = SubResource("StyleBoxFlat_2n6u0")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_1vt57")
+theme_override_styles/hover = SubResource("StyleBoxFlat_88um3")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_8oocm")
+theme_override_styles/focus = SubResource("StyleBoxFlat_30rkl")
 theme_override_colors/font_color = Color(0.91, 0.929, 0.969, 1)
 theme_override_colors/font_focus_color = Color(1, 0.82, 0.42, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.93, 0.62, 1)
@@ -1903,11 +1903,11 @@ text = "Steering"
 custom_minimum_size = Vector2(96, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/slider = SubResource("StyleBoxFlat_ukgw8")
-theme_override_styles/grabber_area = SubResource("StyleBoxFlat_j8oww")
-theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_00pe4")
-theme_override_icons/grabber = SubResource("ImageTexture_j4jb3")
-theme_override_icons/grabber_highlight = SubResource("ImageTexture_k4uqq")
+theme_override_styles/slider = SubResource("StyleBoxFlat_won6t")
+theme_override_styles/grabber_area = SubResource("StyleBoxFlat_5gq8q")
+theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_0uvln")
+theme_override_icons/grabber = SubResource("ImageTexture_n6oqe")
+theme_override_icons/grabber_highlight = SubResource("ImageTexture_nm7xd")
 min_value = 0.3
 max_value = 2.0
 step = 0.05
@@ -1936,11 +1936,11 @@ text = "Dodge pad size"
 custom_minimum_size = Vector2(96, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/slider = SubResource("StyleBoxFlat_vlfm8")
-theme_override_styles/grabber_area = SubResource("StyleBoxFlat_tw3t3")
-theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_cm748")
-theme_override_icons/grabber = SubResource("ImageTexture_j4jb3")
-theme_override_icons/grabber_highlight = SubResource("ImageTexture_k4uqq")
+theme_override_styles/slider = SubResource("StyleBoxFlat_fjdjy")
+theme_override_styles/grabber_area = SubResource("StyleBoxFlat_a8gqb")
+theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_aeu43")
+theme_override_icons/grabber = SubResource("ImageTexture_n6oqe")
+theme_override_icons/grabber_highlight = SubResource("ImageTexture_nm7xd")
 min_value = 0.7
 max_value = 1.6
 step = 0.05
@@ -1969,11 +1969,11 @@ text = "Always show touch pad"
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/normal = SubResource("StyleBoxFlat_1ouh6")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_xdbmj")
-theme_override_styles/hover = SubResource("StyleBoxFlat_g8sxh")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_en0di")
-theme_override_styles/focus = SubResource("StyleBoxFlat_4bfsx")
+theme_override_styles/normal = SubResource("StyleBoxFlat_m5fe8")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_74u5d")
+theme_override_styles/hover = SubResource("StyleBoxFlat_ieyq1")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_m6fr5")
+theme_override_styles/focus = SubResource("StyleBoxFlat_djurs")
 theme_override_colors/font_color = Color(0.91, 0.929, 0.969, 1)
 theme_override_colors/font_focus_color = Color(1, 0.82, 0.42, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.93, 0.62, 1)
@@ -2003,9 +2003,9 @@ text = "Display name"
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/normal = SubResource("StyleBoxFlat_sg0g4")
-theme_override_styles/read_only = SubResource("StyleBoxFlat_4gjvw")
-theme_override_styles/focus = SubResource("StyleBoxFlat_ywb20")
+theme_override_styles/normal = SubResource("StyleBoxFlat_5d6pm")
+theme_override_styles/read_only = SubResource("StyleBoxFlat_yrj5d")
+theme_override_styles/focus = SubResource("StyleBoxFlat_meky8")
 theme_override_font_sizes/font_size = 15
 theme_override_colors/font_color = Color(0.91, 0.929, 0.969, 1)
 theme_override_colors/font_uneditable_color = Color(0.722, 0.82, 0.961, 1)
@@ -2030,11 +2030,11 @@ text = "Rider colour"
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/normal = SubResource("StyleBoxFlat_x1cgp")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_0fox7")
-theme_override_styles/hover = SubResource("StyleBoxFlat_32coj")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_xgpkb")
-theme_override_styles/focus = SubResource("StyleBoxFlat_iprfl")
+theme_override_styles/normal = SubResource("StyleBoxFlat_8cxnd")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_oxrlr")
+theme_override_styles/hover = SubResource("StyleBoxFlat_vwtpi")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_hv76k")
+theme_override_styles/focus = SubResource("StyleBoxFlat_q0cqg")
 theme_override_colors/font_color = Color(0.91, 0.929, 0.969, 1)
 theme_override_colors/font_focus_color = Color(1, 0.82, 0.42, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.93, 0.62, 1)
@@ -2058,11 +2058,11 @@ text = "Screen shake"
 custom_minimum_size = Vector2(96, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/slider = SubResource("StyleBoxFlat_mtsas")
-theme_override_styles/grabber_area = SubResource("StyleBoxFlat_yad0e")
-theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_mxvdm")
-theme_override_icons/grabber = SubResource("ImageTexture_j4jb3")
-theme_override_icons/grabber_highlight = SubResource("ImageTexture_k4uqq")
+theme_override_styles/slider = SubResource("StyleBoxFlat_d3p78")
+theme_override_styles/grabber_area = SubResource("StyleBoxFlat_quwdn")
+theme_override_styles/grabber_area_highlight = SubResource("StyleBoxFlat_5msgc")
+theme_override_icons/grabber = SubResource("ImageTexture_n6oqe")
+theme_override_icons/grabber_highlight = SubResource("ImageTexture_nm7xd")
 max_value = 2.0
 step = 0.05
 value = 1.0
@@ -2090,11 +2090,11 @@ text = "Reduced motion"
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/normal = SubResource("StyleBoxFlat_54pp0")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_pgwpm")
-theme_override_styles/hover = SubResource("StyleBoxFlat_kweb6")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_m8bpo")
-theme_override_styles/focus = SubResource("StyleBoxFlat_fs523")
+theme_override_styles/normal = SubResource("StyleBoxFlat_kmsm7")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_wm5lk")
+theme_override_styles/hover = SubResource("StyleBoxFlat_0o4jc")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_3d5or")
+theme_override_styles/focus = SubResource("StyleBoxFlat_cmui7")
 theme_override_colors/font_color = Color(0.91, 0.929, 0.969, 1)
 theme_override_colors/font_focus_color = Color(1, 0.82, 0.42, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.93, 0.62, 1)
@@ -2105,11 +2105,11 @@ theme_override_font_sizes/font_size = 15
 [node name="BtnDefaults" type="Button" parent="SafeMargin/VBox"]
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_3co4g")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_3f3bu")
-theme_override_styles/hover = SubResource("StyleBoxFlat_jek0o")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_ruvt2")
-theme_override_styles/focus = SubResource("StyleBoxFlat_jhxrm")
+theme_override_styles/normal = SubResource("StyleBoxFlat_qw3rn")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_t6to2")
+theme_override_styles/hover = SubResource("StyleBoxFlat_ql18v")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_6worn")
+theme_override_styles/focus = SubResource("StyleBoxFlat_4b85t")
 theme_override_colors/font_color = Color(0.91, 0.929, 0.969, 1)
 theme_override_colors/font_focus_color = Color(1, 0.82, 0.42, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.93, 0.62, 1)
