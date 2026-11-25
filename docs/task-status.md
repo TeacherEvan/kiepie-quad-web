@@ -4,7 +4,39 @@ Concrete done-vs-pending ledger. Companion to [project-plan.md](project-plan.md)
 navigation in [index.md](index.md). Statuses are evidence-backed: commit hashes,
 gate names, or live checks — not assumptions.
 
-**Last verified:** 2026-11-23 — `scene_sync OK`, `web_hygiene OK`, full gate suite **29/29** green after completing the 2026-11-23 Rev 2 Surgical Audit remediation.
+**Last verified:** 2026-11-25 — full gate suite **29/29** green, `web_hygiene OK`, `_check_scripts.gd` **47/47**.
+
+## 2026-11-25 — Disappearing visuals fix & Death Race track upgrade
+
+### Disappearing visuals (Death Race mobile: sky only, 0 km/h)
+- **Root cause:** Freezing a `VehicleBody3D` in Godot 4.3 while its wheels and collision are active produces a `NaN` transform, and `FollowCam` then latches onto the `NaN` (rendering only sky/horizon and `0 km/h`), compounded by Godot 4.3 `gl_compatibility` mobile WebGL2 sub-FBO scaling drops.
+- **Fixes:**
+  - `FollowCam.gd`: `NaN` guards (`_vec_ok()`, `_ensure_clean_basis()`, `_safe_look_at()`, `_process()`), `snap_to_target()`, `_cam.current` & finite transform recovery, and `near`/`far` clamps.
+  - `KiepieBike.gd`: `_is_pose_valid()` (including `y > 45.0` sky-launch bound), `_safe_spawn()`, recovery in `_integrate_forces()`, and velocity clamps.
+  - `CombatController.gd`: in `_die()` / `_respawn()` / `reset_state()`, disable collision and zero velocities before freezing, plus post-unfreeze deferred `_notify_camera_snap`.
+  - Finite-value guards in `LoopZone.gd` and the `MatchHud` radar.
+  - `Settings.gd`: keep mobile WebGL2 auto `scaling_3d_scale` at `1.0` and disable `msaa_3d` on Web / sub-1.0 scale.
+  - Regression tests in `verify_deathrace.gd` section 7.
+
+### Death Race track upgrade
+- **Circuit:** 550.6 m closed uniform cubic B-spline (29 control points, 180 arc-length samples), with dark-charcoal `TrackRibbon`, dashed `TrackCenterLine`, amber `TrackEdgeLines`, 3D beveled alternating red/white `TrackKerbs`, and `GridBox0..7`.
+- **Features:** Serpent Esses, Furnace Bend, Canyon Switchback, and Victory Carousel with physical black-and-yellow `>>>` chevron turn boards, continuous mitered concrete jersey barriers (`BarrierConcrete` + `BarrierTopRail` + impact attenuators), curved split pit lane with `PitGantry`, `LoopApron0/1` and `LoopBackstop0/1`, tiered stadium grandstands, and high-contrast jump ramps.
+- **Bounds:** 28 m collision-only containment walls on all four sides; desert-turf stadium floor expanded to 250×210 with a 560×560 horizon skirt.
+- **Layout:** Checkpoints, loops, finish line (non-Z-fighting dark fascia + 5 start-light pods), spline-anchored pickups/drums, and spawns repositioned.
+- **Gate result:** `run_gates.sh` passes **29/29**.
+
+## Audit remediation — Surgical Audit Rev 2 (2026-11-24)
+
+Source report: [audits/kiepie-quad-surgical-audit-2026-11-24-rev2.md](audits/kiepie-quad-surgical-audit-2026-11-24-rev2.md) + [SARIF 2.1.0](audits/kiepie-quad-surgical-audit-2026-11-24-rev2.sarif).
+
+| ID | Finding (severity) | Fix | Evidence |
+| --- | --- | --- | --- |
+| P1-1..2 | `_join_gen` self-invalidation on zombie-room eviction; unprotected `join_lobby_channel()` | `leave_lobby_channel(bump_join_gen: bool = true)` + `false` at eviction sites; `_join_gen` + sequence reset in `join_lobby_channel()` | `TaloBackend.gd` + `verify_talo_backend.gd`, `verify_audit_regressions.gd` |
+| P1-3 | Stale `LobbyService` cleanup cancels newer in-flight `create_lobby`/`join_*` | `_pending_requests` + `cleanup_gen == _session_gen` guard in `_enter_if_current()` | `LobbyService.gd` + `verify_match_rules.gd` |
+| P1-4 | `patch_web_sw.py` silent-skip on 5/6 blocks + non-idempotent hash append | Fail-fast `RuntimeError` on all 8 markers + double-patch guard + `test_patch_web_sw.py` wired into `check_web_hygiene.py` | `patch_web_sw.py`, `test_patch_web_sw.py`, `check_web_hygiene.py` |
+| P1-5 | Fresh-checkout / CI `talo_backend` failure when `addons/talo/settings.cfg` is absent | `run_gates.sh` writes offline-safe `settings.cfg` (`0600`) when absent; `verify_talo_backend.gd` also checks `inject_talo_key.py` template | `run_gates.sh`, `verify_talo_backend.gd` |
+| P2-1..6 | `SideCannons` pool eviction (`24`→`48` + inactive-slot scan); `NetworkedBike` invalid first `"p"` guard; `TaloBackend` `max_players` cap; `Settings.reload()` in `_gate_settings_guard.gd`; 3 strengthened `verify_audit_regressions.gd` checks; `check_scene_sync.py` SubResource content hashing | All remediated and gated | `SideCannons.gd`, `NetworkedBike.gd`, `TaloBackend.gd`, `Settings.gd`, `_gate_settings_guard.gd`, `verify_audit_regressions.gd`, `check_scene_sync.py` |
+| P3-1..7 | `JSON.parse_string()` + `_kill_last_base.erase(uid)`; `LoopZone.loop_half_width`; `CombatController` cold-boot `TestRide` attribution; `TouchControls` widen restore; `VfxCore`/`VfxHeavy` quality & `reduced_motion` guards; `build_testride.gd` persistent `"bike"` group; wildcard `Settings.changed` + `fmod` bounded `_jet_t`/`_breathe_t` | Cleaned up and verified | `TaloBackend.gd`, `LoopZone.gd`, `CombatController.gd`, `TouchControls.gd`, `VfxCore.gd`, `VfxHeavy.gd`, `build_testride.gd`, `AmbientVfx.gd`, `FollowCam.gd`, `KiepieBike.gd`, `PogoVisual.gd` |
 
 ## 2026-11-23 — Rocket contract + vehicle-specific launchers + BIG-BEN ground clearance
 

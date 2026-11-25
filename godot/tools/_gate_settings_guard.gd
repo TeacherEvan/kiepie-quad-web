@@ -36,5 +36,5 @@ static func restore(root: Node, snap: Dictionary) -> void:
 		if FileAccess.file_exists(CFG_PATH):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(CFG_PATH))
 	var settings := root.get_node_or_null("Settings") if root != null else null
-	if settings != null and settings.has_method("load_from_disk"):
-		settings.call("load_from_disk")
+	if settings != null and settings.has_method("reload"):
+		settings.call("reload")

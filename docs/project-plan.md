@@ -12,7 +12,7 @@ Canonical project plan for the single repository `TeacherEvan/kiepie-quad-web`
 
 - Sport quad (Yamaha Blaster class) procedurally built in Blender 5.3 from `src/qb_spec.py`;
   QA APPROVED, 0 non-manifold edges, ground datum minZ = 0.000.
-- Godot 4.3 game: Dashboard with **Battle Royale** (default, `Arena.tscn` + `TestRide.tscn` practice) and **Death Race** (`DeathRace.tscn` circuit with loops, hazard pits, pit lane, ramps, pickups, ordered checkpoints, finish line, lap counter, and victory splash video), main scene `MainMenu.tscn`.
+- Godot 4.3 game: Dashboard with **Battle Royale** (default, `Arena.tscn` + `TestRide.tscn` practice) and **Death Race** (`DeathRace.tscn` 550.6 m B-spline circuit on 250×210 desert-turf stadium ground with continuous mitered jersey barriers, physical chevron turn boards, loops, hazard pits, curved split pit lane, containment walls, ramps, pickups, ordered checkpoints, finish line, lap counter, and victory splash video), main scene `MainMenu.tscn`.
   Backend: Talo 0.20.0 (vendored), host-authoritative scoring, wire `protocol_version = 3`.
 - The 2026-11-18 **10-Principal-Engineer audit**
   ([source report](audits/10%20Principal%20Engineer.txt)) was remediated in commits

@@ -225,17 +225,29 @@ func _die(by: String) -> void:
 			"at": Time.get_ticks_msec(),
 		})
 	bike.visible = false
+	# A dead body left on layer 1 keeps eating live projectiles and blocking
+	# bikes for the whole respawn window; disable collision & wheel forces BEFORE
+	# freezing so VehicleBody3D never freezes while wheels intersect geometry.
+	bike.collision_layer = 0
+	bike.collision_mask = 0
 	bike.set_physics_process(false)
-	bike.freeze = true
+	if "_wheels" in bike:
+		var wheels_dict: Variant = bike.get("_wheels")
+		if wheels_dict is Dictionary:
+			for w in (wheels_dict as Dictionary).values():
+				if w is VehicleWheel3D and is_instance_valid(w):
+					(w as VehicleWheel3D).engine_force = 0.0
+					(w as VehicleWheel3D).brake = 0.0
+					(w as VehicleWheel3D).steering = 0.0
 	bike.linear_velocity = Vector3.ZERO
 	bike.angular_velocity = Vector3.ZERO
+	if bike.get_rid().is_valid():
+		PhysicsServer3D.body_set_state(bike.get_rid(), PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO)
+		PhysicsServer3D.body_set_state(bike.get_rid(), PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
+	bike.freeze = true
 	var ep: Variant = bike.get("_engine_player")
 	if ep is AudioStreamPlayer3D:
 		(ep as AudioStreamPlayer3D).stream_paused = true
-	# A dead body left on layer 1 keeps eating live projectiles and blocking
-	# bikes for the whole respawn window, though it is invisible and inert.
-	bike.collision_layer = 0
-	bike.collision_mask = 0
 	_respawn_at = Time.get_ticks_msec() / 1000.0 + Match.respawn_delay()
 	if not Match.self_respawn_at.is_connected(_on_server_respawn):
 		Match.self_respawn_at.connect(_on_server_respawn, CONNECT_ONE_SHOT)
@@ -272,15 +284,21 @@ func _respawn() -> void:
 	# reset_bike() zeroes wheel force/brake/steer, clears dodge state and pushes
 	# the spawn transform into PhysicsServer3D — direct global_transform writes
 	# get overwritten on the next physics sync step.
+	# reset_bike() zeroes wheel force/brake/steer, clears dodge state, pushes
+	# the spawn transform into PhysicsServer3D and snaps FollowCam. Keep
+	# collision disabled until after unfreezing to avoid VehicleBody3D NaN.
+	bike.collision_layer = 0
+	bike.collision_mask = 0
+	bike.reset_bike()
 	bike.freeze = false
 	var ep: Variant = bike.get("_engine_player")
 	if ep is AudioStreamPlayer3D:
 		(ep as AudioStreamPlayer3D).stream_paused = false
-	bike.reset_bike()
 	bike.collision_layer = 1
 	bike.collision_mask = 1
 	bike.set_physics_process(true)
 	bike.visible = true
+	bike.call_deferred("_notify_camera_snap")
 	health = MAX_HEALTH
 	alive = true
 	_invuln_until = Time.get_ticks_msec() / 1000.0 + 1.0
@@ -330,8 +348,8 @@ func reset_state() -> void:
 		return
 	if Match.self_respawn_at.is_connected(_on_server_respawn):
 		Match.self_respawn_at.disconnect(_on_server_respawn)
-	bike.collision_layer = 1
-	bike.collision_mask = 1
+	bike.collision_layer = 0
+	bike.collision_mask = 0
 	_rapid_until = 0.0
 	_overdrive_until = 0.0
 	_shield_until = 0.0
@@ -346,8 +364,11 @@ func reset_state() -> void:
 	var ep: Variant = bike.get("_engine_player")
 	if ep is AudioStreamPlayer3D:
 		(ep as AudioStreamPlayer3D).stream_paused = false
+	bike.collision_layer = 1
+	bike.collision_mask = 1
 	bike.set_physics_process(true)
 	bike.visible = true
+	bike.call_deferred("_notify_camera_snap")
 	health = MAX_HEALTH
 	alive = true
 	_invuln_until = Time.get_ticks_msec() / 1000.0 + 0.5
@@ -453,7 +474,7 @@ func _on_projectile_hit(collider: Object, point: Vector3, projectile: Node) -> v
 		if (collider as Node).has_method("ignite"):
 			(collider as Node).call("ignite", owner_id, token)
 			_play_sfx("impact")
-		if owner_id == Supabase.user_id:
+		if owner_id == Supabase.user_id or (practice_mode and (owner_id == "" or owner_id == str(bike.get("player_id")))):
 			hit_confirmed.emit()
 		return
 	if target_id == "":

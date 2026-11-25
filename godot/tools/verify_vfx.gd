@@ -467,7 +467,7 @@ func _pooling_and_settings() -> void:
 			sc.call("fire")
 		await process_frame
 		var pool: Array = sc.get("_proj_pool")
-		_check(pool.size() > 0 and pool.size() <= 24, "SideCannons 30 rapid shots keeps _proj_pool in 1..24 (got %d)" % pool.size())
+		_check(pool.size() > 0 and pool.size() <= 48, "SideCannons 30 rapid shots keeps _proj_pool in 1..48 (got %d)" % pool.size())
 		var all_valid := true
 		for p in pool:
 			if not is_instance_valid(p):

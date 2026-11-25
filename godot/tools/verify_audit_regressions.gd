@@ -347,32 +347,37 @@ func _stale_leave_lobby_protection() -> void:
 
 
 func _phase1_audit_regressions() -> void:
-	# P1-1: leave_lobby_channel increments _join_gen
+	# P1-1: leave_lobby_channel(false) preserves _join_gen while leave_lobby_channel() increments it
 	var tb := (load("res://src/net/TaloBackend.gd") as GDScript).new() as Node
 	root.add_child(tb)
 	var jg0 := int(tb.get("_join_gen"))
+	tb.leave_lobby_channel(false)
+	_check(int(tb.get("_join_gen")) == jg0, "P1-1: leave_lobby_channel(false) preserves _join_gen")
 	tb.leave_lobby_channel()
 	_check(int(tb.get("_join_gen")) == jg0 + 1, "P1-1: leave_lobby_channel increments _join_gen")
 	tb.free()
 
-	# P1-2: VfxFactory 4-arg particle_explosion does not spawn mushroom stem; 3-arg dust_ring is not 57m
+	# P1-2: VfxFactory 4-arg particle_explosion does not spawn delayed Wilson ring; 3-arg dust_ring scales < 6.0 at 0.35 s
 	var vf := load("res://src/game/VfxFactory.gd") as GDScript
 	var fx_h := Node3D.new()
 	root.add_child(fx_h)
 	vf.particle_explosion(fx_h, Vector3.ZERO, Color.ORANGE, 1.0)
+	await create_timer(0.15).timeout
 	var expl := fx_h.get_node_or_null("Explosion")
 	var rings := 0
 	if expl != null:
 		for c in expl.get_children():
 			if c is MeshInstance3D and (c as MeshInstance3D).mesh is QuadMesh:
 				rings += 1
-	_check(rings <= 3, "P1-2: 4-arg VfxFactory.particle_explosion does not trigger mushroom shockwave rings (quads=%d)" % rings)
+	_check(rings <= 4, "P1-2: 4-arg VfxFactory.particle_explosion does not trigger delayed mushroom Wilson ring (quads=%d)" % rings)
 	vf.dust_ring(fx_h, Vector3.ZERO, 1.0)
-	var max_ring_scale := 0.0
+	var ring_node: MeshInstance3D = null
 	for c in fx_h.get_children():
 		if c is MeshInstance3D and (c as MeshInstance3D).mesh is QuadMesh:
-			max_ring_scale = maxf(max_ring_scale, ((c as MeshInstance3D).mesh as QuadMesh).size.x)
-	_check(max_ring_scale < 10.0, "P1-2: 3-arg VfxFactory.dust_ring uses 5.0 default, not 24")
+			ring_node = c as MeshInstance3D
+	await create_timer(0.35).timeout
+	var ring_scale := ring_node.scale.x if is_instance_valid(ring_node) else 0.0
+	_check(ring_scale > 0.0 and ring_scale < 6.0, "P1-2: 3-arg VfxFactory.dust_ring uses 5.0 default, not 24 (scale=%.2f)" % ring_scale)
 	fx_h.free()
 
 	# P1-4: finished lobby drops _spawn_remote_shot

@@ -379,6 +379,17 @@ func _run() -> void:
 	lag_stub.queue_free()
 	net_lag.queue_free()
 
+	# P2-2: NetworkedBike ignores invalid first position packet without initializing
+	var bad_nb := StaticBody3D.new()
+	bad_nb.set_script(load("res://src/game/NetworkedBike.gd"))
+	bad_nb.visible = false
+	bad_nb.collision_layer = 0
+	root.add_child(bad_nb)
+	bad_nb.call("apply_state", {"p": [1e30, 0.0, 0.0]})
+	_check(not bool(bad_nb.get("_initialised")) and not bad_nb.visible and bad_nb.collision_layer == 0,
+			"P2-2: invalid first position packet leaves NetworkedBike uninitialised and hidden")
+	bad_nb.queue_free()
+
 	nb.queue_free()
 	match_node.set("lobby", prev_lobby)
 	match_node.set("players", prev_players)

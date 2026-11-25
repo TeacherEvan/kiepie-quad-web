@@ -280,10 +280,23 @@ func join_lobby_channel(lobby_id: String) -> void:
 	var id := int(lobby_id)
 	if _channel_id == id or id <= 0:
 		return
+	var gen := _join_gen
 	var joined = await Talo.channels.join(id)
-	_channel = joined if joined != null else await Talo.channels.find(id)
+	if gen != _join_gen:
+		if joined != null:
+			Talo.channels.leave(id)
+		return
+	var found = joined if joined != null else await Talo.channels.find(id)
+	if gen != _join_gen:
+		if found != null:
+			Talo.channels.leave(id)
+		return
+	_channel = found
 	if _channel != null:
 		_channel_id = id
+		_state_seq = 0
+		_last_state_seq = -1
+		_last_state_host = ""
 		_host_lost_emitted = false
 		_load_state()
 		_send("join", {"user_id": user_id,
@@ -292,11 +305,12 @@ func join_lobby_channel(lobby_id: String) -> void:
 				"vehicle": Settings.preferred_vehicle()})
 
 
-func leave_lobby_channel() -> void:
+func leave_lobby_channel(bump_join_gen: bool = true) -> void:
 	# Bump _prop_gen and _join_gen so any in-flight _write_props() or join/create
 	# coroutine cannot resurrect _channel or tear down a newer lobby.
 	_prop_gen += 1
-	_join_gen += 1
+	if bump_join_gen:
+		_join_gen += 1
 	_state_seq = 0
 	_last_state_seq = -1
 	_last_state_host = ""
@@ -459,7 +473,7 @@ func _join_auto(args: Dictionary) -> Dictionary:
 			if _host_ack:
 				return {"lobby": _lobby, "player": _roster.get(user_id, {})}
 			# Host vanished before heartbeat expired — leave zombie room and try next.
-			leave_lobby_channel()
+			leave_lobby_channel(false)
 	if gen != _join_gen:
 		return {}
 	var create_args := args.duplicate(true)
@@ -514,7 +528,7 @@ func _join_by_code(args: Dictionary) -> Dictionary:
 				return {}
 			if _host_ack:
 				return {"lobby": _lobby, "player": _roster.get(user_id, {})}
-			leave_lobby_channel()
+			leave_lobby_channel(false)
 			saw_stale = true
 	if saw_protocol_mismatch:
 		return {"message": "That room is on a different game version — update the game to join."}
@@ -964,10 +978,10 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 	if sender_id == "":
 		return
 	var raw := str(data.get("message", ""))
-	var json := JSON.new()
-	if json.parse(raw) != OK or not (json.get_data() is Dictionary):
+	var parsed: Variant = JSON.parse_string(raw)
+	if not (parsed is Dictionary):
 		return
-	var msg: Dictionary = json.get_data()
+	var msg: Dictionary = parsed as Dictionary
 	var kind := str(msg.get("k", ""))
 	var payload: Variant = msg.get("p", {})
 	match kind:
@@ -1011,8 +1025,9 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 				if kind == "join":
 					if not _roster.has(uid) and str(_lobby.get("status", "waiting")) != "waiting":
 						return  # late-joining peers cannot enter an active/finished match
-					if _roster.size() >= 8 and not _roster.has(uid):
-						return  # full lobby; no unbounded growth
+					var max_players := clampi(int((_lobby.get("settings", {}) as Dictionary).get("max_players", 8)), 2, 8)
+					if _roster.size() >= max_players and not _roster.has(uid):
+						return  # full lobby; enforce configured max_players cap
 					var prev: Dictionary = {}
 					if _roster.has(uid) and _roster[uid] is Dictionary:
 						prev = _roster[uid] as Dictionary
@@ -1020,6 +1035,7 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 				else:
 					_roster.erase(uid)
 					_kill_cooldowns.erase(uid)
+					_kill_last_base.erase(uid)
 					_kill_window.erase(uid)
 					_lap_timestamps.erase(uid)
 					_hurt_log.erase(uid)

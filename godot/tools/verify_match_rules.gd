@@ -66,4 +66,6 @@ func _run() -> void:
 	_check(str(match_state.call("game_mode")) == "battle_royale"
 			and int(match_state.call("damage")) == 30.0,
 			"Match._settings_cache resets on Lobby.leave() (P1-2)")
+	_check(int(lobby.get("_pending_requests")) == 0,
+			"P1-3: Lobby._pending_requests returns to 0 after requests settle")
 	quit(1 if _fail > 0 else 0)

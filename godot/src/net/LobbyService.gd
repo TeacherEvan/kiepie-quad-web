@@ -7,6 +7,7 @@ signal error_message(message: String)
 
 var current_lobby_id := ""
 var _session_gen := 0
+var _pending_requests := 0
 
 
 func _ready() -> void:
@@ -38,37 +39,46 @@ func _enter_if_current(gen: int, res: Dictionary) -> bool:
 	if gen != _session_gen:
 		if not res.is_empty() and res.has("lobby"):
 			var stale_id := str((res["lobby"] as Dictionary).get("id", ""))
+			var cleanup_gen := _session_gen
 			await Supabase.call_rpc("leave_lobby", {"p_expected_lobby_id": stale_id})
-			if current_lobby_id == "" or current_lobby_id == stale_id:
+			if current_lobby_id == stale_id or (current_lobby_id == "" and _pending_requests == 0 and cleanup_gen == _session_gen):
 				Supabase.leave_lobby_channel()
 		return false
 	return _enter(res)
 
 
 func join_auto(game_mode: String = "battle_royale") -> bool:
+	_session_gen += 1
 	var gen := _session_gen
+	_pending_requests += 1
 	var res: Dictionary = await Supabase.call_rpc("join_auto", {
 		"p_display_name": Settings.display_name(),
 		"p_color": Settings.player_color(),
 		"p_vehicle": Settings.preferred_vehicle(),
 		"p_game_mode": game_mode,
 	})
+	_pending_requests = maxi(0, _pending_requests - 1)
 	return await _enter_if_current(gen, res)
 
 
 func join_by_code(code: String) -> bool:
+	_session_gen += 1
 	var gen := _session_gen
+	_pending_requests += 1
 	var res: Dictionary = await Supabase.call_rpc("join_by_code", {
 		"p_code": code.strip_edges().to_upper(),
 		"p_display_name": Settings.display_name(),
 		"p_color": Settings.player_color(),
 		"p_vehicle": Settings.preferred_vehicle(),
 	})
+	_pending_requests = maxi(0, _pending_requests - 1)
 	return await _enter_if_current(gen, res)
 
 
 func create_lobby(name: String, settings: Dictionary) -> bool:
+	_session_gen += 1
 	var gen := _session_gen
+	_pending_requests += 1
 	var res: Dictionary = await Supabase.call_rpc("create_lobby", {
 		"p_name": name.strip_edges().substr(0, 32),
 		"p_settings": settings,
@@ -76,6 +86,7 @@ func create_lobby(name: String, settings: Dictionary) -> bool:
 		"p_color": Settings.player_color(),
 		"p_vehicle": Settings.preferred_vehicle(),
 	})
+	_pending_requests = maxi(0, _pending_requests - 1)
 	return await _enter_if_current(gen, res)
 
 

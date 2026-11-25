@@ -106,6 +106,17 @@ def main() -> int:
         if "getElementById('victory-skip')" not in html or "addEventListener('click',drop)" not in html:
             failures.append("index.html missing WCAG 2.1.1 click listener on splash skip buttons")
 
+    # 5. patch_web_sw.py must fail fast on template drift or double-patching
+    try:
+        sys.dont_write_bytecode = True
+        tools_dir = str(Path(__file__).resolve().parent)
+        if tools_dir not in sys.path:
+            sys.path.insert(0, tools_dir)
+        import test_patch_web_sw
+        test_patch_web_sw.run_tests()
+    except Exception as exc:
+        failures.append(f"test_patch_web_sw failed: {exc}")
+
     if failures:
         for f in failures:
             print(f"FAIL web_hygiene: {f}", file=sys.stderr)

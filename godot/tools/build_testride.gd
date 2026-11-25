@@ -108,7 +108,7 @@ func _initialize() -> void:
 	bike.name = "KiepieBike"
 	bike.position = Vector3(0.0, 0.45, 8.0)
 	bike.rotation = Vector3(0.0, 0.0, 0.0)
-	bike.add_to_group("bike")
+	bike.add_to_group("bike", true)
 	# practice-mode cannons: fire works without a match lobby; no network kill
 	# broadcast, no match gate. CombatController lives on the bike like Arena.
 	var combat := Node3D.new()

@@ -33,14 +33,19 @@ def patch_service_worker(src: str, wasm_hash: str = "dev", pck_hash: str = "dev"
     # it a second time on first load.
     out = src.replace('"index.worker.js",', '').replace('"index.wasm",', '')
 
+    if "const ENGINE_CACHE =" in out:
+        raise RuntimeError("patch_web_sw: service worker is already patched")
+
     # Incorporate index.pck content hash into CACHE_VERSION so every pck change swaps
     # CACHE_NAME cleanly, allowing index.pck to be Cache-First inside its own version bucket.
-    out = re.sub(
+    out, n = re.subn(
         r"const CACHE_VERSION = '([^']+)';",
         f"const CACHE_VERSION = '\\1|{pck_hash}';",
         out,
         count=1,
     )
+    if n != 1:
+        raise RuntimeError("patch_web_sw: CACHE_VERSION marker not found")
 
     engine_line = (
         "const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;\n"
@@ -48,8 +53,9 @@ def patch_service_worker(src: str, wasm_hash: str = "dev", pck_hash: str = "dev"
         f"const ENGINE_CACHE = ENGINE_PREFIX + '{wasm_hash}';\n"
         "const ENGINE_FILES = ['index.wasm'];"
     )
-    if "const ENGINE_CACHE =" not in out:
-        out = out.replace("const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;", engine_line, 1)
+    if "const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;" not in out:
+        raise RuntimeError("patch_web_sw: CACHE_NAME marker not found")
+    out = out.replace("const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;", engine_line, 1)
 
     old_install = (
         "self.addEventListener('install', (event) => {\n"
@@ -64,16 +70,18 @@ def patch_service_worker(src: str, wasm_hash: str = "dev", pck_hash: str = "dev"
         "\t]).then(() => self.skipWaiting()));\n"
         "});"
     )
-    if old_install in out:
-        out = out.replace(old_install, new_install, 1)
+    if old_install not in out:
+        raise RuntimeError("patch_web_sw: expected old_install block not found")
+    out = out.replace(old_install, new_install, 1)
 
     old_clean = "keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)"
     new_clean = (
         "keys.filter((key) => (key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME) "
         "|| (key.startsWith(ENGINE_PREFIX) && key !== ENGINE_CACHE))"
     )
-    if old_clean in out:
-        out = out.replace(old_clean, new_clean, 1)
+    if old_clean not in out:
+        raise RuntimeError("patch_web_sw: expected old_clean block not found")
+    out = out.replace(old_clean, new_clean, 1)
 
     old_activate = (
         "\t).then(function () {\n"
@@ -89,8 +97,9 @@ def patch_service_worker(src: str, wasm_hash: str = "dev", pck_hash: str = "dev"
         "\t\treturn ('navigationPreload' in self.registration) ? self.registration.navigationPreload.enable() : Promise.resolve();\n"
         "\t}));"
     )
-    if old_activate in out:
-        out = out.replace(old_activate, new_activate, 1)
+    if old_activate not in out:
+        raise RuntimeError("patch_web_sw: expected old_activate block not found")
+    out = out.replace(old_activate, new_activate, 1)
 
     old_coep_fn = (
         "function ensureCrossOriginIsolationHeaders(response) {\n"
@@ -104,8 +113,9 @@ def patch_service_worker(src: str, wasm_hash: str = "dev", pck_hash: str = "dev"
         "\t}\n"
         "\tif (response.headers.get('Cross-Origin-Embedder-Policy') === 'require-corp'"
     )
-    if old_coep_fn in out:
-        out = out.replace(old_coep_fn, new_coep_fn, 1)
+    if old_coep_fn not in out:
+        raise RuntimeError("patch_web_sw: expected old_coep_fn block not found")
+    out = out.replace(old_coep_fn, new_coep_fn, 1)
 
     old_fetch_fn = (
         "\tif (isCacheable) {\n"
@@ -119,8 +129,9 @@ def patch_service_worker(src: str, wasm_hash: str = "dev", pck_hash: str = "dev"
         "\t\tcache.put(event.request, response.clone()).catch(() => {});\n"
         "\t}"
     )
-    if old_fetch_fn in out:
-        out = out.replace(old_fetch_fn, new_fetch_fn, 1)
+    if old_fetch_fn not in out:
+        raise RuntimeError("patch_web_sw: expected old_fetch_fn block not found")
+    out = out.replace(old_fetch_fn, new_fetch_fn, 1)
 
     old_fetch_block = (
         "\t\tconst isNavigate = event.request.mode === 'navigate';\n"

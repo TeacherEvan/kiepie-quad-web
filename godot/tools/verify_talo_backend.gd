@@ -291,11 +291,15 @@ func _initialize() -> void:
 	ho.free()
 	backend.free()
 
-	# P1-8: checked-in addons/talo/settings.cfg keeps auto_connect_socket=false
+	# P1-8: checked-in/gate addons/talo/settings.cfg keeps auto_connect_socket=false,
+	# and inject_talo_key.py template ships auto_connect_socket=false & handle_tree_quit=false.
 	var talo_cfg := ConfigFile.new()
 	var cfg_ok := talo_cfg.load("res://addons/talo/settings.cfg") == OK
 	_check(cfg_ok and not bool(talo_cfg.get_value("", "auto_connect_socket", true)),
 			"P1-8: addons/talo/settings.cfg ships auto_connect_socket=false")
+	var inj_text := FileAccess.get_file_as_string("res://tools/inject_talo_key.py")
+	_check(inj_text.contains("auto_connect_socket=false") and inj_text.contains("handle_tree_quit=false"),
+			"P1-5: inject_talo_key.py template sets auto_connect_socket=false and handle_tree_quit=false")
 
 	# P0-1: late v1.players.identify.success promotes timed-out TaloBackend online
 	var late_b := _new_backend()
@@ -426,6 +430,34 @@ func _initialize() -> void:
 		sb_err.set("use_mock", prev_mock)
 		if "last_auth_error" in sb_err:
 			sb_err.set("last_auth_error", prev_err)
+
+	# P1-1/P2-3/P3-1: leave_lobby_channel(false) preserves _join_gen; max_players cap; leave erases _kill_last_base
+	var jg_tb := _new_backend()
+	get_root().add_child(jg_tb)
+	var jg_before := int(jg_tb.get("_join_gen"))
+	jg_tb.call("leave_lobby_channel", false)
+	_check(int(jg_tb.get("_join_gen")) == jg_before,
+			"P1-1: leave_lobby_channel(false) preserves _join_gen")
+	jg_tb.user_id = "1"
+	jg_tb._channel_id = 10
+	jg_tb._lobby = {"id": "10", "host_id": "1", "status": "waiting", "settings": {"max_players": 2}}
+	jg_tb._roster = {"1": {"user_id": "1"}, "2": {"user_id": "2"}}
+	await jg_tb.call("_on_socket_message", "v1.channels.message", {
+		"channel": {"id": 10},
+		"playerAlias": {"id": 3},
+		"message": JSON.stringify({"k": "join", "p": {"user_id": "3", "display_name": "THIRD"}}),
+	})
+	_check(not (jg_tb.get("_roster") as Dictionary).has("3"),
+			"P2-3: join rejected when _roster.size() >= settings.max_players")
+	(jg_tb.get("_kill_last_base") as Dictionary)["2"] = 123.0
+	await jg_tb.call("_on_socket_message", "v1.channels.message", {
+		"channel": {"id": 10},
+		"playerAlias": {"id": 2},
+		"message": JSON.stringify({"k": "leave", "p": {"user_id": "2"}}),
+	})
+	_check(not (jg_tb.get("_kill_last_base") as Dictionary).has("2"),
+			"P3-1: leave erases uid from _kill_last_base")
+	jg_tb.free()
 
 	print("talo backend contract: %d failure(s)" % _failures)
 	quit(1 if _failures > 0 else 0)

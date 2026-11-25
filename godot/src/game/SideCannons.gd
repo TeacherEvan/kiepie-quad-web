@@ -76,7 +76,7 @@ var _last_reload_progress := -1.0
 var _last_reload_ready := true
 var _last_weapon_emitted := ""
 var _last_aim_state := ""
-const PROJ_POOL_SIZE := 24
+const PROJ_POOL_SIZE := 48
 var _proj_pool: Array[Node3D] = []
 var _proj_pool_idx := 0
 var _muzzle_flashes: Array[GPUParticles3D] = []
@@ -688,6 +688,12 @@ func _acquire_pooled_proj(proj_script: GDScript, fx_parent: Node3D) -> Node3D:
 		_proj_pool.append(p)
 		return p
 	var idx := _proj_pool_idx
+	for offset in range(PROJ_POOL_SIZE):
+		var cand_idx := (_proj_pool_idx + offset) % PROJ_POOL_SIZE
+		var cand := _proj_pool[cand_idx]
+		if not is_instance_valid(cand) or not cand.is_physics_processing():
+			idx = cand_idx
+			break
 	_proj_pool_idx = (idx + 1) % PROJ_POOL_SIZE
 	var slot := _proj_pool[idx]
 	if not is_instance_valid(slot) or slot.get_script() != proj_script:

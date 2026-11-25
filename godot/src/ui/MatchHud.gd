@@ -879,6 +879,8 @@ class RadarControl extends Control:
 			return
 		var origin := _local.global_position
 		var fwd3 := _local.global_transform.basis.z
+		if not origin.is_finite() or not fwd3.is_finite():
+			return
 		var fwd := Vector2(fwd3.x, fwd3.z)
 		fwd = fwd.normalized() if fwd.length_squared() > 1e-6 else Vector2(0.0, 1.0)
 		var right := Vector2(-fwd.y, fwd.x)
@@ -886,8 +888,8 @@ class RadarControl extends Control:
 			if b == _local or not (b is Node3D):
 				continue
 			var node := b as Node3D
-			if not node.visible:
-				continue  # respawning proxies are hidden
+			if not node.visible or not node.global_position.is_finite():
+				continue  # respawning or invalid-pose proxies are hidden
 			var d := node.global_position - origin
 			var local_2d := Vector2(d.x * right.x + d.z * right.y, -(d.x * fwd.x + d.z * fwd.y))
 			var offset := local_2d / WORLD_RANGE * r

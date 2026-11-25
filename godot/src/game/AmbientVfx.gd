@@ -20,7 +20,7 @@ func _exit_tree() -> void:
 
 
 func _on_settings_changed(section: String, key: String, _val: Variant) -> void:
-	if (section == "gameplay" and key == "reduced_motion") or (section == "video" and (key == "particles" or key == "quality")):
+	if section == "*" or (section == "gameplay" and key == "reduced_motion") or (section == "video" and (key == "particles" or key == "quality")):
 		_sync_motes()
 
 

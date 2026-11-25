@@ -504,8 +504,9 @@ static func lightning_strike_explosion(parent: Node3D, pos: Vector3,
 
 	if reduced:
 		S._static_cue(holder, Vector3(0.0, 0.3, 0.0), Color(0.45, 0.88, 1.0), 3.4 * scale, 0.25)
+		light.light_energy = 3.5 * scale
 		var lt := holder.create_tween()
-		lt.tween_property(light, "light_energy", 0.0, 0.22)
+		lt.tween_interval(0.22)
 		lt.tween_callback(func() -> void:
 			release_light.call()
 			if is_instance_valid(bolt_root):
@@ -588,7 +589,11 @@ static func cash_explosion(parent: Node3D, pos: Vector3, big: bool = false) -> v
 			light.queue_free()
 
 	var lt := holder.create_tween()
-	lt.tween_property(light, "light_energy", 0.0, 0.28 if not reduced else 0.16)
+	if reduced:
+		light.light_energy = 3.0 if big else 2.0
+		lt.tween_interval(0.16)
+	else:
+		lt.tween_property(light, "light_energy", 0.0, 0.28)
 	lt.tween_callback(release_light)
 
 	if reduced:

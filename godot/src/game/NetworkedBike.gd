@@ -130,11 +130,13 @@ func apply_state(data: Dictionary) -> void:
 			return  # ignore stale pre-death in-flight packet
 	if n >= 0:
 		_last_tick = n
+	var pos_valid := false
 	var p: Variant = data.get("p", null)
 	if p is Array and (p as Array).size() >= 3:
 		var cand := Vector3(float(p[0]), float(p[1]), float(p[2]))
 		if is_finite(cand.x) and is_finite(cand.y) and is_finite(cand.z) and cand.length() <= 600.0 and absf(cand.y) <= 120.0:
 			_target_pos = cand
+			pos_valid = true
 	var r: Variant = data.get("r", null)
 	if r is Array and (r as Array).size() >= 4:
 		var q := Quaternion(float(r[0]), float(r[1]), float(r[2]), float(r[3]))
@@ -142,6 +144,8 @@ func apply_state(data: Dictionary) -> void:
 			_target_basis = Basis(q.normalized()).orthonormalized()
 	turbo_active = bool(data.get("t", false)) and not dead_now
 	if not _initialised:
+		if not pos_valid:
+			return
 		is_respawning = dead_now
 		visible = not dead_now
 		collision_layer = 0 if dead_now else 1

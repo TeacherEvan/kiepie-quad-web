@@ -172,6 +172,9 @@ func _run() -> void:
 	await process_frame
 	_check(Engine.time_scale == 1.0,
 			"freeing CombatController mid-hitstop restores Engine.time_scale to 1.0")
+	var sc_pool_script2 := load("res://src/game/SideCannons.gd") as GDScript
+	_check(int(sc_pool_script2.get("PROJ_POOL_SIZE")) >= 48,
+			"P2-1: SideCannons.PROJ_POOL_SIZE >= 48 to prevent mid-air bolt eviction")
 	Engine.time_scale = 1.0
 	bike.queue_free()
 	holder.queue_free()

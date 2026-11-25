@@ -70,6 +70,25 @@ run_gate_windowed() {
 }
 
 note "Kiepie Bike gate suite — root: $ROOT"
+# Fresh checkouts (CI) have no git-ignored addons/talo/settings.cfg; create an
+# offline-safe default before Godot boots so Talo 0.20 does not auto-generate
+# auto_connect_socket=true and dial api.trytalo.com during offline gates.
+if [ ! -f "$ROOT/godot/addons/talo/settings.cfg" ]; then
+	mkdir -p "$ROOT/godot/addons/talo"
+	(
+		umask 077
+		cat >"$ROOT/godot/addons/talo/settings.cfg" <<'EOF'
+access_key=""
+api_url="https://api.trytalo.com"
+socket_url="wss://api.trytalo.com"
+auto_connect_socket=false
+handle_tree_quit=false
+
+[continuity]
+enabled=false
+EOF
+	)
+fi
 # Fresh checkouts (CI) have no .godot/ import cache: the vendored Talo
 # plugin's scripts only parse once Godot has built the global class cache.
 # Import once when it is missing; this is a no-op otherwise.

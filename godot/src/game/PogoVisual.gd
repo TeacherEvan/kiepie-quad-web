@@ -239,7 +239,7 @@ func _physics_process(delta: float) -> void:
 	_move_blend = _exp_decay(_move_blend, raw_move, 6.5, dt)
 
 	# ---- 2. Idle_Breathe + Locomotion_Hop (Two-phase ballistic pogo physics)
-	_breathe_t += dt
+	_breathe_t = fmod(_breathe_t + dt, 20.0 * TAU)
 	var rest_freq := idle_bounce_hz
 	var move_freq := clampf(move_bounce_base_hz + speed * bounce_speed_gain, 1.65, 3.25)
 	var freq := lerpf(rest_freq, move_freq, _move_blend)

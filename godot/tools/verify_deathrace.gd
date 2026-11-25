@@ -367,29 +367,30 @@ func _run() -> void:
 			"Ramp4 launches along -Z clockwise west straight over HazardPit2 (F-P0-2)")
 
 	# F-P1-8: Full-width straightaway clearance — EVERY LoopSeg & LoopZone under TrackLoop0/1
-	# must be completely clear of NorthStraight (z in [-52, -36]) and SouthStraight (z in [36, 52]).
+	# must be completely clear of NorthStraight (z in [-70, -54]) and SouthStraight (z in [54, 70]).
 	var loop_intrudes := false
 	for l_name in ["TrackLoop0", "TrackLoop1"]:
 		var lp_node := dr.get_node_or_null(l_name) as Node3D
 		_check(lp_node != null, "%s exists" % l_name)
 		if lp_node == null:
 			continue
+		var min_abs_z := 70.2
 		for ch in lp_node.get_children():
 			if ch is StaticBody3D and str(ch.name).begins_with("LoopSeg"):
 				var seg_z := (ch as Node3D).global_position.z
-				if absf(seg_z) <= 52.2:
+				if absf(seg_z) <= min_abs_z:
 					loop_intrudes = true
 			elif ch is Area3D and str(ch.name) == "LoopZone":
 				var zc := ch.get_node_or_null("ZoneCollider") as CollisionShape3D
 				if zc != null and zc.shape is BoxShape3D:
 					var half_z := (zc.shape as BoxShape3D).size.x * 0.5  # rotated 90 deg Y -> local X is world Z
-					if absf(zc.global_position.z) - half_z <= 52.2:
+					if absf(zc.global_position.z) - half_z <= min_abs_z:
 						loop_intrudes = true
-	_check(not loop_intrudes, "TrackLoop0/1 & LoopZones are completely clear of flat straightaways (|z| > 52.2) (F-P1-8)")
+	_check(not loop_intrudes, "TrackLoop0/1 & LoopZones are completely clear of flat straightaways (F-P1-8)")
 
-	# Tier-2 Death Race Turn 1 navigation @ 26 m/s (release at 85 deg) — no spinout
+	# Tier-2 Death Race Turn 1 navigation @ 26 m/s (release at 70 deg) — no spinout
 	if bike != null:
-		bike.call("set_spawn", Transform3D(Basis(Vector3.UP, deg_to_rad(90.0)), Vector3(25.0, 0.1, -44.0)))
+		bike.call("set_spawn", Transform3D(Basis(Vector3.UP, deg_to_rad(90.0)), Vector3(58.0, 0.1, -62.0)))
 		bike.call("reset_bike")
 		for _f in range(15):
 			await physics_frame
@@ -398,10 +399,10 @@ func _run() -> void:
 		Input.action_press("steer_right")
 		var py1 := rad_to_deg(atan2(bike.global_transform.basis.z.x, bike.global_transform.basis.z.z))
 		var tot1 := 0.0
-		var max_x1 := 25.0
+		var max_x1 := 58.0
 		var peak_slip1 := 0.0
 		for _t in range(100):
-			if absf(tot1) >= 85.0:
+			if absf(tot1) >= 70.0:
 				Input.action_release("steer_right")
 			await physics_frame
 			var b1 := bike.global_transform.basis.orthonormalized()
@@ -412,11 +413,11 @@ func _run() -> void:
 			peak_slip1 = maxf(peak_slip1, absf(rad_to_deg(atan2(bike.linear_velocity.dot(b1.x), maxf(bike.linear_velocity.dot(b1.z), 0.5)))))
 		Input.action_release("move_forward")
 		Input.action_release("steer_right")
-		_check(absf(tot1) <= 115.0 and peak_slip1 < 20.0 and max_x1 < 74.0,
+		_check(absf(tot1) <= 115.0 and peak_slip1 < 20.0 and max_x1 < 98.0,
 				"DeathRace Turn 1 @26m/s navigates cleanly without spinout (yaw=%.1f° slip=%.1f° max_x=%.1f)" % [tot1, peak_slip1, max_x1])
 
 		# Tier-2 TrackLoop0 360-degree completion + stalled-loop upright recovery
-		bike.call("set_spawn", Transform3D(Basis(Vector3.UP, deg_to_rad(90.0)), Vector3(14.0, 0.1, -56.4)))
+		bike.call("set_spawn", Transform3D(Basis(Vector3.UP, deg_to_rad(90.0)), Vector3(10.0, 0.1, -76.2)))
 		bike.call("reset_bike")
 		for _f in range(15):
 			await physics_frame
@@ -434,7 +435,7 @@ func _run() -> void:
 					loop_max_y, loop_min_up, bike.global_transform.basis.y.normalized().y])
 
 		# Stalled-loop bailout: bike stalled upside-down near top of loop must right itself
-		bike.global_transform = Transform3D(Basis(Vector3.RIGHT, PI), Vector3(26.0, 17.5, -58.2))
+		bike.global_transform = Transform3D(Basis(Vector3.RIGHT, PI), Vector3(22.0, 17.5, -78.0))
 		bike.linear_velocity = Vector3(1.0, 0.0, 0.0)
 		bike.angular_velocity = Vector3.ZERO
 		for _t in range(240):
@@ -522,9 +523,9 @@ func _run() -> void:
 		_check(cam_rig.global_position.is_finite() and cam_rig.global_transform.basis.is_finite(),
 				"FollowCam survives vertical loop pose with finite transform (F-P1-6)")
 		# Tier-2 FollowCam high-speed turn lag bound
-		bike.call("set_spawn", Transform3D(Basis(Vector3.UP, deg_to_rad(90.0)), Vector3(-30.0, 0.1, -44.0)))
+		bike.call("set_spawn", Transform3D(Basis(Vector3.UP, deg_to_rad(90.0)), Vector3(-30.0, 0.1, -62.0)))
 		bike.call("reset_bike")
-		cam_rig.global_position = Vector3(-34.6, 2.5, -44.0)
+		cam_rig.global_position = Vector3(-34.6, 2.5, -62.0)
 		for _f in range(5):
 			await physics_frame
 		bike.linear_velocity = Vector3(35.0, 0.0, 0.0)
@@ -724,6 +725,68 @@ func _run() -> void:
 		_check(float(combat.get("health")) < h_pre, "HazardPit0 deals thermal damage to local bike")
 		pit0.call("_on_body_exited", bike)
 		combat.call("reset_state")
+
+	# ---- 7. Disappearing-visuals regression: NaN / void-fall / freeze-respawn + upgraded track contract
+	if cam_rig != null and bike != null:
+		var cam_node := cam_rig.get_node_or_null("Camera3D") as Camera3D
+		cam_rig.global_transform = Transform3D(Basis(Vector3(NAN, 0, 0), Vector3(0, NAN, 0), Vector3(0, 0, NAN)), Vector3(NAN, NAN, NAN))
+		cam_rig.set("_cam_up", Vector3(NAN, NAN, NAN))
+		cam_rig.set("_follow_dir", Vector3(NAN, NAN, NAN))
+		if cam_node != null:
+			cam_node.fov = NAN
+		cam_rig.call("_process", 0.016)
+		_check(cam_rig.global_position.is_finite() and cam_rig.global_transform.basis.is_finite()
+				and absf(cam_rig.global_transform.basis.determinant()) > 0.5
+				and (cam_node == null or (is_finite(cam_node.fov) and cam_node.fov >= 30.0))
+				and cam_rig.global_position.distance_to(bike.global_position) < 12.0,
+				"FollowCam recovers cleanly from poisoned NaN basis/position/fov/vectors")
+
+		bike.global_position = Vector3(0.0, -25.0, -62.0)
+		await physics_frame
+		_check(bike.global_position.y > -2.0 and is_finite(float(bike.call("speed_kmh"))),
+				"KiepieBike void-fall below y=-12m snaps back to spawn")
+
+		bike.global_position = Vector3(0.0, 65.0, -62.0)
+		await physics_frame
+		_check(bike.global_position.y < 10.0,
+				"KiepieBike sky-launch above y=45m snaps back to spawn")
+
+		bike.linear_velocity = Vector3(NAN, 0.0, 0.0)
+		_check(float(bike.call("speed_kmh")) == 0.0,
+				"KiepieBike.speed_kmh() returns 0.0 instead of NaN")
+		await physics_frame
+		_check(bike.global_position.is_finite() and bike.linear_velocity.is_finite(),
+				"KiepieBike recovers from NaN linear_velocity on physics step")
+
+		if combat != null:
+			combat.call("_die", "hazard-pit")
+			combat.call("_respawn")
+			for _f in range(3):
+				await physics_frame
+			_check(bike.visible and bike.global_transform.is_finite()
+					and cam_rig.global_position.is_finite() and float(combat.get("health")) == 100.0,
+					"CombatController _die + _respawn restores visible bike & finite camera")
+
+	var ribbon_mi := dr.get_node_or_null("CircuitTrack/TrackRibbon") as MeshInstance3D
+	var center_mi := dr.get_node_or_null("CircuitTrack/TrackCenterLine") as MeshInstance3D
+	var lines_mi := dr.get_node_or_null("CircuitTrack/TrackEdgeLines") as MeshInstance3D
+	var kerbs_mi := dr.get_node_or_null("CircuitTrack/TrackKerbs") as MeshInstance3D
+	var conc_mi := dr.get_node_or_null("Walls/BarrierConcrete") as MeshInstance3D
+	var rail_mi := dr.get_node_or_null("Walls/BarrierTopRail") as MeshInstance3D
+	_check(ribbon_mi != null and ribbon_mi.mesh != null and ribbon_mi.mesh.get_surface_count() >= 1
+			and center_mi != null and center_mi.mesh != null and center_mi.mesh.get_surface_count() >= 1
+			and lines_mi != null and lines_mi.mesh != null and lines_mi.mesh.get_surface_count() >= 1
+			and kerbs_mi != null and kerbs_mi.mesh != null and kerbs_mi.mesh.get_surface_count() >= 1
+			and conc_mi != null and conc_mi.mesh != null and conc_mi.mesh.get_surface_count() >= 1
+			and rail_mi != null and rail_mi.mesh != null and rail_mi.mesh.get_surface_count() >= 1,
+			"Upgraded DeathRace has procedural TrackRibbon, TrackCenterLine, TrackEdgeLines, TrackKerbs, BarrierConcrete, and BarrierTopRail ArrayMeshes")
+	_check(dr.get_node_or_null("Walls/ContainmentN") != null
+			and dr.get_node_or_null("Walls/ContainmentS") != null
+			and dr.get_node_or_null("Walls/ContainmentE") != null
+			and dr.get_node_or_null("Walls/ContainmentW") != null
+			and dr.get_node_or_null("CircuitTrack/ChevronSerpent") != null
+			and dr.get_node_or_null("CircuitTrack/ChevronSwitchback") != null,
+			"Upgraded DeathRace has perimeter containment walls and physical S-chicane chevron boards")
 
 	dr.free()
 	match_node.set("lobby", prev_lobby)

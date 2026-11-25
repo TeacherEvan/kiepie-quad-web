@@ -85,6 +85,8 @@ func _is_mobile_auto() -> bool:
 
 func effective_resolution_scale() -> float:
 	var scale := float(get_value("video", "resolution_scale", 1.0))
+	if OS.has_feature("web") and _is_mobile_auto():
+		return 1.0
 	return minf(scale, 0.72) if _is_mobile_auto() else scale
 
 
@@ -251,7 +253,10 @@ func _apply_shadows_to_tree() -> void:
 func _apply_resolution_scale() -> void:
 	var vp := get_viewport()
 	if vp != null:
-		vp.scaling_3d_scale = effective_resolution_scale()
+		var scale := effective_resolution_scale()
+		vp.scaling_3d_scale = scale
+		if scale < 1.0 or OS.has_feature("web"):
+			vp.msaa_3d = Viewport.MSAA_DISABLED
 
 
 func _apply_glow_to_tree() -> void:
@@ -318,6 +323,12 @@ func _load() -> void:
 	data["meta"]["version"] = VERSION
 	if needs_save:
 		_save()
+
+
+func reload() -> void:
+	_cfg = ConfigFile.new()
+	_load()
+	apply_all()
 
 
 func _save() -> void:

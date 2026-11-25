@@ -61,7 +61,7 @@ func _physics_process(_delta: float) -> void:
 	var pruned := false
 	for i in range(_bikes.size() - 1, -1, -1):
 		var b := _bikes[i]
-		if not is_instance_valid(b):
+		if not is_instance_valid(b) or not b.global_position.is_finite():
 			_bikes.remove_at(i)
 			pruned = true
 			continue
@@ -69,7 +69,7 @@ func _physics_process(_delta: float) -> void:
 		var bid := b.get_instance_id()
 		if lp.y > 4.0:
 			_climbed[bid] = true
-		var in_footprint := absf(lp.x) < 6.0 and absf(lp.z) < loop_radius + 3.0
+		var in_footprint := absf(lp.x) < loop_half_width and absf(lp.z) < loop_radius + 3.0
 		if in_footprint and lp.y < 1.0 and lp.z < -0.5:
 			_climbed.erase(bid)
 		var climbed := bool(_climbed.get(bid, false))
@@ -91,11 +91,14 @@ func _physics_process(_delta: float) -> void:
 			var tang_local := Vector3(helical_pitch / TAU, loop_radius * sin(theta), loop_radius * cos(theta)).normalized()
 			var target_x := (theta / TAU - 0.5) * helical_pitch
 			var x_err := target_x - lp.x
-			b.set("loop_up", (bx * rup_local).normalized())
-			if "loop_tangent" in b:
-				b.set("loop_tangent", (bx * tang_local).normalized())
-			if "loop_center_pull" in b:
-				var pull := bx.x.normalized() * clampf(x_err * 8.0, -10.0, 10.0) if (in_footprint and lp.y > 0.5) else Vector3.ZERO
+			var rup_world := (bx * rup_local).normalized()
+			var tang_world := (bx * tang_local).normalized()
+			var pull := bx.x.normalized() * clampf(x_err * 8.0, -10.0, 10.0) if (in_footprint and lp.y > 0.5) else Vector3.ZERO
+			if rup_world.is_finite():
+				b.set("loop_up", rup_world)
+			if "loop_tangent" in b and tang_world.is_finite():
+				b.set("loop_tangent", tang_world)
+			if "loop_center_pull" in b and pull.is_finite():
 				b.set("loop_center_pull", pull)
 		else:
 			b.set("loop_up", Vector3.UP)

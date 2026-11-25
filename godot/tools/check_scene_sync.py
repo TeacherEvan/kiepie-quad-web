@@ -51,16 +51,54 @@ def normalize(text: str) -> str:
     # so swapping two script assignments between nodes slipped through.
     ext_map: dict[str, str] = {}
     sub_map: dict[str, str] = {}
+    sub_blocks: list[tuple[str, str, list[str]]] = []
+    cur_sub_id: str | None = None
+    cur_sub_type = "SubResource"
+    cur_sub_lines: list[str] = []
     for raw in raw_lines:
         stripped = raw.strip()
         if stripped.startswith("[ext_resource"):
+            if cur_sub_id is not None:
+                sub_blocks.append((cur_sub_id, cur_sub_type, cur_sub_lines))
+                cur_sub_id = None
             attrs = _attrs(stripped)
             if "id" in attrs and "path" in attrs:
                 ext_map[attrs["id"]] = attrs["path"]
         elif stripped.startswith("[sub_resource"):
+            if cur_sub_id is not None:
+                sub_blocks.append((cur_sub_id, cur_sub_type, cur_sub_lines))
             attrs = _attrs(stripped)
-            if "id" in attrs:
-                sub_map[attrs["id"]] = attrs.get("type", "SubResource")
+            cur_sub_id = attrs.get("id")
+            cur_sub_type = attrs.get("type", "SubResource")
+            cur_sub_lines = []
+        elif stripped.startswith("["):
+            if cur_sub_id is not None:
+                sub_blocks.append((cur_sub_id, cur_sub_type, cur_sub_lines))
+                cur_sub_id = None
+        elif cur_sub_id is not None:
+            line = re.sub(r'ExtResource\("([^"]*)"\)',
+                          lambda m: 'ExtResource(%s)' % ext_map.get(m.group(1), "X"), raw.rstrip())
+            line = re.sub(r'uid="uid://[^"]*"', 'uid="uid://X"', line)
+            cur_sub_lines.append(line)
+    if cur_sub_id is not None:
+        sub_blocks.append((cur_sub_id, cur_sub_type, cur_sub_lines))
+    for _pass in range(4):
+        new_map: dict[str, str] = {}
+        for sid, stype, slines in sub_blocks:
+            resolved_lines = [
+                re.sub(
+                    r'SubResource\("([^"]*)"\)',
+                    lambda m: "SubResource(%s)" % sub_map.get(m.group(1), m.group(1)),
+                    ln,
+                )
+                for ln in slines
+            ]
+            body = "\n".join(resolved_lines)
+            digest = hashlib.sha256(body.encode("utf-8")).hexdigest()[:12]
+            new_map[sid] = f"{stype}:{digest}"
+        if new_map == sub_map:
+            break
+        sub_map = new_map
     out: list[str] = []
     for raw in raw_lines:
         line = raw.rstrip()

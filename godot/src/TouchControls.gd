@@ -635,8 +635,8 @@ func _relayout() -> void:
 		_touch_toggle.offset_top = 10.0 if vp.x <= 640.0 else 12.0
 		_touch_toggle.offset_bottom = 54.0 if vp.x <= 640.0 else 56.0
 		_set_btn_compact(_touch_toggle, 11, 4.0)
-	elif _touch_toggle != null and vp.x < 700.0:
-		_touch_toggle.offset_left = -132.0
+	elif _touch_toggle != null:
+		_touch_toggle.offset_left = -132.0 if vp.x < 700.0 else -150.0
 		_touch_toggle.offset_right = -14.0
 
 

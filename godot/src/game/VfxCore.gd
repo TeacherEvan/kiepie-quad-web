@@ -144,7 +144,7 @@ static func impact(parent: Node3D, pos: Vector3, color: Color,
 	# point lights rather than letting a firefight allocate one per shot.
 	var tree := parent.get_tree()
 	var lights: Array = tree.get_nodes_in_group("vfx_light") if tree != null else []
-	if lights.size() < S.MAX_IMPACT_LIGHTS:
+	if Settings.quality_multiplier() >= 0.5 and lights.size() < S.MAX_IMPACT_LIGHTS:
 		var light := OmniLight3D.new()
 		light.light_color = color
 		light.light_energy = 4.5

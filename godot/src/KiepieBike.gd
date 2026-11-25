@@ -364,6 +364,9 @@ func _physics_process(delta: float) -> void:
 		var is_practice := combat != null and bool(combat.get("practice_mode"))
 		if Match == null or not Match.is_playing() or is_practice:
 			reset_bike()
+	if not _is_pose_valid(global_transform) or not linear_velocity.is_finite() or not angular_velocity.is_finite():
+		reset_bike()
+		return
 
 	var grounded := _grounded()
 	if _dodge_time > 0.0:
@@ -439,7 +442,7 @@ func _physics_process(delta: float) -> void:
 		var jet_strength := _turbo_blend if turbo_active else (0.55 if (_flames and _flames.emitting) else 0.0)
 		_jet_plume.visible = jet_strength > 0.04 and not reduced
 		if _jet_plume.visible:
-			_jet_t += delta
+			_jet_t = fmod(_jet_t + delta, TAU)
 			var pulse := 0.92 + 0.12 * sin(_jet_t * 68.0)
 			var w := lerpf(0.75, 1.15, jet_strength) * pulse
 			_jet_plume.scale = Vector3(w, w, lerpf(0.45, 1.25, jet_strength) * pulse)
@@ -519,8 +522,33 @@ func _physics_process(delta: float) -> void:
 			roll = -roll
 	for key in _wheel_nodes.keys():
 		var node: Node3D = _wheel_nodes[key]
-		if node:
+		if node and is_finite(roll):
 			node.rotate_x(roll)
+
+func _safe_spawn() -> Transform3D:
+	if _spawn.origin.is_finite() and _spawn.basis.is_finite() and absf(_spawn.basis.determinant()) > 0.01:
+		return Transform3D(_spawn.basis.orthonormalized(), _spawn.origin)
+	return Transform3D(Basis.IDENTITY, Vector3(0.0, 0.6, 0.0))
+
+
+func _is_pose_valid(xf: Transform3D) -> bool:
+	if not xf.origin.is_finite() or not xf.basis.is_finite():
+		return false
+	if absf(xf.basis.determinant()) <= 0.01:
+		return false
+	if xf.origin.y < -12.0 or xf.origin.y > 45.0 or xf.origin.length() > 320.0:
+		return false
+	return true
+
+
+func _notify_camera_snap() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	var cam := tree.get_first_node_in_group("camera_rig")
+	if cam != null and cam.has_method("snap_to_target"):
+		cam.call("snap_to_target")
+
 
 func set_spawn(t: Transform3D) -> void:
 	## Used by the multiplayer respawn system to move the reset point.
@@ -529,7 +557,8 @@ func set_spawn(t: Transform3D) -> void:
 
 func reset_bike() -> void:
 	_pending_reset = true
-	global_transform = _spawn
+	var sp := _safe_spawn()
+	global_transform = sp
 	linear_velocity = Vector3.ZERO
 	angular_velocity = Vector3.ZERO
 	_steer = 0.0
@@ -555,7 +584,7 @@ func reset_bike() -> void:
 			w.brake = 0.0
 			w.steering = 0.0
 	if get_rid().is_valid():
-		PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, _spawn)
+		PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, sp)
 		PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO)
 		PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
 		PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_SLEEPING, false)
@@ -563,8 +592,11 @@ func reset_bike() -> void:
 		_flames.emitting = false
 	if _jet_plume != null:
 		_jet_plume.visible = false
+	_notify_camera_snap()
 
 func speed_kmh() -> float:
+	if not linear_velocity.is_finite():
+		return 0.0
 	return linear_velocity.length() * 3.6
 
 
@@ -621,16 +653,30 @@ func _try_dodge(dir: float) -> void:
 
 
 func _on_settings_changed(section: String, key: String, _value: Variant) -> void:
-	if section == "controls" and key == "steer_sensitivity":
+	if section == "*" or (section == "controls" and key == "steer_sensitivity"):
 		_steer_sensitivity = clampf(float(Settings.get_value("controls", "steer_sensitivity", 1.0)), 0.3, 2.0)
 
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	if _pending_reset:
-		state.transform = _spawn
+		state.transform = _safe_spawn()
 		state.linear_velocity = Vector3.ZERO
 		state.angular_velocity = Vector3.ZERO
 		_pending_reset = false
+	if not _is_pose_valid(state.transform) or not state.linear_velocity.is_finite() or not state.angular_velocity.is_finite():
+		state.transform = _safe_spawn()
+		state.linear_velocity = Vector3.ZERO
+		state.angular_velocity = Vector3.ZERO
+		loop_up = Vector3.ZERO
+		loop_tangent = Vector3.ZERO
+		loop_center_pull = Vector3.ZERO
+		_dodge_time = 0.0
+		call_deferred("_notify_camera_snap")
+		return
+	if state.linear_velocity.length() > 85.0:
+		state.linear_velocity = state.linear_velocity.normalized() * 85.0
+	if state.angular_velocity.length() > 25.0:
+		state.angular_velocity = state.angular_velocity.normalized() * 25.0
 	# Rollover immunity — the quad cannot tip over. This MUST live in
 	# _integrate_forces() and must damp/rotate only the roll/pitch part
 	# (world-Y yaw about the bike's local up is left intact): writing
@@ -644,23 +690,25 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var up := basis.y.normalized()
 	var spd := state.linear_velocity.length()
 	var dt_scale := clampf(state.step * 60.0, 0.25, 4.0)
-	var in_loop_zone := loop_up.length_squared() > 0.25
+	var safe_step := clampf(state.step, 0.001, 0.05)
+	var in_loop_zone := loop_up.is_finite() and loop_up.length_squared() > 0.25
 	var loop_active := in_loop_zone and spd > 8.0
 	if not loop_active:
 		var max_spd := HANDLING.top_speed_cap(_turbo_blend, overdrive_active)
-		var drag_dv := HANDLING.aero_drag_accel(state.linear_velocity, max_spd) * state.step
+		var drag_dv := HANDLING.aero_drag_accel(state.linear_velocity, max_spd) * safe_step
 		if drag_dv.length() > spd:
 			drag_dv = drag_dv.normalized() * spd
 		state.linear_velocity += drag_dv
 	var ref_up := loop_up.normalized() if loop_active else Vector3.UP
 	if loop_active:
 		# Centripetal track adhesion + gravity compensation + helical climb assist inside 360° loops.
-		state.linear_velocity += (Vector3(0.0, 9.81, 0.0) - ref_up * 12.0 + loop_center_pull) * state.step
-		if _throttle_in > 0.1 and loop_tangent.length_squared() > 0.25:
+		var pull := loop_center_pull if loop_center_pull.is_finite() else Vector3.ZERO
+		state.linear_velocity += (Vector3(0.0, 9.81, 0.0) - ref_up * 12.0 + pull) * safe_step
+		if _throttle_in > 0.1 and loop_tangent.is_finite() and loop_tangent.length_squared() > 0.25:
 			var t_dir := loop_tangent.normalized()
 			var t_spd := state.linear_velocity.dot(t_dir)
 			if t_spd < 24.0:
-				state.linear_velocity += t_dir * ((24.0 - t_spd) * 2.5 * state.step)
+				state.linear_velocity += t_dir * ((24.0 - t_spd) * 2.5 * safe_step)
 	var av := state.angular_velocity
 	var yaw_mag := av.dot(up)
 	var yaw := yaw_mag * up
@@ -691,9 +739,11 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		axis = Vector3(basis.x.x, 0.0, basis.x.z)
 		if axis.length() <= 0.0001:
 			axis = Vector3(basis.z.x, 0.0, basis.z.z)
-	if tilt > 0.055 and axis.length() > 0.0001:
+	if tilt > 0.055 and axis.length() > 0.0001 and is_finite(tilt):
 		var max_step := 0.30 if loop_active else 0.14
 		var effort := minf(minf(tilt * (0.22 + lean * 1.6 if loop_active else 0.10 + lean * 1.5), max_step) * dt_scale, tilt)
-		basis = Basis(Quaternion(axis.normalized(), effort)) * basis
-		basis = basis.orthonormalized()
-		state.transform = Transform3D(basis, state.transform.origin)
+		if is_finite(effort):
+			basis = Basis(Quaternion(axis.normalized(), effort)) * basis
+			basis = basis.orthonormalized()
+			if basis.is_finite():
+				state.transform = Transform3D(basis, state.transform.origin)
