@@ -400,6 +400,26 @@ func _run() -> void:
 		else:
 			_check(false, "SideCannons _profile is a Dictionary")
 
+		# A reused pool slot must not carry a stale hit callback (AUD P2).
+		if soundwave != null:
+			var fx := Node3D.new()
+			holder.add_child(fx)
+			var slot_a: Node = probe.call("_acquire_pooled_proj", soundwave, fx)
+			slot_a.set_physics_process(false)
+			slot_a.set("on_hit", Callable(probe, "weapon_display_name"))
+			# Force the very next acquire to reuse this exact slot.
+			var forced_pool: Array[Node3D] = []
+			for _p in range(48):
+				forced_pool.append(slot_a)
+			probe.set("_proj_pool", forced_pool)
+			probe.set("_proj_pool_idx", 0)
+			var slot_b: Node = probe.call("_acquire_pooled_proj", soundwave, fx)
+			slot_b.set_physics_process(false)
+			var cb: Variant = slot_b.get("on_hit")
+			var cb_valid := cb is Callable and (cb as Callable).is_valid()
+			_check(slot_b == slot_a and not cb_valid,
+					"pooled projectile slot clears a stale on_hit callback (same=%s cb=%s)" % [slot_b == slot_a, cb])
+
 	# ---- 6. Reduced motion safety: spawning the pink projectile must not crash.
 	if settings != null and soundwave != null:
 		settings.call("set_value", "gameplay", "reduced_motion", true)

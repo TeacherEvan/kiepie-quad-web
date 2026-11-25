@@ -419,6 +419,15 @@ func _claim_shot_token(token: String) -> bool:
 
 
 func _acquire_remote_proj(proj_script: GDScript) -> Node3D:
+	var slot := _acquire_remote_proj_raw(proj_script)
+	# Never reuse a slot with the previous shot's callback or inert state.
+	slot.set("on_hit", Callable())
+	slot.visible = true
+	slot.set_physics_process(true)
+	return slot
+
+
+func _acquire_remote_proj_raw(proj_script: GDScript) -> Node3D:
 	var n := _remote_proj_pool.size()
 	for offset in range(n):
 		var idx := (_remote_proj_idx + offset) % n

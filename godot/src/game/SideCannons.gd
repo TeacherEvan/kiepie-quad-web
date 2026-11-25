@@ -744,4 +744,9 @@ func _acquire_pooled_proj(proj_script: GDScript, fx_parent: Node3D) -> Node3D:
 		if slot.get_parent() != null:
 			slot.get_parent().remove_child(slot)
 		fx_parent.add_child(slot)
+	# A hijacked or recycled slot must not carry the previous shot's callback.
+	# setup()/fire() reassign on_hit when a live callback exists.
+	slot.set("on_hit", Callable())
+	slot.visible = true
+	slot.set_physics_process(true)
 	return slot
