@@ -632,7 +632,12 @@ def build_aston_martin(previews_dir=""):
         finally:
             bm.free()
 
-    bpy.ops.wm.save_as_mainfile(filepath=BLEND_PATH)
+    prev_sv = bpy.context.preferences.filepaths.save_version
+    bpy.context.preferences.filepaths.save_version = 0
+    try:
+        bpy.ops.wm.save_as_mainfile(filepath=BLEND_PATH)
+    finally:
+        bpy.context.preferences.filepaths.save_version = prev_sv
     print("SAVED", BLEND_PATH)
 
     bpy.ops.object.select_all(action="DESELECT")

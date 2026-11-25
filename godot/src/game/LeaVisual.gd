@@ -236,6 +236,9 @@ func _physics_process(delta: float) -> void:
 
 	if grounded and speed > 0.55:
 		_gallop_phase += absf(_anim_rate) * dt * 1.25
+		if _gallop_phase >= 100.0:
+			_gallop_phase = fmod(_gallop_phase, 100.0)
+			_last_beat = int(floorf(_gallop_phase * 4.0))
 		var beat := int(floorf(_gallop_phase * 4.0))
 		if beat != _last_beat:
 			_last_beat = beat

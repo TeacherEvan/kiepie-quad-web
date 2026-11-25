@@ -15,6 +15,7 @@ const VEHICLE_ASTON := &"AstonMartin"
 const VEHICLE_EVAN := &"EvanSkeleton"
 ## LEA is likewise preference-only: she is never dealt by the FNV hash pool.
 const VEHICLE_LEA := &"LeaUnicorn"
+const ALL_IDS: Array[String] = ["auto", "KiepieBike", "PogoNardus", "AstonMartin", "EvanSkeleton", "LeaUnicorn"]
 const VEHICLES: Array[StringName] = [VEHICLE_BIKE, VEHICLE_POGO, VEHICLE_ASTON]
 const _FNV_OFFSET := 2166136261
 const _FNV_PRIME := 16777619

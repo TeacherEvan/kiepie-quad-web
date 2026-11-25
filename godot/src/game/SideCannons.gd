@@ -95,6 +95,7 @@ var _proj_pool: Array[Node3D] = []
 var _proj_pool_idx := 0
 var _muzzle_flashes: Array[GPUParticles3D] = []
 var _active_boomerang: Node = null
+var _fire_gen := 0
 
 
 static func _profile_for(profile_id: String) -> Dictionary:
@@ -112,6 +113,7 @@ static func _profile_for(profile_id: String) -> Dictionary:
 
 
 func reset_cooldowns() -> void:
+	_fire_gen += 1
 	for k in _cooldowns.keys():
 		_cooldowns[k] = 0.0
 	_active_boomerang = null
@@ -119,6 +121,7 @@ func reset_cooldowns() -> void:
 
 func setup(p_owner: Node3D, p_owner_id: String, p_hit_callback: Callable, p_color: Color,
 		p_profile: String = "bike") -> void:
+	_fire_gen += 1
 	owner_node = p_owner
 	owner_id = p_owner_id
 	hit_callback = p_hit_callback
@@ -536,8 +539,9 @@ func fire() -> void:
 
 	var meteor_target := compute_meteor_target() if active_weapon == "meteor" else Vector3.ZERO
 
+	var gen := _fire_gen
 	var res: Dictionary = await Match.issue_shot()
-	if not is_inside_tree() or not is_instance_valid(owner_node) or not owner_node.visible:
+	if gen != _fire_gen or not is_inside_tree() or not is_instance_valid(owner_node) or not owner_node.visible:
 		return
 	var combat := get_parent()
 	if combat != null and "alive" in combat and not bool(combat.get("alive")):

@@ -175,6 +175,51 @@ func _run() -> void:
 	var sc_pool_script2 := load("res://src/game/SideCannons.gd") as GDScript
 	_check(int(sc_pool_script2.get("PROJ_POOL_SIZE")) >= 48,
 			"P2-1: SideCannons.PROJ_POOL_SIZE >= 48 to prevent mid-air bolt eviction")
+	# P2-3: RocketProjectile and MeteorStrike reject NaN args and clamp blast_radius
+	var rocket_gd := load("res://src/game/RocketProjectile.gd") as GDScript
+	var r_bad := Node3D.new()
+	r_bad.set_script(rocket_gd)
+	holder.add_child(r_bad)
+	r_bad.call("setup", "c-gate", holder, Vector3.ZERO, Vector3.FORWARD, 38.0, NAN, "tok-bad", Color.WHITE)
+	_check(bool(r_bad.get("_inert")) and r_bad.is_queued_for_deletion(),
+			"P2-3: RocketProjectile rejects NaN damage and queues free")
+	var r_clamp := Node3D.new()
+	r_clamp.set_script(rocket_gd)
+	holder.add_child(r_clamp)
+	r_clamp.call("setup", "c-gate", holder, Vector3.ZERO, Vector3.FORWARD, 38.0, 90.0, "tok-ok", Color.WHITE, 50.0)
+	_check(float(r_clamp.get("blast_radius")) <= float(rocket_gd.get("BLAST_RADIUS")),
+			"P2-3: RocketProjectile clamps blast_radius <= BLAST_RADIUS")
+	r_clamp.set_physics_process(false)
+	r_clamp.queue_free()
+
+	var meteor_gd := load("res://src/game/MeteorStrike.gd") as GDScript
+	var m_bad := Node3D.new()
+	m_bad.set_script(meteor_gd)
+	holder.add_child(m_bad)
+	m_bad.call("setup", "c-gate", holder, Vector3(NAN, 0.0, 0.0), 105.0, "tok-mbad")
+	_check(not bool(m_bad.get("_armed")) and m_bad.is_queued_for_deletion(),
+			"P2-3: MeteorStrike rejects NaN target_pos and queues free")
+	var m_clamp := Node3D.new()
+	m_clamp.set_script(meteor_gd)
+	holder.add_child(m_clamp)
+	m_clamp.call("setup", "c-gate", holder, Vector3.ZERO, 105.0, "tok-mok", Color.WHITE, 2.0, 50.0)
+	_check(float(m_clamp.get("blast_radius")) <= float(meteor_gd.get("BLAST_RADIUS")),
+			"P2-3: MeteorStrike clamps blast_radius <= BLAST_RADIUS")
+	m_clamp.set_physics_process(false)
+	m_clamp.queue_free()
+
+	# P2-4: SideCannons increments _fire_gen on reset_cooldowns() and setup()
+	var sc_gen_probe := Node3D.new()
+	sc_gen_probe.set_script(sc_pool_script2)
+	holder.add_child(sc_gen_probe)
+	var gen0 := int(sc_gen_probe.get("_fire_gen"))
+	sc_gen_probe.call("reset_cooldowns")
+	var gen1 := int(sc_gen_probe.get("_fire_gen"))
+	sc_gen_probe.call("setup", sc_gen_probe, "c-gate", Callable(), Color.WHITE, "bike")
+	var gen2 := int(sc_gen_probe.get("_fire_gen"))
+	_check(gen1 > gen0 and gen2 > gen1, "P2-4: SideCannons increments _fire_gen on reset_cooldowns() and setup()")
+	sc_gen_probe.queue_free()
+
 	Engine.time_scale = 1.0
 	bike.queue_free()
 	holder.queue_free()

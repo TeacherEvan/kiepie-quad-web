@@ -155,15 +155,22 @@ func setup(p_owner_id: String, p_owner_node: Node, p_target_pos: Vector3,
 		p_damage: float, p_token: String, p_color: Color = Color(1.0, 0.28, 0.06),
 		p_fall_duration: float = FALL_DURATION, p_blast_radius: float = BLAST_RADIUS,
 		p_visual_style: String = "meteor") -> void:
+	if not is_finite(p_damage) or not is_finite(p_blast_radius) or p_blast_radius <= 0.0 \
+			or not is_finite(p_fall_duration) \
+			or not is_finite(p_target_pos.x + p_target_pos.y + p_target_pos.z):
+		push_warning("MeteorStrike.setup: rejecting non-finite/invalid strike parameters")
+		_armed = false
+		queue_free()
+		return
 	owner_id = p_owner_id
 	owner_node = p_owner_node
 	target_pos = p_target_pos
-	damage = p_damage
+	damage = maxf(0.0, p_damage)
 	token = p_token
 	hit_color = p_color
 	visual_style = p_visual_style if p_visual_style in ["meteor", "lightning", "cash_bag"] else "meteor"
 	fall_duration = maxf(0.1, p_fall_duration)
-	blast_radius = p_blast_radius
+	blast_radius = minf(p_blast_radius, BLAST_RADIUS)
 	global_position = target_pos
 	sky_origin = target_pos + Vector3(3.8, SKY_HEIGHT, -3.8)
 	_age = 0.0

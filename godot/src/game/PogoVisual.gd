@@ -194,9 +194,10 @@ func _physics_process(delta: float) -> void:
 		if _has_prev_host_pos:
 			var disp := cur_pos - _prev_host_pos
 			if disp.length() < 8.0:  # ignore respawn teleports
-				var inst_speed := Vector3(disp.x, 0.0, disp.z).length() / dt
-				var inst_vy := disp.y / dt
-				var dyaw := wrapf(cur_yaw - _prev_host_yaw, -PI, PI) / dt
+				var safe_dt := maxf(dt, 0.001)
+				var inst_speed := clampf(Vector3(disp.x, 0.0, disp.z).length() / safe_dt, 0.0, 60.0)
+				var inst_vy := clampf(disp.y / safe_dt, -40.0, 40.0)
+				var dyaw := wrapf(cur_yaw - _prev_host_yaw, -PI, PI) / safe_dt
 				_remote_speed = _exp_decay(_remote_speed, inst_speed, 10.0, dt)
 				_remote_vy = _exp_decay(_remote_vy, inst_vy, 12.0, dt)
 				_remote_steer = _exp_decay(_remote_steer, clampf(dyaw * 0.28, -0.62, 0.62), 10.0, dt)

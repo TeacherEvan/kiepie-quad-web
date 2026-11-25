@@ -412,8 +412,12 @@ func setup(p_owner_id: String, p_owner_node: Node, p_target_pos: Vector3,
 		p_damage: float, p_token: String, p_color: Color = Color(0.85, 0.06, 0.20),
 		p_fall_duration: float = 2.0, p_blast_radius: float = 7.5,
 		p_visual_style: String = "devil_hand") -> void:
-	if not is_finite(p_damage) or not is_finite(p_blast_radius) or p_blast_radius <= 0.0:
+	if not is_finite(p_damage) or not is_finite(p_blast_radius) or p_blast_radius <= 0.0 \
+			or not is_finite(p_fall_duration) \
+			or not is_finite(p_target_pos.x + p_target_pos.y + p_target_pos.z):
 		push_warning("DevilHandStrike.setup: rejecting non-finite/invalid strike parameters")
+		_armed = false
+		queue_free()
 		return
 	owner_id = p_owner_id
 	owner_node = p_owner_node

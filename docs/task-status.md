@@ -6,6 +6,24 @@ gate names, or live checks — not assumptions.
 
 **Last verified:** 2026-11-25 — full gate suite **33/33** green, `web_hygiene OK`, `_check_scripts.gd` clean (Lea Unicorn + Evan boomerang throw/catch sync and Devil Hand detail).
 
+## 2026-11-25 — Full-Codebase Surgical Audit Remediation
+
+Source report: [audits/kiepie-quad-surgical-audit-2026-11-25.md](audits/kiepie-quad-surgical-audit-2026-11-25.md) + [SARIF](audits/kiepie-quad-surgical-audit-2026-11-25.sarif) (88/100 LOW; 0 P0 / 1 P1 / 8 P2 / 13 P3).
+
+| ID | Finding (severity) | Disposition | Evidence |
+| --- | --- | --- | --- |
+| P1-1 | `HornBeam.gd` backwards `PlasmaBeam` & `_charge.position.z` offset | **Fixed** (`_beam.position` in `e4ca9e2`; `_charge_ring.position.z = -0.55` in this commit) | `HornBeam.gd`, `verify_lea_unicorn_weapons.gd` |
+| P2-1 | `CombatAoe.apply_lethal_blast()` unreachable `hit_any_enemy` | **Fixed** — evaluated before fail-closed `continue` | `CombatAoe.gd`, `verify_evan_weapons.gd` |
+| P2-2 | `DevilHandStrike.setup()` missing `is_finite` / `queue_free()` | **Fixed** | `DevilHandStrike.gd`, `verify_evan_weapons.gd` |
+| P2-3 | `RocketProjectile` / `MeteorStrike` `setup()` missing `is_finite` & radius clamp | **Fixed** | `RocketProjectile.gd`, `MeteorStrike.gd`, `verify_combat.gd` |
+| P2-4 | `SideCannons.fire()` post-`await` stale shot on respawn | **Fixed** (`_fire_gen` counter) | `SideCannons.gd`, `verify_combat.gd` |
+| P2-5 | `.github/workflows/gates.yml` missing `permissions: contents: read` | **Fixed** | `.github/workflows/gates.yml` |
+| P2-6 | `index.pck` 4.5 MiB cap headroom exhausted | **Fixed** — raised cap to `5.0 MiB` (`5242880`) | `deploy_web.sh`, `AGENTS.md`, `project-plan.md` |
+| P2-7 | Older Blender builders omit `save_version = 0` | **Fixed** | `build_pogo_nardus.py`, `build_aston_martin.py`, `build_quad.py`, `repair_and_verify.py` |
+| P2-8 | God-file concentration (`>500` LOC across 5 scripts) | **Deferred** — architectural split deferred to dedicated refactor to avoid destabilizing release | — |
+| P3-1..6, P3-8..13 | `apply_blast` synthetic contract kept; `JSON.parse_string`; channel switch/handoff drain; `ArenaNet` disconnect / `MatchState` uid; `HornBeam` `_finish()`; remote speed clamp & phase wrap; `VehicleRegistry.ALL_IDS`; `VfxHeavy` quality light guard; `section == "*"` reset; `run_gates.sh` / `check_web_hygiene.py` / `fsync` / `root.free()` | **Fixed** (`apply_blast` keeps synthetic `dummy_enemy` contract) | `TaloProtocol.gd`, `TaloBackend.gd`, `ArenaNet.gd`, `MatchState.gd`, `PogoVisual.gd`, `EvanVisual.gd`, `LeaVisual.gd`, `DestructibleBuilding.gd`, `VehicleRegistry.gd`, `MainMenu.gd`, `KiepieBike.gd`, `VfxHeavy.gd`, `MatchHud.gd`, `TouchControls.gd`, `Settings.gd`, `run_gates.sh`, `check_web_hygiene.py`, `build_*.gd` |
+| P3-7 | Dual hit channels (`hit.emit` + `on_hit.call`) | **Deferred** — signal rename deferred to avoid breaking external listeners | — |
+
 ## 2026-11-25 — LEA UNICORN (fifth playable vehicle + bespoke arsenal)
 
 Plan: [docs/plans/lea-unicorn-plan.md](plans/lea-unicorn-plan.md). Sources: five references in

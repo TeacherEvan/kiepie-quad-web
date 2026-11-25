@@ -310,13 +310,16 @@ func _initialize() -> void:
 	var scene := PackedScene.new()
 	if scene.pack(root) != OK:
 		printerr("pack failed")
+		root.free()
 		quit(1)
 		return
 	if ResourceSaver.save(scene, OUT) != OK:
 		printerr("save failed")
+		root.free()
 		quit(1)
 		return
 	print("saved ", OUT)
+	root.free()
 	quit()
 
 

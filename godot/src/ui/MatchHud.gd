@@ -602,7 +602,9 @@ func _exit_tree() -> void:
 
 
 func _on_settings_changed(section: String, key: String, val: Variant) -> void:
-	if section == "video" and key == "show_fps":
+	if section == "*":
+		_show_fps = bool(Settings.get_value("video", "show_fps", false))
+	elif section == "video" and key == "show_fps":
 		_show_fps = bool(val)
 
 

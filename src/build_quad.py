@@ -319,7 +319,12 @@ def main(do_render=True, do_export=True):
     bpy.context.view_layer.update()
     s = stats()
     print('BIKE STATS', s)
-    bpy.ops.wm.save_as_mainfile(filepath=BLEND)
+    prev_sv = bpy.context.preferences.filepaths.save_version
+    bpy.context.preferences.filepaths.save_version = 0
+    try:
+        bpy.ops.wm.save_as_mainfile(filepath=BLEND)
+    finally:
+        bpy.context.preferences.filepaths.save_version = prev_sv
     if do_export:
         print('EXPORTED', export_glb(coll))
     if do_render:

@@ -123,6 +123,8 @@ func _exit_tree() -> void:
 		Supabase.broadcast_received.disconnect(_on_broadcast)
 	if Match != null and Match.roster_changed.is_connected(_sync_roster):
 		Match.roster_changed.disconnect(_sync_roster)
+	if Match != null and Match.roster_changed.is_connected(_on_roster_changed_for_spawn):
+		Match.roster_changed.disconnect(_on_roster_changed_for_spawn)
 
 
 func _process(delta: float) -> void:

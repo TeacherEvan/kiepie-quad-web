@@ -122,10 +122,11 @@ static func apply_lethal_blast(tree: SceneTree, fx: Node3D, center: Vector3,
 		var dist_sq := bike_node.global_position.distance_squared_to(center)
 		if dist_sq > radius * radius:
 			continue
-		var dist := sqrt(dist_sq)
 		if skip_owner and is_instance_valid(owner_node) and bike_node == owner_node:
 			continue
 		var target_id := str(bike_node.get("player_id")) if "player_id" in bike_node else ""
+		if owner_id != "" and owner_id == local_uid and target_id != local_uid:
+			hit_any_enemy = true
 		# Fail closed: a remote proxy (or an unidentified bike) is never killed
 		# from this client; the victim's own CombatController resolves its death.
 		if local_uid == "" or target_id == "" or target_id != local_uid:
@@ -142,8 +143,6 @@ static func apply_lethal_blast(tree: SceneTree, fx: Node3D, center: Vector3,
 			# host's 1 s rate limiter grants the burst exemption for ":v<id>".
 			var hit_tok := ("%s:v%s" % [token, target_id]) if (token != "" and target_id != "") else token
 			controller.call("take_lethal_hit", owner_id, bike_node.global_position, hit_tok)
-		if owner_id != "" and owner_id == local_uid and target_id != local_uid:
-			hit_any_enemy = true
 
 	for h in tree.get_nodes_in_group("hazard"):
 		if not is_instance_valid(h) or not (h is Node3D):

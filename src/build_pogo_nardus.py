@@ -851,7 +851,12 @@ def build_pogo_nardus(argv=None):
 
     # save blend
     blend_path = os.path.join(REPO_ROOT, "Pogo_Nardus.blend")
-    bpy.ops.wm.save_as_mainfile(filepath=blend_path)
+    prev_sv = bpy.context.preferences.filepaths.save_version
+    bpy.context.preferences.filepaths.save_version = 0
+    try:
+        bpy.ops.wm.save_as_mainfile(filepath=blend_path)
+    finally:
+        bpy.context.preferences.filepaths.save_version = prev_sv
     print("SAVED", blend_path)
 
     # ---------------------------------------------------------------- export GLB

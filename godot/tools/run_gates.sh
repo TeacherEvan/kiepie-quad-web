@@ -105,72 +105,57 @@ fi
 # Import once when it is missing; this is a no-op otherwise.
 if [ ! -d "$ROOT/godot/.godot" ]; then
 	note "== import (fresh checkout: no .godot — building import cache)"
-	"$GODOT" --headless --path godot --import >"$LOGDIR/import.log" 2>&1 || true
+	"$GODOT" --headless --path godot --import >"$LOGDIR/import.log" 2>&1
+	_imp_rc=$?
+	if [ "$_imp_rc" -ne 0 ]; then
+		note "   FAIL import rc=$_imp_rc (log: $LOGDIR/import.log)"
+		FAILED+=("import")
+	fi
 fi
 if [ "$BUILD" -eq 1 ]; then
 	note "== build (KiepieBike.tscn + TestRide.tscn)"
 	"$GODOT" --headless --path godot --script tools/build_bike.gd >"$LOGDIR/build_bike.log" 2>&1
 	_bike_rc=$?
-	if [ "$_bike_rc" -ne 0 ]; then
-		note "   WARN build_bike rc=$_bike_rc (log: $LOGDIR/build_bike.log)"
-		FAILED+=("build_bike")
-	fi
-	if ! grep -q "saved" "$LOGDIR/build_bike.log"; then
-		note "   FAIL bike rebuild did not save (log: $LOGDIR/build_bike.log)"
+	if [ "$_bike_rc" -ne 0 ] || ! grep -q "saved" "$LOGDIR/build_bike.log"; then
+		note "   FAIL build_bike rc=$_bike_rc (log: $LOGDIR/build_bike.log)"
 		FAILED+=("build_bike")
 	fi
 	"$GODOT" --headless --path godot --script tools/build_testride.gd >"$LOGDIR/build_testride.log" 2>&1
 	_testride_rc=$?
-	if [ "$_testride_rc" -ne 0 ]; then
-		note "   WARN build_testride rc=$_testride_rc (log: $LOGDIR/build_testride.log)"
+	if [ "$_testride_rc" -ne 0 ] || ! grep -q "saved" "$LOGDIR/build_testride.log"; then
+		note "   FAIL scene rebuild rc=$_testride_rc (log: $LOGDIR/build_testride.log)"
 		FAILED+=("build")
-	fi
-	if grep -q "saved" "$LOGDIR/build_testride.log"; then
-		note "   scenes saved"
 	else
-		note "   FAIL scene rebuild did not save (log: $LOGDIR/build_testride.log)"
-		FAILED+=("build")
+		note "   scenes saved"
 	fi
 	if [ -f godot/tools/build_menus.gd ]; then
 		"$GODOT" --headless --path godot --script tools/build_menus.gd >"$LOGDIR/build_menus.log" 2>&1
 		_menus_rc=$?
-		if [ "$_menus_rc" -ne 0 ]; then
-			note "   WARN build_menus rc=$_menus_rc (log: $LOGDIR/build_menus.log)"
+		if [ "$_menus_rc" -ne 0 ] || ! grep -q "saved" "$LOGDIR/build_menus.log"; then
+			note "   FAIL menu rebuild rc=$_menus_rc (log: $LOGDIR/build_menus.log)"
 			FAILED+=("build_menus")
-		fi
-		if grep -q "saved" "$LOGDIR/build_menus.log"; then
-			note "   menus saved"
 		else
-			note "   FAIL menu rebuild did not save"
-			FAILED+=("build_menus")
+			note "   menus saved"
 		fi
 	fi
 	if [ -f godot/tools/build_arena.gd ]; then
 		"$GODOT" --headless --path godot --script tools/build_arena.gd >"$LOGDIR/build_arena.log" 2>&1
 		_arena_rc=$?
-		if [ "$_arena_rc" -ne 0 ]; then
-			note "   WARN build_arena rc=$_arena_rc (log: $LOGDIR/build_arena.log)"
+		if [ "$_arena_rc" -ne 0 ] || ! grep -q "saved" "$LOGDIR/build_arena.log"; then
+			note "   FAIL arena rebuild rc=$_arena_rc (log: $LOGDIR/build_arena.log)"
 			FAILED+=("build_arena")
-		fi
-		if grep -q "saved" "$LOGDIR/build_arena.log"; then
-			note "   arena saved"
 		else
-			note "   FAIL arena rebuild did not save"
-			FAILED+=("build_arena")
+			note "   arena saved"
 		fi
 	fi
 	if [ -f godot/tools/build_deathrace.gd ]; then
 		"$GODOT" --headless --path godot --script tools/build_deathrace.gd >"$LOGDIR/build_deathrace.log" 2>&1
 		_dr_rc=$?
-		if [ "$_dr_rc" -ne 0 ]; then
-			note "   WARN build_deathrace rc=$_dr_rc (log: $LOGDIR/build_deathrace.log)"
+		if [ "$_dr_rc" -ne 0 ] || ! grep -q "saved" "$LOGDIR/build_deathrace.log"; then
+			note "   FAIL deathrace rebuild rc=$_dr_rc (log: $LOGDIR/build_deathrace.log)"
 			FAILED+=("build_deathrace")
-		fi
-		if grep -q "saved" "$LOGDIR/build_deathrace.log"; then
-			note "   deathrace saved"
 		else
-			note "   FAIL deathrace rebuild did not save"
-			FAILED+=("build_deathrace")
+			note "   deathrace saved"
 		fi
 	fi
 fi

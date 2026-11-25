@@ -29,29 +29,30 @@ static func particle_explosion(parent: Node3D, pos: Vector3, color: Color, scale
 
 	# Stage 0: Dynamic flash light — fast attack, warm release; freed from vfx_light group
 	# as soon as it fades out so chained explosions never starve WebGL2's 8-light budget.
-	var light := OmniLight3D.new()
-	light.light_color = Color(1.0, 0.70, 0.28).lerp(color, 0.25)
-	light.light_energy = 32.0
-	light.omni_range = clampf(12.0 * scale, 9.0, 26.0)
-	light.add_to_group("vfx_light")
-	holder.add_child(light)
-	S._cap_group(parent, "vfx_light", S.MAX_IMPACT_LIGHTS)
-	if reduced:
-		light.light_energy = 7.5
-		var lrt := holder.create_tween()
-		lrt.tween_interval(0.35)
-		lrt.tween_callback(func() -> void:
-			if is_instance_valid(light):
-				light.remove_from_group("vfx_light")
-				light.queue_free())
-	else:
-		var lt := holder.create_tween()
-		lt.tween_property(light, "light_energy", 32.0, 0.04).from(0.0)
-		lt.tween_property(light, "light_energy", 0.0, 0.56)
-		lt.tween_callback(func() -> void:
-			if is_instance_valid(light):
-				light.remove_from_group("vfx_light")
-				light.queue_free())
+	if Settings.quality_multiplier() >= 0.5:
+		var light := OmniLight3D.new()
+		light.light_color = Color(1.0, 0.70, 0.28).lerp(color, 0.25)
+		light.light_energy = 32.0
+		light.omni_range = clampf(12.0 * scale, 9.0, 26.0)
+		light.add_to_group("vfx_light")
+		holder.add_child(light)
+		S._cap_group(parent, "vfx_light", S.MAX_IMPACT_LIGHTS)
+		if reduced:
+			light.light_energy = 7.5
+			var lrt := holder.create_tween()
+			lrt.tween_interval(0.35)
+			lrt.tween_callback(func() -> void:
+				if is_instance_valid(light):
+					light.remove_from_group("vfx_light")
+					light.queue_free())
+		else:
+			var lt := holder.create_tween()
+			lt.tween_property(light, "light_energy", 32.0, 0.04).from(0.0)
+			lt.tween_property(light, "light_energy", 0.0, 0.56)
+			lt.tween_callback(func() -> void:
+				if is_instance_valid(light):
+					light.remove_from_group("vfx_light")
+					light.queue_free())
 
 	# Stage 0b: Volumetric 3D expanding plasma core sphere (instant punch from every angle)
 	if not reduced:
@@ -488,13 +489,15 @@ static func lightning_strike_explosion(parent: Node3D, pos: Vector3,
 	holder.add_child(bolt_root)
 	_populate_lightning_bolt(bolt_root, 42.0, core_mat, sheath_mat)
 
-	var light := OmniLight3D.new()
-	light.light_color = Color(0.68, 0.92, 1.0)
-	light.light_energy = 11.0 * scale
-	light.omni_range = 18.0 * scale
-	light.add_to_group("vfx_light")
-	holder.add_child(light)
-	S._cap_group(parent, "vfx_light", S.MAX_IMPACT_LIGHTS)
+	var light: OmniLight3D = null
+	if Settings.quality_multiplier() >= 0.5:
+		light = OmniLight3D.new()
+		light.light_color = Color(0.68, 0.92, 1.0)
+		light.light_energy = 11.0 * scale
+		light.omni_range = 18.0 * scale
+		light.add_to_group("vfx_light")
+		holder.add_child(light)
+		S._cap_group(parent, "vfx_light", S.MAX_IMPACT_LIGHTS)
 
 	var release_light := func() -> void:
 		if is_instance_valid(light):
@@ -504,7 +507,8 @@ static func lightning_strike_explosion(parent: Node3D, pos: Vector3,
 
 	if reduced:
 		S._static_cue(holder, Vector3(0.0, 0.3, 0.0), Color(0.45, 0.88, 1.0), 3.4 * scale, 0.25)
-		light.light_energy = 3.5 * scale
+		if light != null:
+			light.light_energy = 3.5 * scale
 		var lt := holder.create_tween()
 		lt.tween_interval(0.22)
 		lt.tween_callback(func() -> void:
@@ -537,9 +541,10 @@ static func lightning_strike_explosion(parent: Node3D, pos: Vector3,
 			if is_instance_valid(bolt_root):
 				bolt_root.queue_free())
 
-		var lt := holder.create_tween()
-		lt.tween_property(light, "light_energy", 0.0, 0.34)
-		lt.tween_callback(release_light)
+		if light != null:
+			var lt := holder.create_tween()
+			lt.tween_property(light, "light_energy", 0.0, 0.34)
+			lt.tween_callback(release_light)
 
 		# Twin electric shockwave rings
 		S._ring_quad(holder, Vector3(0.0, 0.08, 0.0), 3.2 * scale, Color(0.65, 0.95, 1.0, 0.9), 2.3, 0.38)
@@ -574,27 +579,28 @@ static func cash_explosion(parent: Node3D, pos: Vector3, big: bool = false) -> v
 	var scale := 2.0 if big else 1.15
 	var reduced := Settings.reduced_motion()
 
-	var light := OmniLight3D.new()
-	light.light_color = Color(0.92, 0.84, 0.26)
-	light.light_energy = (9.5 if big else 5.5)
-	light.omni_range = (14.0 if big else 7.5)
-	light.add_to_group("vfx_light")
-	holder.add_child(light)
-	S._cap_group(parent, "vfx_light", S.MAX_IMPACT_LIGHTS)
+	if Settings.quality_multiplier() >= 0.5:
+		var light := OmniLight3D.new()
+		light.light_color = Color(0.92, 0.84, 0.26)
+		light.light_energy = (9.5 if big else 5.5)
+		light.omni_range = (14.0 if big else 7.5)
+		light.add_to_group("vfx_light")
+		holder.add_child(light)
+		S._cap_group(parent, "vfx_light", S.MAX_IMPACT_LIGHTS)
 
-	var release_light := func() -> void:
-		if is_instance_valid(light):
-			if light.is_in_group("vfx_light"):
-				light.remove_from_group("vfx_light")
-			light.queue_free()
+		var release_light := func() -> void:
+			if is_instance_valid(light):
+				if light.is_in_group("vfx_light"):
+					light.remove_from_group("vfx_light")
+				light.queue_free()
 
-	var lt := holder.create_tween()
-	if reduced:
-		light.light_energy = 3.0 if big else 2.0
-		lt.tween_interval(0.16)
-	else:
-		lt.tween_property(light, "light_energy", 0.0, 0.28)
-	lt.tween_callback(release_light)
+		var lt := holder.create_tween()
+		if reduced:
+			light.light_energy = 3.0 if big else 2.0
+			lt.tween_interval(0.16)
+		else:
+			lt.tween_property(light, "light_energy", 0.0, 0.28)
+		lt.tween_callback(release_light)
 
 	if reduced:
 		S._static_cue(holder, Vector3(0.0, 0.3, 0.0), Color(0.22, 0.85, 0.38), 2.2 * scale, 0.28)

@@ -18,6 +18,7 @@ Navigation hub for every doc in this repository. Start here.
 | Doc | What it covers |
 | --- | --- |
 | [audits/10 Principal Engineer.txt](audits/10%20Principal%20Engineer.txt) | External 10-principal-engineer audit, 2026-11-18 (81 files, score 78/100). Remediation status: [task-status.md](task-status.md) |
+| [audits/kiepie-quad-surgical-audit-2026-11-25.md](audits/kiepie-quad-surgical-audit-2026-11-25.md) | Full-codebase surgical audit 2026-11-25 (88/100, LOW; 0 P0 / 1 P1 / 8 P2 / 13 P3); SARIF companion: [kiepie-quad-surgical-audit-2026-11-25.sarif](audits/kiepie-quad-surgical-audit-2026-11-25.sarif) |
 | [audits/kiepie-quad-surgical-audit-evan-2026-11-25.md](audits/kiepie-quad-surgical-audit-evan-2026-11-25.md) | Evan the Skeleton vehicle + integration audit (62/100, HIGH; 0 P0 / 3 P1 / 10 P2 / 9 P3); remediation in [task-status.md](task-status.md#2026-11-25--evan-audit-remediation) |
 | [audits/kiepie-quad-surgical-audit-2026-11-24-rev2.md](audits/kiepie-quad-surgical-audit-2026-11-24-rev2.md) | Surgical audit 2026-11-24 Rev 2; SARIF companion: [kiepie-quad-surgical-audit-2026-11-24-rev2.sarif](audits/kiepie-quad-surgical-audit-2026-11-24-rev2.sarif) |
 | [audits/kiepie-quad-surgical-audit-2026-11-23-rev2.md](audits/kiepie-quad-surgical-audit-2026-11-23-rev2.md) | Surgical audit 2026-11-23 Rev 2 (post-Track A/B + remediation); SARIF companion: [kiepie-quad-surgical-audit-2026-11-23-rev2.sarif](audits/kiepie-quad-surgical-audit-2026-11-23-rev2.sarif) |
@@ -37,7 +38,7 @@ their durable content is distilled into [task-status.md](task-status.md).
 - Constants: the single canonical table lives in
   [project-plan.md](project-plan.md#canonical-constants-table); README/AGENTS
   mention values by reference and must be swept together when a value changes.
-- Requirements ↔ gates: gameplay contracts are locked by the 31-gate suite
+- Requirements ↔ gates: gameplay contracts are locked by the 33-gate suite
   (`godot/tools/run_gates.sh`); AGENTS.md "Verification quirks" lists what each gate locks.
 
 ## Maintenance checklist

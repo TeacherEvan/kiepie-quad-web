@@ -175,7 +175,7 @@ func _build_charge() -> void:
 	_charge_ring.name = "ChargeRing"
 	_charge_ring.mesh = _ring_mesh
 	_charge_ring.rotation_degrees.x = 90.0
-	_charge.position.z = -0.55
+	_charge_ring.position.z = -0.55
 	_charge.add_child(_charge_ring)
 	if not Settings.reduced_motion() and Settings.quality_multiplier() > 0.0:
 		_vortex = GPUParticles3D.new()
@@ -263,7 +263,6 @@ func _start_beam() -> void:
 	_beam.scale = Vector3(blast_radius / 4.5, blast_radius / 4.5, span)
 	add_child(_beam)
 	_ensure_light()
-	hit.emit(null, end_point)
 
 
 func _apply_hit(collider: Node, point: Vector3, is_direct: bool) -> void:
@@ -344,5 +343,5 @@ func _physics_process(delta: float) -> void:
 			mat = _beam_mat.duplicate() as StandardMaterial3D
 			_beam.material_override = mat
 		mat.albedo_color.a = 0.92 * (1.0 - t)
-		if _age >= CHARGE_TIME + BEAM_TIME:
-			_finish()
+	if _age >= CHARGE_TIME + BEAM_TIME:
+		_finish()

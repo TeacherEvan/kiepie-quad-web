@@ -710,6 +710,10 @@ func _pooling_and_settings() -> void:
 		db.call("smash", Vector3(0.0, 2.0, 8.0))
 	_check(q0_holder.find_children("*", "GPUParticles3D", true, false).is_empty(),
 			"P2-3: particles=0.0 spawns 0 GPUParticles3D across cash_explosion, RocketProjectile, MeteorStrike, and DestructibleBuilding")
+	vfx_gd.call("particle_explosion", q0_holder, Vector3.ZERO, Color.ORANGE, 1.0, false)
+	vfx_gd.call("lightning_strike_explosion", q0_holder, Vector3.ZERO, 1.35)
+	_check(q0_holder.find_children("*", "OmniLight3D", true, false).is_empty(),
+			"P3-10: particles=0.0 spawns 0 OmniLight3D nodes across particle_explosion, lightning_strike_explosion, and cash_explosion")
 	q0_holder.queue_free()
 	if s_node_cap != null:
 		s_node_cap.call("set_value", "video", "particles", prev_pq)

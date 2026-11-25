@@ -327,6 +327,9 @@ func _physics_process(delta: float) -> void:
 	# ---- 3. Alternating footstep dust kicks synced to stride cadence
 	if grounded and speed > 0.55:
 		_run_phase += absf(_anim_rate) * dt * 1.05
+		if _run_phase >= 100.0:
+			_run_phase = fmod(_run_phase, 100.0)
+			_last_step_half = int(floorf(_run_phase * 2.0))
 		var step_half := int(floorf(_run_phase * 2.0))
 		if step_half != _last_step_half:
 			_last_step_half = step_half

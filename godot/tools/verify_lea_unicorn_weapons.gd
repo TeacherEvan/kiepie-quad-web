@@ -220,8 +220,13 @@ func _run() -> void:
 				38.0, 90.0, "beam-tok", Color(0.40, 0.90, 1.0))
 		_check(not bool(beam.get("_inert")) and not bool(beam.get("_beaming")),
 				"horn beam starts in the charge phase")
-		_check(beam.get_node_or_null("ChargeVortex/ChargeRing") != null,
+		var charge_vortex := beam.get_node_or_null("ChargeVortex") as Node3D
+		var charge_ring := beam.get_node_or_null("ChargeVortex/ChargeRing") as Node3D
+		_check(charge_vortex != null and charge_ring != null,
 				"horn beam builds a particle vortex in front of the horn")
+		_check(charge_vortex != null and charge_vortex.position.is_zero_approx()
+				and charge_ring != null and charge_ring.position.z < -0.1,
+				"horn beam charge ring offsets along ChargeVortex local forward axis")
 		beam.on_hit = Callable(self, "_on_beam_hit")
 		for _i in range(48):
 			await physics_frame

@@ -85,9 +85,7 @@ func _is_mobile_auto() -> bool:
 
 func effective_resolution_scale() -> float:
 	var scale := float(get_value("video", "resolution_scale", 1.0))
-	if OS.has_feature("web") and _is_mobile_auto():
-		return 1.0
-	return minf(scale, 0.72) if _is_mobile_auto() else scale
+	return 1.0 if _is_mobile_auto() else scale
 
 
 func effective_shadows() -> bool:

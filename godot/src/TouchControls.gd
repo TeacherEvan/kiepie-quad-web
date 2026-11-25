@@ -125,7 +125,14 @@ func _ready() -> void:
 
 
 func _on_settings_changed(section: String, key: String, val: Variant) -> void:
-	if section == "controls":
+	if section == "*":
+		var s_node := get_node_or_null("/root/Settings")
+		if s_node != null and s_node.has_method("get_value"):
+			_force = bool(s_node.call("get_value", "controls", "touch_force", false))
+		_apply_visibility()
+		_sync_toggle_text()
+		_relayout()
+	elif section == "controls":
 		if key == "touch_force":
 			_force = bool(val)
 			_apply_visibility()

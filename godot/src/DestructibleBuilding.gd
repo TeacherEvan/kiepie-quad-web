@@ -199,7 +199,7 @@ func smash(impulse: Vector3 = Vector3.ZERO) -> void:
 func _process(delta: float) -> void:
 	if not _intact or _beacon == null or not is_instance_valid(_beacon):
 		return
-	_beacon_t += delta
+	_beacon_t = fmod(_beacon_t + delta, TAU)
 	_beacon_tick += delta
 	if _beacon_tick < 0.08:
 		return

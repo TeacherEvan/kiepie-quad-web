@@ -244,6 +244,24 @@ func _run() -> void:
 				and is_equal_approx(float(bike.get("dodge_spin")), float(bike2.get("dodge_spin")))
 		_check(same_stats, "Nardus and KiepieBike have identical speed, steering, and cartwheel jump stats")
 
+	# P3-8: PogoVisual remote speed estimator clamps tiny dt spikes <= 60.0
+	var pogo_vis_gd := load("res://src/game/PogoVisual.gd") as GDScript
+	if pogo_vis_gd != null:
+		var pv_host := Node3D.new()
+		root.add_child(pv_host)
+		var pv := Node3D.new()
+		pv.set_script(pogo_vis_gd)
+		pv_host.add_child(pv)
+		pv.set("_host_node", pv_host)
+		pv.set("_bike", null)
+		pv.set("_has_prev_host_pos", true)
+		pv.set("_prev_host_pos", Vector3.ZERO)
+		pv_host.global_position = Vector3(2.0, 0.0, 0.0)
+		pv.call("_physics_process", 0.0001)
+		_check(float(pv.get("_remote_speed")) <= 60.0,
+				"P3-8: PogoVisual remote speed estimator clamps dt=0.0001 spike <= 60.0 (got %.2f)" % float(pv.get("_remote_speed")))
+		pv_host.queue_free()
+
 	if sb != null:
 		sb.set("user_id", _prior_user_id)
 	print("POGO VERIFY: %d failure(s)" % _fail)

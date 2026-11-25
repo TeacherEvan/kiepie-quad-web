@@ -182,23 +182,26 @@ func setup(p_owner_id: String, p_owner_node: Node, p_origin: Vector3,
 		p_direction: Vector3, p_speed: float, p_damage: float,
 		p_token: String, p_color: Color, p_blast_radius: float = BLAST_RADIUS,
 		p_visual_style: String = "rocket") -> void:
+	if not is_finite(p_origin.x + p_origin.y + p_origin.z) \
+			or not is_finite(p_damage) or not is_finite(p_blast_radius) or p_blast_radius <= 0.0 \
+			or not is_finite(p_speed) or p_speed <= 0.0 \
+			or not is_finite(p_direction.x + p_direction.y + p_direction.z) \
+			or p_direction.length_squared() < 1e-8:
+		push_warning("RocketProjectile.setup: rejecting non-finite/invalid parameters")
+		velocity = Vector3.ZERO
+		_inert = true
+		queue_free()
+		return
 	owner_id = p_owner_id
 	owner_node = p_owner_node
 	global_position = p_origin
-	blast_radius = p_blast_radius
+	blast_radius = clampf(p_blast_radius, 0.0, BLAST_RADIUS)
 	visual_style = p_visual_style if p_visual_style in ["rocket", "cash_bag", "cigar"] else "rocket"
-	if p_direction.length_squared() < 1e-8 or not is_finite(p_direction.x + p_direction.y + p_direction.z) or not is_finite(p_speed) or p_speed <= 0.0:
-		velocity = Vector3.ZERO
-		_inert = true
-		_life = 0.05
-	else:
-		velocity = p_direction.normalized() * p_speed
-		_inert = false
-	damage = p_damage
+	velocity = p_direction.normalized() * p_speed
+	_inert = false
+	damage = maxf(0.0, p_damage)
 	token = p_token
 	hit_color = p_color
-	if _inert:
-		return
 	_build_visual()
 
 

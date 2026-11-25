@@ -79,13 +79,10 @@ timeout --foreground 240 "$GODOT" --headless --path godot --export-release "Web"
 PCK="$ROOT/web/index.pck"
 SIZE=$(stat -c %s "$PCK" 2>/dev/null || echo 0)
 echo "   index.pck: $((SIZE / 1024 / 1024)) MB ($SIZE bytes)"
-# Budget raised 4 MiB -> 4.5 MiB on 2026-11-25 for EVAN THE SKELETON: his
-# Godot-compatible (non-Draco) GLB adds ~0.7 MB to the pck. LEA UNICORN's plain
-# GLB adds ~0.58 MB more; measured export is ~4.47 MB / 4,685,856 bytes with
-# only ~32 KB of headroom under this guard — raise it before adding another
-# non-Draco vehicle GLB.
-if [ "$SIZE" -lt 1048576 ] || [ "$SIZE" -gt 4718592 ]; then
-	echo "DEPLOY ABORTED: pck size out of range [1 MiB, 4.5 MiB] (saw $SIZE)"
+# Budget raised 4.5 MiB -> 5.0 MiB on 2026-11-25 after EVAN THE SKELETON's
+# biomechanical running overhaul + LEA UNICORN's plain (non-Draco) GLB.
+if [ "$SIZE" -lt 1048576 ] || [ "$SIZE" -gt 5242880 ]; then
+	echo "DEPLOY ABORTED: pck size out of range [1 MiB, 5.0 MiB] (saw $SIZE)"
 	exit 1
 fi
 for f in index.html index.js index.wasm index.pck index.manifest.json index.service.worker.js index.audio.worklet.js index.offline.html; do
@@ -118,6 +115,7 @@ done
 for f in "${WEB_FILES[@]}"; do
 	[ -f "$ROOT/web/$f" ] || continue
 	cp "$ROOT/web/$f" "$ROOT/.$f.tmp" || { echo "DEPLOY ABORTED: staging $f failed"; exit 1; }
+	python3 -c 'import os,sys; fd=os.open(sys.argv[1], os.O_RDONLY); os.fsync(fd); os.close(fd)' "$ROOT/.$f.tmp" || { echo "DEPLOY ABORTED: fsync $f failed"; exit 1; }
 	mv -f "$ROOT/.$f.tmp" "$ROOT/$f" || { echo "DEPLOY ABORTED: replace $f failed"; exit 1; }
 	STAGED_MD5=$(md5sum "$ROOT/web/$f" | awk '{print $1}')
 	ROOT_MD5=$(md5sum "$ROOT/$f" | awk '{print $1}')

@@ -280,6 +280,8 @@ func join_lobby_channel(lobby_id: String) -> void:
 	var id := int(lobby_id)
 	if _channel_id == id or id <= 0:
 		return
+	if _channel_id > 0:
+		leave_lobby_channel(false)
 	var gen := _join_gen
 	var joined = await Talo.channels.join(id)
 	if gen != _join_gen:
@@ -594,6 +596,11 @@ func _handoff_host_before_leave(leaving_id: int) -> void:
 	if next_host == "":
 		return
 	_handing_off = true
+	if _apply_inflight:
+		await _apply_drained
+	if _channel_id != leaving_id or leaving_id <= 0:
+		_handing_off = false
+		return
 	var new_roster := _roster.duplicate(true)
 	new_roster.erase(user_id)
 	var new_lobby := _lobby.duplicate(true)

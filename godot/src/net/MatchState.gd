@@ -396,6 +396,8 @@ func _on_pg_change(data: Dictionary) -> void:
 			apply_lobby(row)
 		"lobby_players":
 			var uid := str(row.get("user_id", ""))
+			if uid == "":
+				return
 			var old_score := int((players.get(uid, {}) as Dictionary).get("score", 0))
 			players[uid] = row.duplicate(true)
 			var new_score := int(row.get("score", 0))

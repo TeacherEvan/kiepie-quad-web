@@ -335,8 +335,17 @@ func _run() -> void:
 		await process_frame
 		dh_bad.call("setup", "evan-gate", owner, target, NAN, "evan-nan-token",
 				Color(0.90, 0.05, 0.18), 2.0, 7.5, "devil_hand")
-		_check(not bool(dh_bad.get("_armed")),
-				"DevilHandStrike rejects non-finite damage instead of arming")
+		_check(not bool(dh_bad.get("_armed")) and dh_bad.is_queued_for_deletion(),
+				"DevilHandStrike rejects non-finite damage and queues free")
+		var dh_nan_pos := Node3D.new()
+		dh_nan_pos.set_script(devilhand)
+		holder.add_child(dh_nan_pos)
+		dh_nan_pos.set_physics_process(false)
+		await process_frame
+		dh_nan_pos.call("setup", "evan-gate", owner, Vector3(NAN, 0.0, 0.0), 105.0, "evan-nanpos-token",
+				Color(0.90, 0.05, 0.18), 2.0, 7.5, "devil_hand")
+		_check(not bool(dh_nan_pos.get("_armed")) and dh_nan_pos.is_queued_for_deletion(),
+				"DevilHandStrike rejects non-finite target_pos and queues free")
 		dh.set_physics_process(false)
 
 	# ---- 4. CombatAoe's shared resolver: old blast plus the new lethal version.
@@ -405,9 +414,18 @@ func _run() -> void:
 		var proxy_sink := LethalSink.new()
 		proxy_sink.name = "CombatController"
 		proxy_bike.add_child(proxy_sink)
+		var hit_confirm_stub := GDScript.new()
+		hit_confirm_stub.source_code = "extends Node\nsignal hit_confirmed\nvar count := 0\nfunc _ready() -> void:\n\tconnect('hit_confirmed', func() -> void: count += 1)\n"
+		hit_confirm_stub.reload()
+		var local_combat_stub := Node.new()
+		local_combat_stub.set_script(hit_confirm_stub)
+		local_combat_stub.add_to_group("local_combat")
+		holder.add_child(local_combat_stub)
 		await process_frame
 		combat_aoe.call("apply_lethal_blast", self, holder, center, 7.5,
 				local_uid if local_uid != "" else "evan-gate", owner_bike, "lethal-tok", true)
+		_check(int(local_combat_stub.get("count")) >= 1,
+				"apply_lethal_blast emits hit_confirmed when owner catches enemy proxy")
 		_check(victim_sink.calls.size() == 1,
 				"apply_lethal_blast kills the in-zone victim (%d calls)" % victim_sink.calls.size())
 		_check(victim_sink.calls.size() == 1

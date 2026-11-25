@@ -16,10 +16,8 @@ static func new_code() -> String:
 static func parse_dict(text: String) -> Dictionary:
 	if text.is_empty():
 		return {}
-	var json := JSON.new()
-	if json.parse(text) != OK or not (json.get_data() is Dictionary):
-		return {}
-	return json.get_data() as Dictionary
+	var parsed: Variant = JSON.parse_string(text)
+	return parsed as Dictionary if parsed is Dictionary else {}
 
 
 static func is_hex_color(col: String) -> bool:

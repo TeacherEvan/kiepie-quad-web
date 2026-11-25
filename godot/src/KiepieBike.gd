@@ -255,10 +255,8 @@ func _resolve_vehicle_pref(lookup_id: String) -> String:
 		var mp: Variant = Match.get("players")
 		if mp is Dictionary and (mp as Dictionary).has(lookup_id):
 			var row: Variant = (mp as Dictionary)[lookup_id]
-			if row is Dictionary:
-				var p_veh := VehicleRegistry.sanitize_preference(str((row as Dictionary).get("vehicle", "")))
-				if p_veh != "":
-					return p_veh
+			if row is Dictionary and (row as Dictionary).has("vehicle"):
+				return VehicleRegistry.sanitize_preference(str((row as Dictionary).get("vehicle", "")))
 	if typeof(Settings) != TYPE_NIL and Settings != null and Settings.has_method("preferred_vehicle"):
 		return str(Settings.call("preferred_vehicle"))
 	return ""

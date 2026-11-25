@@ -4,6 +4,9 @@ name: gates
 # Talo account: run_gates.sh exports KIEPIE_MOCK_BACKEND=1 and backend gates
 # hard-abort without it. Do NOT add a real key here — ever.
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
@@ -27,7 +30,7 @@ jobs:
           sudo install -m 0755 /tmp/Godot_v4.3-stable_linux.x86_64 /usr/local/bin/godot-4.3
           godot-4.3 --version
 
-      - name: Run gates (29 total incl. GdUnit4, scene_sync, web_hygiene, xvfb multi-touch)
+      - name: Run gates (33 total incl. GdUnit4, scene_sync, web_hygiene, xvfb multi-touch)
         run: bash godot/tools/run_gates.sh
         env:
           KIEPIE_MOCK_BACKEND: "1"

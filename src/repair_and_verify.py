@@ -63,7 +63,12 @@ def main():
 
     studio, cam, target = build_quad.build_studio()
     bpy.context.view_layer.update()
-    bpy.ops.wm.save_as_mainfile(filepath=BLEND)
+    prev_sv = bpy.context.preferences.filepaths.save_version
+    bpy.context.preferences.filepaths.save_version = 0
+    try:
+        bpy.ops.wm.save_as_mainfile(filepath=BLEND)
+    finally:
+        bpy.context.preferences.filepaths.save_version = prev_sv
     build_quad.export_glb(coll)
     build_quad.export_glb(coll, filepath=DRACO, draco=True)
 

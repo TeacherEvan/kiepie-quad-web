@@ -139,6 +139,10 @@ def main() -> int:
     #    export filter that silently drops Evan's GLB or compiled scripts.
     pck = ROOT / "index.pck"
     REQUIRED_PCK_PATHS = [
+        "res://assets/Kiepie_Bike.glb",
+        "res://assets/Pogo_Nardus.glb",
+        "res://assets/Aston_Martin.glb",
+        "res://addons/talo/settings.cfg",
         "res://assets/Evan_Skeleton.glb",
         "res://src/game/EvanVisual.gdc",
         "res://src/game/SoundWaveProjectile.gdc",
