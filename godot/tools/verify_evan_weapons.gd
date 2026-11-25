@@ -166,6 +166,17 @@ func _run() -> void:
 				"SoundWaveProjectile propagates owner_id")
 		_check(sw.get("on_hit") is Callable,
 				"SoundWaveProjectile exposes the on_hit callback slot")
+		# Zero/Empty mutant: a degenerate direction must not poison velocity
+		# with NaN or leave an active projectile pointing nowhere.
+		var sw_zero := Node3D.new()
+		sw_zero.set_script(soundwave)
+		holder.add_child(sw_zero)
+		sw_zero.set_physics_process(false)
+		await process_frame
+		sw_zero.call("setup", "evan-gate", owner, origin, Vector3.ZERO,
+				26.0, 37.0, "evan-zero-token", Color(0.95, 0.10, 0.46))
+		var zv: Vector3 = _vec(sw_zero.get("velocity"))
+		_check(_finite(zv), "zero-direction setup leaves a finite velocity (no NaN)")
 		sw.set_physics_process(false)
 
 	# ---- 2. BoomerangGuitar: thrown guitar that comes back to the owner.
@@ -201,7 +212,6 @@ func _run() -> void:
 		var peak_dist := 0.0
 		var saw_reverse := false
 		var saw_return := false
-		var saw_arrest := false
 		var started := Time.get_ticks_msec()
 		for _f in range(120):
 			await physics_frame
@@ -210,18 +220,16 @@ func _run() -> void:
 			var cur_vel: Vector3 = _vec(boom.get("velocity"))
 			if cur_vel.length_squared() > 1.0e-6 and cur_vel.normalized().dot(forward) < -0.2:
 				saw_reverse = true
-			# A return curve that bleeds off its outbound speed has engaged the
-			# comeback even before the direction vector fully flips.
-			if cur_vel.length() < 18.0 * 0.3 and peak_dist > 3.0:
-				saw_arrest = true
 			var dist := boom.global_position.distance_to(owner.global_position)
 			peak_dist = maxf(peak_dist, dist)
 			if peak_dist > 1.0 and dist < peak_dist - 0.6:
 				saw_return = true
 			if Time.get_ticks_msec() - started > 4000:
 				break
-		_check(saw_reverse or saw_return or saw_arrest,
-				"BoomerangGuitar turns back / arrests its flight within ~1.2 s (does not fly away forever)")
+		# Drag alone can bleed speed on a one-way flight; only an actual
+		# reversal or a shrinking distance proves the return steering works.
+		_check(saw_reverse or saw_return,
+				"BoomerangGuitar reverses direction or returns within ~1.2 s (not merely slowed by drag)")
 		if is_instance_valid(boom):
 			boom.set_physics_process(false)
 
@@ -322,6 +330,20 @@ func _run() -> void:
 		far_bike.position = Vector3(60.0, 0.0, 0.0)
 		far_bike.add_to_group("bike")
 		holder.add_child(far_bike)
+		# Exact boundary: radius test is `<= 7.5`, so this rider must be killed
+		# while one 0.01 m further out must survive (kills a `<` flip mutant).
+		var edge_bike := BikeStub.new()
+		edge_bike.name = "EdgeBike"
+		edge_bike.set("player_id", victim_id)
+		edge_bike.position = Vector3(7.5, 0.0, 0.0)
+		edge_bike.add_to_group("bike")
+		holder.add_child(edge_bike)
+		var just_out_bike := BikeStub.new()
+		just_out_bike.name = "JustOutBike"
+		just_out_bike.set("player_id", "evan-just-out")
+		just_out_bike.position = Vector3(7.51, 0.0, 0.0)
+		just_out_bike.add_to_group("bike")
+		holder.add_child(just_out_bike)
 		var owner_sink := LethalSink.new()
 		owner_sink.name = "CombatController"
 		owner_bike.add_child(owner_sink)
@@ -331,6 +353,12 @@ func _run() -> void:
 		var far_sink := LethalSink.new()
 		far_sink.name = "CombatController"
 		far_bike.add_child(far_sink)
+		var edge_sink := LethalSink.new()
+		edge_sink.name = "CombatController"
+		edge_bike.add_child(edge_sink)
+		var just_out_sink := LethalSink.new()
+		just_out_sink.name = "CombatController"
+		just_out_bike.add_child(just_out_sink)
 		# A remote proxy that happens to expose take_lethal_hit must never be
 		# mutated from the shooter's client (AUD P2 fail-closed guard).
 		var proxy_bike := BikeStub.new()
@@ -353,6 +381,8 @@ func _run() -> void:
 					"lethal-tok:v%s" % victim_id])
 		_check(owner_sink.calls.is_empty(), "apply_lethal_blast skips the owner")
 		_check(far_sink.calls.is_empty(), "apply_lethal_blast skips out-of-zone riders")
+		_check(edge_sink.calls.size() == 1, "apply_lethal_blast kills a rider at exactly 7.5 m")
+		_check(just_out_sink.calls.is_empty(), "apply_lethal_blast spares a rider at 7.51 m")
 		_check(proxy_sink.calls.is_empty(), "apply_lethal_blast never mutates a remote proxy")
 
 		# Prove DevilHandStrike actually calls the resolver on detonation.

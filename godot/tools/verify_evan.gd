@@ -115,6 +115,9 @@ func _run() -> void:
 		var ap := players[0] as AnimationPlayer
 		for clip in ["Idle_Sway", "Play_Strum", "Headbang_Riff", "Action_BigFinish"]:
 			_check(ap.has_animation(clip), "NLA clip %s baked" % clip)
+			var anim: Animation = ap.get_animation(clip)
+			_check(anim != null and anim.get_track_count() > 0 and anim.length > 0.0,
+					"NLA clip %s has real tracks and duration" % clip)
 
 	_check(_find(model, "Skull_Cranium") != null, "skull mesh present")
 	_check(_find(model, "GuitarBody") != null, "hot-pink guitar body present")
@@ -212,6 +215,11 @@ func _run() -> void:
 			var script: Variant = evan_model.get_script()
 			_check(script != null and str(script.resource_path).ends_with("EvanVisual.gd"),
 					"Model carries EvanVisual.gd")
+			# Invoke the hook, not just has_method(): a no-op body must fail.
+			evan_model.call("trigger_recoil", 1.0)
+			_check(float(evan_model.get("_finish_cd")) > 0.0
+					and str(evan_model.get("_last_clip")) == "Action_BigFinish",
+					"trigger_recoil actually arms the finish clip and lockout")
 		var combat: Node = bike.get_node_or_null("CombatController")
 		var cannons: Node = combat.get("cannons") if combat != null else null
 		_check(cannons != null and str(cannons.get("weapon_profile")) == "evan",
