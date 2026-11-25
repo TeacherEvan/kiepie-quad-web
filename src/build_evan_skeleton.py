@@ -121,17 +121,20 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
         return ob
 
     # -------------------------------------------------------------- materials
-    bone_ivory = make_mat("BoneIvory", (0.90, 0.88, 0.79), 0.72)
-    bone_shadow = make_mat("BoneShadow", (0.74, 0.72, 0.65), 0.78)
-    socket_dark = make_mat("EyeSocket", (0.035, 0.038, 0.050), 0.85)
-    magenta = make_mat("MohawkMagenta", (0.86, 0.07, 0.38), 0.42, emission=0.12)
-    guitar_pink = make_mat("GuitarHotPink", (0.95, 0.10, 0.46), 0.28)
-    guitar_cream = make_mat("GuitarPickguard", (0.96, 0.94, 0.87), 0.42)
-    fretboard = make_mat("Fretboard", (0.16, 0.10, 0.07), 0.62)
-    chrome = make_mat("Chrome", (0.72, 0.76, 0.81), 0.22, 0.92)
-    strap_brown = make_mat("StrapLeather", (0.34, 0.19, 0.10), 0.78)
-    tyre_rubber = make_mat("TyreRubber", (0.075, 0.080, 0.095), 0.92)
-    frame_metal = make_mat("BoneFrame", (0.66, 0.70, 0.76), 0.36, 0.72)
+    # Plastic-surgery palette (visual-only): warm reference ivory bones,
+    # crimson mohawk and a vivid hot-pink guitar. Geometry, rig, clips and
+    # landmark mesh names are deliberately untouched.
+    bone_ivory = make_mat("BoneIvory", (0.94, 0.91, 0.82), 0.68, emission=0.025)
+    bone_shadow = make_mat("BoneShadow", (0.66, 0.63, 0.56), 0.78)
+    socket_dark = make_mat("EyeSocket", (0.018, 0.020, 0.028), 0.45)
+    magenta = make_mat("MohawkMagenta", (0.92, 0.05, 0.32), 0.42, emission=0.16)
+    guitar_pink = make_mat("GuitarHotPink", (0.98, 0.06, 0.44), 0.24, emission=0.05)
+    guitar_cream = make_mat("GuitarPickguard", (0.98, 0.96, 0.90), 0.38)
+    fretboard = make_mat("Fretboard", (0.12, 0.07, 0.05), 0.62)
+    chrome = make_mat("Chrome", (0.78, 0.82, 0.88), 0.22, 0.92)
+    strap_brown = make_mat("StrapLeather", (0.38, 0.20, 0.09), 0.78)
+    tyre_rubber = make_mat("TyreRubber", (0.055, 0.060, 0.075), 0.92)
+    frame_metal = make_mat("BoneFrame", (0.70, 0.74, 0.80), 0.36, 0.72)
     saddle = make_mat("Saddle", (0.10, 0.10, 0.13), 0.74)
 
     # -------------------------------------------------------------- primitives
