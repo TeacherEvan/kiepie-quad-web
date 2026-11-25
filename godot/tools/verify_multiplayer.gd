@@ -341,6 +341,12 @@ func _run() -> void:
 				break
 	_check(tinted_green, "P2-5: update_identity re-tints 3D meshes when player color changes on same vehicle")
 
+	# AUD-3: an explicitly negative relay tick is a spoof and must be dropped.
+	var tick_before: int = int(nb.get("_last_tick"))
+	nb.call("apply_state", {"id": "peer-lock", "p": [44.0, 0.5, 44.0], "n": -9})
+	_check(int(nb.get("_last_tick")) == tick_before,
+			"AUD-3: apply_state rejects an explicit negative relay tick")
+
 	# P1-6 & P2-11c: _kill_lock_until blocks turbo_active/pos mutation BEFORE unlock;
 	# once unlocked, apply_state propagates remote turbo flag 't' when alive
 	nb.call("apply_state", {"id": "peer-lock", "p": [9.0, 0.5, 9.0], "r": [0, 0, 0, 1], "d": false, "t": true, "n": 12})

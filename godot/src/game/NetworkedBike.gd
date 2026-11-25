@@ -130,16 +130,18 @@ func update_identity(name_text: String, color_hex: String) -> void:
 
 func apply_state(data: Dictionary) -> void:
 	# Monotonic relay sequence: out-of-order or replayed snapshots would otherwise
-	# snap a proxy backwards between 80–150 ms jitter windows. Peers without the
-	# "n" field (older builds) are accepted unconditionally.
+	# snap a proxy backwards between 80–150 ms jitter windows. An explicit
+	# negative/invalid tick is a spoof and is rejected; only legacy packets that
+	# omit "n" entirely keep the permissive path (PROTOCOL_VERSION is still 3).
+	var has_tick := data.has("n")
 	var n := int(data.get("n", -1))
-	if n >= 0 and n <= _last_tick:
+	if has_tick and (n < 0 or n <= _last_tick):
 		return
 	var dead_now := bool(data.get("d", false))
 	if _initialised and is_respawning and not dead_now:
 		if (Time.get_ticks_msec() / 1000.0) < _kill_lock_until:
 			return  # ignore stale pre-death in-flight packet
-	if n >= 0:
+	if has_tick:
 		_last_tick = n
 	var pos_valid := false
 	var p: Variant = data.get("p", null)
@@ -184,8 +186,10 @@ func set_respawning(value: bool) -> void:
 	if value:
 		turbo_active = false
 	visible = not value
-	# A hidden respawning proxy must not eat projectiles mid-flight.
-	set_deferred("collision_layer", 0 if value else 1)
+	# Flip visibility and collision atomically in the same step: deferring the
+	# layer lets a fixed-step physics substep hit an invisible rider (or pass
+	# through a visible one) for one frame.
+	collision_layer = 0 if value else 1
 	var fx_parent: Node3D = null
 	if get_tree() != null and get_tree().current_scene is Node3D:
 		fx_parent = get_tree().current_scene as Node3D

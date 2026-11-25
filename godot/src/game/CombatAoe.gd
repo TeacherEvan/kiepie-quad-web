@@ -37,9 +37,10 @@ static func apply_blast(tree: SceneTree, fx: Node3D, center: Vector3, radius: fl
 			if owner_id != "" and owner_id == local_uid and skip_tid != local_uid:
 				hit_any_enemy = true
 			continue
-		var dist := bike_node.global_position.distance_to(center)
-		if dist > radius:
+		var dist_sq := bike_node.global_position.distance_squared_to(center)
+		if dist_sq > radius * radius:
 			continue
+		var dist := sqrt(dist_sq)
 		if skip_owner and is_instance_valid(owner_node) and bike_node == owner_node:
 			continue
 		var target_id := str(bike_node.get("player_id")) if "player_id" in bike_node else ""
@@ -72,7 +73,7 @@ static func apply_blast(tree: SceneTree, fx: Node3D, center: Vector3, radius: fl
 			var hz := h as Node3D
 			if not hz.visible or bool(hz.get("_ignited")):
 				continue
-			if hz.global_position.distance_to(center) <= radius and hz.has_method("ignite"):
+			if hz.global_position.distance_squared_to(center) <= radius * radius and hz.has_method("ignite"):
 				var drum_tok := ("%s:d%d" % [token, hz.get_instance_id()]) if token != "" else ""
 				hz.call("ignite", owner_id, drum_tok)
 				if owner_id != "" and owner_id == local_uid:
@@ -83,7 +84,7 @@ static func apply_blast(tree: SceneTree, fx: Node3D, center: Vector3, radius: fl
 			if not is_instance_valid(d) or not (d is Node3D):
 				continue
 			var db := d as Node3D
-			if db.global_position.distance_to(center) <= radius and db.has_method("smash"):
+			if db.global_position.distance_squared_to(center) <= radius * radius and db.has_method("smash"):
 				var diff := db.global_position - center
 				var push_dir := diff.normalized() if diff.length_squared() > 1e-6 else Vector3.UP
 				db.call("smash", push_dir * smash_impulse)
@@ -118,9 +119,10 @@ static func apply_lethal_blast(tree: SceneTree, fx: Node3D, center: Vector3,
 		var bike_node := b as Node3D
 		if not bike_node.visible or bike_node.get("is_respawning") == true:
 			continue
-		var dist := bike_node.global_position.distance_to(center)
-		if dist > radius:
+		var dist_sq := bike_node.global_position.distance_squared_to(center)
+		if dist_sq > radius * radius:
 			continue
+		var dist := sqrt(dist_sq)
 		if skip_owner and is_instance_valid(owner_node) and bike_node == owner_node:
 			continue
 		var target_id := str(bike_node.get("player_id")) if "player_id" in bike_node else ""
@@ -149,7 +151,7 @@ static func apply_lethal_blast(tree: SceneTree, fx: Node3D, center: Vector3,
 		var hz := h as Node3D
 		if not hz.visible or bool(hz.get("_ignited")):
 			continue
-		if hz.global_position.distance_to(center) <= radius and hz.has_method("ignite"):
+		if hz.global_position.distance_squared_to(center) <= radius * radius and hz.has_method("ignite"):
 			var drum_tok := ("%s:d%d" % [token, hz.get_instance_id()]) if token != "" else ""
 			hz.call("ignite", owner_id, drum_tok)
 			if owner_id != "" and owner_id == local_uid:
@@ -159,7 +161,7 @@ static func apply_lethal_blast(tree: SceneTree, fx: Node3D, center: Vector3,
 		if not is_instance_valid(d) or not (d is Node3D):
 			continue
 		var db := d as Node3D
-		if db.global_position.distance_to(center) <= radius and db.has_method("smash"):
+		if db.global_position.distance_squared_to(center) <= radius * radius and db.has_method("smash"):
 			var diff := db.global_position - center
 			var push_dir := diff.normalized() if diff.length_squared() > 1e-6 else Vector3.UP
 			db.call("smash", push_dir * 16.0)
