@@ -82,8 +82,12 @@ func _physics_process(delta: float) -> void:
 		if _has_prev_pos:
 			var disp := now - _prev_pos
 			if disp.length() < 8.0:  # ignore respawn teleports
-				_remote_speed = lerpf(_remote_speed,
-						Vector3(disp.x, 0.0, disp.z).length() / maxf(delta, 0.001), 9.0)
+				# Godot's lerp is NOT clamped: a weight of 9.0 extrapolates and
+				# diverges as x[n+1] = 9T - 8x[n] (reaches inf/NaN in ~6 frames).
+				# Use delta-normalised exponential smoothing and a hard bound.
+				var target := Vector3(disp.x, 0.0, disp.z).length() / maxf(delta, 0.001)
+				var blend := 1.0 - exp(-9.0 * minf(delta, 0.05))
+				_remote_speed = clampf(lerpf(_remote_speed, target, blend), 0.0, 60.0)
 		else:
 			_has_prev_pos = true
 		_prev_pos = now

@@ -219,6 +219,24 @@ func _run() -> void:
 	ride.queue_free()
 	await process_frame
 
+	# ---- 6. Remote-proxy motion estimate must stay finite (AUD P2). A remote
+	# StaticBody3D has no linear_velocity, so EvanVisual derives speed from
+	# consecutive positions; an unclamped lerp weight diverges to ±inf here.
+	var remote_host := StaticBody3D.new()
+	root.add_child(remote_host)
+	var remote_model := (load("res://assets/Evan_Skeleton.glb") as PackedScene).instantiate() as Node3D
+	remote_model.set_script(load("res://src/game/EvanVisual.gd"))
+	remote_host.add_child(remote_model)
+	await process_frame
+	for _i in range(120):
+		remote_host.global_position.x += 0.5
+		await physics_frame
+	var remote_speed: float = float(remote_model.get("_remote_speed"))
+	_check(is_finite(remote_speed) and remote_speed >= 0.0 and remote_speed <= 60.0,
+			"remote Evan speed estimate stays finite and bounded (%.3f)" % remote_speed)
+	remote_host.queue_free()
+	await process_frame
+
 	settings.call("set_value", "gameplay", "vehicle", "auto")
 	_restore()
 	print("EVAN VERIFY: %d failure(s)" % _fail)
