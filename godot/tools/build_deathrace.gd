@@ -538,15 +538,19 @@ func _is_wall_gap(side: float, mid: Vector2) -> bool:
 	return false
 
 
+static var _atten_cm: CylinderMesh = null
+
+
 func _add_attenuator(parent: Node, pos: Vector3, mat: Material) -> void:
+	if _atten_cm == null:
+		_atten_cm = CylinderMesh.new()
+		_atten_cm.top_radius = 0.44
+		_atten_cm.bottom_radius = 0.50
+		_atten_cm.height = 1.52
+		_atten_cm.radial_segments = 12
+		_atten_cm.material = mat
 	var mi := MeshInstance3D.new()
-	var cm := CylinderMesh.new()
-	cm.top_radius = 0.44
-	cm.bottom_radius = 0.50
-	cm.height = 1.52
-	cm.radial_segments = 12
-	cm.material = mat
-	mi.mesh = cm
+	mi.mesh = _atten_cm
 	mi.position = Vector3(pos.x, 0.76, pos.z)
 	parent.add_child(mi)
 
@@ -696,18 +700,21 @@ func _build_circuit(root: Node, pts: Array[Vector2]) -> void:
 				else:
 					_add_quad_to_st(st_kerbs, k0_b, k0_a, k1_b, k1_a, 0.0, 1.0, kv0, kv1)
 
+	st_road.index()
 	var road_mi := MeshInstance3D.new()
 	road_mi.name = "TrackRibbon"
 	road_mi.mesh = st_road.commit()
 	road_mi.material_override = road_mat
 	track.add_child(road_mi)
 
+	st_center.index()
 	var center_mi := MeshInstance3D.new()
 	center_mi.name = "TrackCenterLine"
 	center_mi.mesh = st_center.commit()
 	center_mi.material_override = center_mat
 	track.add_child(center_mi)
 
+	st_lines.index()
 	var lines_mi := MeshInstance3D.new()
 	lines_mi.name = "TrackEdgeLines"
 	lines_mi.mesh = st_lines.commit()
@@ -715,6 +722,7 @@ func _build_circuit(root: Node, pts: Array[Vector2]) -> void:
 	track.add_child(lines_mi)
 
 	if kerb_count > 0:
+		st_kerbs.index()
 		var kerbs_mi := MeshInstance3D.new()
 		kerbs_mi.name = "TrackKerbs"
 		kerbs_mi.mesh = st_kerbs.commit()
@@ -722,6 +730,12 @@ func _build_circuit(root: Node, pts: Array[Vector2]) -> void:
 		track.add_child(kerbs_mi)
 
 	# Starting Grid Brackets at SpawnPoint0..7
+	var fbm := BoxMesh.new()
+	fbm.size = Vector3(0.18, 0.012, 2.2)
+	fbm.material = center_mat
+	var sbm := BoxMesh.new()
+	sbm.size = Vector3(1.1, 0.012, 0.16)
+	sbm.material = center_mat
 	for gi in range(8):
 		var grow := int(gi / 2)
 		var gside := -1.0 if (gi % 2 == 0) else 1.0
@@ -731,17 +745,11 @@ func _build_circuit(root: Node, pts: Array[Vector2]) -> void:
 		gnode.name = "GridBox%d" % gi
 		gnode.position = Vector3(gx, 0.038, gz)
 		var front_bar := MeshInstance3D.new()
-		var fbm := BoxMesh.new()
-		fbm.size = Vector3(0.18, 0.012, 2.2)
-		fbm.material = center_mat
 		front_bar.mesh = fbm
 		front_bar.position = Vector3(1.2, 0.0, 0.0)
 		gnode.add_child(front_bar)
 		for sz_s: float in [-1.0, 1.0]:
 			var side_bar := MeshInstance3D.new()
-			var sbm := BoxMesh.new()
-			sbm.size = Vector3(1.1, 0.012, 0.16)
-			sbm.material = center_mat
 			side_bar.mesh = sbm
 			side_bar.position = Vector3(0.65, 0.0, sz_s * 1.02)
 			gnode.add_child(side_bar)
@@ -793,12 +801,14 @@ func _build_circuit(root: Node, pts: Array[Vector2]) -> void:
 			else:
 				_add_quad_to_st(st_pit_lines, e0_b, e0_a, e1_b, e1_a, 0.0, 1.0, 0.0, 1.0)
 
+	st_pit.index()
 	var pit_mi := MeshInstance3D.new()
 	pit_mi.name = "PitLane"
 	pit_mi.mesh = st_pit.commit()
 	pit_mi.material_override = pit_mat
 	track.add_child(pit_mi)
 
+	st_pit_lines.index()
 	var pit_lines_mi := MeshInstance3D.new()
 	pit_lines_mi.name = "PitEdgeLines"
 	pit_lines_mi.mesh = st_pit_lines.commit()
@@ -987,12 +997,14 @@ func _build_circuit(root: Node, pts: Array[Vector2]) -> void:
 			sb.add_child(col)
 			walls.add_child(sb)
 
+	st_conc.index()
 	var conc_mi := MeshInstance3D.new()
 	conc_mi.name = "BarrierConcrete"
 	conc_mi.mesh = st_conc.commit()
 	conc_mi.material_override = concrete_mat
 	walls.add_child(conc_mi)
 
+	st_rail.index()
 	var rail_mi := MeshInstance3D.new()
 	rail_mi.name = "BarrierTopRail"
 	rail_mi.mesh = st_rail.commit()
