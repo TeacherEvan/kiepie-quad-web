@@ -1,0 +1,40 @@
+{
+  "image_resolution": [
+    512,
+    512
+  ],
+  "camera_telemetry": {
+    "focal_length_px": null,
+    "horizontal_fov_deg": null,
+    "vanishing_points": null,
+    "note": "Stylized 2D illustrations \u2014 vanishing-point metrology intentionally skipped."
+  },
+  "metric_dimensions_m": {
+    "width_x": 3.328936,
+    "depth_y": 1.611073,
+    "height_z": 2.087775,
+    "estimated_stories": 1,
+    "roof_pitch_deg": 0.0,
+    "wall_thickness_ext": 0.0,
+    "wall_thickness_int": 0.0
+  },
+  "pbr_palette_srgb": [
+    "#f1efea",
+    "#f25cb5",
+    "#bd85ef",
+    "#6fd8f4",
+    "#f2b83d"
+  ],
+  "rig": {
+    "bone_count": 52,
+    "profile": "creature-winged-equine",
+    "actions": [
+      "Idle_Breathe",
+      "Locomotion_Gallop",
+      "Action_WingSpread",
+      "UnicornBoom_Flight"
+    ],
+    "skinning": "rigid-1.0-vertex-groups"
+  },
+  "notes": "Authored dimension spec for the stylized Lea Unicorn references in docs/plans/Designs/Lea unicorn/. Winged unicorn vehicle stand-in, ground datum minZ=0.000."
+}

@@ -1,0 +1,28 @@
+{
+  "job_id": "job_00000001",
+  "subagent_role": "QA-Reviewer",
+  "status": "APPROVED",
+  "artifacts_written": [
+    "QA_debrief_lea.json"
+  ],
+  "telemetry": {
+    "vertex_count": 4087,
+    "face_count": 7530,
+    "non_manifold_edges": 0,
+    "silhouette_iou": 1.0,
+    "measured_bounds_m": {
+      "width": 3.329,
+      "depth": 1.611,
+      "height": 2.088
+    }
+  },
+  "diagnostic_renders": {
+    "front_0": "QA_debrief_lea_front_0.png",
+    "right_90": "QA_debrief_lea_right_90.png",
+    "top_ortho": "QA_debrief_lea_top_ortho.png",
+    "iso_45": "QA_debrief_lea_iso_45.png"
+  },
+  "violations": [],
+  "fix_directives": [],
+  "payload_sha256": "477450fbe9f9f12908fbc4cc6b8a159c8fecc5b6076f20ab222bb1544b1efa72"
+}
