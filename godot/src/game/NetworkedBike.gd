@@ -4,6 +4,7 @@ extends StaticBody3D
 
 const VFX := preload("res://src/game/VfxFactory.gd")
 const POGO_VISUAL := preload("res://src/game/PogoVisual.gd")
+const EVAN_VISUAL := preload("res://src/game/EvanVisual.gd")
 
 var player_id := ""
 var display_name := ""
@@ -80,6 +81,8 @@ func _apply_roster_vehicle(force: bool = false) -> void:
 		var rider := model.get_node_or_null("Rider")
 		if rider != null:
 			rider.set_script(POGO_VISUAL)
+	if VehicleRegistry.is_evan(vehicle):
+		model.set_script(EVAN_VISUAL)
 	add_child(model)
 	# tint the body slightly so players are distinguishable at a glance
 	var tinted_cache: Dictionary = {}

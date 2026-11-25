@@ -12,6 +12,7 @@ Canonical project plan for the single repository `TeacherEvan/kiepie-quad-web`
 
 - Sport quad (Yamaha Blaster class) procedurally built in Blender 5.3 from `src/qb_spec.py`;
   QA APPROVED, 0 non-manifold edges, ground datum minZ = 0.000.
+- **EVAN THE SKELETON** (2026-11-25): fourth, preference-only playable vehicle built from the stylized `Evan the skeleton.jpeg` reference. `src/build_evan_skeleton.py` -> 52-bone humanoid GLB + 4 NLA clips, QA APPROVED (0 non-manifold, 4,062 verts, minZ 0.000). Bespoke weapons: pink sound waves, returning boomerang guitar, instant-kill devil hand. Locked by `verify_evan.gd` + `verify_evan_weapons.gd`.
 - Godot 4.3 game: Dashboard with **Battle Royale** (default, `Arena.tscn` + `TestRide.tscn` practice) and **Death Race** (`DeathRace.tscn` 550.6 m B-spline circuit on 250×210 desert-turf stadium ground with continuous mitered jersey barriers, physical chevron turn boards, loops, hazard pits, curved split pit lane, containment walls, ramps, pickups, ordered checkpoints, finish line, lap counter, and victory splash video), main scene `MainMenu.tscn`.
   Backend: Talo 0.20.0 (vendored), host-authoritative scoring, wire `protocol_version = 3`.
 - The 2026-11-18 **10-Principal-Engineer audit**
@@ -20,7 +21,7 @@ Canonical project plan for the single repository `TeacherEvan/kiepie-quad-web`
   gated in `b35bae7`. Web bundles were re-exported and auto-deployed in `f09c80e` and
   `a3ec39c` (live HTTP 200 verified 2026-11-19). Per-finding status:
   [task-status.md](task-status.md).
-- Gate suite: **29 gates**, all green (deploy_web.sh runs the full
+- Gate suite: **31 gates**, all green (deploy_web.sh runs the full
   suite before export and aborts on any failure).
 - **Blocked:** GitHub Actions CI cannot start — the GitHub account is locked for billing
   (run 44373734263 annotation). Code-side CI fixes are already landed; see
@@ -46,7 +47,7 @@ Sweep rule: changing any row means grepping the name **and** the old literal acr
 
 | Constant | Value | Defined in |
 | --- | --- | --- |
-| Gate suite size | **29** (25 headless + 1 xvfb multi-touch + GdUnit4 + scene_sync + web_hygiene) | `godot/tools/run_gates.sh` |
+| Gate suite size | **31** (27 headless + 1 xvfb multi-touch + GdUnit4 + scene_sync + web_hygiene) | `godot/tools/run_gates.sh` |
 | Remote shot rate cap | **24 shots/s** per sender (twin-barrel rapid ≈ 22/s legit) | `godot/src/game/ArenaNet.gd` |
 | Cannon cooldown (QUAD / NARDUS) | Primary: 0.20 / 0.09 s normal / 0.40 / 0.18 s rapid · Rocket Launcher: 1.5 s (instant kill on direct hit, flat 90 dmg / 4.5 m blast; NARDUS = Cigar, BIG-BEN = Cash Bag, Quad = rocket) · Meteor Shower: 6.0 s (2.0 s sky-fall, 3.5× dmg, 7.5 m blast) | `godot/src/game/SideCannons.gd`, `RocketProjectile.gd` |
 | Kill registration | 1 s per-killer cooldown, 20/min window | `godot/src/net/TaloBackend.gd` |

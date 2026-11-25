@@ -189,7 +189,8 @@ func _run() -> void:
 		var vs := mm.get_node_or_null("SafeMargin/Scroll/ScrollBox/Card/VBox/VehicleRow/VehicleSelect") as OptionButton
 		_check(vs != null and vs.focus_mode == Control.FOCUS_ALL, "MainMenu VehicleSelect exists with FOCUS_ALL")
 		if vs != null:
-			_check(vs.item_count == 4 and vs.get_item_text(3) == "BIG-BEN F1", "VehicleSelect has BIG-BEN F1 option")
+			_check(vs.item_count == 5 and vs.get_item_text(3) == "BIG-BEN F1",
+					"VehicleSelect has BIG-BEN F1 option (5 vehicles incl. EVAN)")
 			vs.select(3)
 			vs.item_selected.emit(3)
 			await process_frame

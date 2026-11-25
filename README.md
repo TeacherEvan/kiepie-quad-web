@@ -41,6 +41,10 @@ Pick your preferred ride in `MainMenu` (`VehicleSelect`, persisted in Settings) 
   rapid cooldown). Identical top speed, acceleration, handling, armour and cartwheel dodge stats to the
   QUAD — different attitude, same fight.
 - **BIG-BEN F1** — Aston Martin F1 car (`Aston_Martin.glb`) with F1 autocannons (`AstonMuzzle_L/R`) and rear `BIG-BEN` plate.
+- **EVAN THE SKELETON** — a mohawked skeleton guitarist on a bone-frame quad (`Evan_Skeleton.glb`), selectable in `MainMenu` (`VehicleSelect`). Preference-only: he is deliberately excluded from AUTO (DEAL) so the existing deterministic 3-vehicle hash assignment never shifts. 52-bone Godot humanoid rig with four baked clips (`Idle_Sway`, `Play_Strum`, `Headbang_Riff`, `Action_BigFinish`) driven by `EvanVisual.gd`.
+  - **Primary — RIFF BLASTER:** hot-pink sound waves ripple out of the guitar (`SoundWaveProjectile.gd`).
+  - **Rocket — BOOMERANG GUITAR:** he throws the guitar; it tears through everything it touches, then arcs back to him (`BoomerangGuitar.gd`).
+  - **Special — DEVIL HAND:** a crimson hand erupts from the ground in the target zone and drags everything inside the kill circle underground for an instant kill — same 6 s cooldown / 2 s telegraph / 7.5 m radius rules as Meteor Shower (`DevilHandStrike.gd`).
 
 ## Quick facts — controls
 

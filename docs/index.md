@@ -35,7 +35,7 @@ their durable content is distilled into [task-status.md](task-status.md).
 - Constants: the single canonical table lives in
   [project-plan.md](project-plan.md#canonical-constants-table); README/AGENTS
   mention values by reference and must be swept together when a value changes.
-- Requirements ↔ gates: gameplay contracts are locked by the 29-gate suite
+- Requirements ↔ gates: gameplay contracts are locked by the 31-gate suite
   (`godot/tools/run_gates.sh`); AGENTS.md "Verification quirks" lists what each gate locks.
 
 ## Maintenance checklist

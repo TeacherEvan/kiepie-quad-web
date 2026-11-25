@@ -298,7 +298,7 @@ func _build_main() -> void:
 	var ride_lbl := _label("RideLabel", "RIDE", 14, MUTED)
 	ride_lbl.custom_minimum_size = Vector2(54.0, 32.0)
 	vehicle_row.add_child(ride_lbl)
-	var veh_opt := _option("VehicleSelect", ["AUTO (DEAL)", "KIEPIE QUAD", "NARDUS", "BIG-BEN F1"])
+	var veh_opt := _option("VehicleSelect", ["AUTO (DEAL)", "KIEPIE QUAD", "NARDUS", "BIG-BEN F1", "EVAN THE SKELETON"])
 	veh_opt.focus_mode = Control.FOCUS_ALL
 	veh_opt.clip_text = true
 	veh_opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL

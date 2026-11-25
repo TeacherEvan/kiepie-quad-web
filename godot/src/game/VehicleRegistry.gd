@@ -8,17 +8,24 @@ extends RefCounted
 const VEHICLE_BIKE := &"KiepieBike"
 const VEHICLE_POGO := &"PogoNardus"
 const VEHICLE_ASTON := &"AstonMartin"
+## EVAN is a preference-only "encore" vehicle: selectable in MainMenu and synced
+## through the lobby row, but deliberately NOT part of the FNV deal pool. Adding
+## a fourth deal vehicle would shift every deterministic hash and silently
+## change the mock-host / peer-N fixtures locked by verify_pogo + verify_aston.
+const VEHICLE_EVAN := &"EvanSkeleton"
 const VEHICLES: Array[StringName] = [VEHICLE_BIKE, VEHICLE_POGO, VEHICLE_ASTON]
 const _FNV_OFFSET := 2166136261
 const _FNV_PRIME := 16777619
 
-## Short weapon-profile id consumed by SideCannons/CombatController ("bike"|"pogo"|"aston").
+## Short weapon-profile id consumed by SideCannons/CombatController ("bike"|"pogo"|"aston"|"evan").
 static func profile(vehicle: StringName) -> String:
 	match vehicle:
 		VEHICLE_POGO:
 			return "pogo"
 		VEHICLE_ASTON:
 			return "aston"
+		VEHICLE_EVAN:
+			return "evan"
 		_:
 			return "bike"
 
@@ -29,13 +36,15 @@ static func from_profile(profile_id: String) -> StringName:
 			return VEHICLE_POGO
 		"aston":
 			return VEHICLE_ASTON
+		"evan":
+			return VEHICLE_EVAN
 		_:
 			return VEHICLE_BIKE
 
 
 static func sanitize_preference(raw: String) -> String:
 	match raw:
-		"KiepieBike", "PogoNardus", "AstonMartin":
+		"KiepieBike", "PogoNardus", "AstonMartin", "EvanSkeleton":
 			return raw
 		_:
 			return ""
@@ -92,7 +101,8 @@ static func resolve_for_player(player_id: String, roster_ids: Array = [], prefer
 
 
 static func is_valid(vehicle: StringName) -> bool:
-	return vehicle == VEHICLE_BIKE or vehicle == VEHICLE_POGO or vehicle == VEHICLE_ASTON
+	return vehicle == VEHICLE_BIKE or vehicle == VEHICLE_POGO \
+			or vehicle == VEHICLE_ASTON or vehicle == VEHICLE_EVAN
 
 
 static func model_path(vehicle: StringName) -> String:
@@ -101,6 +111,8 @@ static func model_path(vehicle: StringName) -> String:
 			return "res://assets/Pogo_Nardus.glb"
 		VEHICLE_ASTON:
 			return "res://assets/Aston_Martin.glb"
+		VEHICLE_EVAN:
+			return "res://assets/Evan_Skeleton.glb"
 		_:
 			return "res://assets/Kiepie_Bike.glb"
 
@@ -111,6 +123,8 @@ static func display_name(vehicle: StringName) -> String:
 			return "NARDUS"
 		VEHICLE_ASTON:
 			return "BIG-BEN F1"
+		VEHICLE_EVAN:
+			return "EVAN THE SKELETON"
 		_:
 			return "KIEPIE QUAD"
 
@@ -120,6 +134,8 @@ static func cooldown(vehicle: StringName) -> float:
 	match vehicle:
 		VEHICLE_POGO:
 			return 0.40
+		VEHICLE_EVAN:
+			return 0.22
 		_:
 			return 0.20
 
@@ -128,6 +144,8 @@ static func rapid_cooldown(vehicle: StringName) -> float:
 	match vehicle:
 		VEHICLE_POGO:
 			return 0.18
+		VEHICLE_EVAN:
+			return 0.10
 		_:
 			return 0.09
 
@@ -147,6 +165,8 @@ static func spread(vehicle: StringName) -> float:
 			return 0.075
 		VEHICLE_ASTON:
 			return 0.048
+		VEHICLE_EVAN:
+			return 0.050
 		_:
 			return 0.055
 
@@ -165,3 +185,7 @@ static func is_pogo(vehicle: StringName) -> bool:
 
 static func is_aston(vehicle: StringName) -> bool:
 	return vehicle == VEHICLE_ASTON
+
+
+static func is_evan(vehicle: StringName) -> bool:
+	return vehicle == VEHICLE_EVAN

@@ -6,6 +6,13 @@ gate names, or live checks — not assumptions.
 
 **Last verified:** 2026-11-25 — full gate suite **29/29** green, `web_hygiene OK`, `_check_scripts.gd` **47/47** (`28651c2`, `983c0d0`, live web deploy `eee389a`).
 
+## 2026-11-25 — EVAN THE SKELETON (new playable vehicle + bespoke arsenal)
+
+- **Model:** `src/build_evan_skeleton.py` rebuilds `Evan_Skeleton.blend`, `godot/assets/Evan_Skeleton.glb`, `Evan_Skeleton.stl` and the authored `evan_spatial_manifest.json` (stylized brief — vanishing-point metrology skipped). 52-joint `SkeletonProfileHumanoid`, baked clips `Idle_Sway` / `Play_Strum` / `Headbang_Riff` / `Action_BigFinish`, minZ 0.000. QA reviewer verdict **APPROVED**: 4,062 verts, 7,354 faces, 0 non-manifold edges, 4 diagnostic renders. GLB is intentionally NOT Draco-compressed (Godot 4.3 here has no Draco importer).
+- **Integration:** preference-only `VehicleRegistry.VEHICLE_EVAN` (kept out of the FNV deal pool so existing hash fixtures and `PROTOCOL_VERSION = 3` stay intact), `EvanVisual.gd` driver, recursive muzzle anchor lookup, MainMenu selector, runtime swap for local + remote proxies, and regenerated `MainMenu.tscn` / `LobbyMenu.tscn` / `SettingsMenu.tscn` / `KiepieBike.tscn`.
+- **Weapons:** `SoundWaveProjectile.gd` (pink sound waves), `BoomerangGuitar.gd` (out-and-return damaging guitar; spherical return steering at constant speed), `DevilHandStrike.gd` + `CombatAoe.apply_lethal_blast()` (ground hand, instant kill, 2 s telegraph / 7.5 m zone). Wire kinds remain `primary` / `rocket` / `meteor` so no new net messages are needed.
+- **Gates:** `verify_evan.gd` (0 failures) + `verify_evan_weapons.gd` (38 PASS / 0 FAIL); `run_gates.sh` grew 29 -> 31 gates.
+
 ## 2026-11-25 — Disappearing visuals fix & Death Race track upgrade (`28651c2`, `983c0d0`, live `eee389a`)
 
 ### Disappearing visuals (Death Race mobile: sky only, 0 km/h)

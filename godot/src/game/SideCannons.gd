@@ -14,6 +14,9 @@ const PROJECTILE := preload("res://src/game/Projectile.gd")
 const BANANA := preload("res://src/game/BananaProjectile.gd")
 const ROCKET := preload("res://src/game/RocketProjectile.gd")
 const METEOR := preload("res://src/game/MeteorStrike.gd")
+const SOUNDWAVE := preload("res://src/game/SoundWaveProjectile.gd")
+const BOOMERANG := preload("res://src/game/BoomerangGuitar.gd")
+const DEVIL_HAND := preload("res://src/game/DevilHandStrike.gd")
 const VFX := preload("res://src/game/VfxFactory.gd")
 
 # Keep in sync with the remote-shot speed in ArenaNet._spawn_remote_shot.
@@ -47,6 +50,10 @@ const PROFILES := {
 	"aston": {
 		"muzzles": [["AstonMuzzle_L", "Cannon_Bore_L", -0.46], ["AstonMuzzle_R", "Cannon_Bore_R", 0.46]],
 		"color": Color(0.68, 1.0, 0.20), "banana": false,
+	},
+	"evan": {
+		"muzzles": [["RiffMuzzle_L", "RiffMuzzle_L", -0.085], ["RiffMuzzle_R", "RiffMuzzle_R", 0.085]],
+		"color": Color(0.95, 0.10, 0.46), "banana": false,
 	},
 }
 
@@ -179,18 +186,24 @@ func weapon_display_name(w_id: String = "") -> String:
 				return "CIGAR LAUNCHER"
 			if weapon_profile == "aston":
 				return "CASH BAG LAUNCHER"
+			if weapon_profile == "evan":
+				return "BOOMERANG GUITAR"
 			return "ROCKET LAUNCHER"
 		"meteor":
 			if weapon_profile == "bike":
 				return "LIGHTNING STRIKE"
 			if weapon_profile == "aston":
 				return "CASH BAG DROP"
+			if weapon_profile == "evan":
+				return "DEVIL HAND"
 			return "METEOR SHOWER"
 		_:
 			if weapon_profile == "pogo":
 				return "BANANA CANNON"
 			if weapon_profile == "aston":
 				return "F1 AUTOCANNON"
+			if weapon_profile == "evan":
+				return "RIFF BLASTER"
 			return "MACHINE GUN"
 
 
@@ -460,6 +473,9 @@ func _update_aim_reticle(delta: float = 0.0) -> void:
 			elif weapon_profile == "aston":
 				_aim_mat.albedo_color = Color(0.18, 0.88, 0.42, 0.58) if rdy else Color(0.75, 0.62, 0.16, 0.30)
 				_aim_mat.emission = Color(0.95, 0.84, 0.24) if rdy else Color(0.68, 0.55, 0.14)
+			elif weapon_profile == "evan":
+				_aim_mat.albedo_color = Color(0.95, 0.08, 0.28, 0.60) if rdy else Color(0.42, 0.10, 0.16, 0.30)
+				_aim_mat.emission = Color(1.0, 0.12, 0.32) if rdy else Color(0.60, 0.16, 0.20)
 			else:
 				_aim_mat.albedo_color = Color(0.28, 1.0, 0.52, 0.55) if rdy else Color(1.0, 0.42, 0.10, 0.30)
 				_aim_mat.emission = Color(0.32, 1.0, 0.55) if rdy else Color(1.0, 0.38, 0.10)
@@ -528,6 +544,10 @@ func fire() -> void:
 	var pogo_rider := owner_node.get_node_or_null("Model/Rider") if owner_node != null else null
 	if pogo_rider != null and pogo_rider.has_method("trigger_recoil"):
 		pogo_rider.call("trigger_recoil", 1.35 if active_weapon != "primary" else 0.75)
+	# EvanVisual lives on the GLB root itself; fire the one-shot riff flourish.
+	var evan_model := owner_node.get_node_or_null("Model") if owner_node != null else null
+	if evan_model != null and evan_model.has_method("trigger_recoil"):
+		evan_model.call("trigger_recoil", 1.35 if active_weapon != "primary" else 0.75)
 
 	var right_vec := owner_node.global_transform.basis.x.normalized()
 	_ensure_muzzle_flashes()
@@ -556,13 +576,19 @@ func fire() -> void:
 		# Flat 90% health loss in the blast; direct hits are handled lethally in
 		# RocketProjectile._detonate(). Match.damage() does not scale rockets.
 		var rocket_dmg := ROCKET.BLAST_DAMAGE
+		# EVAN throws his guitar instead: it damages everything it touches and
+		# boomerangs back. Wire kind stays "rocket" so the existing multiplayer
+		# protocol, token and anti-cheat validation are unchanged.
+		var is_boomerang := weapon_profile == "evan"
 		var rocket := Node3D.new()
-		rocket.set_script(ROCKET)
+		rocket.set_script(BOOMERANG if is_boomerang else ROCKET)
 		fx_parent.add_child(rocket)
-		var rocket_style := "cigar" if weapon_profile == "pogo" \
-				else ("cash_bag" if weapon_profile == "aston" else "rocket")
+		var rocket_style := "boomerang" if is_boomerang \
+				else ("cigar" if weapon_profile == "pogo" \
+				else ("cash_bag" if weapon_profile == "aston" else "rocket"))
+		var rocket_color := Color(0.95, 0.10, 0.46) if is_boomerang else Color(1.0, 0.38, 0.10)
 		rocket.setup(owner_id, owner_node, muzzle_pos, dir, ROCKET_SPEED,
-				rocket_dmg, token, Color(1.0, 0.38, 0.10), ROCKET_BLAST_RADIUS, rocket_style)
+				rocket_dmg, token, rocket_color, ROCKET_BLAST_RADIUS, rocket_style)
 		if not practice:
 			Supabase.broadcast("shot", {
 				"id": owner_id,
@@ -587,12 +613,18 @@ func fire() -> void:
 			offset = owner_node.global_transform.basis.z.normalized() * METEOR_AIM_DEFAULT_DIST
 			meteor_target = anchor_origin + offset
 		var meteor_dmg := Match.damage() * METEOR_DAMAGE_MULT
+		# EVAN's encore special is the DEVIL HAND — same 2s telegraph / 7.5m
+		# kill zone / wire kind, but it drags victims underground for a kill.
+		var is_devil_hand := weapon_profile == "evan"
 		var strike := Node3D.new()
-		strike.set_script(METEOR)
+		strike.set_script(DEVIL_HAND if is_devil_hand else METEOR)
 		fx_parent.add_child(strike)
-		var meteor_style := "lightning" if weapon_profile == "bike" else ("cash_bag" if weapon_profile == "aston" else "meteor")
+		var meteor_style := "devil_hand" if is_devil_hand \
+				else ("lightning" if weapon_profile == "bike" \
+				else ("cash_bag" if weapon_profile == "aston" else "meteor"))
+		var strike_color := Color(0.85, 0.06, 0.20) if is_devil_hand else Color(1.0, 0.28, 0.06)
 		strike.setup(owner_id, owner_node, meteor_target, meteor_dmg, token,
-				Color(1.0, 0.28, 0.06), METEOR_FALL_TIME, METEOR_BLAST_RADIUS, meteor_style)
+				strike_color, METEOR_FALL_TIME, METEOR_BLAST_RADIUS, meteor_style)
 		# Keep 'o' at the bike muzzle (<= 5m from sender) and encode target offset in 'd' (<= 60m)
 		# so ArenaNet._spawn_remote_shot's anti-cheat validation accepts and reconstructs it!
 		if not practice:
@@ -610,6 +642,8 @@ func fire() -> void:
 	var spread := float(_profile["spread"])
 	var speed := float(_profile["speed"])
 	var proj_script: GDScript = BANANA if bool(_profile["banana"]) else PROJECTILE
+	if weapon_profile == "evan":
+		proj_script = SOUNDWAVE
 	var dmg := Match.damage() * float(_profile["damage_mult"])
 	for i in range(_muzzles.size()):
 		var muzzle: Node3D = _muzzles[i]
@@ -619,7 +653,15 @@ func fire() -> void:
 		var right := owner_node.global_transform.basis.x.normalized()
 		var side := -1.0 if i == 0 else 1.0
 		var dir := (forward + right * side * spread).normalized()
-		var proj := _acquire_pooled_proj(proj_script, fx_parent)
+		# Evan's sound waves are short-lived and script-specific: never recycle
+		# a pooled bolt whose script belongs to another vehicle profile.
+		var proj: Node3D
+		if weapon_profile == "evan":
+			proj = Node3D.new()
+			proj.set_script(SOUNDWAVE)
+			fx_parent.add_child(proj)
+		else:
+			proj = _acquire_pooled_proj(proj_script, fx_parent)
 		var barrel_tok := ("%s:b%d" % [token, i]) if token != "" else ""
 		proj.setup(owner_id, owner_node, muzzle.global_position, dir,
 				speed, dmg, barrel_tok, _color)

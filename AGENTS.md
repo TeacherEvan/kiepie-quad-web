@@ -40,6 +40,11 @@ This is a **Blender → Godot → Vercel** asset pipeline, not a normal code app
 # Rebuild model + export .glb + previews
 blender -b -noaudio -P src/build_quad.py
 
+# EVAN THE SKELETON (52-bone vehicle stand-in): rebuild .blend, GLB, STL + manifest
+blender -b -noaudio --threads 4 -P src/build_evan_skeleton.py
+# QA: blender -b -noaudio -P <surgical-building>/scripts/blender_qa_reviewer.py -- \
+#     Evan_Skeleton.stl evan_spatial_manifest.json QA_debrief_evan.json
+
 # NARDUS (pogo man) vehicle sculpt: rebuild Pogo_Nardus.blend + godot/assets/Pogo_Nardus.glb
 blender -b -noaudio -P src/build_pogo_nardus.py
 
@@ -78,9 +83,9 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
 - `gdlint` / `gdtoolkit` are **not installed** in this environment — do not rely on them.
   `godot-4.3 --check-only --script <file>` reports false "Identifier not found" for autoloads;
   use `tools/_check_scripts.gd` instead.
-- `run_gates.sh` runs **29 gates**: truth, stability, touch, features, smash_impact, diag2,
+- `run_gates.sh` runs **31 gates**: truth, stability, touch, features, smash_impact, diag2,
   cannons, settings, match_rules, combat, kill_flow, appeal, accessibility, talo_backend,
-  audit_regressions, controls, dodge, rollover, vfx, practice, multiplayer, pogo, aston, deathrace, check_scripts + `touch_multitouch` (runs under xvfb, not headless —
+  audit_regressions, controls, dodge, rollover, vfx, practice, multiplayer, pogo, aston, evan, evan_weapons, deathrace, check_scripts + `touch_multitouch` (runs under xvfb, not headless —
   synthesized touch needs a real window) + GdUnit4 + `scene_sync` (tracked `.tscn` must equal
   the builders' output modulo resource-id churn; hand edits to generated scenes fail loudly) + `web_hygiene` (`check_web_hygiene.py`). `audit_regressions` locks the surgical-audit
   defects: forged `state` events, 3-stop VFX gradients, exhaust axis, malformed shot arrays and
@@ -255,6 +260,7 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
     keyed `bike`/`pogo`/`aston`.
   - `verify_pogo.gd` locks assignment determinism, roster-level guaranteed Nardus assignment (`VehicleRegistry.for_player_in_roster`), identical vehicle stats, the runtime swap, modular pivots (`Rider/Head`, `Stick/StickLower|SpringCoil|StickUpper`), live `SpringCoil` compression & `Head` follow-through, shoulder-pivoted `Rider/Arm_L` & `Rider/Arm_R` bird-wing flapping during turbo, weapon profile and the pogo ground datum (minZ = 0.000).
   - `verify_deathrace.gd` locks Dashboard Battle Royale (default) & Death Race mode selection, `DeathRace.tscn` 550.6 m B-spline circuit with Serpent Esses, Furnace Bend, Canyon Switchback, and Victory Carousel physical chevron turn boards, continuous mitered jersey barriers (`BarrierConcrete` + `BarrierTopRail`), curved split pit lane, 2 loops with aprons/backstops, collision walls plus containment walls, 250×210 ground (with `LoopZone` centripetal adhesion, 3 molten hazard pits, 8 jump ramps, pickups, 4 ordered checkpoints, checkered `FinishLine`, `RaceTracker` lap counter, and `web-assets/kiepie-victory-splash.mp4` victory splash), NaN-basis/void-fall/sky-launch/respawn-order regressions, plus Rocket Launcher (1.5s cooldown, **instant kill on direct hit via `CombatController.take_lethal_hit()`, flat 90% health loss across the 4.5m blast — no falloff**; NARDUS launches a massive `Cigar` mesh, BIG-BEN a cash bag, Quad a finned rocket; `RocketProjectile.BLAST_DAMAGE = 90.0`), Meteor Shower (6.0s cooldown, 3D ground aiming reticle, 2.0s sky-fall delay, massive 3.5× AOE damage), `HUD/ReloadBar` & `HUD/WeaponLabel` reload status, and mobile right-analog-back weapon switching. **Known limitation (victim authority):** a direct hit is resolved by the victim's own client raycast into its local bike; the shooter's raycast hits a lagged `NetworkedBike` proxy. At long range/interpolation skew the two can disagree and the victim survives at 10 HP. An attacker-asserted lethal wire event was deliberately rejected — it would let a forged packet kill any player. The direct-hit token uses the `"<base>:v<victim>"` sub-token form so a same-shot AOE multi-kill cannot lose the lethal kill to the host's 1 s rate limiter.
+- **EVAN THE SKELETON** — fourth playable vehicle, **preference-only**: `VehicleRegistry.VEHICLE_EVAN = &"EvanSkeleton"` is selected in MainMenu and synced via the lobby row but is NOT in `VEHICLES`. Do not add him to the FNV deal pool: `(h >> 12) % N` would change the `mock-host`/`peer-N`/`user-42` fixtures locked by `verify_pogo.gd` and `verify_aston.gd`. Source `src/build_evan_skeleton.py` -> `Evan_Skeleton.blend` + `godot/assets/Evan_Skeleton.glb` + `Evan_Skeleton.stl` + `evan_spatial_manifest.json`. **Export without Draco** — this Godot 4.3 build has no `KHR_draco_mesh_compression` importer (all other vehicle GLBs are plain too). The GLB has 52 joints + 4 NLA clips; glTF import nests meshes under `EvanRig/Skeleton3D`, so resolve anchors with recursive `find_child()` (already done by `KiepieBike._find_model_node()`). `EvanVisual.gd` is attached to the GLB root and exposes `trigger_recoil()`. Finger phalanx cylinders are deliberately shortened 10% — coincident cap rings weld into non-manifold edges on STL round-trip. Weapons: `SoundWaveProjectile.gd` (pink sound-wave primary), `BoomerangGuitar.gd` (out-and-return guitar), `DevilHandStrike.gd` + `CombatAoe.apply_lethal_blast()` (instant-kill ground hand). Wire kinds stay `"primary"`/`"rocket"`/`"meteor"` so `PROTOCOL_VERSION` remains 3; only the visuals and Evan's resolver differ.
 - Forward axis is local **+Z** (positive `engine_force` drives +Z; GLB import already flips the
   Blender nose to +Z). FL/FR wheels at z = +0.68, rear at -0.66; chase camera is at
   `origin - basis.z * distance`. Don't re-flip without re-running `tools/truth_test.gd`.

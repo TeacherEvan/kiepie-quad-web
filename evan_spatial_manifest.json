@@ -1,0 +1,39 @@
+{
+  "image_resolution": [
+    404,
+    443
+  ],
+  "camera_telemetry": {
+    "focal_length_px": null,
+    "horizontal_fov_deg": null,
+    "vanishing_points": null,
+    "note": "Stylized 2D illustration \u2014 vanishing-point metrology intentionally skipped."
+  },
+  "metric_dimensions_m": {
+    "width_x": 1.427882,
+    "depth_y": 1.9048,
+    "height_z": 1.915572,
+    "estimated_stories": 1,
+    "roof_pitch_deg": 0.0,
+    "wall_thickness_ext": 0.0,
+    "wall_thickness_int": 0.0
+  },
+  "pbr_palette_srgb": [
+    "#e6e0ca",
+    "#eb0c75",
+    "#d8dde2",
+    "#c91462"
+  ],
+  "rig": {
+    "bone_count": 52,
+    "profile": "SkeletonProfileHumanoid",
+    "actions": [
+      "Idle_Sway",
+      "Play_Strum",
+      "Headbang_Riff",
+      "Action_BigFinish"
+    ],
+    "skinning": "rigid-1.0-vertex-groups"
+  },
+  "notes": "Authored dimension spec for the stylized Evan-the-Skeleton reference (docs/plans/Designs/Evan the Skeleton/Evan the skeleton.jpeg). Playable vehicle stand-in: 22-inch tyres, ground datum minZ=0.000."
+}

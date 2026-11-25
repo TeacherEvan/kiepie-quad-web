@@ -93,3 +93,75 @@ static func apply_blast(tree: SceneTree, fx: Node3D, center: Vector3, radius: fl
 		if local_combat != null and local_combat.has_signal("hit_confirmed"):
 			local_combat.emit_signal("hit_confirmed")
 	return hit_any_enemy
+
+
+static func apply_lethal_blast(tree: SceneTree, fx: Node3D, center: Vector3,
+		radius: float, owner_id: String, owner_node: Variant,
+		token: String, skip_owner: bool = true) -> bool:
+	## Devil Hand special: same radial/chaining/hit_confirmed structure as
+	## apply_blast, but every rider in the zone is killed outright through its
+	## own CombatController.take_lethal_hit() instead of taking falloff damage.
+	## `fx` is reserved for call-site symmetry (no damage numbers are shown:
+	## the victim's lethal controller emits the authoritative death/score event).
+	if tree == null:
+		return false
+
+	var local_uid := ""
+	var sb := tree.root.get_node_or_null("Supabase")
+	if sb != null and "user_id" in sb:
+		local_uid = str(sb.get("user_id"))
+
+	var hit_any_enemy := false
+	for b in tree.get_nodes_in_group("bike"):
+		if not is_instance_valid(b) or not (b is Node3D):
+			continue
+		var bike_node := b as Node3D
+		if not bike_node.visible or bike_node.get("is_respawning") == true:
+			continue
+		var dist := bike_node.global_position.distance_to(center)
+		if dist > radius:
+			continue
+		if skip_owner and is_instance_valid(owner_node) and bike_node == owner_node:
+			continue
+		var target_id := str(bike_node.get("player_id")) if "player_id" in bike_node else ""
+		var controller: Node = bike_node.get_node_or_null("CombatController")
+		if controller == null or not controller.has_method("take_lethal_hit"):
+			controller = null
+			for child in bike_node.get_children():
+				if child.has_method("take_lethal_hit"):
+					controller = child
+					break
+		if controller != null:
+			# Same-shot multi-kill sub-token contract as RocketProjectile: the
+			# host's 1 s rate limiter grants the burst exemption for ":v<id>".
+			var hit_tok := ("%s:v%s" % [token, target_id]) if (token != "" and target_id != "") else token
+			controller.call("take_lethal_hit", owner_id, bike_node.global_position, hit_tok)
+		if owner_id != "" and owner_id == local_uid and target_id != local_uid:
+			hit_any_enemy = true
+
+	for h in tree.get_nodes_in_group("hazard"):
+		if not is_instance_valid(h) or not (h is Node3D):
+			continue
+		var hz := h as Node3D
+		if not hz.visible or bool(hz.get("_ignited")):
+			continue
+		if hz.global_position.distance_to(center) <= radius and hz.has_method("ignite"):
+			var drum_tok := ("%s:d%d" % [token, hz.get_instance_id()]) if token != "" else ""
+			hz.call("ignite", owner_id, drum_tok)
+			if owner_id != "" and owner_id == local_uid:
+				hit_any_enemy = true
+
+	for d in tree.get_nodes_in_group("destructible"):
+		if not is_instance_valid(d) or not (d is Node3D):
+			continue
+		var db := d as Node3D
+		if db.global_position.distance_to(center) <= radius and db.has_method("smash"):
+			var diff := db.global_position - center
+			var push_dir := diff.normalized() if diff.length_squared() > 1e-6 else Vector3.UP
+			db.call("smash", push_dir * 16.0)
+
+	if hit_any_enemy:
+		var local_combat := tree.get_first_node_in_group("local_combat")
+		if local_combat != null and local_combat.has_signal("hit_confirmed"):
+			local_combat.emit_signal("hit_confirmed")
+	return hit_any_enemy
