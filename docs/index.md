@@ -9,6 +9,7 @@ Navigation hub for every doc in this repository. Start here.
 | [README.md](../README.md) | Player-facing overview: modes, controls, combat, mobile, rebuild commands, QA verdict, trademarks |
 | [AGENTS.md](../AGENTS.md) | Agent/engineer invariants: pipeline boundaries, gate suite, deploy gotchas, model rules, Godot conventions |
 | [SOURCE.md](../SOURCE.md) | Original Blender source/QA documentation for the Kiepie Bike model |
+| [plans/lea-unicorn-plan.md](plans/lea-unicorn-plan.md) | Lea Unicorn build plan — references, rig, weapons, trust boundary, verification |
 | [project-plan.md](project-plan.md) | **Canonical project plan** — current state, architecture pointers, canonical constants table, roadmap |
 | [task-status.md](task-status.md) | **Done-vs-pending ledger** — audit remediation per finding (with commit evidence), blocked items, deferred work |
 

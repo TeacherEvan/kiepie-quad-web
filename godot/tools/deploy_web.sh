@@ -80,8 +80,10 @@ PCK="$ROOT/web/index.pck"
 SIZE=$(stat -c %s "$PCK" 2>/dev/null || echo 0)
 echo "   index.pck: $((SIZE / 1024 / 1024)) MB ($SIZE bytes)"
 # Budget raised 4 MiB -> 4.5 MiB on 2026-11-25 for EVAN THE SKELETON: his
-# Godot-compatible (non-Draco) GLB adds ~0.7 MB to the pck. Measured export
-# is ~4.28 MB / 4,279,216 bytes; keep headroom but still abort runaway bundles.
+# Godot-compatible (non-Draco) GLB adds ~0.7 MB to the pck. LEA UNICORN's plain
+# GLB adds ~0.58 MB more; measured export is ~4.47 MB / 4,685,856 bytes with
+# only ~32 KB of headroom under this guard — raise it before adding another
+# non-Draco vehicle GLB.
 if [ "$SIZE" -lt 1048576 ] || [ "$SIZE" -gt 4718592 ]; then
 	echo "DEPLOY ABORTED: pck size out of range [1 MiB, 4.5 MiB] (saw $SIZE)"
 	exit 1

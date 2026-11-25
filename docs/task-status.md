@@ -4,7 +4,28 @@ Concrete done-vs-pending ledger. Companion to [project-plan.md](project-plan.md)
 navigation in [index.md](index.md). Statuses are evidence-backed: commit hashes,
 gate names, or live checks — not assumptions.
 
-**Last verified:** 2026-11-25 — full gate suite **31/31** green, `web_hygiene OK`, `_check_scripts.gd` clean (Evan on-foot running & Devil Hand overhaul; ready for live Web deploy).
+**Last verified:** 2026-11-25 — full gate suite **33/33** green, `web_hygiene OK`, `_check_scripts.gd` clean (Lea Unicorn + Evan boomerang throw/catch sync and Devil Hand detail).
+
+## 2026-11-25 — LEA UNICORN (fifth playable vehicle + bespoke arsenal)
+
+Plan: [docs/plans/lea-unicorn-plan.md](plans/lea-unicorn-plan.md). Sources: five references in
+`docs/plans/Designs/Lea unicorn/`. Additive work only; the in-flight Evan files present at task
+start were left intact except where a new menu option forced a one-line expectation update in
+`verify_evan.gd` (still uncommitted with the Evan work) and `SideCannons.gd` (committed together
+with Evan's boomerang refinements because the hunks are interleaved).
+
+- **Model:** `src/build_lea_unicorn.py` rebuilds `Lea_Unicorn.blend`, `godot/assets/Lea_Unicorn.glb`, `Lea_Unicorn.stl`, `lea_spatial_manifest.json` and 4 QA renders. Stylized brief (no vanishing-point metrology). 52-joint winged-equine rig, *4* baked clips, plain non-Draco GLB, `minZ = 0.000`, 4,932 faces, 0 non-manifold edges. QA reviewer **APPROVED**; glTF budget preflight 95/100 (the uncompressed-geometry advisory remains the accepted Godot 4.3 constraint).
+- **Integration:** preference-only `VehicleRegistry.VEHICLE_LEA` (NOT in the FNV pool — all three hash fixtures unchanged), MainMenu option 6, persisted + lobby-synced, runtime local/remote swap, `LeaVisual.gd` driver (gallop/reverse/charge/boom), bounded remote-speed estimator. Remote reconstruction mirrors all three weapons; wire kinds stay `primary`/`rocket`/`meteor`, `PROTOCOL_VERSION = 3`.
+- **Weapons:** `HornBoltProjectile.gd` (0.16 s / 0.08 s rapid gold sparks), `HornBeam.gd` (0.55 s charge vortex → 0.35 s straight plasma beam, lethal direct hit through victim authority, per-victim sub-tokens), `UnicornBoom.gd` (wing-spread + 2 s arcing flight → 7.5 m instant-kill zone via `apply_lethal_blast()`).
+- **Gates:** `verify_lea_unicorn.gd` + `verify_lea_unicorn_weapons.gd` added to `run_gates.sh` (**31 → 33**). Beam gate proves charge→beam transition, line hit and fail-closed NaN rejection; boom gate proves the resolver kills at exactly 7.5 m, spares 7.51 m and never mutates a remote proxy. `verify_aston.gd` and `verify_evan.gd` option-count expectations updated for 6 options.
+- **Web:** root `index.*` refreshed locally (pck **4,685,856 bytes**, ~4.47 MiB, only ~32 KB under the 4.5 MiB guard); `web_hygiene OK`. **No push / no Vercel deploy** — a push to `main` auto-deploys and was not requested.
+
+## 2026-11-25 — Evan boomerang throw/catch, biomechanical running overhaul & Devil Hand detail
+
+- **Blender Rig & Animations (`src/build_evan_skeleton.py`):** Aligned arm bone rolls deterministically, grouped held-guitar meshes cleanly (`GuitarPart_*` + landmarks) so Godot can hide 100% of the held guitar on throw, fixed Hips bounce/twist to bone-local Y (`+Z` world up) and `Action_BigFinish` vertical leap, replaced discontinuous `if`-branch gait with an 8-knot periodic Catmull-Rom spline with pelvic yaw/drop + counter-twisted torso + stabilized head, and baked 7 seamless NLA clips (`Idle_Sway`, `Play_Strum`, `Headbang_Riff`, `Action_BigFinish`, `Run_NoGuitar`, `Action_GuitarThrow`, `Action_GuitarCatch`) with Blender pose-axis assertions.
+- **Visual & Combat Mechanics (`EvanVisual.gd`, `BoomerangGuitar.gd`, `SideCannons.gd`):** Wired `on_boomerang_thrown()` / `on_boomerang_caught()` so Evan visibly throws his guitar (`Action_GuitarThrow`), hides the held guitar and sprints with pumping arms (`Run_NoGuitar`) during flight, and catches it back (`Action_GuitarCatch` + pink spark + pop SFX) for both local and remote players. Fixed `BoomerangGuitar.gd` to spin horizontally like a frisbee around local Y with 14° bank tilt, 3-ray blade sweep, smooth apex turnaround, separate outbound/return hit tracking, single-active-guitar guard, and early-catch cooldown refund; stopped `trigger_recoil(0.75)` from hijacking primary running and skipped brass casings for Evan.
+- **Devil Hand Detail (`DevilHandStrike.gd`):** Added pulsing glowing sinuous veins (`SurfaceTool` `ArrayMesh`) across the forearm, dorsal hand, palm, and fingers, curved obsidian-keratin demonic fingernails with glowing crimson cuticles on all 5 fingers, PIP/DIP joint spheres, dorsal tendons, thenar/hypothenar palm pads, and breach impact SFX/shake.
+- **Gates & Audits:** Updated `verify_evan.gd` (62 checks) and `verify_evan_weapons.gd` (57 checks); `run_gates.sh` **31/31** green; `preflight_visual_lint.py` **100/100** (`0` defects) on `EvanVisual.gd`, `BoomerangGuitar.gd`, and `DevilHandStrike.gd`; Godot 4.3 xvfb proofs visually inspected.
 
 ## 2026-11-25 — Evan the Skeleton on-foot running & Devil Hand overhaul
 
