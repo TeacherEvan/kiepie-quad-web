@@ -118,6 +118,16 @@ func _run() -> void:
 			var anim: Animation = ap.get_animation(clip)
 			_check(anim != null and anim.get_track_count() > 0 and anim.length > 0.0,
 					"NLA clip %s has real tracks and duration" % clip)
+			if clip in ["Play_Strum", "Headbang_Riff"] and anim != null:
+				var has_thigh := false
+				var has_calf := false
+				for ti in range(anim.get_track_count()):
+					var tp := str(anim.track_get_path(ti))
+					if tp.find("Thigh.") >= 0:
+						has_thigh = true
+					elif tp.find("Calf.") >= 0:
+						has_calf = true
+				_check(has_thigh and has_calf, "NLA clip %s animates Thigh + Calf running stride" % clip)
 
 	_check(_find(model, "Skull_Cranium") != null, "skull mesh present")
 	_check(_find(model, "GuitarBody") != null, "hot-pink guitar body present")
@@ -131,8 +141,10 @@ func _run() -> void:
 			if sm is StandardMaterial3D and str((sm as Material).resource_name) == "GuitarHotPink":
 				has_pink = true
 	_check(has_pink, "GuitarBody carries the GuitarHotPink material")
-	_check(_find(model, "Tyre_F_L") != null and _find(model, "Tyre_R_R") != null,
-			"four quad tyres present (vehicle stand-in)")
+	_check(_find(model, "Tyre_F_L") == null and _find(model, "Tyre_R_R") == null and _find(model, "Seat") == null,
+			"no quad tyres or seat — Evan runs on foot")
+	_check(_find(model, "Skull_Jaw") != null and _find(model, "GuitarStrap") != null and _find(model, "GuitarCable") != null,
+			"skull jaw, guitar strap, and cable landmarks present")
 
 	# ground datum computed in model-local space so the unparented instance is safe
 	var min_y := 1.0e9
@@ -242,6 +254,9 @@ func _run() -> void:
 	var remote_speed: float = float(remote_model.get("_remote_speed"))
 	_check(is_finite(remote_speed) and remote_speed >= 0.0 and remote_speed <= 60.0,
 			"remote Evan speed estimate stays finite and bounded (%.3f)" % remote_speed)
+	var run_phase: float = float(remote_model.get("_run_phase"))
+	_check(is_finite(run_phase) and run_phase > 0.0,
+			"remote Evan running stride phase advances while moving (%.3f)" % run_phase)
 	remote_host.queue_free()
 	await process_frame
 

@@ -4,7 +4,13 @@ Concrete done-vs-pending ledger. Companion to [project-plan.md](project-plan.md)
 navigation in [index.md](index.md). Statuses are evidence-backed: commit hashes,
 gate names, or live checks — not assumptions.
 
-**Last verified:** 2026-11-25 — full gate suite **31/31** green, `web_hygiene OK`, `_check_scripts.gd` clean (Evan audit remediation `778db4d`..`24bebba`; live web deploy `eee389a` predates Evan).
+**Last verified:** 2026-11-25 — full gate suite **31/31** green, `web_hygiene OK`, `_check_scripts.gd` clean (Evan on-foot running & Devil Hand overhaul; ready for live Web deploy).
+
+## 2026-11-25 — Evan the Skeleton on-foot running & Devil Hand overhaul
+
+- **Model (`src/build_evan_skeleton.py`):** Removed all quad tyres, rims, treads, space-frame rails, and seat so Evan runs purely on foot (`minZ = 0.000`). Sculpted anatomical flared long bones, paired `Radius`/`Ulna` and `Tibia`/`Fibula`, `Patella` kneecaps, `Calcaneus` heels, 5-ray feet, 12 vertebrae with dorsal spinous processes, 8 pairs of curved ribs, 3-piece sternum, scapulae, clavicles, open laughing mandible (`Skull_Jaw`) with individual upper/lower teeth, two-tone `MohawkMagenta`/`MohawkTipDark` spikes, beveled double-cutaway hot-pink guitar (`GuitarBody`), 6-in-line headstock & pegs, 6 bridge-to-nut strings, `GuitarStrap`, and `GuitarCable`. Baked running strides (`Play_Strum`, `Headbang_Riff`) and mid-air scissor-kick leap (`Action_BigFinish`) across the 52-bone humanoid rig. QA reviewer **APPROVED**: `4,469` verts, `8,026` faces, `0` non-manifold edges, `minZ = 0.000`; GLB `754 KB` (`95/100` budget score, plain non-Draco for Godot 4.3).
+- **Locomotion & Weapons:** Upgraded `EvanVisual.gd` (`100/100` visual lint) with speed-coupled NLA playback (including reverse backpedaling), `expDecay` sprint lean/cornering bank, sub-stepped landing squash & recoil springs, and alternating footstep dust kicks; `KiepieBike.gd` adds magenta/crimson heel-fire turbo trail. Re-architected `DevilHandStrike.gd` into a towering vertical 3-joint-per-finger clawed demonic hand erupting out of an `AbyssPortal` + `RuneRing` and yanking into a crushing fist underground. Upgraded `BoomerangGuitar.gd` with an extruded double-cutaway `ArrayMesh` + spinning slash-ring and fixed inert non-pooled recycling in `SoundWaveProjectile.gd`.
+- **Gates:** Updated `verify_evan.gd` for on-foot assertions and `Thigh`/`Calf` stride tracks; full `run_gates.sh` **31/31** green.
 
 ## 2026-11-25 — EVAN THE SKELETON (new playable vehicle + bespoke arsenal)
 

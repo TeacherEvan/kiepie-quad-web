@@ -136,7 +136,13 @@ func _build_flames() -> void:
 	pm.scale_min = 0.55
 	pm.scale_max = 1.15
 	pm.particle_flag_align_y = true
+	var is_evan := vehicle_profile == "evan"
 	pm.color_ramp = VfxFactory._ramp([
+		Color(1.0, 0.92, 0.96, 1.0),
+		Color(1.0, 0.12, 0.50, 0.96),
+		Color(0.75, 0.04, 0.25, 0.72),
+		Color(0.45, 0.02, 0.14, 0.0),
+	] if is_evan else [
 		Color(1.0, 0.99, 0.94, 1.0),
 		Color(0.36, 0.84, 1.0, 0.96),
 		Color(0.22, 0.48, 1.0, 0.72),
@@ -173,9 +179,9 @@ func _build_flames() -> void:
 	outer_mesh.height = 0.88
 	outer_mesh.radial_segments = 12
 	var outer_mat := StandardMaterial3D.new()
-	outer_mat.albedo_color = Color(0.28, 0.76, 1.0, 0.48)
+	outer_mat.albedo_color = Color(1.0, 0.10, 0.48, 0.48) if is_evan else Color(0.28, 0.76, 1.0, 0.48)
 	outer_mat.emission_enabled = true
-	outer_mat.emission = Color(0.25, 0.72, 1.0)
+	outer_mat.emission = Color(1.0, 0.12, 0.46) if is_evan else Color(0.25, 0.72, 1.0)
 	outer_mat.emission_energy_multiplier = 3.6
 	outer_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	outer_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -196,9 +202,9 @@ func _build_flames() -> void:
 	inner_mesh.height = 0.48
 	inner_mesh.radial_segments = 10
 	var inner_mat := StandardMaterial3D.new()
-	inner_mat.albedo_color = Color(0.92, 0.98, 1.0, 0.88)
+	inner_mat.albedo_color = Color(1.0, 0.82, 0.94, 0.88) if is_evan else Color(0.92, 0.98, 1.0, 0.88)
 	inner_mat.emission_enabled = true
-	inner_mat.emission = Color(0.75, 0.95, 1.0)
+	inner_mat.emission = Color(1.0, 0.36, 0.70) if is_evan else Color(0.75, 0.95, 1.0)
 	inner_mat.emission_energy_multiplier = 5.2
 	inner_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	inner_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -273,7 +279,7 @@ func _exhaust_position() -> Vector3:
 	if vehicle_profile == "pogo":
 		return Vector3(0.0, 0.30, -0.18)
 	if vehicle_profile == "evan":
-		return Vector3(0.0, 0.26, -0.32)
+		return Vector3(0.0, 0.18, -0.34)
 	if vehicle_profile == "aston":
 		return Vector3(0.0, 0.39, -1.35)
 	return Vector3(-0.278, 0.487, -0.715)
@@ -327,7 +333,7 @@ func refresh_vehicle_assignment() -> void:
 	vehicle_profile = VehicleRegistry.profile(assigned)
 	_swap_model(assigned, glb_path)
 	if _flames != null:
-		_flames.position = _exhaust_position()
+		_build_flames()
 	var combat := get_node_or_null("CombatController")
 	if combat != null:
 		var cannons := combat.get_node_or_null("SideCannons")

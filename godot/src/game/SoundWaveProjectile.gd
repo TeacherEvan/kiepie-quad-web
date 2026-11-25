@@ -77,10 +77,10 @@ static func _get_core_mesh(col: Color) -> CapsuleMesh:
 		axis.radial_segments = 8
 		axis.rings = 4
 		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(1.0, 0.72, 0.92)
+		mat.albedo_color = Color(1.0, 0.85, 0.96)
 		mat.emission_enabled = true
 		mat.emission = col
-		mat.emission_energy_multiplier = 7.5
+		mat.emission_energy_multiplier = 9.0
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
@@ -163,8 +163,7 @@ func _rearm_wave() -> void:
 	set_physics_process(true)
 	_age = 0.0
 	if _inert:
-		visible = false
-		set_physics_process(false)
+		_recycle()
 		return
 	var dir := velocity.normalized()
 	var up := Vector3.UP if absf(dir.dot(Vector3.UP)) < 0.99 else Vector3.FORWARD

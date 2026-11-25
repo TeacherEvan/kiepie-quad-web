@@ -40,84 +40,115 @@ var _trail: GPUParticles3D
 var _light: OmniLight3D
 var _ray_query: PhysicsRayQueryParameters3D
 
-static var _body_mesh: BoxMesh = null
-static var _wing_mesh: BoxMesh = null
+static var _body_mesh: ArrayMesh = null
 static var _neck_mesh: BoxMesh = null
 static var _head_mesh: BoxMesh = null
 static var _bridge_mesh: BoxMesh = null
 static var _pickup_mesh: BoxMesh = null
 static var _peg_mesh: CylinderMesh = null
-static var _bar_mesh: CylinderMesh = null
+static var _slash_ring_mesh: TorusMesh = null
 static var _trail_mesh: SphereMesh = null
 static var _trail_ramp: GradientTexture1D = null
 
 
+static func _build_guitar_body_mesh() -> ArrayMesh:
+	var outline := PackedVector2Array([
+		Vector2(-0.165, -0.175), Vector2(-0.095, -0.225), Vector2(0.000, -0.235),
+		Vector2(0.085, -0.205), Vector2(0.145, -0.145), Vector2(0.175, -0.070),
+		Vector2(0.145, -0.010), Vector2(0.090, 0.035), Vector2(0.135, 0.085),
+		Vector2(0.155, 0.140), Vector2(0.115, 0.160), Vector2(0.055, 0.115),
+		Vector2(0.028, 0.085), Vector2(-0.028, 0.085), Vector2(-0.055, 0.155),
+		Vector2(-0.110, 0.215), Vector2(-0.165, 0.195), Vector2(-0.185, 0.125),
+		Vector2(-0.145, 0.045), Vector2(-0.165, -0.030), Vector2(-0.190, -0.105),
+	])
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var half_h := 0.026
+	var n := outline.size()
+	var c_top := Vector3(0.0, half_h, 0.02)
+	var c_bot := Vector3(0.0, -half_h, 0.02)
+	for i in range(n):
+		var a2 := outline[i]
+		var b2 := outline[(i + 1) % n]
+		# Map 2D guitar contour (x=width, y=length toward -Z neck) into XZ plane
+		var at := Vector3(a2.x, half_h, -a2.y)
+		var bt := Vector3(b2.x, half_h, -b2.y)
+		var ab := Vector3(a2.x, -half_h, -a2.y)
+		var bb := Vector3(b2.x, -half_h, -b2.y)
+		st.add_vertex(c_top); st.add_vertex(bt); st.add_vertex(at)
+		st.add_vertex(c_bot); st.add_vertex(ab); st.add_vertex(bb)
+		st.add_vertex(ab); st.add_vertex(at); st.add_vertex(bt)
+		st.add_vertex(ab); st.add_vertex(bt); st.add_vertex(bb)
+	st.generate_normals()
+	var am := st.commit()
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.96, 0.05, 0.42)
+	mat.emission_enabled = true
+	mat.emission = PINK
+	mat.emission_energy_multiplier = 2.4
+	mat.metallic = 0.22
+	mat.roughness = 0.24
+	am.surface_set_material(0, mat)
+	return am
+
+
 static func _ensure_meshes() -> void:
 	if _body_mesh == null:
-		var bm := BoxMesh.new()
-		bm.size = Vector3(0.20, 0.048, 0.25)
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(0.90, 0.06, 0.38)
-		mat.emission_enabled = true
-		mat.emission = PINK
-		mat.emission_energy_multiplier = 2.2
-		mat.metallic = 0.25
-		mat.roughness = 0.32
-		bm.material = mat
-		_body_mesh = bm
-	if _wing_mesh == null:
-		var wm := BoxMesh.new()
-		wm.size = Vector3(0.13, 0.044, 0.12)
-		var wmat := StandardMaterial3D.new()
-		wmat.albedo_color = Color(0.78, 0.05, 0.32)
-		wmat.emission_enabled = true
-		wmat.emission = PINK
-		wmat.emission_energy_multiplier = 1.6
-		wmat.metallic = 0.25
-		wmat.roughness = 0.34
-		wm.material = wmat
-		_wing_mesh = wm
+		_body_mesh = _build_guitar_body_mesh()
 	if _neck_mesh == null:
 		var nm := BoxMesh.new()
-		nm.size = Vector3(0.055, 0.026, 0.26)
+		nm.size = Vector3(0.054, 0.026, 0.34)
 		var nmat := StandardMaterial3D.new()
-		nmat.albedo_color = Color(0.20, 0.09, 0.09)
-		nmat.roughness = 0.62
+		nmat.albedo_color = Color(0.18, 0.09, 0.07)
+		nmat.roughness = 0.58
 		nm.material = nmat
 		_neck_mesh = nm
 	if _head_mesh == null:
 		var hm := BoxMesh.new()
-		hm.size = Vector3(0.068, 0.020, 0.072)
+		hm.size = Vector3(0.068, 0.022, 0.11)
 		var hmat := StandardMaterial3D.new()
-		hmat.albedo_color = Color(0.80, 0.05, 0.32)
+		hmat.albedo_color = Color(0.94, 0.05, 0.40)
 		hmat.emission_enabled = true
 		hmat.emission = PINK
-		hmat.emission_energy_multiplier = 1.2
-		hmat.roughness = 0.38
+		hmat.emission_energy_multiplier = 1.6
+		hmat.roughness = 0.28
 		hm.material = hmat
 		_head_mesh = hm
 	if _bridge_mesh == null:
 		var br := BoxMesh.new()
-		br.size = Vector3(0.10, 0.012, 0.022)
+		br.size = Vector3(0.095, 0.012, 0.022)
 		_bridge_mesh = _chrome_mesh(br)
 	if _pickup_mesh == null:
 		var pk := BoxMesh.new()
-		pk.size = Vector3(0.085, 0.014, 0.018)
-		_pickup_mesh = _chrome_mesh(pk)
+		pk.size = Vector3(0.092, 0.014, 0.032)
+		var pkmat := StandardMaterial3D.new()
+		pkmat.albedo_color = Color(0.96, 0.94, 0.88)
+		pkmat.roughness = 0.36
+		pk.material = pkmat
+		_pickup_mesh = pk
 	if _peg_mesh == null:
 		var pg := CylinderMesh.new()
-		pg.top_radius = 0.011
-		pg.bottom_radius = 0.011
-		pg.height = 0.028
-		pg.radial_segments = 8
+		pg.top_radius = 0.008
+		pg.bottom_radius = 0.008
+		pg.height = 0.024
+		pg.radial_segments = 6
 		_peg_mesh = _chrome_mesh(pg)
-	if _bar_mesh == null:
-		var bar := CylinderMesh.new()
-		bar.top_radius = 0.006
-		bar.bottom_radius = 0.006
-		bar.height = 0.10
-		bar.radial_segments = 6
-		_bar_mesh = _chrome_mesh(bar)
+	if _slash_ring_mesh == null:
+		var sr := TorusMesh.new()
+		sr.inner_radius = 0.42
+		sr.outer_radius = 0.48
+		sr.rings = 24
+		sr.ring_segments = 6
+		var smat := StandardMaterial3D.new()
+		smat.albedo_color = Color(1.0, 0.22, 0.60, 0.55)
+		smat.emission_enabled = true
+		smat.emission = PINK
+		smat.emission_energy_multiplier = 3.6
+		smat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		smat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		sr.material = smat
+		_slash_ring_mesh = sr
 	if _trail_mesh == null:
 		var tm := SphereMesh.new()
 		tm.radius = 0.075
@@ -195,45 +226,38 @@ func _build_visual() -> void:
 
 	var body := MeshInstance3D.new()
 	body.mesh = _body_mesh
-	body.position.z = 0.045
+	body.position.z = 0.06
 	_spinner.add_child(body)
-	var wing := MeshInstance3D.new()
-	wing.mesh = _wing_mesh
-	wing.position = Vector3(0.045, -0.004, 0.11)
-	_spinner.add_child(wing)
 	var neck := MeshInstance3D.new()
 	neck.mesh = _neck_mesh
-	neck.position = Vector3(0.0, 0.008, -0.15)
+	neck.position = Vector3(0.0, 0.008, -0.19)
 	_spinner.add_child(neck)
 	var head := MeshInstance3D.new()
 	head.mesh = _head_mesh
-	head.position = Vector3(0.0, 0.008, -0.29)
+	head.position = Vector3(0.0, 0.008, -0.40)
 	head.rotation_degrees.z = -8.0
 	_spinner.add_child(head)
 
-	for z_pos in [0.01, 0.09]:
-		var pickup := MeshInstance3D.new()
-		pickup.mesh = _pickup_mesh
-		pickup.position = Vector3(0.0, 0.032, z_pos)
-		_spinner.add_child(pickup)
+	var pickup := MeshInstance3D.new()
+	pickup.mesh = _pickup_mesh
+	pickup.position = Vector3(0.0, 0.032, 0.02)
+	_spinner.add_child(pickup)
 	var bridge := MeshInstance3D.new()
 	bridge.mesh = _bridge_mesh
-	bridge.position = Vector3(0.0, 0.032, 0.16)
+	bridge.position = Vector3(0.0, 0.032, 0.14)
 	_spinner.add_child(bridge)
 
-	for side in [-1.0, 1.0]:
-		for z_pos in [-0.27, -0.31]:
-			var peg := MeshInstance3D.new()
-			peg.mesh = _peg_mesh
-			peg.position = Vector3(0.045 * side, 0.010, z_pos)
-			peg.rotation_degrees.z = 90.0
-			_spinner.add_child(peg)
+	for pi in range(6):
+		var peg := MeshInstance3D.new()
+		peg.mesh = _peg_mesh
+		peg.position = Vector3(-0.044, 0.010, -0.36 - float(pi) * 0.015)
+		peg.rotation_degrees.z = 90.0
+		_spinner.add_child(peg)
 
-	var bar := MeshInstance3D.new()
-	bar.mesh = _bar_mesh
-	bar.position = Vector3(0.10, 0.030, 0.16)
-	bar.rotation_degrees.x = 22.0
-	_spinner.add_child(bar)
+	if not Settings.reduced_motion():
+		var slash := MeshInstance3D.new()
+		slash.mesh = _slash_ring_mesh
+		_spinner.add_child(slash)
 
 	var dir := velocity.normalized()
 	var up := Vector3.UP if absf(dir.dot(Vector3.UP)) < 0.99 else Vector3.FORWARD
