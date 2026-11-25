@@ -72,7 +72,8 @@ def ensure_node_tree(datablock: Any) -> Any:
 
 
 def make_mat(name: str, color: tuple[float, float, float], rough: float = 0.6,
-             metallic: float = 0.0, emission: float = 0.0) -> Any:
+             metallic: float = 0.0, emission: float = 0.0,
+             coat: float = 0.0, coat_rough: float = 0.15) -> Any:
     m = bpy.data.materials.new(name=name)
     tree = ensure_node_tree(m)
     tree.nodes.clear()
@@ -84,6 +85,10 @@ def make_mat(name: str, color: tuple[float, float, float], rough: float = 0.6,
     if emission > 0.0 and "Emission Color" in bsdf.inputs:
         bsdf.inputs["Emission Color"].default_value = (*color, 1.0)
         bsdf.inputs["Emission Strength"].default_value = emission
+    if coat > 0.0 and "Coat Weight" in bsdf.inputs:
+        bsdf.inputs["Coat Weight"].default_value = coat
+        if "Coat Roughness" in bsdf.inputs:
+            bsdf.inputs["Coat Roughness"].default_value = coat_rough
     tree.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
     return m
 
@@ -129,16 +134,39 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
         return ob
 
     # -------------------------------------------------------------- materials
-    bone_ivory = make_mat("BoneIvory", (0.95, 0.92, 0.83), 0.64, emission=0.02)
+    bone_ivory = make_mat("BoneIvory", (0.95, 0.91, 0.80), 0.56, emission=0.025, coat=0.12)
     bone_shadow = make_mat("BoneShadow", (0.62, 0.58, 0.50), 0.78)
     socket_dark = make_mat("EyeSocket", (0.012, 0.014, 0.018), 0.85)
-    magenta = make_mat("MohawkMagenta", (0.94, 0.04, 0.34), 0.42, emission=0.18)
+    eye_ember = make_mat("EyeEmber", (1.0, 0.10, 0.08), 0.20, emission=2.2)
+    magenta = make_mat("MohawkMagenta", (0.92, 0.04, 0.14), 0.38, emission=0.22)
     mohawk_tip = make_mat("MohawkTipDark", (0.14, 0.02, 0.07), 0.58, emission=0.02)
-    guitar_pink = make_mat("GuitarHotPink", (0.98, 0.05, 0.43), 0.18, metallic=0.05, emission=0.06)
+    guitar_red = make_mat("GuitarRed", (0.88, 0.035, 0.045), 0.14, metallic=0.18,
+                          emission=0.08, coat=0.65, coat_rough=0.08)
     guitar_cream = make_mat("GuitarCream", (0.96, 0.94, 0.88), 0.36)
     fretboard = make_mat("Fretboard", (0.14, 0.08, 0.05), 0.58)
-    chrome = make_mat("Chrome", (0.82, 0.85, 0.90), 0.20, 0.92)
-    strap_brown = make_mat("StrapLeather", (0.40, 0.21, 0.10), 0.76)
+    chrome = make_mat("Chrome", (0.88, 0.91, 0.95), 0.14, 0.96)
+    strap_brown = make_mat("StrapLeather", (0.14, 0.055, 0.05), 0.68)
+    cape_inner = make_mat("CapeInner", (0.28, 0.025, 0.035), 0.78, emission=0.02)
+
+    cape_outer = bpy.data.materials.new(name="CapeEwaldt")
+    _cape_tree = ensure_node_tree(cape_outer)
+    _cape_tree.nodes.clear()
+    _c_out = _cape_tree.nodes.new("ShaderNodeOutputMaterial")
+    _c_bsdf = _cape_tree.nodes.new("ShaderNodeBsdfPrincipled")
+    _c_bsdf.inputs["Roughness"].default_value = 0.82
+    _c_tex_path = os.path.join(REPO_ROOT, "assets", "decal_evan_cape.png")
+    if os.path.exists(_c_tex_path):
+        _c_tex = _cape_tree.nodes.new("ShaderNodeTexImage")
+        _c_img = bpy.data.images.load(_c_tex_path, check_existing=True)
+        _c_img.pack()
+        _c_tex.image = _c_img
+        _cape_tree.links.new(_c_tex.outputs["Color"], _c_bsdf.inputs["Base Color"])
+        if "Emission Color" in _c_bsdf.inputs:
+            _cape_tree.links.new(_c_tex.outputs["Color"], _c_bsdf.inputs["Emission Color"])
+            _c_bsdf.inputs["Emission Strength"].default_value = 0.14
+    else:
+        _c_bsdf.inputs["Base Color"].default_value = (0.08, 0.06, 0.10, 1.0)
+    _cape_tree.links.new(_c_bsdf.outputs["BSDF"], _c_out.inputs["Surface"])
 
     # -------------------------------------------------------------- primitives
     def box(name: str, loc: tuple[float, float, float], dims: tuple[float, float, float],
@@ -442,6 +470,9 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
         bind(sphere(f"EyeSocket_{'L' if sx > 0 else 'R'}",
                     (sx * 0.041, -0.148, 1.633), (0.030, 0.022, 0.031),
                     socket_dark, 10, 7, rot=(0.0, sx * 0.14, 0.0)), "Head")
+        bind(sphere(f"EyeEmber_{'L' if sx > 0 else 'R'}",
+                    (sx * 0.038, -0.148, 1.615), (0.0085, 0.006, 0.0085),
+                    eye_ember, 6, 5), "Head")
     bind(sphere("Skull_Nose", (0.0, -0.165, 1.592), (0.020, 0.020, 0.028),
                 socket_dark, 8, 6), "Head")
     # Upper maxilla + 7 individual ivory upper teeth
@@ -663,12 +694,12 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
     bm.free()
     body = bpy.data.objects.new("GuitarBody", gmesh)
     link_only(body)
-    body.data.materials.append(guitar_pink)
+    body.data.materials.append(guitar_red)
     g(body)
 
-    # Rosewood neck + angled 6-in-line hot-pink headstock
+    # Rosewood neck + angled 6-in-line gloss-red headstock
     g(box("GuitarNeck", (0.285, 0.0, 0.008), (0.46, 0.056, 0.030), fretboard))
-    g(box("GuitarHeadstock", (0.575, 0.008, 0.008), (0.125, 0.072, 0.024), guitar_pink,
+    g(box("GuitarHeadstock", (0.575, 0.008, 0.008), (0.125, 0.072, 0.024), guitar_red,
           rot=(0.0, 0.0, math.radians(-8.0))))
     # Single cream pickup + 6 pole pieces + chrome bridge + 2 knobs
     g(box("Pickup_0", (0.015, 0.0, 0.031), (0.040, 0.105, 0.012), guitar_cream))
@@ -724,10 +755,129 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
     ], 0.0055, strap_brown, 6), "Hips")
     guitar_set = set(guitar_parts) | {cable_ob}
 
+    # -------------------------------------------------------------- torn "Ewaldt" cape (watertight closed solid)
+    CAPE_NU, CAPE_NV = 12, 9
+    CAPE_THICK = 0.008
+    # Jagged torn hem profile (13 columns): sharp spikes & deep V-notches >= 0.34 m above floor
+    hem_z_profile = [
+        0.46, 0.36, 0.56, 0.40, 0.62, 0.38, 0.52, 0.35, 0.60, 0.41, 0.55, 0.37, 0.48,
+    ]
+    bm_cape = bmesh.new()
+    uv_cape = bm_cape.loops.layers.uv.new("UVMap")
+    cape_v_ratios: dict[int, float] = {}
+    outer_grid: list[list[Any]] = []
+    inner_grid: list[list[Any]] = []
+    for j in range(CAPE_NV + 1):
+        v_coord = j / float(CAPE_NV)
+        outer_row: list[Any] = []
+        inner_row: list[Any] = []
+        for i in range(CAPE_NU + 1):
+            u_coord = i / float(CAPE_NU)
+            # u=0 -> +X (Evan's left, viewer's left on back -> 'E'); u=1 -> -X ('t')
+            half_w = 0.31 - 0.11 * (v_coord ** 1.15)
+            px = (1.0 - 2.0 * u_coord) * half_w
+            z_hem = hem_z_profile[i]
+            pz = z_hem + (1.435 - z_hem) * v_coord
+            # Drape back cleanly clear of Scapula/Spinous_* + gentle billowing folds
+            y_collar = 0.055 + 0.025 * math.cos((u_coord - 0.5) * math.pi)
+            y_hem = 0.285 + 0.024 * math.sin(u_coord * math.pi * 4.0)
+            py = y_hem + (y_collar - y_hem) * v_coord + 0.036 * math.sin(v_coord * math.pi)
+            v_out = bm_cape.verts.new((px, py + CAPE_THICK * 0.5, pz))
+            v_in = bm_cape.verts.new((px, py - CAPE_THICK * 0.5, pz))
+            outer_row.append((v_out, u_coord, v_coord))
+            inner_row.append(v_in)
+        outer_grid.append(outer_row)
+        inner_grid.append(inner_row)
+
+    for j in range(CAPE_NV):
+        for i in range(CAPE_NU):
+            vo00, u00, w00 = outer_grid[j][i]
+            vo10, u10, w10 = outer_grid[j][i + 1]
+            vo11, u11, w11 = outer_grid[j + 1][i + 1]
+            vo01, u01, w01 = outer_grid[j + 1][i]
+            fo = bm_cape.faces.new((vo00, vo10, vo11, vo01))
+            fo.smooth = True
+            fo.material_index = 0
+            for loop, uv in zip(fo.loops, [(u00, w00), (u10, w10), (u11, w11), (u01, w01)]):
+                loop[uv_cape].uv = uv
+
+            vi00 = inner_grid[j][i]
+            vi10 = inner_grid[j][i + 1]
+            vi11 = inner_grid[j + 1][i + 1]
+            vi01 = inner_grid[j + 1][i]
+            fi = bm_cape.faces.new((vi01, vi11, vi10, vi00))
+            fi.smooth = True
+            fi.material_index = 1
+
+    # Stitch closed perimeter rim (hem, collar, left edge, right edge)
+    for i in range(CAPE_NU):
+        # Bottom tattered hem
+        f_bot = bm_cape.faces.new((inner_grid[0][i], inner_grid[0][i + 1],
+                                   outer_grid[0][i + 1][0], outer_grid[0][i][0]))
+        f_bot.material_index = 1
+        # Top collar
+        f_top = bm_cape.faces.new((outer_grid[CAPE_NV][i][0], outer_grid[CAPE_NV][i + 1][0],
+                                   inner_grid[CAPE_NV][i + 1], inner_grid[CAPE_NV][i]))
+        f_top.material_index = 1
+    for j in range(CAPE_NV):
+        # Left edge (i=0)
+        f_left = bm_cape.faces.new((outer_grid[j][0][0], outer_grid[j + 1][0][0],
+                                    inner_grid[j + 1][0], inner_grid[j][0]))
+        f_left.material_index = 1
+        # Right edge (i=CAPE_NU)
+        f_right = bm_cape.faces.new((inner_grid[j][CAPE_NU], inner_grid[j + 1][CAPE_NU],
+                                     outer_grid[j + 1][CAPE_NU][0], outer_grid[j][CAPE_NU][0]))
+        f_right.material_index = 1
+
+    bmesh.ops.recalc_face_normals(bm_cape, faces=bm_cape.faces)
+    bm_cape.verts.ensure_lookup_table()
+    for j in range(CAPE_NV + 1):
+        vr = j / float(CAPE_NV)
+        for i in range(CAPE_NU + 1):
+            cape_v_ratios[outer_grid[j][i][0].index] = vr
+            cape_v_ratios[inner_grid[j][i].index] = vr
+
+    cape_mesh = bpy.data.meshes.new("EvanCape_Mesh")
+    bm_cape.to_mesh(cape_mesh)
+    bm_cape.free()
+    cape_ob = bpy.data.objects.new("EvanCape", cape_mesh)
+    link_only(cape_ob)
+    cape_ob.data.materials.append(cape_outer)
+    cape_ob.data.materials.append(cape_inner)
+    smooth(cape_ob)
+    bind(cape_ob, "UpperChest")
+
+    for sx in (-1.0, 1.0):
+        bind(cyl(f"CapeClasp_{'L' if sx > 0 else 'R'}",
+                 (sx * 0.155, -0.028, 1.432), 0.022, 0.012, chrome,
+                 rot=(math.radians(78.0), 0.0, 0.0), vertices=10), "UpperChest")
+
     # -------------------------------------------------------------- rigid skin binding
     for ob, bone_name in parts:
-        vg = ob.vertex_groups.new(name=bone_name)
-        vg.add(list(range(len(ob.data.vertices))), 1.0, "REPLACE")
+        if ob is cape_ob:
+            vg_uc = ob.vertex_groups.new(name="UpperChest")
+            vg_ch = ob.vertex_groups.new(name="Chest")
+            vg_sp = ob.vertex_groups.new(name="Spine")
+            vg_hp = ob.vertex_groups.new(name="Hips")
+            for vi in range(len(ob.data.vertices)):
+                vr = cape_v_ratios.get(vi, 1.0)
+                if vr >= 0.72:
+                    w_uc = min(1.0, (vr - 0.72) / 0.28)
+                    vg_uc.add([vi], 0.35 + 0.65 * w_uc, "REPLACE")
+                    vg_ch.add([vi], 0.65 * (1.0 - w_uc), "REPLACE")
+                elif vr >= 0.42:
+                    t = (vr - 0.42) / 0.30
+                    vg_ch.add([vi], 0.25 + 0.75 * t, "REPLACE")
+                    vg_sp.add([vi], 0.75 * (1.0 - t), "REPLACE")
+                elif vr >= 0.20:
+                    t = (vr - 0.20) / 0.22
+                    vg_sp.add([vi], 0.30 + 0.70 * t, "REPLACE")
+                    vg_hp.add([vi], 0.70 * (1.0 - t), "REPLACE")
+                else:
+                    vg_hp.add([vi], 1.0, "REPLACE")
+        else:
+            vg = ob.vertex_groups.new(name=bone_name)
+            vg.add(list(range(len(ob.data.vertices))), 1.0, "REPLACE")
         ob.parent = arm
         mod = ob.modifiers.new(name="EvanSkin", type="ARMATURE")
         mod.object = arm
@@ -737,7 +887,7 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
     # -------------------------------------------------------------- batch by bone + material + guitar
     LANDMARKS = {
         "RiffMuzzle_L", "RiffMuzzle_R", "GuitarBody",
-        "Skull_Cranium", "Skull_Jaw", "GuitarStrap", "GuitarCable",
+        "Skull_Cranium", "Skull_Jaw", "GuitarStrap", "GuitarCable", "EvanCape",
     }
     batches: dict[tuple[str, str, bool], list[Any]] = defaultdict(list)
     for ob, bone_name in parts:
@@ -1137,7 +1287,7 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
             "estimated_stories": 1, "roof_pitch_deg": 0.0,
             "wall_thickness_ext": 0.0, "wall_thickness_int": 0.0,
         },
-        "pbr_palette_srgb": ["#f2ebd4", "#f00a57", "#fa0d6e", "#66361a"],
+        "pbr_palette_srgb": ["#f2ebd4", "#e0090b", "#16121a", "#eb0a24"],
         "rig": {
             "bone_count": BONE_COUNT, "profile": "SkeletonProfileHumanoid",
             "actions": list(ACTION_NAMES), "skinning": "rigid-1.0-vertex-groups",
@@ -1201,6 +1351,7 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
             "side": ((2.8, 0.0, 1.05), 36, None),
             "back34": ((1.7, 2.5, 1.15), 36, None),
             "front": ((0.0, -2.9, 1.10), 36, None),
+            "cape_back": ((0.0, 2.25, 1.15), 42, None),
             "run_stride": ((2.4, -1.2, 1.08), 36, (strum, 0.625)),
             "run_pushoff": ((2.6, -0.5, 1.05), 36, (strum, 0.25)),
             "run_noguitar": ((2.3, -1.4, 1.08), 36, (run_noguitar, 0.50)),

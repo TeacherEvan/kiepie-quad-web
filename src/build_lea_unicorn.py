@@ -65,6 +65,7 @@ LANDMARKS = {
     "HornTip", "HornBase", "HornMuzzle_L", "HornMuzzle_R",
     "Wing_L", "Wing_R", "ManeForelock", "TailRoot",
     "Eye_L", "Eye_R", "Hoof_FL", "Hoof_FR", "Hoof_RL", "Hoof_RR",
+    "LeaBrand",
 }
 
 
@@ -76,7 +77,8 @@ def ensure_node_tree(datablock: Any) -> Any:
 
 
 def make_mat(name: str, color: tuple[float, float, float], rough: float = 0.6,
-             metallic: float = 0.0, emission: float = 0.0) -> Any:
+             metallic: float = 0.0, emission: float = 0.0,
+             coat: float = 0.0, coat_rough: float = 0.15) -> Any:
     m = bpy.data.materials.new(name=name)
     tree = ensure_node_tree(m)
     tree.nodes.clear()
@@ -88,6 +90,10 @@ def make_mat(name: str, color: tuple[float, float, float], rough: float = 0.6,
     if emission > 0.0 and "Emission Color" in bsdf.inputs:
         bsdf.inputs["Emission Color"].default_value = (*color, 1.0)
         bsdf.inputs["Emission Strength"].default_value = emission
+    if coat > 0.0 and "Coat Weight" in bsdf.inputs:
+        bsdf.inputs["Coat Weight"].default_value = coat
+        if "Coat Roughness" in bsdf.inputs:
+            bsdf.inputs["Coat Roughness"].default_value = coat_rough
     tree.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
     return m
 
@@ -139,20 +145,45 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
     # pearlescent coat, not a warm white. Keep luminance high (~0.90) so the
     # body still reads against the dark arena backdrop. Geometry, rig and all
     # landmark material names are untouched — this is albedo/roughness only.
-    coat = make_mat("PearlCoat", (0.87, 0.90, 0.97), 0.38, emission=0.030)
-    coat_shade = make_mat("CoatShadow", (0.68, 0.71, 0.84), 0.56)
-    muzzle_mat = make_mat("MuzzleVelvet", (0.70, 0.64, 0.64), 0.74)
-    mane_pink = make_mat("ManePink", (0.96, 0.36, 0.71), 0.38, emission=0.05)
-    mane_lav = make_mat("ManeLavender", (0.74, 0.52, 0.94), 0.40, emission=0.045)
-    feather_pink = make_mat("FeatherPink", (0.99, 0.52, 0.78), 0.44, emission=0.03)
-    feather_lav = make_mat("FeatherLavender", (0.72, 0.58, 0.96), 0.42, emission=0.03)
-    feather_cyan = make_mat("FeatherCyan", (0.42, 0.85, 0.96), 0.38, emission=0.035)
-    feather_gold = make_mat("FeatherGold", (0.99, 0.78, 0.34), 0.40, emission=0.03)
-    gold = make_mat("HornGold", (0.95, 0.72, 0.24), 0.24, metallic=0.72, emission=0.05)
-    horn_glow = make_mat("HornGlow", (1.0, 0.92, 0.58), 0.20, emission=0.55)
-    hoof_gold = make_mat("HoofGold", (0.90, 0.66, 0.22), 0.30, metallic=0.55)
-    eye_blue = make_mat("EyeSapphire", (0.12, 0.42, 0.86), 0.18, emission=0.10)
-    pupil_dark = make_mat("PupilDark", (0.012, 0.016, 0.028), 0.40)
+    coat = make_mat("PearlCoat", (0.89, 0.92, 0.99), 0.30, emission=0.045, coat=0.45, coat_rough=0.14)
+    coat_shade = make_mat("CoatShadow", (0.70, 0.74, 0.88), 0.46, coat=0.20)
+    muzzle_mat = make_mat("MuzzleVelvet", (0.74, 0.66, 0.68), 0.66)
+    mane_pink = make_mat("ManePink", (0.97, 0.38, 0.73), 0.32, emission=0.075, coat=0.22)
+    mane_lav = make_mat("ManeLavender", (0.75, 0.54, 0.96), 0.34, emission=0.065, coat=0.22)
+    feather_pink = make_mat("FeatherPink", (0.99, 0.52, 0.78), 0.34, emission=0.06, coat=0.22)
+    feather_lav = make_mat("FeatherLavender", (0.72, 0.58, 0.96), 0.34, emission=0.06, coat=0.22)
+    feather_cyan = make_mat("FeatherCyan", (0.42, 0.85, 0.96), 0.30, emission=0.08, coat=0.22)
+    feather_gold = make_mat("FeatherGold", (0.99, 0.78, 0.34), 0.32, emission=0.06, coat=0.22)
+    gold = make_mat("HornGold", (0.96, 0.74, 0.24), 0.18, metallic=0.85, emission=0.08, coat=0.35)
+    horn_glow = make_mat("HornGlow", (1.0, 0.94, 0.62), 0.16, emission=0.85)
+    hoof_gold = make_mat("HoofGold", (0.92, 0.68, 0.22), 0.22, metallic=0.78, emission=0.05)
+    eye_blue = make_mat("EyeSapphire", (0.12, 0.42, 0.86), 0.14, emission=0.14, coat=0.50)
+    pupil_dark = make_mat("PupilDark", (0.012, 0.016, 0.028), 0.35)
+
+    lea_brand_mat = bpy.data.materials.new(name="LeaBrandMat")
+    _lb_tree = ensure_node_tree(lea_brand_mat)
+    _lb_tree.nodes.clear()
+    _lb_out = _lb_tree.nodes.new("ShaderNodeOutputMaterial")
+    _lb_bsdf = _lb_tree.nodes.new("ShaderNodeBsdfPrincipled")
+    _lb_bsdf.inputs["Roughness"].default_value = 0.28
+    _lb_bsdf.inputs["Metallic"].default_value = 0.35
+    _lb_tex_path = os.path.join(REPO_ROOT, "assets", "decal_lea_brand.png")
+    if os.path.exists(_lb_tex_path):
+        _lb_tex = _lb_tree.nodes.new("ShaderNodeTexImage")
+        _lb_img = bpy.data.images.load(_lb_tex_path, check_existing=True)
+        _lb_img.pack()
+        _lb_tex.image = _lb_img
+        _lb_tree.links.new(_lb_tex.outputs["Color"], _lb_bsdf.inputs["Base Color"])
+        _lb_tree.links.new(_lb_tex.outputs["Alpha"], _lb_bsdf.inputs["Alpha"])
+        if "Emission Color" in _lb_bsdf.inputs:
+            _lb_tree.links.new(_lb_tex.outputs["Color"], _lb_bsdf.inputs["Emission Color"])
+            _lb_bsdf.inputs["Emission Strength"].default_value = 0.16
+    if hasattr(lea_brand_mat, "blend_method"):
+        lea_brand_mat.blend_method = "CLIP"
+    if hasattr(lea_brand_mat, "alpha_threshold"):
+        lea_brand_mat.alpha_threshold = 0.45
+    lea_brand_mat.use_backface_culling = True
+    _lb_tree.links.new(_lb_bsdf.outputs["BSDF"], _lb_out.inputs["Surface"])
 
     # -------------------------------------------------------------- primitives
     def box(name: str, loc: tuple[float, float, float], dims: tuple[float, float, float],
@@ -394,6 +425,8 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
     h_u, h_v = _orthonormal_frame(horn_axis)
     bind(cyl("HornBase", tuple(horn_base), 0.048, 0.036, gold, vertices=10,
              rot=tuple(horn_axis.to_track_quat("Z", "Y").to_euler())), "Skull")
+    bind(cyl("HornCollar", tuple(horn_base - horn_axis * 0.008), 0.054, 0.020, gold, vertices=12,
+             rot=tuple(horn_axis.to_track_quat("Z", "Y").to_euler())), "Skull")
     for i in range(9):
         t0 = i / 9.0
         t1 = (i + 1) / 9.0
@@ -422,10 +455,10 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
                 name = f"{stem}.{side}"
                 h, t = heads[name], tails[name]
                 ax = (t - h).normalized()
-                radius = 0.052 if "Shoulder" in stem or "Haunch" in stem else \
-                    (0.040 if "Upper" in stem or "Thigh" in stem else 0.026)
+                radius = 0.054 if "Shoulder" in stem or "Haunch" in stem else \
+                    (0.046 if "Upper" in stem or "Thigh" in stem else 0.028)
                 if "Cannon" in stem or "Fetlock" in stem:
-                    radius = 0.020
+                    radius = 0.022
                 ob = cyl(f"Leg_{name}", tuple((h + t) * 0.5), radius, (t - h).length * 1.02,
                          coat, vertices=8, radius2=radius * 0.82,
                          rot=tuple(ax.to_track_quat("Z", "Y").to_euler()))
@@ -437,7 +470,9 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
                        vertices=8, radius2=0.055,
                        rot=tuple((t - h).normalized().to_track_quat("Z", "Y").to_euler()))
             bind(hoof, hoof_name)
-            bind(sphere(f"FetlockGem_{tag}{side}", (sx * h.x, h.y, h.z + 0.035),
+            bind(cyl(f"FetlockTuft_{tag}{side}", (h.x, h.y + 0.006, h.z + 0.018),
+                     0.038, 0.052, coat_shade, vertices=8, radius2=0.022), hoof_name)
+            bind(sphere(f"FetlockGem_{tag}{side}", (h.x, h.y, h.z + 0.035),
                         (0.016, 0.016, 0.016), mane_lav, 8, 6), hoof_name)
 
     # -------------------------------------------------------------- wings
@@ -483,6 +518,77 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
             bind(tube(f"Covert_{side}_{i}", [root, (root + tip) * 0.5, tip],
                       0.010, feather_pink if i % 2 else feather_lav, 5, 0.028, 0.34),
                  f"WingScapula.{side}")
+        bind(sphere(f"WingBridge_{side}", (sx * 0.21, -0.02, 1.32),
+                    (0.075, 0.11, 0.075), coat, 8, 6), f"WingScapula.{side}")
+
+    # -------------------------------------------------------------- "Lea" brand on right butt cheek
+    # Conforms to the right (-X, +Y) flank of HaunchMass ((0, 0.30, 1.02), radii=(0.29, 0.27, 0.29)).
+    # phi goes 60 deg (closer to tail = viewer's left 'L') -> 12 deg (right flank = viewer's right 'a').
+    LB_NU, LB_NV = 10, 6
+    bm_lb = bmesh.new()
+    uv_lb = bm_lb.loops.layers.uv.new("UVMap")
+    lb_out_grid: list[list[Any]] = []
+    lb_in_grid: list[list[Any]] = []
+    for j in range(LB_NV + 1):
+        v_c = j / float(LB_NV)
+        theta = math.radians(-12.0 + v_c * 44.0)
+        orow: list[Any] = []
+        irow: list[Any] = []
+        for i in range(LB_NU + 1):
+            u_c = i / float(LB_NU)
+            phi = math.radians(60.0 - u_c * 48.0)
+            ct, st = math.cos(theta), math.sin(theta)
+            cp, sp = math.cos(phi), math.sin(phi)
+            vo = bm_lb.verts.new((-0.29 * 1.018 * ct * cp, 0.30 + 0.27 * 1.018 * ct * sp, 1.02 + 0.29 * 1.018 * st))
+            vi = bm_lb.verts.new((-0.29 * 0.985 * ct * cp, 0.30 + 0.27 * 0.985 * ct * sp, 1.02 + 0.29 * 0.985 * st))
+            orow.append((vo, u_c, v_c))
+            irow.append(vi)
+        lb_out_grid.append(orow)
+        lb_in_grid.append(irow)
+
+    for j in range(LB_NV):
+        for i in range(LB_NU):
+            vo00, u00, w00 = lb_out_grid[j][i]
+            vo10, u10, w10 = lb_out_grid[j][i + 1]
+            vo11, u11, w11 = lb_out_grid[j + 1][i + 1]
+            vo01, u01, w01 = lb_out_grid[j + 1][i]
+            fo = bm_lb.faces.new((vo00, vo10, vo11, vo01))
+            fo.smooth = True
+            for loop, uv in zip(fo.loops, [(u00, w00), (u10, w10), (u11, w11), (u01, w01)]):
+                loop[uv_lb].uv = uv
+            fi = bm_lb.faces.new((lb_in_grid[j + 1][i], lb_in_grid[j + 1][i + 1],
+                                  lb_in_grid[j][i + 1], lb_in_grid[j][i]))
+            for loop in fi.loops:
+                loop[uv_lb].uv = (0.01, 0.01)
+
+    for i in range(LB_NU):
+        for f_rim in (
+            bm_lb.faces.new((lb_in_grid[0][i], lb_in_grid[0][i + 1],
+                             lb_out_grid[0][i + 1][0], lb_out_grid[0][i][0])),
+            bm_lb.faces.new((lb_out_grid[LB_NV][i][0], lb_out_grid[LB_NV][i + 1][0],
+                             lb_in_grid[LB_NV][i + 1], lb_in_grid[LB_NV][i])),
+        ):
+            for loop in f_rim.loops:
+                loop[uv_lb].uv = (0.01, 0.01)
+    for j in range(LB_NV):
+        for f_rim in (
+            bm_lb.faces.new((lb_out_grid[j][0][0], lb_out_grid[j + 1][0][0],
+                             lb_in_grid[j + 1][0], lb_in_grid[j][0])),
+            bm_lb.faces.new((lb_in_grid[j][LB_NU], lb_in_grid[j + 1][LB_NU],
+                             lb_out_grid[j + 1][LB_NU][0], lb_out_grid[j][LB_NU][0])),
+        ):
+            for loop in f_rim.loops:
+                loop[uv_lb].uv = (0.01, 0.01)
+
+    bmesh.ops.recalc_face_normals(bm_lb, faces=bm_lb.faces)
+    lb_mesh = bpy.data.meshes.new("LeaBrand_Mesh")
+    bm_lb.to_mesh(lb_mesh)
+    bm_lb.free()
+    lb_ob = bpy.data.objects.new("LeaBrand", lb_mesh)
+    link_only(lb_ob)
+    lb_ob.data.materials.append(lea_brand_mat)
+    smooth(lb_ob)
+    bind(lb_ob, "Hips")
 
     # -------------------------------------------------------------- mane & tail
     for i in range(15):
@@ -529,9 +635,6 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
             continue
         mat_name = ob.data.materials[0].name if ob.data.materials else ""
         batches[(bone_name, mat_name)].append(ob)
-    for ob, bone_name in parts:
-        if ob.name in LANDMARKS:
-            merged.append((ob, bone_name))
     for (bone_name, mat_name), obs in batches.items():
         target_name = f"Lea_{bone_name}_{mat_name}"
         if len(obs) == 1:
@@ -888,6 +991,7 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
             "front": ((0.0, -3.4, 1.25), 40, (0, 0, 1.15)),
             "side": ((3.4, 0.0, 1.20), 40, (0, 0, 1.10)),
             "back": ((0.0, 3.4, 1.25), 40, (0, 0, 1.15)),
+            "right_cheek": ((-1.65, 1.15, 1.12), 48, (-0.18, 0.36, 1.04)),
             "iso": ((2.6, -3.0, 2.1), 42, (0, 0, 1.15)),
         }
         cam.data.lens = 40

@@ -12,7 +12,8 @@ const OUTBOUND_DIST := 26.0
 const RETURN_ARRIVE := 1.75
 const SPIN_RATE := 16.0
 const SMASH_IMPULSE := 14.0
-const PINK := Color(1.0, 0.10, 0.46)
+const GUITAR_RED := Color(0.94, 0.06, 0.07)
+const PINK := GUITAR_RED
 const VFX := preload("res://src/game/VfxFactory.gd")
 
 var owner_id := ""
@@ -88,12 +89,12 @@ static func _build_guitar_body_mesh() -> ArrayMesh:
 	st.generate_normals()
 	var am := st.commit()
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.96, 0.05, 0.42)
+	mat.albedo_color = Color(0.88, 0.035, 0.045)
 	mat.emission_enabled = true
-	mat.emission = PINK
+	mat.emission = GUITAR_RED
 	mat.emission_energy_multiplier = 2.4
 	mat.metallic = 0.22
-	mat.roughness = 0.24
+	mat.roughness = 0.18
 	am.surface_set_material(0, mat)
 	return am
 
@@ -113,11 +114,11 @@ static func _ensure_meshes() -> void:
 		var hm := BoxMesh.new()
 		hm.size = Vector3(0.068, 0.022, 0.11)
 		var hmat := StandardMaterial3D.new()
-		hmat.albedo_color = Color(0.94, 0.05, 0.40)
+		hmat.albedo_color = Color(0.86, 0.035, 0.045)
 		hmat.emission_enabled = true
-		hmat.emission = PINK
+		hmat.emission = GUITAR_RED
 		hmat.emission_energy_multiplier = 1.6
-		hmat.roughness = 0.28
+		hmat.roughness = 0.22
 		hm.material = hmat
 		_head_mesh = hm
 	if _bridge_mesh == null:
@@ -146,9 +147,9 @@ static func _ensure_meshes() -> void:
 		sr.rings = 24
 		sr.ring_segments = 6
 		var smat := StandardMaterial3D.new()
-		smat.albedo_color = Color(1.0, 0.22, 0.60, 0.55)
+		smat.albedo_color = Color(1.0, 0.18, 0.16, 0.55)
 		smat.emission_enabled = true
-		smat.emission = PINK
+		smat.emission = GUITAR_RED
 		smat.emission_energy_multiplier = 3.6
 		smat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -162,9 +163,9 @@ static func _ensure_meshes() -> void:
 		tm.radial_segments = 6
 		tm.rings = 3
 		var tmat := StandardMaterial3D.new()
-		tmat.albedo_color = Color(1.0, 0.30, 0.68, 0.85)
+		tmat.albedo_color = Color(1.0, 0.22, 0.18, 0.85)
 		tmat.emission_enabled = true
-		tmat.emission = PINK
+		tmat.emission = GUITAR_RED
 		tmat.emission_energy_multiplier = 2.6
 		tmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		tmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -173,9 +174,9 @@ static func _ensure_meshes() -> void:
 		_trail_mesh = tm
 	if _trail_ramp == null:
 		_trail_ramp = VFX._ramp([
-			Color(1.0, 0.62, 0.88, 0.95),
-			Color(1.0, 0.10, 0.46, 0.68),
-			Color(0.28, 0.02, 0.12, 0.0),
+			Color(1.0, 0.62, 0.42, 0.95),
+			Color(0.94, 0.06, 0.07, 0.68),
+			Color(0.28, 0.02, 0.02, 0.0),
 		])
 
 

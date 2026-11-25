@@ -6,6 +6,20 @@ gate names, or live checks — not assumptions.
 
 **Last verified:** 2026-11-25 — full gate suite **33/33** green, `web_hygiene OK`, `_check_scripts.gd` clean (Lea Unicorn + Evan boomerang throw/catch sync and Devil Hand detail).
 
+## 2026-11-25 — Plastic Surgery pass: Evan red guitar + torn `"Ewaldt"` cape & Lea Unicorn polish + `"Lea"` right butt cheek brand
+
+- **Decal Generators (image textures only, never 3D text geometry):**
+  - `src/gen_decal_evan_cape.py` -> `assets/decal_evan_cape.png` (`512x768`, 4× supersampled): dark obsidian-charcoal weathered cloth with crimson scorched hem and sharp evil gothic/heavy-metal `"Ewaldt"` lettering + forked blade swoosh.
+  - `src/gen_decal_lea.py` -> `assets/decal_lea_brand.png` (`512x512`, 4× supersampled, alpha-clipped): calligraphic `"Lea"` brand mark in sunlit-gold -> rose-pink gradient with royal-plum outline, golden swoosh, and 4-point sparkle stars.
+- **Evan the Skeleton (`src/build_evan_skeleton.py`, `BoomerangGuitar.gd`, `SideCannons.gd`, `ArenaNet.gd`):**
+  - Swapped `GuitarHotPink` -> gloss clearcoated crimson-red `GuitarRed` (`GuitarBody` + `GuitarHeadstock`) and updated `BoomerangGuitar.gd` + remote shot colors to `GUITAR_RED`.
+  - Added `EvanCape` (closed watertight manifold solid, `0` non-manifold edges, jagged torn hem `>= 0.35 m` above floor, `CapeEwaldt` + `CapeInner` materials, `CapeClasp_L/R`, smooth multi-bone weights across `UpperChest`/`Chest`/`Spine`/`Hips` keeping `BONE_COUNT = 52`), `EyeEmber_L/R`, and clearcoat/roughness polish. `EvanCape` stays out of `guitar_set` so throwing the boomerang keeps the cape visible.
+  - QA reviewer **APPROVED** (`4,821` verts / `8,710` faces / `0` non-manifold / `minZ = 0.0000`); glTF budget `90/100` (`77` draws).
+- **Lea Unicorn (`src/build_lea_unicorn.py`):**
+  - Added `LeaBrand` (closed watertight manifold curved patch on the right `-X, +Y` butt cheek of `HaunchMass`, `0` non-manifold edges, `LeaBrandMat` alpha-clipped), pearlescent clearcoat (`PearlCoat` `Coat Weight = 0.45`), fuller limbs + `FetlockTuft_*`, `HornCollar`, `WingBridge_L/R`, and removed the duplicate `LANDMARKS` append loop.
+  - QA reviewer **APPROVED** (`4,413` verts / `8,150` faces / `0` non-manifold / `minZ = 0.0000`); glTF budget `90/100` (`93` draws).
+- **Gates & Local Web Bundle:** Updated `verify_evan.gd` (`GuitarRed` + `EvanCape` visibility on throw) and `verify_lea_unicorn.gd` (`LeaBrand` on right cheek). Full `run_gates.sh` **33/33 green**; local `index.*` refreshed (`index.pck = 4,933,440` bytes / ~4.70 MiB, `web_hygiene OK`). **Committed locally only (no push / no Vercel deploy).**
+
 ## 2026-11-25 — Full-Codebase Surgical Audit Remediation
 
 Source report: [audits/kiepie-quad-surgical-audit-2026-11-25.md](audits/kiepie-quad-surgical-audit-2026-11-25.md) + [SARIF](audits/kiepie-quad-surgical-audit-2026-11-25.sarif) (88/100 LOW; 0 P0 / 1 P1 / 8 P2 / 13 P3).

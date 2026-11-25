@@ -626,7 +626,7 @@ func fire() -> void:
 				else ("cigar" if weapon_profile == "pogo" \
 				else ("cash_bag" if weapon_profile == "aston" else "rocket")))
 		var rocket_color := Color(0.40, 0.90, 1.0) if is_horn_beam \
-				else (Color(0.95, 0.10, 0.46) if is_boomerang else Color(1.0, 0.38, 0.10))
+				else (Color(0.94, 0.06, 0.07) if is_boomerang else Color(1.0, 0.38, 0.10))
 		rocket.setup(owner_id, owner_node, muzzle_pos, dir, ROCKET_SPEED,
 				rocket_dmg, token, rocket_color, ROCKET_BLAST_RADIUS, rocket_style)
 		if is_horn_beam and hit_callback.is_valid():

@@ -401,7 +401,7 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 		add_child(rocket)
 		var rocket_style := "horn_beam" if lea else ("boomerang" if evan else ("cigar" if pogo else ("cash_bag" if aston else "rocket")))
 		var rocket_color := Color(0.40, 0.90, 1.0) if lea \
-				else (Color(0.95, 0.10, 0.46) if evan else Color(1.0, 0.38, 0.10))
+				else (Color(0.94, 0.06, 0.07) if evan else Color(1.0, 0.38, 0.10))
 		rocket.setup(owner_id, _remote.get(owner_id), o, d, 38.0, rocket_dmg,
 				str(p.get("token", "")), rocket_color, 4.5, rocket_style)
 		if lea and combat != null and combat.has_method("_on_projectile_hit"):

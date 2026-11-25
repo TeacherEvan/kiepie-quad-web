@@ -131,17 +131,21 @@ func _run() -> void:
 				_check(has_thigh and has_calf, "NLA clip %s animates Thigh + Calf running stride" % clip)
 
 	_check(_find(model, "Skull_Cranium") != null, "skull mesh present")
-	_check(_find(model, "GuitarBody") != null, "hot-pink guitar body present")
+	_check(_find(model, "GuitarBody") != null, "red guitar body present")
+	_check(_find(model, "EvanCape") != null, "torn Ewaldt cape landmark present")
 	_check(_find(model, "RiffMuzzle_L") != null and _find(model, "RiffMuzzle_R") != null,
 			"RiffMuzzle_L/R muzzle anchors present")
-	var has_pink := false
+	var has_red := false
 	var guitar := _find(model, "GuitarBody") as MeshInstance3D
 	if guitar != null and guitar.mesh != null:
 		for s in range(guitar.mesh.get_surface_count()):
 			var sm: Variant = guitar.get_active_material(s)
-			if sm is StandardMaterial3D and str((sm as Material).resource_name) == "GuitarHotPink":
-				has_pink = true
-	_check(has_pink, "GuitarBody carries the GuitarHotPink material")
+			if sm is StandardMaterial3D:
+				var std := sm as StandardMaterial3D
+				var col := std.albedo_color
+				if str(std.resource_name) == "GuitarRed" and col.r > 0.7 and col.g < 0.28 and col.b < 0.28 and col.r > col.g * 3.0:
+					has_red = true
+	_check(has_red, "GuitarBody carries the red GuitarRed material")
 	_check(_find(model, "Tyre_F_L") == null and _find(model, "Tyre_R_R") == null and _find(model, "Seat") == null,
 			"no quad tyres or seat — Evan runs on foot")
 	_check(_find(model, "Skull_Jaw") != null and _find(model, "GuitarStrap") != null and _find(model, "GuitarCable") != null,
@@ -237,13 +241,16 @@ func _run() -> void:
 			_check(float(evan_model.get("_finish_cd")) > 0.0
 					and str(evan_model.get("_last_clip")) == "Action_BigFinish",
 					"trigger_recoil actually arms the finish clip and lockout")
-			# Boomerang throw/catch hides and restores the held GuitarBody
+			# Boomerang throw/catch hides and restores the held GuitarBody while keeping EvanCape visible
 			var held_guitar := _find(evan_model, "GuitarBody") as Node3D
+			var cape_node := _find(evan_model, "EvanCape") as Node3D
 			evan_model.call("on_boomerang_thrown")
 			_check(held_guitar != null and not held_guitar.visible
 					and int(evan_model.get("_guitar_out_count")) > 0
 					and str(evan_model.get("_last_clip")) == "Action_GuitarThrow",
 					"on_boomerang_thrown hides held guitar and plays Action_GuitarThrow")
+			_check(cape_node != null and cape_node.visible,
+					"EvanCape remains visible when held guitar is thrown")
 			evan_model.call("on_boomerang_caught", true)
 			_check(held_guitar != null and held_guitar.visible
 					and int(evan_model.get("_guitar_out_count")) == 0,

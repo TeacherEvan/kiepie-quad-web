@@ -129,8 +129,12 @@ func _run() -> void:
 					has_hind = true
 			_check(has_fore and has_hind, "gallop clip animates fore and hind leg chains")
 	for landmark in ["HornTip", "HornBase", "HornMuzzle_L", "HornMuzzle_R", "Wing_L", "Wing_R",
-			"ManeForelock", "TailRoot", "Eye_L", "Eye_R", "Hoof_FL", "Hoof_FR", "Hoof_RL", "Hoof_RR"]:
+			"ManeForelock", "TailRoot", "Eye_L", "Eye_R", "Hoof_FL", "Hoof_FR", "Hoof_RL", "Hoof_RR",
+			"LeaBrand"]:
 		_check(_find(model, landmark) != null, "landmark %s present" % landmark)
+	var brand_mi := _find(model, "LeaBrand") as MeshInstance3D
+	_check(brand_mi != null and brand_mi.get_aabb().get_center().x < 0.0,
+			"LeaBrand sits on Lea's right butt cheek")
 	_check(_find(model, "Tyre_F_L") == null and _find(model, "Seat") == null,
 			"no quad tyres or seat — Lea flies on horseback")
 	var horn := _find(model, "HornTip") as MeshInstance3D
