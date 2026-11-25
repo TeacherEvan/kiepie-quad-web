@@ -29,27 +29,38 @@ PASS=0; FAILED=()
 
 note() { printf '%s\n' "$*"; }
 
+# Anti-vacuity: a gate that exits 0 while printing nothing must never count as
+# a green gate. Every gate emits at least three evidence lines today (the
+# single-line summary gates below bypass verdict() and carry their own checks).
+GATE_EVIDENCE_RE='(^|[[:space:]])(PASS|OK)([[:space:]]|:|$)|VERIFY|STABILITY:|SMASH_IMPACT:|talo backend contract|Executed test cases|scene_sync OK|web_hygiene OK|nodes ok|MIN_UP_Y|t=[0-9]|hud ready|smashed|has is_in_contact'
+GATE_MIN_EVIDENCE=3
+
 verdict() {
-	local name="$1" log="$2" rc="$3"
-	# failure = non-zero exit, explicit FAIL/FAILED marker line, or script error
-	if [ "$rc" -ne 0 ] || grep -qE '(^|[[:space:]])(FAIL|FAILED)([[:space:]]|:|$)' "$log" || grep -q "SCRIPT ERROR" "$log"; then
-		note "   FAIL  (rc=$rc; log: $log)"
+	local name="$1" log="$2" rc="$3" min_ev="${4:-$GATE_MIN_EVIDENCE}"
+	local evidence
+	evidence="$(grep -icE "$GATE_EVIDENCE_RE" "$log" || true)"
+	# failure = non-zero exit, FAIL/FAILED marker, SCRIPT ERROR / parse failure,
+	# or too few evidence lines to prove the gate actually asserted anything.
+	if [ "$rc" -ne 0 ] || grep -qE '(^|[[:space:]])(FAIL|FAILED)([[:space:]]|:|$)' "$log" \
+			|| grep -qE 'SCRIPT ERROR|Parse Error' "$log" \
+			|| [ "${evidence:-0}" -lt "$min_ev" ]; then
+		note "   FAIL  (rc=$rc; evidence=$evidence; log: $log)"
 		FAILED+=("$name")
 		return
 	fi
-	note "   ok"
+	note "   ok  (evidence=$evidence)"
 	pass_lines="$(grep -E 'MIN_UP_Y|t=300|TOUCH VERIFY|TOUCH MULTITOUCH|PRACTICE:|MULTIPLAYER:|STABILITY:|SMASH_IMPACT|UP_Y_AFTER_SMASH|TURBO:|DEBRIS|hud ready|smashed' "$log" | tail -6 || true)"
 	[ -n "$pass_lines" ] && printf '%s\n' "$pass_lines" | sed 's/^/     /'
 	PASS=$((PASS + 1))
 }
 
 run_gate() {
-	local name="$1" tool="$2"
+	local name="$1" tool="$2" min_ev="${3:-$GATE_MIN_EVIDENCE}"
 	local log="$LOGDIR/$name.log"
 	note "== $name"
 	# wall-clock budget: a wedged await must not hang the suite forever
 	timeout --foreground 150 "$GODOT" --headless --path godot --script "tools/$tool" </dev/null >"$log" 2>&1
-	verdict "$name" "$log" $?
+	verdict "$name" "$log" $? "$min_ev"
 }
 
 # GUI hit-testing needs a real window: headless' dummy driver pins the viewport
@@ -188,7 +199,7 @@ run_gate_gdunit() {
 note "== scene_sync"
 timeout --foreground 60 python3 godot/tools/check_scene_sync.py >"$LOGDIR/scene_sync.log" 2>&1
 _sync_rc=$?
-if [ "$_sync_rc" -eq 0 ] && ! grep -q "FAIL" "$LOGDIR/scene_sync.log"; then
+if [ "$_sync_rc" -eq 0 ] && grep -q "scene_sync OK" "$LOGDIR/scene_sync.log" && ! grep -q "FAIL" "$LOGDIR/scene_sync.log"; then
 	note "   ok"
 	cat "$LOGDIR/scene_sync.log" | sed 's/^/     /'
 	PASS=$((PASS + 1))
@@ -201,7 +212,7 @@ fi
 note "== web_hygiene"
 timeout --foreground 30 python3 godot/tools/check_web_hygiene.py >"$LOGDIR/web_hygiene.log" 2>&1
 _hyg_rc=$?
-if [ "$_hyg_rc" -eq 0 ] && ! grep -q "FAIL" "$LOGDIR/web_hygiene.log"; then
+if [ "$_hyg_rc" -eq 0 ] && grep -q "web_hygiene OK" "$LOGDIR/web_hygiene.log" && ! grep -q "FAIL" "$LOGDIR/web_hygiene.log"; then
 	note "   ok"
 	cat "$LOGDIR/web_hygiene.log" | sed 's/^/     /'
 	PASS=$((PASS + 1))
@@ -215,7 +226,7 @@ run_gate truth          truth_test.gd
 run_gate stability      verify_stability.gd
 run_gate touch          verify_touch.gd
 run_gate features       verify_features.gd
-run_gate smash_impact   verify_smash_impact.gd
+run_gate smash_impact   verify_smash_impact.gd 1   # single SMASH_IMPACT: PASS summary line
 run_gate diag2          diag2.gd
 run_gate cannons        verify_cannons.gd
 run_gate settings       verify_settings.gd
@@ -224,7 +235,7 @@ run_gate combat         verify_combat.gd
 run_gate kill_flow      verify_kill_flow.gd
 run_gate appeal         verify_appeal.gd
 run_gate accessibility  verify_accessibility.gd
-run_gate talo_backend   verify_talo_backend.gd
+run_gate talo_backend   verify_talo_backend.gd 1   # single contract summary line
 run_gate audit_regressions verify_audit_regressions.gd
 run_gate controls        verify_controls.gd
 run_gate dodge           verify_dodge.gd
