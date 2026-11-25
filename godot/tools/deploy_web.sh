@@ -63,8 +63,11 @@ timeout --foreground 240 "$GODOT" --headless --path godot --export-release "Web"
 PCK="$ROOT/web/index.pck"
 SIZE=$(stat -c %s "$PCK" 2>/dev/null || echo 0)
 echo "   index.pck: $((SIZE / 1024 / 1024)) MB ($SIZE bytes)"
-if [ "$SIZE" -lt 1048576 ] || [ "$SIZE" -gt 4194304 ]; then
-	echo "DEPLOY ABORTED: pck size out of range [1 MiB, 4 MiB] (saw $SIZE)"
+# Budget raised 4 MiB -> 4.5 MiB on 2026-11-25 for EVAN THE SKELETON: his
+# Godot-compatible (non-Draco) GLB adds ~0.7 MB to the pck. Measured export
+# is ~4.28 MB / 4,279,216 bytes; keep headroom but still abort runaway bundles.
+if [ "$SIZE" -lt 1048576 ] || [ "$SIZE" -gt 4718592 ]; then
+	echo "DEPLOY ABORTED: pck size out of range [1 MiB, 4.5 MiB] (saw $SIZE)"
 	exit 1
 fi
 for f in index.html index.js index.wasm index.pck index.manifest.json index.service.worker.js index.audio.worklet.js index.offline.html; do

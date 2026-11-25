@@ -499,6 +499,32 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
         mod.use_vertex_groups = True
         mod.use_bone_envelopes = False
 
+    # -------------------------------------------------------------- batch by bone + material
+    # ~200 tiny mesh objects add a lot of GLB node/accessor overhead and the
+    # same number of draw calls on Web. Parts sharing a controlling bone and
+    # material are rigid-bound identically, so joining them is lossless and
+    # measurably shrinks the uncompressed GLB (~830 KB -> ~726 KB).
+    from collections import defaultdict
+    batches: dict[tuple[str, str], list[Any]] = defaultdict(list)
+    for ob, bone_name in parts:
+        mat_name = ob.data.materials[0].name if ob.data.materials else ""
+        batches[(bone_name, mat_name)].append(ob)
+    merged: list[tuple[Any, str]] = []
+    for (bone_name, mat_name), obs in batches.items():
+        if len(obs) == 1:
+            merged.append((obs[0], bone_name))
+            continue
+        bpy.ops.object.select_all(action="DESELECT")
+        for o in obs:
+            o.select_set(True)
+        bpy.context.view_layer.objects.active = obs[0]
+        bpy.ops.object.join()
+        joined = obs[0]
+        joined.name = f"Evan_{bone_name}_{mat_name}"
+        merged.append((joined, bone_name))
+    parts = merged
+    print(f"[QA] batched into {len(parts)} skinned meshes")
+
     # -------------------------------------------------------------- 4 baked NLA actions
     pose = arm.pose.bones
     for pb in pose:
