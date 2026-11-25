@@ -106,6 +106,33 @@ def main() -> int:
         if "getElementById('victory-skip')" not in html or "addEventListener('click',drop)" not in html:
             failures.append("index.html missing WCAG 2.1.1 click listener on splash skip buttons")
 
+    # 6. Shipped-artifact proof: policy-file checks alone cannot catch an
+    #    export filter that silently drops Evan's GLB or compiled scripts.
+    pck = ROOT / "index.pck"
+    REQUIRED_PCK_PATHS = [
+        "res://assets/Evan_Skeleton.glb",
+        "res://src/game/EvanVisual.gdc",
+        "res://src/game/SoundWaveProjectile.gdc",
+        "res://src/game/BoomerangGuitar.gdc",
+        "res://src/game/DevilHandStrike.gdc",
+    ]
+    if not pck.is_file():
+        failures.append("missing index.pck")
+    else:
+        pck_bytes = pck.read_bytes()
+        for path in REQUIRED_PCK_PATHS:
+            if path.encode("utf-8") not in pck_bytes:
+                failures.append(f"index.pck is missing shipped artifact: {path}")
+    sw = ROOT / "index.service.worker.js"
+    if not sw.is_file():
+        failures.append("missing index.service.worker.js")
+    else:
+        worker = sw.read_text(encoding="utf-8")
+        precached = set(re.findall(r"['\"](index\.[A-Za-z0-9.]+)['\"]", worker))
+        for name in sorted(precached):
+            if not (ROOT / name).is_file():
+                failures.append(f"service worker precaches missing file: {name}")
+
     # 5. patch_web_sw.py must fail fast on template drift or double-patching
     try:
         sys.dont_write_bytecode = True
