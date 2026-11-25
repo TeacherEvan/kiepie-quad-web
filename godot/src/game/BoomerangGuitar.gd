@@ -347,29 +347,35 @@ func _on_contact(collider: Object, point: Vector3, normal: Vector3) -> void:
 	if _hit_ids.has(id):
 		return
 	_hit_ids[id] = true
-	_did_hit_any = true
-	if _first_target == null:
-		_first_target = node
-		_first_point = point
-
+	# `hit` is an enemy-hit confirmation, so scenery contact must not latch it.
+	# Only a bike / destructible / hazard that actually took an action counts.
+	var actionable := false
 	var dir := velocity.normalized()
 	var surface := "metal"
 	if node.name == "Ground":
 		surface = "ground"
 	if node.is_in_group("bike"):
+		actionable = true
 		_damage_bike(node, point)
 	elif node.is_in_group("destructible"):
 		if node.has_method("smash"):
+			actionable = true
 			node.call("smash", dir * SMASH_IMPULSE)
 	elif node.is_in_group("hazard"):
 		if node.has_method("ignite"):
+			actionable = true
 			var sub := ("%s:d%d" % [token, id]) if token != "" else ""
 			node.call("ignite", owner_id, sub)
+	if actionable:
+		_did_hit_any = true
+		if _first_target == null:
+			_first_target = node
+			_first_point = point
 	VFX.impact(_fx_parent(), point, PINK, dir, surface, normal)
 
 
 func _finish() -> void:
-	if _did_hit_any:
+	if _did_hit_any and _first_target != null:
 		hit.emit(_first_target, _first_point)
 	_release_light()
 	queue_free()

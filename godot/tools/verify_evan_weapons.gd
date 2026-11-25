@@ -18,6 +18,13 @@ const P_SIDE_CANNONS := "res://src/game/SideCannons.gd"
 const P_REGISTRY := "res://src/game/VehicleRegistry.gd"
 
 var _fail := 0
+var _boom_hits: Array = []
+
+
+func _on_boom_hit(target: Node, _point: Vector3) -> void:
+	_boom_hits.append(target)
+
+
 var _had_cfg := false
 var _prior_user_id: Variant
 var _prior_reduced_motion: Variant
@@ -217,6 +224,23 @@ func _run() -> void:
 				"BoomerangGuitar turns back / arrests its flight within ~1.2 s (does not fly away forever)")
 		if is_instance_valid(boom):
 			boom.set_physics_process(false)
+
+		# A scenery-only contact must not emit the enemy "hit" confirmation.
+		var scenery := Node3D.new()
+		scenery.name = "Ground"
+		holder.add_child(scenery)
+		var contact_boom := Node3D.new()
+		contact_boom.set_script(boomerang)
+		holder.add_child(contact_boom)
+		contact_boom.set_physics_process(false)
+		await process_frame
+		contact_boom.call("setup", "evan-gate", owner, origin, Vector3.RIGHT,
+				18.0, 55.0, "evan-contact-token", Color(1.0, 0.20, 0.55), 4.5, "boomerang")
+		_boom_hits.clear()
+		contact_boom.connect("hit", _on_boom_hit)
+		contact_boom.call("_on_contact", scenery, Vector3.ZERO, Vector3.UP)
+		contact_boom.call("_finish")
+		_check(_boom_hits.is_empty(), "scenery contact does not emit a boomerang enemy hit")
 
 	# ---- 3. DevilHandStrike: ground hand instant-kill special.
 	if devilhand != null:
