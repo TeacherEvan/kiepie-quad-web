@@ -247,6 +247,8 @@ run_gate pogo             verify_pogo.gd
 run_gate aston            verify_aston.gd
 run_gate evan             verify_evan.gd
 run_gate evan_weapons     verify_evan_weapons.gd
+run_gate lea              verify_lea_unicorn.gd
+run_gate lea_weapons      verify_lea_unicorn_weapons.gd
 run_gate deathrace        verify_deathrace.gd
 run_gate check_scripts    _check_scripts.gd
 run_gate_windowed touch_multitouch verify_touch_multitouch.gd

@@ -13,6 +13,8 @@ const VEHICLE_ASTON := &"AstonMartin"
 ## a fourth deal vehicle would shift every deterministic hash and silently
 ## change the mock-host / peer-N fixtures locked by verify_pogo + verify_aston.
 const VEHICLE_EVAN := &"EvanSkeleton"
+## LEA is likewise preference-only: she is never dealt by the FNV hash pool.
+const VEHICLE_LEA := &"LeaUnicorn"
 const VEHICLES: Array[StringName] = [VEHICLE_BIKE, VEHICLE_POGO, VEHICLE_ASTON]
 const _FNV_OFFSET := 2166136261
 const _FNV_PRIME := 16777619
@@ -26,6 +28,8 @@ static func profile(vehicle: StringName) -> String:
 			return "aston"
 		VEHICLE_EVAN:
 			return "evan"
+		VEHICLE_LEA:
+			return "lea"
 		_:
 			return "bike"
 
@@ -38,13 +42,15 @@ static func from_profile(profile_id: String) -> StringName:
 			return VEHICLE_ASTON
 		"evan":
 			return VEHICLE_EVAN
+		"lea":
+			return VEHICLE_LEA
 		_:
 			return VEHICLE_BIKE
 
 
 static func sanitize_preference(raw: String) -> String:
 	match raw:
-		"KiepieBike", "PogoNardus", "AstonMartin", "EvanSkeleton":
+		"KiepieBike", "PogoNardus", "AstonMartin", "EvanSkeleton", "LeaUnicorn":
 			return raw
 		_:
 			return ""
@@ -102,7 +108,8 @@ static func resolve_for_player(player_id: String, roster_ids: Array = [], prefer
 
 static func is_valid(vehicle: StringName) -> bool:
 	return vehicle == VEHICLE_BIKE or vehicle == VEHICLE_POGO \
-			or vehicle == VEHICLE_ASTON or vehicle == VEHICLE_EVAN
+			or vehicle == VEHICLE_ASTON or vehicle == VEHICLE_EVAN \
+			or vehicle == VEHICLE_LEA
 
 
 static func model_path(vehicle: StringName) -> String:
@@ -113,6 +120,8 @@ static func model_path(vehicle: StringName) -> String:
 			return "res://assets/Aston_Martin.glb"
 		VEHICLE_EVAN:
 			return "res://assets/Evan_Skeleton.glb"
+		VEHICLE_LEA:
+			return "res://assets/Lea_Unicorn.glb"
 		_:
 			return "res://assets/Kiepie_Bike.glb"
 
@@ -125,6 +134,8 @@ static func display_name(vehicle: StringName) -> String:
 			return "BIG-BEN F1"
 		VEHICLE_EVAN:
 			return "EVAN THE SKELETON"
+		VEHICLE_LEA:
+			return "LEA UNICORN"
 		_:
 			return "KIEPIE QUAD"
 
@@ -136,6 +147,8 @@ static func cooldown(vehicle: StringName) -> float:
 			return 0.40
 		VEHICLE_EVAN:
 			return 0.22
+		VEHICLE_LEA:
+			return 0.16
 		_:
 			return 0.20
 
@@ -146,6 +159,8 @@ static func rapid_cooldown(vehicle: StringName) -> float:
 			return 0.18
 		VEHICLE_EVAN:
 			return 0.10
+		VEHICLE_LEA:
+			return 0.08
 		_:
 			return 0.09
 
@@ -167,6 +182,8 @@ static func spread(vehicle: StringName) -> float:
 			return 0.048
 		VEHICLE_EVAN:
 			return 0.050
+		VEHICLE_LEA:
+			return 0.018
 		_:
 			return 0.055
 
@@ -189,3 +206,7 @@ static func is_aston(vehicle: StringName) -> bool:
 
 static func is_evan(vehicle: StringName) -> bool:
 	return vehicle == VEHICLE_EVAN
+
+
+static func is_lea(vehicle: StringName) -> bool:
+	return vehicle == VEHICLE_LEA

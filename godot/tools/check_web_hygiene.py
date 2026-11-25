@@ -144,6 +144,11 @@ def main() -> int:
         "res://src/game/SoundWaveProjectile.gdc",
         "res://src/game/BoomerangGuitar.gdc",
         "res://src/game/DevilHandStrike.gdc",
+        "res://assets/Lea_Unicorn.glb",
+        "res://src/game/LeaVisual.gdc",
+        "res://src/game/HornBoltProjectile.gdc",
+        "res://src/game/HornBeam.gdc",
+        "res://src/game/UnicornBoom.gdc",
     ]
     if not pck.is_file():
         failures.append("missing index.pck")

@@ -13,7 +13,7 @@ const MOBILE_INPUT := preload("res://src/ui/MobileTextInput.gd")
 const COL_OK := UI.OK
 const COL_WARN := UI.WARN
 const COL_INFO := UI.INFO
-const VEHICLE_IDS := ["auto", "KiepieBike", "PogoNardus", "AstonMartin", "EvanSkeleton"]
+const VEHICLE_IDS := ["auto", "KiepieBike", "PogoNardus", "AstonMartin", "EvanSkeleton", "LeaUnicorn"]
 
 ## Selected Dashboard game mode: "battle_royale" (default) | "death_race"
 static var selected_game_mode := "battle_royale"

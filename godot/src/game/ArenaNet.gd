@@ -9,6 +9,9 @@ const METEOR := preload("res://src/game/MeteorStrike.gd")
 const SOUNDWAVE := preload("res://src/game/SoundWaveProjectile.gd")
 const BOOMERANG := preload("res://src/game/BoomerangGuitar.gd")
 const DEVIL_HAND := preload("res://src/game/DevilHandStrike.gd")
+const HORN_BOLT := preload("res://src/game/HornBoltProjectile.gd")
+const HORN_BEAM := preload("res://src/game/HornBeam.gd")
+const UNICORN_BOOM := preload("res://src/game/UnicornBoom.gd")
 const VFX := preload("res://src/game/VfxFactory.gd")
 const KT := preload("res://src/core/KiepieTime.gd")
 const SEND_HZ := 15.0
@@ -384,6 +387,7 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 	var pogo := VehicleRegistry.is_pogo(vehicle)
 	var aston := VehicleRegistry.is_aston(vehicle)
 	var evan := VehicleRegistry.is_evan(vehicle)
+	var lea := VehicleRegistry.is_lea(vehicle)
 	var combat := get_tree().get_first_node_in_group("local_combat")
 	if weapon_kind == "rocket":
 		# Match the shooter's launcher exactly: EVAN = boomerang guitar,
@@ -391,12 +395,15 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 		# Wire kind stays "rocket" so PROTOCOL_VERSION is unchanged.
 		var rocket_dmg := ROCKET.BLAST_DAMAGE
 		var rocket := Node3D.new()
-		rocket.set_script(BOOMERANG if evan else ROCKET)
+		rocket.set_script(HORN_BEAM if lea else (BOOMERANG if evan else ROCKET))
 		add_child(rocket)
-		var rocket_style := "boomerang" if evan else ("cigar" if pogo else ("cash_bag" if aston else "rocket"))
-		var rocket_color := Color(0.95, 0.10, 0.46) if evan else Color(1.0, 0.38, 0.10)
+		var rocket_style := "horn_beam" if lea else ("boomerang" if evan else ("cigar" if pogo else ("cash_bag" if aston else "rocket")))
+		var rocket_color := Color(0.40, 0.90, 1.0) if lea \
+				else (Color(0.95, 0.10, 0.46) if evan else Color(1.0, 0.38, 0.10))
 		rocket.setup(owner_id, _remote.get(owner_id), o, d, 38.0, rocket_dmg,
 				str(p.get("token", "")), rocket_color, 4.5, rocket_style)
+		if lea and combat != null and combat.has_method("_on_projectile_hit"):
+			rocket.on_hit = Callable(combat, "_on_projectile_hit")
 		return
 	elif weapon_kind == "meteor":
 		if d.length() > 65.0:
@@ -404,16 +411,17 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 		var target_pos := o + d
 		var meteor_dmg := Match.damage() * 3.5
 		var strike := Node3D.new()
-		strike.set_script(DEVIL_HAND if evan else METEOR)
+		strike.set_script(UNICORN_BOOM if lea else (DEVIL_HAND if evan else METEOR))
 		add_child(strike)
-		var meteor_style := "devil_hand" if evan else ("cash_bag" if aston else ("meteor" if pogo else "lightning"))
-		var strike_color := Color(0.85, 0.06, 0.20) if evan else Color(1.0, 0.28, 0.06)
+		var meteor_style := "unicorn_boom" if lea else ("devil_hand" if evan else ("cash_bag" if aston else ("meteor" if pogo else "lightning")))
+		var strike_color := Color(1.0, 0.55, 0.88) if lea \
+				else (Color(0.85, 0.06, 0.20) if evan else Color(1.0, 0.28, 0.06))
 		strike.setup(owner_id, _remote.get(owner_id), target_pos, meteor_dmg,
 				str(p.get("token", "")), strike_color, 2.0, 7.5, meteor_style)
 		return
-	var proj_script: GDScript = SOUNDWAVE if evan else (BANANA if pogo else PROJECTILE)
+	var proj_script: GDScript = HORN_BOLT if lea else (SOUNDWAVE if evan else (BANANA if pogo else PROJECTILE))
 	var dmg := Match.damage() * VehicleRegistry.damage_multiplier(vehicle)
-	var shot_color := Color(0.95, 0.10, 0.46) if evan else (Color(1.0, 0.9, 0.25) if pogo else (Color(0.68, 1.0, 0.20) if aston else Color(1.0, 0.35, 0.25)))
+	var shot_color := Color(1.0, 0.82, 0.28) if lea else (Color(0.95, 0.10, 0.46) if evan else (Color(1.0, 0.9, 0.25) if pogo else (Color(0.68, 1.0, 0.20) if aston else Color(1.0, 0.35, 0.25))))
 	var proj := _acquire_remote_proj(proj_script)
 	# Keep in sync with SideCannons.SHOT_SPEED.
 	proj.setup(owner_id, _remote.get(owner_id), o, d, 52.0, dmg,

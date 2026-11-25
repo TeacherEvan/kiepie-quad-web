@@ -81,6 +81,7 @@ var _jet_t := 0.0
 }
 const POGO_VISUAL := preload("res://src/game/PogoVisual.gd")
 const EVAN_VISUAL := preload("res://src/game/EvanVisual.gd")
+const LEA_VISUAL := preload("res://src/game/LeaVisual.gd")
 @onready var _wheels := {
 	"FL": get_node("WheelFL"),
 	"FR": get_node("WheelFR"),
@@ -280,6 +281,8 @@ func _exhaust_position() -> Vector3:
 		return Vector3(0.0, 0.30, -0.18)
 	if vehicle_profile == "evan":
 		return Vector3(0.0, 0.18, -0.34)
+	if vehicle_profile == "lea":
+		return Vector3(0.0, 0.52, -0.42)
 	if vehicle_profile == "aston":
 		return Vector3(0.0, 0.39, -1.35)
 	return Vector3(-0.278, 0.487, -0.715)
@@ -360,6 +363,9 @@ func _swap_model(assigned: StringName, glb_path: String) -> void:
 	# Evan's animation driver sits on the GLB root (the skinned model itself).
 	if VehicleRegistry.is_evan(assigned):
 		new_model.set_script(EVAN_VISUAL)
+	# Lea's animation driver also sits on the GLB root (skinned creature model).
+	if VehicleRegistry.is_lea(assigned):
+		new_model.set_script(LEA_VISUAL)
 	var old := get_node_or_null("Model")
 	if old != null:
 		remove_child(old)
