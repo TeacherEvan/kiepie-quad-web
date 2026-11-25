@@ -6,6 +6,15 @@ gate names, or live checks — not assumptions.
 
 **Last verified:** 2026-11-25 — full gate suite **33/33** green, `web_hygiene OK`, `_check_scripts.gd` clean (Lea Unicorn + Evan boomerang throw/catch sync and Devil Hand detail).
 
+## 2026-11-25 — Lea Unicorn sleek anatomical rebuild, bold `"Lea"` brand & real aerial `UnicornBoom` flight
+
+- **Sleek Anatomical Rebuild (`src/build_lea_unicorn.py`, `src/gen_decal_lea.py`):**
+  - Replaced stacked sphere body/head/leg blobs with continuous watertight anatomical lofts (`EquineBody`, `EquineHead`, `LegChain_FL/FR/RL/RR`), sweeping airfoil feather blades, and lush flowing mane/tail (`5,630` tris, `65` draw calls, `0` non-manifold edges, `minZ = 0.0000`, QA **APPROVED**, glTF budget `90/100`).
+  - Upgraded `assets/decal_lea_brand.png` (`780 pt` calligraphic `"Lea"`, thick `#250732` royal-plum outline, gold → rose-magenta → royal-violet gradient) and enlarged `LeaBrand` across the sleek right (`-X`) croup/butt cheek.
+- **Real Aerial `UnicornBoom` Flight (`UnicornBoom.gd`, `LeaVisual.gd`, `CombatAoe.gd`):**
+  - `UnicornBoom` now physically carries the player's `VehicleBody3D` along a `8.0 m` soaring arc (NaN-safe freeze/unfreeze + collision toggle), pitches `+Z` nose-forward along the flight tangent with looping `UnicornBoom_Flight` wingbeats, lands upright right at `target_pos`, pops `100` damage numbers + `hit_confirmed` in `CombatAoe.apply_lethal_blast()`, and kills/damages targets in the `7.5 m` landing zone.
+- **Gates & Live Deploy:** Added `VehicleBody3D` flight-carry & target-damage assertions to `verify_lea_unicorn_weapons.gd`; `run_gates.sh` **33/33 green**; deployed via `deploy_web.sh --apply`.
+
 ## 2026-11-25 — Plastic Surgery pass: Evan red guitar + torn `"Ewaldt"` cape & Lea Unicorn polish + `"Lea"` right butt cheek brand
 
 - **Decal Generators (image textures only, never 3D text geometry):**

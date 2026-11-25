@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LEA UNICORN — stylized pastel winged unicorn vehicle stand-in.
+"""LEA UNICORN — sleek anatomical winged unicorn vehicle stand-in.
 
 Blender source of truth. Never hand-edit Lea_Unicorn.blend or its GLB; edit
 this script and rebuild:
@@ -21,13 +21,8 @@ Deliverables
 * ``lea_spatial_manifest.json``             authored dim spec for QA
 * optional ``--previews DIR``               material renders
 
-Rig: 52-joint equine/winged creature rig, rigidly bound (weight 1.0) per mesh.
-Landmark mesh names are immutable — Godot gates and weapon anchors resolve
-them recursively from the glTF import:
-
-    HornTip, HornBase, HornMuzzle_L, HornMuzzle_R,
-    Wing_L, Wing_R, ManeForelock, TailRoot,
-    Eye_L, Eye_R, Hoof_FL, Hoof_FR, Hoof_RL, Hoof_RR
+Rig: 52-joint equine/winged creature rig. Landmark mesh names are immutable —
+Godot gates and weapon anchors resolve them recursively from the glTF import.
 
 Coordinate contract: Blender +Z up / -Y forward -> glTF +Y up / -Z forward.
 Ground datum AABB bottom = 0.000 m (all four hooves touch the floor).
@@ -139,21 +134,15 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         return ob
 
     # -------------------------------------------------------------- palette
-    # Pastel reference: pearlescent ivory coat, pink/lavender mane, rainbow
-    # feather gradients, gold horn and hooves, sapphire eyes.
-    # Plastic Surgery skin pass: the references show an iridescent blue-white
-    # pearlescent coat, not a warm white. Keep luminance high (~0.90) so the
-    # body still reads against the dark arena backdrop. Geometry, rig and all
-    # landmark material names are untouched — this is albedo/roughness only.
-    coat = make_mat("PearlCoat", (0.89, 0.92, 0.99), 0.30, emission=0.045, coat=0.45, coat_rough=0.14)
-    coat_shade = make_mat("CoatShadow", (0.70, 0.74, 0.88), 0.46, coat=0.20)
-    muzzle_mat = make_mat("MuzzleVelvet", (0.74, 0.66, 0.68), 0.66)
-    mane_pink = make_mat("ManePink", (0.97, 0.38, 0.73), 0.32, emission=0.075, coat=0.22)
-    mane_lav = make_mat("ManeLavender", (0.75, 0.54, 0.96), 0.34, emission=0.065, coat=0.22)
-    feather_pink = make_mat("FeatherPink", (0.99, 0.52, 0.78), 0.34, emission=0.06, coat=0.22)
-    feather_lav = make_mat("FeatherLavender", (0.72, 0.58, 0.96), 0.34, emission=0.06, coat=0.22)
-    feather_cyan = make_mat("FeatherCyan", (0.42, 0.85, 0.96), 0.30, emission=0.08, coat=0.22)
-    feather_gold = make_mat("FeatherGold", (0.99, 0.78, 0.34), 0.32, emission=0.06, coat=0.22)
+    coat = make_mat("PearlCoat", (0.90, 0.93, 0.99), 0.28, emission=0.045, coat=0.48, coat_rough=0.14)
+    coat_shade = make_mat("CoatShadow", (0.72, 0.76, 0.90), 0.42, coat=0.20)
+    muzzle_mat = make_mat("MuzzleVelvet", (0.78, 0.70, 0.74), 0.62)
+    mane_pink = make_mat("ManePink", (0.97, 0.38, 0.73), 0.30, emission=0.075, coat=0.22)
+    mane_lav = make_mat("ManeLavender", (0.75, 0.54, 0.96), 0.32, emission=0.065, coat=0.22)
+    feather_pink = make_mat("FeatherPink", (0.99, 0.52, 0.78), 0.32, emission=0.06, coat=0.22)
+    feather_lav = make_mat("FeatherLavender", (0.72, 0.58, 0.96), 0.32, emission=0.06, coat=0.22)
+    feather_cyan = make_mat("FeatherCyan", (0.42, 0.85, 0.96), 0.28, emission=0.08, coat=0.22)
+    feather_gold = make_mat("FeatherGold", (0.99, 0.78, 0.34), 0.30, emission=0.06, coat=0.22)
     gold = make_mat("HornGold", (0.96, 0.74, 0.24), 0.18, metallic=0.85, emission=0.08, coat=0.35)
     horn_glow = make_mat("HornGlow", (1.0, 0.94, 0.62), 0.16, emission=0.85)
     hoof_gold = make_mat("HoofGold", (0.92, 0.68, 0.22), 0.22, metallic=0.78, emission=0.05)
@@ -165,8 +154,8 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
     _lb_tree.nodes.clear()
     _lb_out = _lb_tree.nodes.new("ShaderNodeOutputMaterial")
     _lb_bsdf = _lb_tree.nodes.new("ShaderNodeBsdfPrincipled")
-    _lb_bsdf.inputs["Roughness"].default_value = 0.28
-    _lb_bsdf.inputs["Metallic"].default_value = 0.35
+    _lb_bsdf.inputs["Roughness"].default_value = 0.24
+    _lb_bsdf.inputs["Metallic"].default_value = 0.30
     _lb_tex_path = os.path.join(REPO_ROOT, "assets", "decal_lea_brand.png")
     if os.path.exists(_lb_tex_path):
         _lb_tex = _lb_tree.nodes.new("ShaderNodeTexImage")
@@ -177,7 +166,7 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         _lb_tree.links.new(_lb_tex.outputs["Alpha"], _lb_bsdf.inputs["Alpha"])
         if "Emission Color" in _lb_bsdf.inputs:
             _lb_tree.links.new(_lb_tex.outputs["Color"], _lb_bsdf.inputs["Emission Color"])
-            _lb_bsdf.inputs["Emission Strength"].default_value = 0.16
+            _lb_bsdf.inputs["Emission Strength"].default_value = 0.22
     if hasattr(lea_brand_mat, "blend_method"):
         lea_brand_mat.blend_method = "CLIP"
     if hasattr(lea_brand_mat, "alpha_threshold"):
@@ -186,18 +175,6 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
     _lb_tree.links.new(_lb_bsdf.outputs["BSDF"], _lb_out.inputs["Surface"])
 
     # -------------------------------------------------------------- primitives
-    def box(name: str, loc: tuple[float, float, float], dims: tuple[float, float, float],
-            material: Any, rot: tuple[float, float, float] | None = None) -> Any:
-        bpy.ops.mesh.primitive_cube_add(size=1.0, location=loc)
-        ob = link_only(bpy.context.active_object)
-        ob.name = name
-        ob.scale = dims
-        if rot:
-            ob.rotation_euler = rot
-        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-        ob.data.materials.append(material)
-        return ob
-
     def sphere(name: str, loc: tuple[float, float, float], scale: tuple[float, float, float],
                material: Any, seg: int = 12, rings: int = 8,
                rot: tuple[float, float, float] | None = None) -> Any:
@@ -286,36 +263,82 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         ob.data.materials.append(material)
         return smooth(ob)
 
+    def loft_sections(name: str, stations: list[tuple[Vector, Vector, Vector, float, float, float]],
+                      material: Any, seg: int = 12,
+                      weights_per_station: list[dict[str, float]] | None = None
+                      ) -> tuple[Any, dict[int, dict[str, float]]]:
+        """Watertight organic loft through explicit anatomical cross-sections.
+        Each station is (center, u_axis, v_axis, rx, r_pos_v, r_neg_v).
+        Returns (object, per-vertex bone weight map).
+        """
+        bm = bmesh.new()
+        rings: list[list[Any]] = []
+        v_weights: dict[int, dict[str, float]] = {}
+        for si, (c, u_ax, v_ax, rx, rp, rn) in enumerate(stations):
+            ring = []
+            w_map = weights_per_station[si] if weights_per_station else {}
+            for j in range(seg):
+                ang = 2.0 * math.pi * j / seg
+                ca, sa = math.cos(ang), math.sin(ang)
+                rv = rp if sa >= 0.0 else rn
+                vert = bm.verts.new(c + u_ax * (ca * rx) + v_ax * (sa * rv))
+                ring.append(vert)
+            rings.append(ring)
+        for i in range(len(rings) - 1):
+            for j in range(seg):
+                jn = (j + 1) % seg
+                bm.faces.new((rings[i][j], rings[i][jn], rings[i + 1][jn], rings[i + 1][j]))
+        c0 = bm.verts.new(stations[0][0])
+        c1 = bm.verts.new(stations[-1][0])
+        for j in range(seg):
+            jn = (j + 1) % seg
+            bm.faces.new((c0, rings[0][jn], rings[0][j]))
+            bm.faces.new((c1, rings[-1][j], rings[-1][jn]))
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        bm.verts.ensure_lookup_table()
+        if weights_per_station:
+            for si, ring in enumerate(rings):
+                w_map = weights_per_station[si]
+                for vert in ring:
+                    v_weights[vert.index] = w_map
+            v_weights[c0.index] = weights_per_station[0]
+            v_weights[c1.index] = weights_per_station[-1]
+        mesh = bpy.data.meshes.new(name + "_Mesh")
+        bm.to_mesh(mesh)
+        bm.free()
+        ob = bpy.data.objects.new(name, mesh)
+        link_only(ob)
+        ob.data.materials.append(material)
+        return smooth(ob), v_weights
+
     # -------------------------------------------------------------- 52-joint rig
     def bone_spec() -> list[dict[str, Any]]:
         bones: list[dict[str, Any]] = [
-            {"name": "Hips", "head": (0.0, 0.20, 0.92), "tail": (0.0, 0.12, 1.04), "parent": None},
-            {"name": "Spine", "head": (0.0, 0.12, 1.04), "tail": (0.0, -0.02, 1.20), "parent": "Hips"},
-            {"name": "Chest", "head": (0.0, -0.02, 1.20), "tail": (0.0, -0.16, 1.34), "parent": "Spine"},
-            {"name": "Withers", "head": (0.0, -0.16, 1.34), "tail": (0.0, -0.26, 1.44), "parent": "Chest"},
-            {"name": "Neck1", "head": (0.0, -0.26, 1.44), "tail": (0.0, -0.40, 1.58), "parent": "Withers"},
-            {"name": "Neck2", "head": (0.0, -0.40, 1.58), "tail": (0.0, -0.52, 1.68), "parent": "Neck1"},
-            {"name": "Skull", "head": (0.0, -0.52, 1.68), "tail": (0.0, -0.66, 1.72), "parent": "Neck2"},
-            {"name": "Jaw", "head": (0.0, -0.60, 1.62), "tail": (0.0, -0.76, 1.56), "parent": "Skull"},
+            {"name": "Hips", "head": (0.0, 0.20, 0.98), "tail": (0.0, 0.10, 1.06), "parent": None},
+            {"name": "Spine", "head": (0.0, 0.10, 1.06), "tail": (0.0, -0.05, 1.12), "parent": "Hips"},
+            {"name": "Chest", "head": (0.0, -0.05, 1.12), "tail": (0.0, -0.22, 1.20), "parent": "Spine"},
+            {"name": "Withers", "head": (0.0, -0.22, 1.20), "tail": (0.0, -0.34, 1.28), "parent": "Chest"},
+            {"name": "Neck1", "head": (0.0, -0.34, 1.28), "tail": (0.0, -0.48, 1.48), "parent": "Withers"},
+            {"name": "Neck2", "head": (0.0, -0.48, 1.48), "tail": (0.0, -0.58, 1.68), "parent": "Neck1"},
+            {"name": "Skull", "head": (0.0, -0.58, 1.68), "tail": (0.0, -0.74, 1.68), "parent": "Neck2"},
+            {"name": "Jaw", "head": (0.0, -0.64, 1.62), "tail": (0.0, -0.82, 1.56), "parent": "Skull"},
         ]
         for side, sx in (("L", 1.0), ("R", -1.0)):
-            # Foreleg (shoulder -> hoof)
             fore = [
-                ("ForeShoulder", (0.19, -0.14, 1.26), (0.22, -0.14, 1.10)),
-                ("ForeUpper", (0.22, -0.14, 1.10), (0.23, -0.18, 0.78)),
-                ("Forearm", (0.23, -0.18, 0.78), (0.23, -0.19, 0.44)),
-                ("ForeCannon", (0.23, -0.19, 0.44), (0.235, -0.20, 0.20)),
-                ("ForeFetlock", (0.235, -0.20, 0.20), (0.235, -0.21, 0.10)),
-                ("ForeHoof", (0.235, -0.21, 0.10), (0.235, -0.25, 0.035)),
+                ("ForeShoulder", (0.14, -0.20, 1.16), (0.16, -0.22, 0.98)),
+                ("ForeUpper", (0.16, -0.22, 0.98), (0.165, -0.23, 0.72)),
+                ("Forearm", (0.165, -0.23, 0.72), (0.165, -0.24, 0.44)),
+                ("ForeCannon", (0.165, -0.24, 0.44), (0.165, -0.245, 0.20)),
+                ("ForeFetlock", (0.165, -0.245, 0.20), (0.165, -0.255, 0.10)),
+                ("ForeHoof", (0.165, -0.255, 0.10), (0.165, -0.285, 0.035)),
             ]
-            # Hind leg (haunch -> hoof)
             hind = [
-                ("HindHaunch", (0.19, 0.22, 1.00), (0.22, 0.24, 0.86)),
-                ("HindThigh", (0.22, 0.24, 0.86), (0.23, 0.34, 0.60)),
-                ("HindGaskin", (0.23, 0.34, 0.60), (0.235, 0.27, 0.34)),
-                ("HindCannon", (0.235, 0.27, 0.34), (0.235, 0.24, 0.17)),
-                ("HindFetlock", (0.235, 0.24, 0.17), (0.235, 0.22, 0.09)),
-                ("HindHoof", (0.235, 0.22, 0.09), (0.235, 0.19, 0.035)),
+                ("HindHaunch", (0.145, 0.26, 1.04), (0.17, 0.28, 0.86)),
+                ("HindThigh", (0.17, 0.28, 0.86), (0.175, 0.35, 0.60)),
+                ("HindGaskin", (0.175, 0.35, 0.60), (0.175, 0.29, 0.36)),
+                ("HindCannon", (0.175, 0.29, 0.36), (0.175, 0.26, 0.18)),
+                ("HindFetlock", (0.175, 0.26, 0.18), (0.175, 0.24, 0.095)),
+                ("HindHoof", (0.175, 0.24, 0.095), (0.175, 0.21, 0.035)),
             ]
             for chain, parent in ((fore, "Chest"), (hind, "Hips")):
                 prev = parent
@@ -327,14 +350,14 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
                                   "parent": prev})
                     prev = name
             wing = [
-                ("WingScapula", (0.18, -0.02, 1.34), (0.34, 0.04, 1.46)),
-                ("WingHumerus", (0.34, 0.04, 1.46), (0.62, 0.02, 1.58)),
-                ("WingRadius", (0.62, 0.02, 1.58), (0.92, 0.06, 1.62)),
-                ("WingHand", (0.92, 0.06, 1.62), (1.16, 0.12, 1.60)),
-                ("PrimaryFan1", (1.00, 0.06, 1.60), (1.34, 0.16, 1.72)),
-                ("PrimaryFan2", (1.00, 0.06, 1.60), (1.30, 0.20, 1.50)),
-                ("SecondaryFan", (0.60, 0.04, 1.52), (0.88, 0.22, 1.42)),
-                ("WingCoverts", (0.36, 0.03, 1.44), (0.66, 0.20, 1.40)),
+                ("WingScapula", (0.13, -0.14, 1.24), (0.30, -0.04, 1.40)),
+                ("WingHumerus", (0.30, -0.04, 1.40), (0.60, 0.00, 1.58)),
+                ("WingRadius", (0.60, 0.00, 1.58), (0.94, 0.04, 1.70)),
+                ("WingHand", (0.94, 0.04, 1.70), (1.24, 0.10, 1.76)),
+                ("PrimaryFan1", (1.06, 0.06, 1.72), (1.44, 0.18, 1.88)),
+                ("PrimaryFan2", (1.06, 0.06, 1.72), (1.38, 0.24, 1.62)),
+                ("SecondaryFan", (0.62, 0.02, 1.56), (0.90, 0.26, 1.44)),
+                ("WingCoverts", (0.32, -0.02, 1.38), (0.64, 0.20, 1.34)),
             ]
             prev = "Withers"
             for stem, head, tail in wing:
@@ -345,13 +368,10 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
                               "parent": prev})
                 prev = name
         bones.extend([
-            # Bone stems intentionally differ from the landmark mesh names
-            # (ManeForelock / TailRoot / TailTip) so glTF node names stay unique
-            # and Godot's recursive find_child() cannot resolve the wrong node.
-            {"name": "ManeLock", "head": (0.0, -0.28, 1.48), "tail": (0.0, -0.46, 1.64), "parent": "Withers"},
-            {"name": "ManeTuft", "head": (0.0, -0.58, 1.70), "tail": (0.0, -0.62, 1.84), "parent": "Skull"},
-            {"name": "TailBase", "head": (0.0, 0.26, 1.04), "tail": (0.0, 0.38, 1.00), "parent": "Hips"},
-            {"name": "TailEnd", "head": (0.0, 0.38, 1.00), "tail": (0.0, 0.52, 0.88), "parent": "TailBase"},
+            {"name": "ManeLock", "head": (0.0, -0.34, 1.32), "tail": (0.0, -0.50, 1.56), "parent": "Withers"},
+            {"name": "ManeTuft", "head": (0.0, -0.60, 1.72), "tail": (0.0, -0.65, 1.85), "parent": "Skull"},
+            {"name": "TailBase", "head": (0.0, 0.42, 1.06), "tail": (0.0, 0.54, 1.04), "parent": "Hips"},
+            {"name": "TailEnd", "head": (0.0, 0.54, 1.04), "tail": (0.0, 0.68, 0.90), "parent": "TailBase"},
         ])
         return bones
 
@@ -373,8 +393,6 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         eb.tail = Vector(item["tail"])
         if item["parent"]:
             eb.parent = created[item["parent"]]
-        # Deterministic bone rolls: axial bones align local +Y with world +Z,
-        # wing bones use world +X as reference so flap rotations are predictable.
         ref = Vector((1.0, 0.0, 0.0)) if "Wing" in item["name"] or "Fan" in item["name"] \
             else Vector((0.0, -1.0, 0.0))
         eb.align_roll(ref)
@@ -382,165 +400,237 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
     bpy.ops.object.mode_set(mode="OBJECT")
 
     parts: list[tuple[Any, str]] = []
+    multi_weights: dict[Any, dict[int, dict[str, float]]] = {}
 
-    def bind(ob: Any, bone: str) -> Any:
+    def bind(ob: Any, bone: str, wmap: dict[int, dict[str, float]] | None = None) -> Any:
         parts.append((ob, bone))
+        if wmap is not None:
+            multi_weights[ob] = wmap
         return ob
 
-    # -------------------------------------------------------------- barrel & neck
-    bind(sphere("Barrel", (0.0, 0.02, 1.06), (0.275, 0.46, 0.28), coat, 14, 10), "Spine")
-    bind(sphere("ChestMass", (0.0, -0.30, 1.16), (0.255, 0.26, 0.27), coat, 12, 9), "Chest")
-    bind(sphere("HaunchMass", (0.0, 0.30, 1.02), (0.29, 0.27, 0.29), coat, 12, 9), "Hips")
-    bind(sphere("ShoulderMass_L", (0.185, -0.20, 1.15), (0.115, 0.16, 0.20), coat, 10, 7), "Chest")
-    bind(sphere("ShoulderMass_R", (-0.185, -0.20, 1.15), (0.115, 0.16, 0.20), coat, 10, 7), "Chest")
-    bind(sphere("GirthShadow", (0.0, -0.08, 0.90), (0.215, 0.32, 0.10), coat_shade, 12, 8), "Spine")
-    bind(tube("NeckSculpt", [Vector((0, -0.24, 1.36)), Vector((0, -0.36, 1.50)),
-                             Vector((0, -0.48, 1.62)), Vector((0, -0.56, 1.70))],
-              0.105, coat, 10, radius_y=0.125, taper_tail=0.72), "Neck1")
-    bind(sphere("WithersCrest", (0.0, -0.22, 1.45), (0.10, 0.13, 0.075), coat, 10, 7), "Withers")
+    # -------------------------------------------------------------- 1. Sleek continuous equine body + arched neck
+    # Station spec: (y, z, rx, rz_top, rz_bot, pitch_deg, bone_weights)
+    BODY_SPEC = [
+        (0.49, 1.04, 0.085, 0.080, 0.075, 10.0, {"Hips": 1.0}),
+        (0.42, 1.07, 0.165, 0.145, 0.135, 6.0, {"Hips": 1.0}),
+        (0.30, 1.09, 0.188, 0.158, 0.145, 2.0, {"Hips": 0.85, "Spine": 0.15}),
+        (0.16, 1.08, 0.168, 0.142, 0.128, 0.0, {"Hips": 0.35, "Spine": 0.65}),
+        (0.02, 1.07, 0.154, 0.138, 0.118, 0.0, {"Spine": 0.85, "Chest": 0.15}),
+        (-0.12, 1.09, 0.172, 0.158, 0.152, -4.0, {"Spine": 0.30, "Chest": 0.70}),
+        (-0.25, 1.13, 0.182, 0.178, 0.165, -10.0, {"Chest": 0.88, "Withers": 0.12}),
+        (-0.35, 1.19, 0.152, 0.165, 0.145, -24.0, {"Chest": 0.42, "Withers": 0.58}),
+        (-0.42, 1.28, 0.118, 0.142, 0.120, -40.0, {"Withers": 0.72, "Neck1": 0.28}),
+        (-0.47, 1.38, 0.098, 0.120, 0.104, -50.0, {"Withers": 0.25, "Neck1": 0.75}),
+        (-0.52, 1.49, 0.085, 0.104, 0.092, -55.0, {"Neck1": 0.78, "Neck2": 0.22}),
+        (-0.56, 1.59, 0.075, 0.090, 0.080, -54.0, {"Neck1": 0.28, "Neck2": 0.72}),
+        (-0.60, 1.67, 0.068, 0.082, 0.074, -44.0, {"Neck2": 0.75, "Skull": 0.25}),
+        (-0.63, 1.72, 0.062, 0.074, 0.068, -28.0, {"Neck2": 0.25, "Skull": 0.75}),
+    ]
+    body_stations = []
+    body_w = []
+    u_x = Vector((1.0, 0.0, 0.0))
+    for py, pz, rx, rzt, rzb, p_deg, bw in BODY_SPEC:
+        pr = math.radians(p_deg)
+        v_ax = Vector((0.0, math.sin(pr), math.cos(pr)))
+        body_stations.append((Vector((0.0, py, pz)), u_x, v_ax, rx, rzt, rzb))
+        body_w.append(bw)
+    body_ob, body_wmap = loft_sections("EquineBody", body_stations, coat, seg=14, weights_per_station=body_w)
+    bind(body_ob, "Spine", body_wmap)
 
-    # -------------------------------------------------------------- head / muzzle
-    bind(sphere("SkullMass", (0.0, -0.62, 1.71), (0.115, 0.155, 0.125), coat, 12, 9), "Skull")
-    bind(sphere("MuzzleMass", (0.0, -0.79, 1.585), (0.072, 0.092, 0.064), muzzle_mat, 12, 8,
-                rot=(math.radians(-14), 0, 0)), "Skull")
-    bind(sphere("NoseBlaze", (0.0, -0.875, 1.60), (0.052, 0.026, 0.035), coat_shade, 10, 7), "Skull")
-    bind(tube("JawSculpt", [Vector((0, -0.66, 1.60)), Vector((0, -0.76, 1.565)),
-                            Vector((0, -0.84, 1.56))], 0.055, muzzle_mat, 8, 0.070, 0.80), "Jaw")
+    # -------------------------------------------------------------- 2. Sleek sculpted equine head & spiralled horn
+    # Continuous loft from poll -> forehead -> nasal bridge -> muzzle (NO blob spheres!)
+    HEAD_SPEC = [
+        (-0.58, 1.72, 0.064, 0.072, 0.066, -15.0),
+        (-0.65, 1.73, 0.084, 0.086, 0.078, -25.0),
+        (-0.72, 1.69, 0.076, 0.078, 0.068, -36.0),
+        (-0.79, 1.64, 0.058, 0.062, 0.054, -42.0),
+        (-0.86, 1.58, 0.048, 0.050, 0.046, -42.0),
+        (-0.92, 1.54, 0.044, 0.044, 0.042, -38.0),
+    ]
+    head_stations = []
+    for py, pz, rx, rzt, rzb, p_deg in HEAD_SPEC:
+        pr = math.radians(p_deg)
+        v_ax = Vector((0.0, math.sin(pr), math.cos(pr)))
+        head_stations.append((Vector((0.0, py, pz)), u_x, v_ax, rx, rzt, rzb))
+    head_ob, _ = loft_sections("EquineHead", head_stations, coat, seg=12)
+    bind(head_ob, "Skull")
+    bind(sphere("MuzzleVelvetTip", (0.0, -0.925, 1.538), (0.043, 0.032, 0.038),
+                muzzle_mat, 10, 7, rot=(math.radians(-22), 0, 0)), "Skull")
+
     for side, sx in (("L", 1.0), ("R", -1.0)):
-        bind(cyl(f"Ear_{side}", (sx * 0.070, -0.575, 1.82), 0.030, 0.105, coat,
-                 vertices=8, radius2=0.003,
-                 rot=(math.radians(-12), 0, sx * math.radians(-16))), "Skull")
-        eye = sphere(f"Eye_{side}", (sx * 0.103, -0.688, 1.735), (0.027, 0.032, 0.027),
-                     eye_blue, 10, 7)
-        bind(eye, "Skull")
-        bind(sphere(f"Pupil_{side}", (sx * 0.126, -0.703, 1.738), (0.011, 0.014, 0.014),
+        bind(cyl(f"Ear_{side}", (sx * 0.058, -0.64, 1.83), 0.024, 0.115, coat,
+                 vertices=8, radius2=0.002,
+                 rot=(math.radians(-10), 0, sx * math.radians(-14))), "Skull")
+        bind(sphere(f"Eye_{side}", (sx * 0.072, -0.715, 1.712), (0.018, 0.026, 0.021),
+                    eye_blue, 10, 7, rot=(0.0, 0.0, sx * math.radians(14))), "Skull")
+        bind(sphere(f"Pupil_{side}", (sx * 0.086, -0.726, 1.714), (0.008, 0.012, 0.012),
                     pupil_dark, 8, 6), "Skull")
-        bind(sphere(f"EyeGlint_{side}", (sx * 0.132, -0.713, 1.747), (0.005, 0.006, 0.005),
+        bind(sphere(f"EyeGlint_{side}", (sx * 0.090, -0.733, 1.722), (0.004, 0.005, 0.004),
                     coat, 6, 5), "Skull")
 
-    # -------------------------------------------------------------- spiralled horn
-    horn_base = Vector((0.0, -0.715, 1.795))
-    horn_tip = Vector((0.0, -0.905, 2.075))
+    # Slender spiralled golden horn
+    horn_base = Vector((0.0, -0.71, 1.79))
+    horn_tip = Vector((0.0, -0.96, 2.13))
     horn_axis = (horn_tip - horn_base).normalized()
     h_u, h_v = _orthonormal_frame(horn_axis)
-    bind(cyl("HornBase", tuple(horn_base), 0.048, 0.036, gold, vertices=10,
+    bind(cyl("HornBase", tuple(horn_base), 0.036, 0.032, gold, vertices=10,
              rot=tuple(horn_axis.to_track_quat("Z", "Y").to_euler())), "Skull")
-    bind(cyl("HornCollar", tuple(horn_base - horn_axis * 0.008), 0.054, 0.020, gold, vertices=12,
+    bind(cyl("HornCollar", tuple(horn_base - horn_axis * 0.006), 0.042, 0.016, gold, vertices=10,
              rot=tuple(horn_axis.to_track_quat("Z", "Y").to_euler())), "Skull")
     for i in range(9):
-        t0 = i / 9.0
-        t1 = (i + 1) / 9.0
-        r0 = 0.043 * (1.0 - t0 * 0.94)
-        r1 = 0.043 * (1.0 - t1 * 0.94)
+        t0, t1 = i / 9.0, (i + 1) / 9.0
+        r0 = 0.034 * (1.0 - t0 * 0.94)
+        r1 = 0.034 * (1.0 - t1 * 0.94)
         c0 = horn_base + (horn_tip - horn_base) * t0
         c1 = horn_base + (horn_tip - horn_base) * t1
         ang = t0 * math.pi * 5.0
-        c0 += (h_u * math.cos(ang) + h_v * math.sin(ang)) * r0 * 0.34
-        c1 += (h_u * math.cos(ang + math.pi * 0.55)
-               + h_v * math.sin(ang + math.pi * 0.55)) * r1 * 0.34
-        seg = cyl(f"HornSpiral_{i:02d}", tuple((c0 + c1) * 0.5), max(r0, 0.004),
+        c0 += (h_u * math.cos(ang) + h_v * math.sin(ang)) * r0 * 0.30
+        c1 += (h_u * math.cos(ang + math.pi * 0.55) + h_v * math.sin(ang + math.pi * 0.55)) * r1 * 0.30
+        seg = cyl(f"HornSpiral_{i:02d}", tuple((c0 + c1) * 0.5), max(r0, 0.003),
                   (c1 - c0).length * 1.06, gold, vertices=8, radius2=max(r1, 0.002),
                   rot=tuple((c1 - c0).normalized().to_track_quat("Z", "Y").to_euler()))
         bind(seg, "Skull")
-    bind(sphere("HornTip", tuple(horn_tip), (0.013, 0.013, 0.017), horn_glow, 8, 6), "Skull")
+    bind(sphere("HornTip", tuple(horn_tip), (0.012, 0.012, 0.016), horn_glow, 8, 6), "Skull")
     for side, sx in (("L", 1.0), ("R", -1.0)):
-        bind(sphere(f"HornMuzzle_{side}", (sx * 0.026, -0.724, 1.806),
-                    (0.010, 0.010, 0.010), horn_glow, 8, 6), "Skull")
+        bind(sphere(f"HornMuzzle_{side}", (sx * 0.022, -0.72, 1.80),
+                    (0.009, 0.009, 0.009), horn_glow, 8, 6), "Skull")
 
-    # -------------------------------------------------------------- legs & hooves
+    # -------------------------------------------------------------- 3. Sleek continuous tapered equine legs + hooves
     for side, sx in (("L", 1.0), ("R", -1.0)):
-        for tag, chain in (("F", ("ForeShoulder", "ForeUpper", "Forearm", "ForeCannon", "ForeFetlock")),
-                           ("R", ("HindHaunch", "HindThigh", "HindGaskin", "HindCannon", "HindFetlock"))):
-            for stem in chain:
-                name = f"{stem}.{side}"
-                h, t = heads[name], tails[name]
-                ax = (t - h).normalized()
-                radius = 0.054 if "Shoulder" in stem or "Haunch" in stem else \
-                    (0.046 if "Upper" in stem or "Thigh" in stem else 0.028)
-                if "Cannon" in stem or "Fetlock" in stem:
-                    radius = 0.022
-                ob = cyl(f"Leg_{name}", tuple((h + t) * 0.5), radius, (t - h).length * 1.02,
-                         coat, vertices=8, radius2=radius * 0.82,
-                         rot=tuple(ax.to_track_quat("Z", "Y").to_euler()))
-                bind(ob, name)
+        for tag, chain, radii in (
+            ("F", ("ForeShoulder", "ForeUpper", "Forearm", "ForeCannon", "ForeFetlock"),
+             (0.068, 0.048, 0.032, 0.023, 0.025, 0.021)),
+            ("R", ("HindHaunch", "HindThigh", "HindGaskin", "HindCannon", "HindFetlock"),
+             (0.074, 0.052, 0.035, 0.024, 0.026, 0.021)),
+        ):
+            pts = [heads[f"{chain[0]}.{side}"]] + [tails[f"{s}.{side}"] for s in chain]
+            leg_stations = []
+            leg_w = []
+            v_fwd = Vector((0.0, -1.0, 0.0))
+            for k, pt in enumerate(pts):
+                r = radii[k]
+                leg_stations.append((pt, u_x, v_fwd, r, r * 1.12, r * 1.08))
+                b_idx = min(k, len(chain) - 1)
+                leg_w.append({f"{chain[b_idx]}.{side}": 1.0})
+            leg_ob, leg_wmap = loft_sections(f"LegChain_{tag}{side}", leg_stations, coat, seg=8,
+                                             weights_per_station=leg_w)
+            bind(leg_ob, f"{chain[0]}.{side}", leg_wmap)
+
             hoof_name = f"{'ForeHoof' if tag == 'F' else 'HindHoof'}.{side}"
             h, t = heads[hoof_name], tails[hoof_name]
             hoof = cyl(f"Hoof_{'F' if tag == 'F' else 'R'}{side}",
-                       tuple((h + t) * 0.5), 0.047, (t - h).length * 1.06, hoof_gold,
-                       vertices=8, radius2=0.055,
+                       tuple((h + t) * 0.5), 0.035, (t - h).length * 1.05, hoof_gold,
+                       vertices=8, radius2=0.042,
                        rot=tuple((t - h).normalized().to_track_quat("Z", "Y").to_euler()))
             bind(hoof, hoof_name)
-            bind(cyl(f"FetlockTuft_{tag}{side}", (h.x, h.y + 0.006, h.z + 0.018),
-                     0.038, 0.052, coat_shade, vertices=8, radius2=0.022), hoof_name)
-            bind(sphere(f"FetlockGem_{tag}{side}", (h.x, h.y, h.z + 0.035),
-                        (0.016, 0.016, 0.016), mane_lav, 8, 6), hoof_name)
+            # Swept-back delicate pastel fetlock feather blade (no chunky cone!)
+            bind(tube(f"FetlockFeather_{tag}{side}",
+                      [h + Vector((0, 0.010, 0.035)),
+                       h + Vector((0, 0.045, 0.015)),
+                       h + Vector((0, 0.070, -0.015))],
+                      0.008, mane_lav, 4, 0.022, 0.25), hoof_name)
 
-    # -------------------------------------------------------------- wings
+    # -------------------------------------------------------------- 4. Broad, sweeping angelic feathered wings
     feather_mats = (feather_pink, feather_lav, feather_cyan, feather_gold)
     for side, sx in (("L", 1.0), ("R", -1.0)):
-        # Leading-edge membrane/coverts landmark (Wing_L / Wing_R).
-        coverts_pts = [Vector((sx * 0.30, 0.02, 1.42)),
-                       Vector((sx * 0.58, 0.02, 1.54)),
-                       Vector((sx * 0.90, 0.06, 1.60)),
-                       Vector((sx * 1.16, 0.12, 1.58))]
-        bind(tube(f"Wing_{side}", coverts_pts, 0.045, coat_shade, 8, 0.075, 0.90),
-             f"WingHand.{side}")
-        # Layered feather fan: 12 long primaries + 8 secondaries per wing,
-        # each split into a root and a tip segment for the colour gradient.
+        arm_pts = [
+            Vector((sx * 0.13, -0.14, 1.24)),
+            Vector((sx * 0.34, -0.04, 1.42)),
+            Vector((sx * 0.64, 0.00, 1.60)),
+            Vector((sx * 0.96, 0.04, 1.72)),
+            Vector((sx * 1.24, 0.10, 1.76)),
+        ]
+        bind(tube(f"Wing_{side}", arm_pts, 0.032, coat, 8, 0.056, 0.72), f"WingHand.{side}")
         feather_specs: list[tuple[Vector, Vector, str, Any, Any]] = []
         for i in range(12):
             u = i / 11.0
-            root = Vector((sx * (0.98 + u * 0.20), 0.07 + u * 0.05, 1.62 - u * 0.10))
-            tip = Vector((sx * (1.24 + u * 0.42), 0.22 + u * 0.30, 1.74 - u * 0.52))
+            root = Vector((sx * (0.94 + u * 0.26), 0.04 + u * 0.05, 1.72 - u * 0.08))
+            tip = Vector((sx * (1.28 + u * 0.44), 0.22 + u * 0.28, 1.90 - u * 0.54))
             bone = "PrimaryFan1" if i < 6 else "PrimaryFan2"
-            mat_a = feather_mats[i % 2]
-            mat_b = feather_cyan if i % 3 else feather_gold
-            feather_specs.append((root, tip, bone, mat_a, mat_b))
+            feather_specs.append((root, tip, bone, feather_mats[i % 2],
+                                  feather_cyan if i % 3 else feather_gold))
         for i in range(8):
             u = i / 7.0
-            root = Vector((sx * (0.48 + u * 0.40), 0.08, 1.50 - u * 0.06))
-            tip = Vector((sx * (0.72 + u * 0.44), 0.30 + u * 0.14, 1.36 - u * 0.24))
+            root = Vector((sx * (0.42 + u * 0.48), 0.02 + u * 0.03, 1.48 + u * 0.16))
+            tip = Vector((sx * (0.64 + u * 0.46), 0.32 + u * 0.16, 1.34 - u * 0.16))
             bone = "SecondaryFan" if i < 5 else "WingCoverts"
             feather_specs.append((root, tip, bone, feather_pink, feather_lav))
         for fi, (root, tip, bone, mat_root, mat_tip) in enumerate(feather_specs):
             mid = root + (tip - root) * 0.56
             bind(tube(f"FeatherRoot_{side}_{fi:02d}",
                       [root, root + (mid - root) * 0.5, mid],
-                      0.014, mat_root, 5, 0.048, 0.78), f"{bone}.{side}")
+                      0.009, mat_root, 4, 0.058, 0.82), f"{bone}.{side}")
             bind(tube(f"FeatherTip_{side}_{fi:02d}",
                       [mid, mid + (tip - mid) * 0.5, tip],
-                      0.011, mat_tip, 5, 0.040, 0.24), f"{bone}.{side}")
-        # Small shoulder covert row hides the wing-root hinge.
+                      0.007, mat_tip, 4, 0.050, 0.22), f"{bone}.{side}")
         for i in range(5):
             u = i / 4.0
-            root = Vector((sx * (0.28 + u * 0.06), 0.02, 1.40 + u * 0.045))
-            tip = Vector((sx * (0.46 + u * 0.10), 0.20 + u * 0.03, 1.36 + u * 0.05))
+            root = Vector((sx * (0.18 + u * 0.14), -0.08 + u * 0.04, 1.32 + u * 0.08))
+            tip = Vector((sx * (0.34 + u * 0.18), 0.16 + u * 0.06, 1.28 + u * 0.04))
             bind(tube(f"Covert_{side}_{i}", [root, (root + tip) * 0.5, tip],
-                      0.010, feather_pink if i % 2 else feather_lav, 5, 0.028, 0.34),
+                      0.008, feather_pink if i % 2 else feather_lav, 4, 0.036, 0.32),
                  f"WingScapula.{side}")
-        bind(sphere(f"WingBridge_{side}", (sx * 0.21, -0.02, 1.32),
-                    (0.075, 0.11, 0.075), coat, 8, 6), f"WingScapula.{side}")
 
-    # -------------------------------------------------------------- "Lea" brand on right butt cheek
-    # Conforms to the right (-X, +Y) flank of HaunchMass ((0, 0.30, 1.02), radii=(0.29, 0.27, 0.29)).
-    # phi goes 60 deg (closer to tail = viewer's left 'L') -> 12 deg (right flank = viewer's right 'a').
+    # -------------------------------------------------------------- 5. Lush flowing mane & tail
+    for i in range(14):
+        u = i / 13.0
+        y0 = -0.34 - u * 0.28
+        z0 = 1.28 + u * 0.42
+        root = Vector((math.sin(u * math.pi) * 0.045, y0, z0))
+        mid = root + Vector((0.045 + math.sin(u * 5.0) * 0.035, 0.08, -0.06))
+        tip = mid + Vector((0.030 + math.sin(u * 5.0 + 1.1) * 0.045, 0.08, -0.18 - 0.10 * u))
+        bone = "ManeLock" if i < 10 else "ManeTuft"
+        bind(tube(f"ManeStrand_{i:02d}", [root, mid, tip], 0.016,
+                  mane_pink if i % 3 else mane_lav, 4, 0.038, 0.22), bone)
+    bind(tube("ManeForelock", [Vector((0, -0.60, 1.74)), Vector((0.01, -0.64, 1.82)),
+                               Vector((0.02, -0.68, 1.88))], 0.018, mane_pink, 5, 0.030, 0.28),
+         "ManeTuft")
+    for i in range(10):
+        u = i / 9.0
+        root = Vector((math.sin(u * 4.0) * 0.025, 0.47, 1.05 - u * 0.02))
+        mid = root + Vector((math.sin(u * 5.0) * 0.06, 0.18, -0.05))
+        tip = mid + Vector((math.sin(u * 5.0 + 0.8) * 0.09, 0.22 + u * 0.05, -0.22 - 0.08 * u))
+        bone = "TailBase" if i < 5 else "TailEnd"
+        bind(tube(f"TailStrand_{i:02d}", [root, mid, tip], 0.018,
+                  mane_pink if i % 3 else mane_lav, 4, 0.042, 0.20), bone)
+    bind(tube("TailRoot", [Vector((0, 0.42, 1.06)), Vector((0, 0.54, 1.03)),
+                           Vector((0, 0.66, 0.90))], 0.028, mane_lav, 6, 0.042, 0.42),
+         "TailBase")
+
+    # -------------------------------------------------------------- 6. BIGGER, CLEARER "Lea" brand on right butt cheek
+    # Samples the sleek croup (-X flank, y=+0.42 rear -> +0.16 front hip) so "Lea" sits flush & un-mirrored.
     LB_NU, LB_NV = 10, 6
     bm_lb = bmesh.new()
     uv_lb = bm_lb.loops.layers.uv.new("UVMap")
     lb_out_grid: list[list[Any]] = []
     lb_in_grid: list[list[Any]] = []
+
+    def _croup_pt(u_c: float, v_c: float, offset_m: float) -> Vector:
+        # u=0 at rear (+Y, 'L') -> u=1 at front hip (-Y, 'a')
+        y = 0.42 - u_c * 0.26
+        # Interpolate croup radii smoothly across y in [0.16..0.42]
+        t_y = (0.42 - y) / 0.26
+        rx = 0.168 + 0.020 * math.sin(t_y * math.pi)
+        rz_t = 0.148 + 0.012 * math.sin(t_y * math.pi)
+        rz_b = 0.138 + 0.010 * math.sin(t_y * math.pi)
+        zc = 1.07 + 0.02 * math.sin(t_y * math.pi)
+        ang = math.radians(-30.0 + v_c * 64.0)  # vertical span across right flank
+        ca, sa = math.cos(ang), math.sin(ang)
+        rz = rz_t if sa >= 0.0 else rz_b
+        nx, nz = -ca, sa
+        n_len = math.hypot(nx, nz)
+        return Vector((-rx * ca + offset_m * (nx / n_len),
+                       y,
+                       zc + rz * sa + offset_m * (nz / n_len)))
+
     for j in range(LB_NV + 1):
         v_c = j / float(LB_NV)
-        theta = math.radians(-12.0 + v_c * 44.0)
         orow: list[Any] = []
         irow: list[Any] = []
         for i in range(LB_NU + 1):
             u_c = i / float(LB_NU)
-            phi = math.radians(60.0 - u_c * 48.0)
-            ct, st = math.cos(theta), math.sin(theta)
-            cp, sp = math.cos(phi), math.sin(phi)
-            vo = bm_lb.verts.new((-0.29 * 1.018 * ct * cp, 0.30 + 0.27 * 1.018 * ct * sp, 1.02 + 0.29 * 1.018 * st))
-            vi = bm_lb.verts.new((-0.29 * 0.985 * ct * cp, 0.30 + 0.27 * 0.985 * ct * sp, 1.02 + 0.29 * 0.985 * st))
+            vo = bm_lb.verts.new(_croup_pt(u_c, v_c, 0.005))
+            vi = bm_lb.verts.new(_croup_pt(u_c, v_c, -0.005))
             orow.append((vo, u_c, v_c))
             irow.append(vi)
         lb_out_grid.append(orow)
@@ -590,36 +680,20 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
     smooth(lb_ob)
     bind(lb_ob, "Hips")
 
-    # -------------------------------------------------------------- mane & tail
-    for i in range(15):
-        u = i / 14.0
-        y0 = -0.28 - u * 0.32
-        z0 = 1.45 + u * 0.26
-        root = Vector((math.sin(u * math.pi) * 0.085, y0, z0 + 0.012))
-        mid = root + Vector((math.sin(u * 6.0) * 0.055, 0.060, -0.080))
-        tip = mid + Vector((math.sin(u * 6.0 + 1.0) * 0.075, 0.060, -0.18 - 0.10 * u))
-        bone = "ManeLock" if i < 11 else "ManeTuft"
-        bind(tube(f"ManeStrand_{i:02d}", [root, mid, tip], 0.021,
-                  mane_pink if i % 3 else mane_lav, 5, 0.034, 0.22), bone)
-    bind(tube("ManeForelock", [Vector((0, -0.57, 1.72)), Vector((0.01, -0.60, 1.80)),
-                               Vector((0.02, -0.64, 1.86))], 0.020, mane_pink, 6, 0.032, 0.30),
-         "ManeTuft")
-    for i in range(11):
-        u = i / 10.0
-        root = Vector((math.sin(u * 4.0) * 0.035, 0.28, 1.03 - u * 0.02))
-        mid = root + Vector((math.sin(u * 5.0) * 0.06, 0.16, -0.035))
-        tip = mid + Vector((math.sin(u * 5.0 + 0.8) * 0.10, 0.20 + u * 0.05, -0.14 - u * 0.06))
-        bone = "TailBase" if i < 6 else "TailEnd"
-        bind(tube(f"TailStrand_{i:02d}", [root, mid, tip], 0.023,
-                  mane_pink if i % 3 else mane_lav, 5, 0.038, 0.20), bone)
-    bind(tube("TailRoot", [Vector((0, 0.26, 1.05)), Vector((0, 0.38, 1.00)),
-                           Vector((0, 0.50, 0.90))], 0.031, mane_lav, 7, 0.045, 0.44),
-         "TailBase")
-
-    # -------------------------------------------------------------- rigid skin binding
+    # -------------------------------------------------------------- skin binding (multi-bone + rigid)
     for ob, bone_name in parts:
-        vg = ob.vertex_groups.new(name=bone_name)
-        vg.add(list(range(len(ob.data.vertices))), 1.0, "REPLACE")
+        if ob in multi_weights:
+            w_by_bone: dict[str, list[tuple[int, float]]] = defaultdict(list)
+            for vi, bmap in multi_weights[ob].items():
+                for bname, wval in bmap.items():
+                    w_by_bone[bname].append((vi, wval))
+            for bname, entries in w_by_bone.items():
+                vg = ob.vertex_groups.new(name=bname)
+                for vi, wval in entries:
+                    vg.add([vi], wval, "REPLACE")
+        else:
+            vg = ob.vertex_groups.new(name=bone_name)
+            vg.add(list(range(len(ob.data.vertices))), 1.0, "REPLACE")
         ob.parent = arm
         mod = ob.modifiers.new(name="LeaSkin", type="ARMATURE")
         mod.object = arm
@@ -627,10 +701,11 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         mod.use_bone_envelopes = False
 
     # -------------------------------------------------------------- batch by bone + material
+    KEEP_SEPARATE = LANDMARKS | {"EquineBody", "EquineHead", "LegChain_FL", "LegChain_FR", "LegChain_RL", "LegChain_RR"}
     batches: dict[tuple[str, str], list[Any]] = defaultdict(list)
     merged: list[tuple[Any, str]] = []
     for ob, bone_name in parts:
-        if ob.name in LANDMARKS:
+        if ob.name in KEEP_SEPARATE:
             merged.append((ob, bone_name))
             continue
         mat_name = ob.data.materials[0].name if ob.data.materials else ""
@@ -657,8 +732,6 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
     for pb in pose:
         pb.rotation_mode = "XYZ"
 
-    # Axis assertions: body local +Y must lift the hips in world +Z; foreleg
-    # +X must swing the knee forward (-Y); wing +Z must lift the wingtip.
     pose["Hips"].location = (0.0, 0.10, 0.0)
     bpy.context.view_layer.update()
     assert pose["Hips"].head.z > heads["Hips"].z + 0.05, "Hips local +Y is not world +Z"
@@ -718,7 +791,6 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         arm.animation_data.action = None
 
     def _wing_fold(pb: Any, amount: float, flap: float = 0.0) -> None:
-        """amount 0 = relaxed, 1 = fully expanded; flap is a global up/down stroke."""
         for side in ("L", "R"):
             sign = 1.0 if side == "L" else -1.0
             pb[f"WingScapula.{side}"].rotation_euler = (0.0, 0.0, sign * (0.10 + 0.22 * amount))
@@ -751,7 +823,6 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         _wing_fold(pb, 0.32, flap=0.04 * math.sin(t))
         _flow(pb, u, 0.55)
 
-    # Four-beat gallop knots: fore L/R then hind L/R, phase shifted per leg.
     FORE_KNOTS = (0.72, 0.18, -0.62, -0.38, 0.10, 0.86, 1.02, 0.84)
     HIND_KNOTS = (-0.30, -0.58, -0.12, 0.82, 1.06, 0.62, -0.10, -0.34)
     CANNON_KNOTS = (0.08, 0.22, -0.30, -0.52, -0.18, 0.14, 0.20, 0.10)
@@ -784,7 +855,6 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         _flow(pb, u, 1.0)
 
     def wingspread(pb: Any, u: float) -> None:
-        """Charge-up pose: wings expand and the horn levels at the target."""
         env = math.sin(min(u, 1.0) * math.pi)
         pb["Hips"].location = (0.0, 0.045 * env, 0.0)
         pb["Chest"].rotation_euler = (-0.16 * env, 0.0, 0.0)
@@ -795,7 +865,6 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         _flow(pb, u * 0.5, 0.8)
 
     def boom(pb: Any, u: float) -> None:
-        """Leap -> full wing expansion -> powered flight -> strike touchdown."""
         env = math.sin(min(u, 1.0) * math.pi)
         flight = min(1.0, u / 0.35) if u < 0.72 else max(0.0, (1.0 - u) / 0.28)
         pb["Hips"].location = (0.0, 0.36 * env, 0.0)
@@ -817,8 +886,6 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
     commit("Action_WingSpread", 24, wingspread)
     commit("UnicornBoom_Flight", 36, boom)
 
-    # World-space proof: at the charge peak the wings must expand outward and
-    # lift relative to the relaxed idle pose (guards against flipped bone axes).
     arm.animation_data.use_nla = False
     for pb in pose:
         pb.rotation_euler = (0.0, 0.0, 0.0)
@@ -928,10 +995,10 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         "pbr_palette_srgb": ["#dee6f7", "#f25cb5", "#bd85ef", "#6fd8f4", "#f2b83d"],
         "rig": {
             "bone_count": BONE_COUNT, "profile": "creature-winged-equine",
-            "actions": list(ACTION_NAMES), "skinning": "rigid-1.0-vertex-groups",
+            "actions": list(ACTION_NAMES), "skinning": "smooth-anatomical-loft",
         },
         "notes": ("Authored dimension spec for the stylized Lea Unicorn references in "
-                  "docs/plans/Designs/Lea unicorn/. Winged unicorn vehicle stand-in, "
+                  "docs/plans/Designs/Lea unicorn/. Sleek anatomical winged unicorn, "
                   "ground datum minZ=0.000."),
     }
     manifest_path = os.path.join(REPO_ROOT, "lea_spatial_manifest.json")
@@ -965,9 +1032,6 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
     )
     print("GLB_SAVED", glb_path)
 
-    # QA exports the REST pose: the GLB above is authored at frame 1 with NLA
-    # strips active, so leaving that evaluated pose in the armature would make
-    # the STL bbox disagree with the manifest (the QA reviewer rejects >2.5%).
     arm.animation_data.use_nla = False
     for pb in pose:
         pb.rotation_euler = (0.0, 0.0, 0.0)
@@ -991,10 +1055,9 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
             "front": ((0.0, -3.4, 1.25), 40, (0, 0, 1.15)),
             "side": ((3.4, 0.0, 1.20), 40, (0, 0, 1.10)),
             "back": ((0.0, 3.4, 1.25), 40, (0, 0, 1.15)),
-            "right_cheek": ((-1.65, 1.15, 1.12), 48, (-0.18, 0.36, 1.04)),
+            "right_cheek": ((-1.35, 0.85, 1.12), 48, (-0.14, 0.28, 1.07)),
             "iso": ((2.6, -3.0, 2.1), 42, (0, 0, 1.15)),
         }
-        cam.data.lens = 40
         for name, (loc, lens, target) in views.items():
             cam.location = loc
             cam.data.lens = lens

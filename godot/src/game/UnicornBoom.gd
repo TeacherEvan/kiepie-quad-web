@@ -9,7 +9,7 @@ signal impacted(point: Vector3)
 
 const FALL_DURATION := 2.0
 const BLAST_RADIUS := 7.5
-const APEX_HEIGHT := 6.2
+const APEX_HEIGHT := 8.0
 const VFX := preload("res://src/game/VfxFactory.gd")
 const COMBAT_AOE := preload("res://src/game/CombatAoe.gd")
 
@@ -26,6 +26,10 @@ var visual_style := "unicorn_boom"
 var _age := 0.0
 var _armed := false
 var _detonated := false
+var _carrying_owner := false
+var _saved_layer := 1
+var _saved_mask := 1
+var _flight_dir := Vector3.FORWARD
 var _start_pos := Vector3.ZERO
 var _flight: Node3D = null
 var _trail: GPUParticles3D = null
@@ -138,15 +142,93 @@ func setup(p_owner_id: String, p_owner_node: Node, p_target_pos: Vector3,
 	_age = 0.0
 	_armed = true
 	_detonated = false
+	_carrying_owner = false
 	_start_pos = (p_owner_node as Node3D).global_position if p_owner_node is Node3D else target_pos
+	var flat_delta := Vector3(target_pos.x - _start_pos.x, 0.0, target_pos.z - _start_pos.z)
+	if flat_delta.length_squared() > 1e-4:
+		_flight_dir = flat_delta.normalized()
+	elif p_owner_node is Node3D:
+		var fwd := (p_owner_node as Node3D).global_transform.basis.z
+		fwd.y = 0.0
+		_flight_dir = fwd.normalized() if fwd.length_squared() > 1e-4 else Vector3.FORWARD
+	else:
+		_flight_dir = Vector3.FORWARD
 	global_position = _start_pos
-	global_position.y = maxf(0.0, _start_pos.y) + 0.6
+	global_position.y = maxf(0.55, _start_pos.y)
 	var model := p_owner_node.get_node_or_null("Model") if is_instance_valid(p_owner_node) else null
 	if model != null and model.has_method("trigger_boom"):
-		model.call("trigger_boom")
+		model.call("trigger_boom", fall_duration + 0.15)
+	if p_owner_node is VehicleBody3D:
+		_begin_owner_flight()
 	_ensure_meshes()
 	_build_flight()
 	add_to_group("meteor_strike")
+
+
+func _begin_owner_flight() -> void:
+	var bike := owner_node as VehicleBody3D
+	if bike == null or not is_instance_valid(bike):
+		return
+	var combat := bike.get_node_or_null("CombatController")
+	if combat != null and "alive" in combat and not bool(combat.get("alive")):
+		return
+	_carrying_owner = true
+	_saved_layer = bike.collision_layer
+	_saved_mask = bike.collision_mask
+	# Zero wheel forces and disable collision BEFORE freeze=true to avoid VehicleBody3D NaN.
+	var wheels_v: Variant = bike.get("_wheels")
+	if wheels_v is Dictionary:
+		for w in (wheels_v as Dictionary).values():
+			if w is VehicleWheel3D and is_instance_valid(w):
+				(w as VehicleWheel3D).engine_force = 0.0
+				(w as VehicleWheel3D).brake = 0.0
+				(w as VehicleWheel3D).steering = 0.0
+	bike.collision_layer = 0
+	bike.collision_mask = 0
+	bike.linear_velocity = Vector3.ZERO
+	bike.angular_velocity = Vector3.ZERO
+	if bike.get_rid().is_valid():
+		PhysicsServer3D.body_set_state(bike.get_rid(), PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO)
+		PhysicsServer3D.body_set_state(bike.get_rid(), PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
+	bike.set_physics_process(false)
+	bike.freeze = true
+
+
+func _end_owner_flight(land_at_target: bool) -> void:
+	if not _carrying_owner:
+		return
+	_carrying_owner = false
+	var bike := owner_node as VehicleBody3D
+	if bike == null or not is_instance_valid(bike):
+		return
+	var combat := bike.get_node_or_null("CombatController")
+	if combat != null and "alive" in combat and not bool(combat.get("alive")):
+		return
+	var land_pos := Vector3(target_pos.x, maxf(0.0, target_pos.y) + 0.55, target_pos.z) \
+			if land_at_target else Vector3(bike.global_position.x, maxf(0.55, bike.global_position.y), bike.global_position.z)
+	var fwd := _flight_dir
+	fwd.y = 0.0
+	fwd = fwd.normalized() if fwd.length_squared() > 1e-4 else Vector3.FORWARD
+	var land_basis := Basis.looking_at(-fwd, Vector3.UP).orthonormalized()
+	var land_xf := Transform3D(land_basis, land_pos)
+	bike.global_transform = land_xf
+	bike.linear_velocity = Vector3.ZERO
+	bike.angular_velocity = Vector3.ZERO
+	if bike.get_rid().is_valid():
+		PhysicsServer3D.body_set_state(bike.get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, land_xf)
+		PhysicsServer3D.body_set_state(bike.get_rid(), PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO)
+		PhysicsServer3D.body_set_state(bike.get_rid(), PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
+		PhysicsServer3D.body_set_state(bike.get_rid(), PhysicsServer3D.BODY_STATE_SLEEPING, false)
+	# Unfreeze BEFORE re-enabling collision so VehicleBody3D never steps frozen with active contacts.
+	bike.freeze = false
+	bike.collision_layer = _saved_layer
+	bike.collision_mask = _saved_mask
+	bike.set_physics_process(true)
+	var tree := get_tree()
+	if tree != null:
+		var cam := tree.get_first_node_in_group("camera_rig")
+		if cam != null and cam.has_method("snap_to_target"):
+			cam.call_deferred("snap_to_target")
 
 
 func _build_flight() -> void:
@@ -156,27 +238,30 @@ func _build_flight() -> void:
 	_telegraph.global_position = Vector3(target_pos.x, maxf(0.0, target_pos.y) + 0.04, target_pos.z)
 	if get_tree() != null and get_tree().current_scene is Node3D:
 		(get_tree().current_scene as Node3D).add_child(_telegraph)
-	_flight = Node3D.new()
-	_flight.name = "FlightUnicorn"
-	add_child(_flight)
-	var body := MeshInstance3D.new()
-	body.name = "FlightBody"
-	body.mesh = _body_mesh
-	body.rotation_degrees.x = 90.0
-	_flight.add_child(body)
-	for side in [-1.0, 1.0]:
-		var wing := MeshInstance3D.new()
-		wing.name = "FlightWing%s" % ("L" if side > 0.0 else "R")
-		wing.mesh = _wing_mesh
-		wing.position = Vector3(side * 0.68, 0.10, -0.08)
-		wing.rotation_degrees.z = side * -12.0
-		_flight.add_child(wing)
-	var horn := MeshInstance3D.new()
-	horn.name = "FlightHorn"
-	horn.mesh = _horn_mesh
-	horn.rotation_degrees.x = -90.0
-	horn.position = Vector3(0.0, 0.02, -0.72)
-	_flight.add_child(horn)
+	# Only spawn a fallback proxy glider when there is no real unicorn owner_node;
+	# when owner_node exists, the actual Lea Unicorn flies through the air!
+	if not is_instance_valid(owner_node):
+		_flight = Node3D.new()
+		_flight.name = "FlightUnicorn"
+		add_child(_flight)
+		var body := MeshInstance3D.new()
+		body.name = "FlightBody"
+		body.mesh = _body_mesh
+		body.rotation_degrees.x = 90.0
+		_flight.add_child(body)
+		for side in [-1.0, 1.0]:
+			var wing := MeshInstance3D.new()
+			wing.name = "FlightWing%s" % ("L" if side > 0.0 else "R")
+			wing.mesh = _wing_mesh
+			wing.position = Vector3(side * 0.68, 0.10, -0.08)
+			wing.rotation_degrees.z = side * -12.0
+			_flight.add_child(wing)
+		var horn := MeshInstance3D.new()
+		horn.name = "FlightHorn"
+		horn.mesh = _horn_mesh
+		horn.rotation_degrees.x = -90.0
+		horn.position = Vector3(0.0, 0.02, -0.72)
+		_flight.add_child(horn)
 	if not Settings.reduced_motion() and Settings.quality_multiplier() > 0.0:
 		_trail = GPUParticles3D.new()
 		_trail.name = "RainbowTrail"
@@ -217,6 +302,7 @@ func _release_light() -> void:
 
 
 func _exit_tree() -> void:
+	_end_owner_flight(false)
 	_release_light()
 	if is_instance_valid(_telegraph):
 		_telegraph.queue_free()
@@ -227,16 +313,36 @@ func _physics_process(delta: float) -> void:
 		return
 	_age += delta
 	var t := clampf(_age / fall_duration, 0.0, 1.0)
-	var flat := _start_pos.lerp(target_pos, t)
+	var t_ease := t * t * (3.0 - 2.0 * t)
+	var flat := _start_pos.lerp(target_pos, t_ease)
 	var arc := sin(t * PI) * APEX_HEIGHT
-	var y := lerpf(maxf(0.0, _start_pos.y) + 0.6, maxf(0.0, target_pos.y) + 0.5, t) + arc
+	var y := lerpf(maxf(0.55, _start_pos.y), maxf(0.0, target_pos.y) + 0.55, t) + arc
 	var next := Vector3(flat.x, y, flat.z)
 	var dir := next - global_position
 	if dir.length_squared() > 1e-6:
 		global_position = next
+		var dn := dir.normalized()
+		if _carrying_owner:
+			var bike := owner_node as VehicleBody3D
+			if not is_instance_valid(bike):
+				_carrying_owner = false
+			else:
+				var combat := bike.get_node_or_null("CombatController")
+				if combat != null and "alive" in combat and not bool(combat.get("alive")):
+					_carrying_owner = false
+				else:
+					var horiz := Vector3(dn.x, 0.0, dn.z)
+					var fwd_h := horiz.normalized() if horiz.length_squared() > 1e-4 else _flight_dir
+					var pitch_y := clampf(dn.y, -0.68, 0.68)
+					var orient_dir := (fwd_h + Vector3(0.0, pitch_y, 0.0)).normalized()
+					# VehicleBody3D / Lea_Unicorn.glb faces +Z forward: Basis.looking_at(-dir) aims +Z along orient_dir.
+					var xf := Transform3D(Basis.looking_at(-orient_dir, Vector3.UP).orthonormalized(), next)
+					bike.global_transform = xf
+					if bike.get_rid().is_valid():
+						PhysicsServer3D.body_set_state(bike.get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, xf)
 		if _flight != null:
-			var up := Vector3.UP if absf(dir.normalized().y) < 0.99 else Vector3.FORWARD
-			_flight.basis = Basis.looking_at(dir.normalized(), up)
+			var up := Vector3.UP if absf(dn.y) < 0.99 else Vector3.FORWARD
+			_flight.basis = Basis.looking_at(dn, up)
 			var flap := 1.0 + 0.28 * sin(_age * 14.0)
 			for wing in _flight.get_children():
 				if str(wing.name).begins_with("FlightWing"):
@@ -252,6 +358,7 @@ func _detonate() -> void:
 	if _detonated:
 		return
 	_detonated = true
+	_end_owner_flight(true)
 	if is_in_group("meteor_strike"):
 		remove_from_group("meteor_strike")
 	_release_light()

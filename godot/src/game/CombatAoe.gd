@@ -111,6 +111,9 @@ static func apply_lethal_blast(tree: SceneTree, fx: Node3D, center: Vector3,
 	var sb := tree.root.get_node_or_null("Supabase")
 	if sb != null and "user_id" in sb:
 		local_uid = str(sb.get("user_id"))
+	var net: Node = null
+	if tree.current_scene is Node:
+		net = tree.current_scene.get_node_or_null("ArenaNet")
 
 	var hit_any_enemy := false
 	for b in tree.get_nodes_in_group("bike"):
@@ -127,6 +130,16 @@ static func apply_lethal_blast(tree: SceneTree, fx: Node3D, center: Vector3,
 		var target_id := str(bike_node.get("player_id")) if "player_id" in bike_node else ""
 		if owner_id != "" and owner_id == local_uid and target_id != local_uid:
 			hit_any_enemy = true
+			if fx != null:
+				VFX.damage_number(fx, bike_node.global_position + Vector3(0.0, 0.75, 0.0),
+						100.0, Color(1.0, 0.45, 0.88))
+				if target_id != "" and net != null and net.has_method("note_local_damage_shown"):
+					net.call("note_local_damage_shown", target_id)
+		# Synthetic practice dummy (unidentified bike exposing take_damage): apply 100 damage.
+		if target_id == "":
+			var dummy_ctrl: Node = bike_node.get_node_or_null("CombatController")
+			if dummy_ctrl != null and dummy_ctrl.has_method("take_damage"):
+				dummy_ctrl.call("take_damage", 100.0, owner_id, bike_node.global_position, token)
 		# Fail closed: a remote proxy (or an unidentified bike) is never killed
 		# from this client; the victim's own CombatController resolves its death.
 		if local_uid == "" or target_id == "" or target_id != local_uid:

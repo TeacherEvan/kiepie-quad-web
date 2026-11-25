@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Generate assets/decal_lea_brand.png — ornate calligraphic "Lea" brand mark
-for Lea Unicorn's right butt cheek.
+"""Generate assets/decal_lea_brand.png — bold, high-contrast calligraphic "Lea"
+brand mark for Lea Unicorn's right butt cheek.
 
 Outputs a 512x512 RGBA PNG (4x supersampled LANCZOS downsample, crisp alpha-clip
 threshold, transparent (0,0) corner for hidden back/rim UVs).
 """
 import os
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_PATH = os.path.join(REPO_ROOT, "assets", "decal_lea_brand.png")
@@ -31,7 +31,7 @@ def load_font(size: int) -> ImageFont.FreeTypeFont:
 
 
 def _draw_sparkle(draw: ImageDraw.ImageDraw, cx: float, cy: float, r: float, fill: tuple[int, int, int, int]) -> None:
-    ir = r * 0.24
+    ir = r * 0.25
     pts = [
         (cx, cy - r), (cx + ir, cy - ir),
         (cx + r, cy), (cx + ir, cy + ir),
@@ -44,24 +44,24 @@ def _draw_sparkle(draw: ImageDraw.ImageDraw, cx: float, cy: float, r: float, fil
 def main() -> None:
     img = Image.new("RGBA", (SW, SH), (0, 0, 0, 0))
     text = "Lea"
-    font = load_font(620)
-    stroke_w = 34
+    font = load_font(780)
+    stroke_w = 56
 
     tmp = ImageDraw.Draw(img)
     bbox = tmp.textbbox((0, 0), text, font=font, stroke_width=stroke_w)
     tw = bbox[2] - bbox[0]
     th = bbox[3] - bbox[1]
     tx = (SW - tw) // 2 - bbox[0]
-    ty = int(SH * 0.46 - th / 2) - bbox[1]
+    ty = int(SH * 0.44 - th / 2) - bbox[1]
 
-    # Deep royal-plum outer branded outline (high contrast on pearlescent coat)
+    # Thick deep royal-plum outer branded outline for crisp legibility on pearl coat
     outline = Image.new("RGBA", (SW, SH), (0, 0, 0, 0))
     odraw = ImageDraw.Draw(outline)
-    odraw.text((tx, ty), text, font=font, fill=(64, 20, 62, 255),
-               stroke_width=stroke_w, stroke_fill=(64, 20, 62, 255))
+    odraw.text((tx, ty), text, font=font, fill=(37, 7, 50, 255),
+               stroke_width=stroke_w, stroke_fill=(37, 7, 50, 255))
     img = Image.alpha_composite(img, outline)
 
-    # Shimmering sunlit-gold -> rose-pink -> warm-gold gradient inside glyphs
+    # Vivid sunlit-gold -> hot-rose-magenta -> royal-violet gradient inside glyphs
     grad = Image.new("RGBA", (SW, SH), (0, 0, 0, 0))
     gpx = grad.load()
     y0 = max(0, ty + bbox[1])
@@ -69,16 +69,16 @@ def main() -> None:
     span = max(1, y1 - y0)
     for y in range(y0, y1 + 1):
         t = (y - y0) / span
-        if t < 0.5:
-            k = t / 0.5
-            r = int(255 - 8 * k)
-            g = int(228 - 92 * k)
-            b = int(112 + 78 * k)
+        if t < 0.45:
+            k = t / 0.45
+            r = 255
+            g = int(224 - 161 * k)
+            b = int(102 + 62 * k)
         else:
-            k = (t - 0.5) / 0.5
-            r = int(247 - 12 * k)
-            g = int(136 + 38 * k)
-            b = int(190 - 118 * k)
+            k = (t - 0.45) / 0.55
+            r = int(255 - 100 * k)
+            g = int(63 - 19 * k)
+            b = int(164 + 91 * k)
         for x in range(SW):
             gpx[x, y] = (r, g, b, 255)
 
@@ -90,26 +90,26 @@ def main() -> None:
     fill_layer.paste(grad, (0, 0), mask)
     img = Image.alpha_composite(img, fill_layer)
 
-    # Curved calligraphic swoosh + 3 sparkle stars
+    # Bold curved golden flourish + 4-point sparkle stars
     decor = Image.new("RGBA", (SW, SH), (0, 0, 0, 0))
     ddraw = ImageDraw.Draw(decor)
-    sy = ty + bbox[3] + 55
+    sy = min(SH - 180, ty + bbox[3] + 55)
     swoosh_pts = [
-        (SW * 0.22, sy + 18),
-        (SW * 0.38, sy + 42),
-        (SW * 0.56, sy + 30),
-        (SW * 0.78, sy - 14),
-        (SW * 0.60, sy + 10),
-        (SW * 0.39, sy + 18),
+        (SW * 0.14, sy + 18),
+        (SW * 0.36, sy + 52),
+        (SW * 0.60, sy + 36),
+        (SW * 0.86, sy - 16),
     ]
-    ddraw.polygon(swoosh_pts, fill=(64, 20, 62, 255))
-    ddraw.line(swoosh_pts[:4], fill=(255, 212, 92, 255), width=26, joint="curve")
-    _draw_sparkle(ddraw, SW * 0.19, SH * 0.26, 46, (64, 20, 62, 255))
-    _draw_sparkle(ddraw, SW * 0.19, SH * 0.26, 30, (255, 226, 118, 255))
-    _draw_sparkle(ddraw, SW * 0.83, SH * 0.29, 40, (64, 20, 62, 255))
-    _draw_sparkle(ddraw, SW * 0.83, SH * 0.29, 24, (248, 138, 198, 255))
-    _draw_sparkle(ddraw, SW * 0.79, SH * 0.72, 34, (64, 20, 62, 255))
-    _draw_sparkle(ddraw, SW * 0.79, SH * 0.72, 20, (255, 216, 108, 255))
+    ddraw.line(swoosh_pts, fill=(37, 7, 50, 255), width=62, joint="curve")
+    ddraw.line(swoosh_pts, fill=(255, 218, 86, 255), width=32, joint="curve")
+
+    for sx, s_y, sr_out, sr_in, col in (
+        (SW * 0.14, SH * 0.22, 68, 42, (255, 224, 102, 255)),
+        (SW * 0.86, SH * 0.24, 62, 38, (255, 86, 178, 255)),
+        (SW * 0.83, SH * 0.78, 52, 32, (255, 216, 98, 255)),
+    ):
+        _draw_sparkle(ddraw, sx, s_y, sr_out, (37, 7, 50, 255))
+        _draw_sparkle(ddraw, sx, s_y, sr_in, col)
     img = Image.alpha_composite(img, decor)
 
     # Downsample and threshold alpha cleanly for glTF CLIP/MASK rendering

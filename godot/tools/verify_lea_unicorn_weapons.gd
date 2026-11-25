@@ -323,6 +323,49 @@ func _run() -> void:
 			boom.set_physics_process(false)
 			boom.queue_free()
 
+		# Real VehicleBody3D aerial flight proof: Lea Unicorn itself flies
+		# through the air, lands upright at target_pos, and kills targets there.
+		var flyer := VehicleBody3D.new()
+		flyer.name = "LeaFlyer"
+		flyer.set("player_id", "lea-flyer")
+		flyer.collision_layer = 1
+		flyer.collision_mask = 1
+		flyer.position = Vector3(0.0, 0.6, 0.0)
+		flyer.add_to_group("bike")
+		holder.add_child(flyer)
+		var fly_target := BikeStub.new()
+		fly_target.name = "BoomFlyTarget"
+		fly_target.set("player_id", "lea-weapons-gate")
+		fly_target.position = Vector3(0.0, 0.5, 18.0)
+		fly_target.add_to_group("bike")
+		holder.add_child(fly_target)
+		var fly_sink := LethalSink.new()
+		fly_sink.name = "CombatController"
+		fly_target.add_child(fly_sink)
+		await process_frame
+		var fly_boom := Node3D.new()
+		fly_boom.set_script(boom_script)
+		holder.add_child(fly_boom)
+		fly_boom.call("setup", "lea-flyer", flyer, Vector3(0.0, 0.0, 18.0),
+				105.0, "boom-fly-tok", Color(1, 0.55, 0.88), 0.40, 7.5)
+		var max_y := flyer.global_position.y
+		for _f in range(60):
+			await physics_frame
+			max_y = maxf(max_y, flyer.global_position.y)
+			if not is_instance_valid(fly_boom) or bool(fly_boom.get("_detonated")):
+				break
+		_check(max_y > 4.0, "UnicornBoom physically flies the unicorn through the air (max_y=%.2f)" % max_y)
+		var land_xz := Vector2(flyer.global_position.x, flyer.global_position.z - 18.0).length()
+		_check(land_xz < 0.25, "UnicornBoom lands the unicorn at target_pos (err=%.3f)" % land_xz)
+		_check(flyer.global_transform.basis.y.y > 0.99 and not flyer.freeze and flyer.collision_layer == 1,
+				"UnicornBoom restores upright unfrozen physics & collision after landing")
+		_check(fly_sink.calls.size() == 1, "UnicornBoom damages/kills target at landing zone")
+		if is_instance_valid(fly_boom):
+			fly_boom.set_physics_process(false)
+			fly_boom.queue_free()
+		flyer.queue_free()
+		fly_target.queue_free()
+
 	if aoe_script != null:
 		_check(aoe_script.has_method("apply_blast") and aoe_script.has_method("apply_lethal_blast"),
 				"CombatAoe keeps both blast resolvers")

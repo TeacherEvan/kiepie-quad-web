@@ -108,13 +108,16 @@ func trigger_charge(strength: float = 1.0) -> void:
 	_last_clip = CLIP_SPREAD
 
 
-func trigger_boom() -> void:
+func trigger_boom(duration: float = 2.05) -> void:
 	## UnicornBoom.setup() calls this for the local rider and remote proxies.
 	_recoil_v += 3.2
 	if _anim == null or not _anim.has_animation(CLIP_BOOM):
 		return
-	_boom_cd = 1.35
-	_action_cd = 1.35
+	_boom_cd = maxf(1.35, duration)
+	_action_cd = _boom_cd
+	var boom_anim := _anim.get_animation(CLIP_BOOM)
+	if boom_anim != null:
+		boom_anim.loop_mode = Animation.LOOP_LINEAR
 	_anim_rate = 1.0 if not _reduced else 0.55
 	_anim.speed_scale = _anim_rate
 	_anim.play(CLIP_BOOM, 0.04)
