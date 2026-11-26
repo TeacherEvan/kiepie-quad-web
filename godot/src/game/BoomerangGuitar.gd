@@ -89,12 +89,12 @@ static func _build_guitar_body_mesh() -> ArrayMesh:
 	st.generate_normals()
 	var am := st.commit()
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.88, 0.035, 0.045)
+	mat.albedo_color = Color(0.90, 0.03, 0.04)
 	mat.emission_enabled = true
 	mat.emission = GUITAR_RED
-	mat.emission_energy_multiplier = 2.4
-	mat.metallic = 0.22
-	mat.roughness = 0.18
+	mat.emission_energy_multiplier = 2.6
+	mat.metallic = 0.30
+	mat.roughness = 0.14
 	am.surface_set_material(0, mat)
 	return am
 
@@ -435,6 +435,11 @@ func _on_contact(collider: Object, point: Vector3, normal: Vector3) -> void:
 		if node.has_method("smash"):
 			actionable = true
 			node.call("smash", dir * SMASH_IMPULSE)
+			if owner_id == _local_uid():
+				var tree := get_tree()
+				var combat := tree.get_first_node_in_group("local_combat") if tree != null else null
+				if combat != null:
+					combat.emit_signal("hit_confirmed")
 	elif node.is_in_group("hazard"):
 		if node.has_method("ignite"):
 			actionable = true
@@ -467,11 +472,7 @@ func _finish(was_caught: bool = false) -> void:
 func _steer_return(delta: float) -> void:
 	var target := _outbound_origin
 	if is_instance_valid(owner_node) and owner_node is Node3D:
-		var ev := _owner_evan_visual()
-		if ev != null and ev.has_method("get_guitar_world_pos"):
-			target = ev.call("get_guitar_world_pos")
-		else:
-			target = (owner_node as Node3D).global_position + Vector3(0.0, 1.05, 0.0)
+		target = (owner_node as Node3D).global_position + Vector3(0.0, 0.85, 0.0)
 	var to_target := target - global_position
 	var dist_to_owner := to_target.length()
 	if dist_to_owner < 1e-4:
@@ -543,8 +544,13 @@ func _physics_process(delta: float) -> void:
 	sweep_right = sweep_right.normalized() if sweep_right.length_squared() > 1e-6 else Vector3.RIGHT
 	var best: Dictionary = {}
 	var best_d2 := INF
-	for offset_x in [0.0, 0.38, -0.38]:
-		var off := sweep_right * float(offset_x)
+	var sweep_offsets := [
+		Vector3.ZERO,
+		sweep_right * 0.42,
+		-sweep_right * 0.42,
+		Vector3(0.0, -0.26, 0.0),
+	]
+	for off in sweep_offsets:
 		_ray_query.from = from + off
 		_ray_query.to = to + off
 		var hit: Dictionary = world.direct_space_state.intersect_ray(_ray_query)
@@ -564,4 +570,8 @@ func _physics_process(delta: float) -> void:
 	var collider: Object = best.get("collider", null)
 	var point: Vector3 = best.get("position", to)
 	_on_contact(collider, point, best.get("normal", Vector3.UP))
-	global_position = point + velocity.normalized() * 0.06
+	if collider is Node and (collider as Node).name == "Ground":
+		global_position = Vector3(point.x, maxf(point.y + 0.55, 0.55), point.z)
+		velocity.y = maxf(0.0, velocity.y)
+	else:
+		global_position = point + velocity.normalized() * 0.06

@@ -524,6 +524,95 @@ func _run() -> void:
 				"SoundWaveProjectile sets up safely with reduced_motion enabled")
 		rm.set_physics_process(false)
 
+	# ---- 5. Building destruction, guitar anchor height & wide-building AOE footprint ----
+	var evan_glb_scene := load("res://assets/Evan_Skeleton.glb") as PackedScene
+	var evan_vis_script := load("res://src/game/EvanVisual.gd") as Script
+	if evan_glb_scene != null and evan_vis_script != null:
+		var evan_model := evan_glb_scene.instantiate() as Node3D
+		evan_model.set_script(evan_vis_script)
+		holder.add_child(evan_model)
+		await process_frame
+		var gpos: Vector3 = evan_model.call("get_guitar_world_pos")
+		_check(gpos.y > 0.80, "EvanVisual.get_guitar_world_pos() returns chest height (y=%.2f > 0.80)" % gpos.y)
+		evan_model.queue_free()
+		await process_frame
+
+	var db_script := load("res://src/DestructibleBuilding.gd") as Script
+	var combat_script := load("res://src/game/CombatController.gd") as Script
+	var sw_script := load("res://src/game/SoundWaveProjectile.gd") as Script
+	if db_script != null and combat_script != null and sw_script != null:
+		var db1 := StaticBody3D.new()
+		db1.name = "VerifyDestructible1"
+		var col1 := CollisionShape3D.new()
+		var box1 := BoxShape3D.new()
+		box1.size = Vector3(7.2, 4.8, 5.6)
+		col1.shape = box1
+		db1.add_child(col1)
+		db1.set_script(db_script)
+		db1.position = Vector3(0.0, 2.4, -12.0)
+		holder.add_child(db1)
+		await process_frame
+
+		var cc := Node3D.new()
+		cc.set_script(combat_script)
+		cc.set("bike", owner)
+		cc.set("practice_mode", true)
+		holder.add_child(cc)
+		await process_frame
+
+		var sw: Node = sw_script.new()
+		sw.set("owner_id", "p_evan_test")
+		sw.set("damage", 35.0)
+		sw.set("velocity", Vector3(0.0, 0.0, -40.0))
+		cc.call("_on_projectile_hit", db1, Vector3(0.0, 1.0, -9.2), sw)
+		_check(bool(db1.get("_intact")), "DestructibleBuilding survives first 35-dmg SoundWave hit")
+		cc.call("_on_projectile_hit", db1, Vector3(0.0, 1.0, -9.2), sw)
+		cc.call("_on_projectile_hit", db1, Vector3(0.0, 1.0, -9.2), sw)
+		_check(not bool(db1.get("_intact")), "DestructibleBuilding collapses after >= 100 cumulative SoundWave damage")
+		sw.free()
+
+	var boom_script_evan := load("res://src/game/BoomerangGuitar.gd") as Script
+	if db_script != null and boom_script_evan != null:
+		var db2 := StaticBody3D.new()
+		db2.name = "VerifyDestructible2"
+		var col2 := CollisionShape3D.new()
+		var box2 := BoxShape3D.new()
+		box2.size = Vector3(7.2, 4.8, 5.6)
+		col2.shape = box2
+		db2.add_child(col2)
+		db2.set_script(db_script)
+		db2.position = Vector3(0.0, 2.4, -10.0)
+		holder.add_child(db2)
+		await process_frame
+
+		var bg: Node = boom_script_evan.new()
+		holder.add_child(bg)
+		bg.call("setup", "p_evan_test", owner, Vector3(0.0, 0.72, 0.0), Vector3(0.0, 0.0, -1.0),
+				28.0, 60.0, "tok_boom_bldg", Color(1.0, 0.12, 0.28), 7.5, "boomerang")
+		for _f in range(30):
+			await physics_frame
+			if not bool(db2.get("_intact")):
+				break
+		_check(not bool(db2.get("_intact")), "BoomerangGuitar smashes DestructibleBuilding in its path")
+		if is_instance_valid(bg):
+			bg.queue_free()
+
+	var aoe_script := load("res://src/game/CombatAoe.gd") as Script
+	if db_script != null and aoe_script != null:
+		var db3 := StaticBody3D.new()
+		db3.name = "VerifyDestructibleWide"
+		var col3 := CollisionShape3D.new()
+		var box3 := BoxShape3D.new()
+		box3.size = Vector3(7.2, 4.8, 5.6)
+		col3.shape = box3
+		db3.add_child(col3)
+		db3.set_script(db_script)
+		db3.position = Vector3(8.5, 2.4, 0.0)
+		holder.add_child(db3)
+		await process_frame
+		aoe_script.call("apply_lethal_blast", self, holder, Vector3.ZERO, 7.5, "p_evan_test", owner, "tok_aoe_wide", true)
+		_check(not bool(db3.get("_intact")), "CombatAoe smashes wide DestructibleBuilding whose wall overlaps 7.5m blast")
+
 	# ---- cleanup: detach physics first, then free the whole throwaway tree.
 	for ch in holder.get_children():
 		if ch is Node:

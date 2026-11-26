@@ -187,23 +187,23 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         ob.data.materials.append(material)
         return smooth(ob)
 
-    # -------------------------------------------------------------- palette
-    coat = make_mat("PearlCoat", (0.94, 0.96, 1.00), 0.25, emission=0.04, coat=0.52, coat_rough=0.12)
-    muzzle_mat = make_mat("MuzzleVelvet", (0.88, 0.78, 0.85), 0.50, emission=0.025)
-    ear_inner_mat = make_mat("EarInnerBlush", (0.95, 0.70, 0.84), 0.46, emission=0.035)
+    # -------------------------------------------------------------- palette (anti-blowout PBR)
+    coat = make_mat("PearlCoat", (0.84, 0.88, 0.96), 0.36, emission=0.0, coat=0.30, coat_rough=0.20)
+    muzzle_mat = make_mat("MuzzleVelvet", (0.86, 0.74, 0.84), 0.48, emission=0.0)
+    ear_inner_mat = make_mat("EarInnerBlush", (0.94, 0.66, 0.82), 0.44, emission=0.02)
     dark_detail = make_mat("PupilDark", (0.015, 0.014, 0.032), 0.20, coat=0.48)
-    eye_blue = make_mat("EyeSapphire", (0.08, 0.52, 0.98), 0.08, emission=0.22, coat=0.82)
-    mane_pink = make_mat("ManePink", (0.98, 0.34, 0.72), 0.28, emission=0.07, coat=0.28)
-    mane_lav = make_mat("ManeLavender", (0.72, 0.46, 0.98), 0.28, emission=0.065, coat=0.28)
-    mane_cyan = make_mat("ManeCyan", (0.42, 0.86, 0.98), 0.26, emission=0.075, coat=0.28)
-    feather_pearl = make_mat("FeatherPearl", (0.93, 0.96, 1.00), 0.26, emission=0.05, coat=0.32)
-    feather_pink = make_mat("FeatherPink", (0.99, 0.46, 0.78), 0.26, emission=0.07, coat=0.28)
-    feather_lav = make_mat("FeatherLavender", (0.74, 0.52, 0.98), 0.26, emission=0.065, coat=0.28)
-    feather_cyan = make_mat("FeatherCyan", (0.40, 0.86, 0.98), 0.25, emission=0.075, coat=0.28)
-    feather_gold = make_mat("FeatherGold", (1.00, 0.80, 0.34), 0.23, metallic=0.30, emission=0.075, coat=0.32)
-    gold = make_mat("HornGold", (0.98, 0.76, 0.22), 0.16, metallic=0.88, emission=0.06, coat=0.42)
+    eye_blue = make_mat("EyeSapphire", (0.06, 0.48, 0.98), 0.06, emission=0.35, coat=0.86)
+    mane_pink = make_mat("ManePink", (0.98, 0.30, 0.70), 0.28, emission=0.04, coat=0.28)
+    mane_lav = make_mat("ManeLavender", (0.70, 0.42, 0.98), 0.28, emission=0.04, coat=0.28)
+    mane_cyan = make_mat("ManeCyan", (0.36, 0.84, 0.98), 0.26, emission=0.045, coat=0.28)
+    feather_pearl = make_mat("FeatherPearl", (0.87, 0.91, 0.98), 0.30, emission=0.01, coat=0.28)
+    feather_pink = make_mat("FeatherPink", (0.98, 0.42, 0.76), 0.26, emission=0.04, coat=0.28)
+    feather_lav = make_mat("FeatherLavender", (0.72, 0.48, 0.98), 0.26, emission=0.04, coat=0.28)
+    feather_cyan = make_mat("FeatherCyan", (0.36, 0.84, 0.98), 0.25, emission=0.045, coat=0.28)
+    feather_gold = make_mat("FeatherGold", (1.00, 0.78, 0.24), 0.22, metallic=0.45, emission=0.05, coat=0.34)
+    gold = make_mat("HornGold", (1.00, 0.74, 0.16), 0.15, metallic=0.90, emission=0.04, coat=0.45)
     horn_glow = make_mat("HornGlow", (1.00, 0.94, 0.58), 0.12, emission=1.18, coat=0.35)
-    hoof_gold = make_mat("HoofGold", (0.94, 0.70, 0.20), 0.20, metallic=0.82, emission=0.04, coat=0.35)
+    hoof_gold = make_mat("HoofGold", (0.96, 0.70, 0.16), 0.20, metallic=0.88, emission=0.02, coat=0.38)
 
     lea_brand_mat = bpy.data.materials.new(name="LeaBrandMat")
     _lb_tree = ensure_node_tree(lea_brand_mat)
@@ -357,9 +357,9 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         # Clean, crisp individual feather silhouette at lean tri cost (40 tris per feather!)
         profile = [
             (-1.00, 0.00),
-            (0.00, 0.85),
+            (0.00, 0.52),
             (1.00, -0.04),
-            (0.00, -0.48),
+            (0.00, -0.32),
         ]
         n = len(pts)
         for i, c in enumerate(pts):
@@ -503,21 +503,21 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
     # and thick arched Andalusian neck flowing seamlessly into the head/throatlatch!
     # Tuple: (y, z, rx, r_top, r_bot, pitch_deg, top_pinch, bot_full, furrow, weights)
     BODY_SPEC = [
-        # Smooth convex hemispherical rounded buttocks dome (0 deg vertical rings -> ZERO dark shading crease, ZERO pointy corner!)
-        (0.70, 0.99, 0.055, 0.052, 0.052, 0.0, 0.00, 0.02, 0.00, {"Hips": 1.0}),
-        (0.66, 1.00, 0.148, 0.125, 0.138, 0.0, 0.01, 0.06, 0.00, {"Hips": 1.0}),
-        (0.58, 1.00, 0.232, 0.175, 0.205, 0.0, 0.02, 0.10, 0.00, {"Hips": 1.0}),
-        (0.48, 1.00, 0.270, 0.198, 0.242, 0.0, 0.03, 0.14, 0.00, {"Hips": 0.94, "Spine": 0.06}),
+        # Smooth convex hemispherical rounded buttocks dome (progressive gentle radii -> ZERO rear crease!)
+        (0.66, 0.99, 0.068, 0.062, 0.062, 0.0, 0.00, 0.02, 0.00, {"Hips": 1.0}),
+        (0.62, 1.00, 0.145, 0.124, 0.135, 0.0, 0.01, 0.05, 0.00, {"Hips": 1.0}),
+        (0.55, 1.00, 0.218, 0.172, 0.186, 0.0, 0.02, 0.08, 0.00, {"Hips": 1.0}),
+        (0.47, 1.00, 0.254, 0.194, 0.214, 0.0, 0.03, 0.11, 0.00, {"Hips": 0.94, "Spine": 0.06}),
         # Full rounded muscular croup / hindquarters descending smoothly to meet thigh (zero shelf!)
-        (0.36, 0.99, 0.274, 0.202, 0.252, 0.0, 0.03, 0.14, 0.00, {"Hips": 0.78, "Spine": 0.22}),
+        (0.36, 0.99, 0.260, 0.200, 0.222, 0.0, 0.03, 0.11, 0.00, {"Hips": 0.78, "Spine": 0.22}),
         # Athletic tucked waist / flank + graceful concave saddle dip
         (0.18, 0.97, 0.240, 0.176, 0.196, 0.0, 0.03, 0.03, 0.00, {"Hips": 0.35, "Spine": 0.65}),
         (0.02, 0.96, 0.242, 0.178, 0.218, 1.0, 0.02, 0.05, 0.00, {"Spine": 0.85, "Chest": 0.15}),
         # Deep athletic ribcage / heart-girth (vertical oval, not a fat blimp!)
-        (-0.14, 0.96, 0.264, 0.214, 0.260, 4.0, 0.04, 0.08, 0.00, {"Spine": 0.30, "Chest": 0.70}),
-        (-0.28, 0.97, 0.270, 0.244, 0.282, 10.0, 0.07, 0.12, 0.01, {"Chest": 0.85, "Withers": 0.15}),
+        (-0.14, 0.96, 0.260, 0.214, 0.242, 4.0, 0.04, 0.08, 0.00, {"Spine": 0.30, "Chest": 0.70}),
+        (-0.28, 0.97, 0.268, 0.242, 0.256, 10.0, 0.07, 0.11, 0.01, {"Chest": 0.85, "Withers": 0.15}),
         # Broad muscular chest / prominent withers sweeping smoothly into proud brisket
-        (-0.40, 1.00, 0.258, 0.256, 0.268, 20.0, 0.10, 0.10, 0.02, {"Chest": 0.70, "Withers": 0.30}),
+        (-0.40, 1.00, 0.256, 0.252, 0.244, 20.0, 0.10, 0.10, 0.02, {"Chest": 0.70, "Withers": 0.30}),
         (-0.49, 1.07, 0.224, 0.240, 0.228, 34.0, 0.15, 0.08, 0.02, {"Chest": 0.35, "Withers": 0.65}),
         # Proud arched muscular horse neck (PERPENDICULAR positive pitch frames -> lush crested arch!)
         (-0.56, 1.19, 0.184, 0.214, 0.186, 46.0, 0.20, 0.05, 0.00, {"Withers": 0.65, "Neck1": 0.35}),
@@ -610,27 +610,27 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         bind(sphere(f"Nostril_{side}", (sx * 0.048, -1.142, 1.326), (0.011, 0.022, 0.014),
                     dark_detail, 8, 5, rot=(math.radians(-26), 0.0, sx * math.radians(26))), "Skull")
 
-        # Deeply recessed expressive sapphire eyes (100% INSIDE cheek silhouette in front view, vivid in side/iso!)
-        bind(sphere(f"Eye_{side}", (sx * 0.088, -0.930, 1.515), (0.016, 0.033, 0.028),
+        # Expressive enlarged sapphire eyes (tucked inside cheek silhouette, vivid in side/iso!)
+        bind(sphere(f"Eye_{side}", (sx * 0.086, -0.930, 1.515), (0.020, 0.041, 0.036),
                     eye_blue, 10, 6, rot=(math.radians(-10), 0.0, sx * math.radians(22))), "Skull")
-        bind(sphere(f"Pupil_{side}", (sx * 0.097, -0.941, 1.516), (0.010, 0.019, 0.020),
+        bind(sphere(f"Pupil_{side}", (sx * 0.098, -0.942, 1.516), (0.012, 0.023, 0.024),
                     dark_detail, 8, 5, rot=(math.radians(-10), 0.0, sx * math.radians(22))), "Skull")
-        bind(sphere(f"EyeGlint_{side}", (sx * 0.103, -0.949, 1.525), (0.0045, 0.006, 0.0055),
+        bind(sphere(f"EyeGlint_{side}", (sx * 0.106, -0.951, 1.528), (0.006, 0.008, 0.007),
                     coat, 6, 4), "Skull")
         # Sculpted upper pearl brow eyelid + dark arched lash line cradling the recessed eye
         lid_pts = [
-            Vector((sx * 0.086, -0.896, 1.531)),
-            Vector((sx * 0.102, -0.932, 1.547)),
-            Vector((sx * 0.090, -0.967, 1.522)),
+            Vector((sx * 0.086, -0.892, 1.533)),
+            Vector((sx * 0.104, -0.932, 1.552)),
+            Vector((sx * 0.090, -0.971, 1.524)),
         ]
-        bind(hair_ribbon(f"EyelidUpper_{side}", lid_pts, 0.015, 0.010, coat, samples=5, seg=4,
+        bind(hair_ribbon(f"EyelidUpper_{side}", lid_pts, 0.017, 0.011, coat, samples=5, seg=4,
                          hint=Vector((0, 0, 1))), "Skull")
         lash_pts = [
-            Vector((sx * 0.087, -0.898, 1.525)),
-            Vector((sx * 0.101, -0.934, 1.540)),
-            Vector((sx * 0.090, -0.967, 1.518)),
+            Vector((sx * 0.087, -0.895, 1.527)),
+            Vector((sx * 0.103, -0.934, 1.545)),
+            Vector((sx * 0.090, -0.971, 1.520)),
         ]
-        bind(hair_ribbon(f"Eyelash_{side}", lash_pts, 0.013, 0.007, dark_detail, samples=5, seg=4,
+        bind(hair_ribbon(f"Eyelash_{side}", lash_pts, 0.015, 0.008, dark_detail, samples=5, seg=4,
                          hint=Vector((0, 0, 1))), "Skull")
 
         # Sculpted cupped curved horse ears
@@ -667,7 +667,7 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
             t = t_start + (t_end - t_start) * u
             c = horn_base + horn_vec * t
             r_nom = r_base * max(0.032, (1.0 - t) ** 0.88)
-            flute_amp = 0.18 * (1.0 - 0.35 * t)
+            flute_amp = 0.24 * (1.0 - 0.35 * t)
             ring = []
             for j in range(seg):
                 ang = 2.0 * math.pi * j / seg
@@ -709,19 +709,23 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         return _fn
 
     for side, sx in (("L", 1.0), ("R", -1.0)):
-        # FORELEG: stays strictly inside the rounded chest envelope at z=0.82..1.05 (ZERO protruding shelf!)
+        # FORELEG: 13 smooth anatomical stations tucked INSIDE chest envelope at z=0.82..1.05 (ZERO protruding shelf!)
         fore_stations_spec = [
-            (Vector((sx * 0.125, -0.32, 1.04)), 0.036, 0.082, 0.080, {"Chest": 0.92, f"ForeShoulder.{side}": 0.08}),
-            (Vector((sx * 0.145, -0.32, 0.92)), 0.062, 0.122, 0.112, {"Chest": 0.62, f"ForeShoulder.{side}": 0.38}),
-            (Vector((sx * 0.156, -0.31, 0.81)), 0.062, 0.108, 0.098, {"Chest": 0.24, f"ForeShoulder.{side}": 0.66, f"ForeUpper.{side}": 0.10}),
-            (Vector((sx * 0.166, -0.29, 0.70)), 0.058, 0.086, 0.082, {f"ForeShoulder.{side}": 0.32, f"ForeUpper.{side}": 0.68}),
-            (Vector((sx * 0.172, -0.305, 0.58)), 0.049, 0.062, 0.060, {f"ForeUpper.{side}": 0.88, f"Forearm.{side}": 0.12}),
-            (Vector((sx * 0.173, -0.320, 0.45)), 0.042, 0.046, 0.046, {f"ForeUpper.{side}": 0.42, f"Forearm.{side}": 0.58}),
-            (Vector((sx * 0.174, -0.310, 0.29)), 0.031, 0.036, 0.038, {f"Forearm.{side}": 0.85, f"ForeCannon.{side}": 0.15}),
-            (Vector((sx * 0.174, -0.305, 0.165)), 0.035, 0.037, 0.046, {f"ForeCannon.{side}": 0.50, f"ForeFetlock.{side}": 0.50}),
+            (Vector((sx * 0.115, -0.32, 1.05)), 0.030, 0.072, 0.070, {"Chest": 0.94, f"ForeShoulder.{side}": 0.06}),
+            (Vector((sx * 0.142, -0.32, 0.96)), 0.072, 0.112, 0.102, {"Chest": 0.72, f"ForeShoulder.{side}": 0.28}),
+            (Vector((sx * 0.154, -0.315, 0.87)), 0.076, 0.118, 0.106, {"Chest": 0.40, f"ForeShoulder.{side}": 0.56, f"ForeUpper.{side}": 0.04}),
+            (Vector((sx * 0.162, -0.305, 0.78)), 0.070, 0.104, 0.094, {"Chest": 0.14, f"ForeShoulder.{side}": 0.68, f"ForeUpper.{side}": 0.18}),
+            (Vector((sx * 0.167, -0.292, 0.68)), 0.056, 0.082, 0.078, {f"ForeShoulder.{side}": 0.26, f"ForeUpper.{side}": 0.74}),
+            (Vector((sx * 0.172, -0.305, 0.57)), 0.048, 0.060, 0.058, {f"ForeUpper.{side}": 0.88, f"Forearm.{side}": 0.12}),
+            (Vector((sx * 0.173, -0.318, 0.46)), 0.042, 0.047, 0.046, {f"ForeUpper.{side}": 0.45, f"Forearm.{side}": 0.55}),
+            (Vector((sx * 0.174, -0.314, 0.35)), 0.035, 0.040, 0.041, {f"Forearm.{side}": 0.86, f"ForeCannon.{side}": 0.14}),
+            (Vector((sx * 0.174, -0.308, 0.25)), 0.032, 0.036, 0.037, {f"Forearm.{side}": 0.45, f"ForeCannon.{side}": 0.55}),
+            (Vector((sx * 0.174, -0.305, 0.175)), 0.034, 0.037, 0.044, {f"ForeCannon.{side}": 0.62, f"ForeFetlock.{side}": 0.38}),
+            (Vector((sx * 0.175, -0.320, 0.130)), 0.035, 0.038, 0.042, {f"ForeCannon.{side}": 0.22, f"ForeFetlock.{side}": 0.78}),
             (Vector((sx * 0.176, -0.345, 0.088)), 0.033, 0.037, 0.035, {f"ForeFetlock.{side}": 0.75, f"ForeHoof.{side}": 0.25}),
+            (Vector((sx * 0.176, -0.358, 0.058)), 0.035, 0.039, 0.036, {f"ForeFetlock.{side}": 0.35, f"ForeHoof.{side}": 0.65}),
         ]
-        f_st = [(c, u_x, v_fwd, _leg_shape_fn(rx, rf, rb, 0.22 if idx < 3 else 0.0, sx))
+        f_st = [(c, u_x, v_fwd, _leg_shape_fn(rx, rf, rb, 0.28 if idx < 4 else 0.0, sx))
                 for idx, (c, rx, rf, rb, _) in enumerate(fore_stations_spec)]
         f_w = [bw for _, _, _, _, bw in fore_stations_spec]
         f_ob, f_wmap = loft_sculpted(
@@ -730,19 +734,23 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         )
         bind(f_ob, f"ForeShoulder.{side}", f_wmap)
 
-        # HINDLEG: stays strictly inside the deepened lower croup envelope (outer x <= 0.218 vs croup 0.232 at z=0.82 -> ZERO shelf under LeaBrand!)
+        # HINDLEG: 13 smooth anatomical stations tucked INSIDE deepened croup envelope (ZERO shelf under LeaBrand!)
         hind_stations_spec = [
-            (Vector((sx * 0.122, 0.40, 1.02)), 0.038, 0.088, 0.088, {"Hips": 0.94, f"HindHaunch.{side}": 0.06}),
-            (Vector((sx * 0.142, 0.39, 0.90)), 0.066, 0.138, 0.132, {"Hips": 0.65, f"HindHaunch.{side}": 0.35}),
-            (Vector((sx * 0.155, 0.375, 0.80)), 0.064, 0.128, 0.118, {"Hips": 0.25, f"HindHaunch.{side}": 0.65, f"HindThigh.{side}": 0.10}),
-            (Vector((sx * 0.168, 0.360, 0.69)), 0.060, 0.098, 0.090, {f"HindHaunch.{side}": 0.32, f"HindThigh.{side}": 0.68}),
-            (Vector((sx * 0.175, 0.420, 0.56)), 0.050, 0.068, 0.075, {f"HindThigh.{side}": 0.88, f"HindGaskin.{side}": 0.12}),
-            (Vector((sx * 0.178, 0.480, 0.44)), 0.042, 0.046, 0.058, {f"HindThigh.{side}": 0.42, f"HindGaskin.{side}": 0.58}),
-            (Vector((sx * 0.178, 0.452, 0.27)), 0.032, 0.038, 0.040, {f"HindGaskin.{side}": 0.85, f"HindCannon.{side}": 0.15}),
-            (Vector((sx * 0.178, 0.440, 0.165)), 0.036, 0.037, 0.047, {f"HindCannon.{side}": 0.50, f"HindFetlock.{side}": 0.50}),
+            (Vector((sx * 0.112, 0.40, 1.04)), 0.032, 0.078, 0.078, {"Hips": 0.95, f"HindHaunch.{side}": 0.05}),
+            (Vector((sx * 0.142, 0.395, 0.95)), 0.074, 0.124, 0.118, {"Hips": 0.74, f"HindHaunch.{side}": 0.26}),
+            (Vector((sx * 0.154, 0.382, 0.86)), 0.080, 0.134, 0.124, {"Hips": 0.42, f"HindHaunch.{side}": 0.54, f"HindThigh.{side}": 0.04}),
+            (Vector((sx * 0.164, 0.368, 0.77)), 0.072, 0.116, 0.108, {"Hips": 0.14, f"HindHaunch.{side}": 0.68, f"HindThigh.{side}": 0.18}),
+            (Vector((sx * 0.169, 0.362, 0.67)), 0.058, 0.092, 0.086, {f"HindHaunch.{side}": 0.28, f"HindThigh.{side}": 0.72}),
+            (Vector((sx * 0.175, 0.415, 0.55)), 0.049, 0.068, 0.074, {f"HindThigh.{side}": 0.86, f"HindGaskin.{side}": 0.14}),
+            (Vector((sx * 0.178, 0.476, 0.44)), 0.042, 0.046, 0.058, {f"HindThigh.{side}": 0.42, f"HindGaskin.{side}": 0.58}),
+            (Vector((sx * 0.178, 0.464, 0.34)), 0.036, 0.041, 0.048, {f"HindGaskin.{side}": 0.86, f"HindCannon.{side}": 0.14}),
+            (Vector((sx * 0.178, 0.448, 0.24)), 0.032, 0.037, 0.039, {f"HindGaskin.{side}": 0.42, f"HindCannon.{side}": 0.58}),
+            (Vector((sx * 0.178, 0.438, 0.175)), 0.035, 0.037, 0.045, {f"HindCannon.{side}": 0.62, f"HindFetlock.{side}": 0.38}),
+            (Vector((sx * 0.178, 0.418, 0.128)), 0.035, 0.038, 0.042, {f"HindCannon.{side}": 0.22, f"HindFetlock.{side}": 0.78}),
             (Vector((sx * 0.178, 0.398, 0.088)), 0.034, 0.038, 0.036, {f"HindFetlock.{side}": 0.75, f"HindHoof.{side}": 0.25}),
+            (Vector((sx * 0.178, 0.382, 0.058)), 0.036, 0.040, 0.037, {f"HindFetlock.{side}": 0.35, f"HindHoof.{side}": 0.65}),
         ]
-        h_st = [(c, u_x, v_fwd, _leg_shape_fn(rx, rf, rb, 0.22 if idx < 3 else 0.0, sx))
+        h_st = [(c, u_x, v_fwd, _leg_shape_fn(rx, rf, rb, 0.28 if idx < 4 else 0.0, sx))
                 for idx, (c, rx, rf, rb, _) in enumerate(hind_stations_spec)]
         h_w = [bw for _, _, _, _, bw in hind_stations_spec]
         h_ob, h_wmap = loft_sculpted(
@@ -815,15 +823,15 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         # Row 1: Plush Overlapping Shoulder & Leading-Edge Coverts (10 scalloped feathers directly cloaking the wing bar!)
         for i in range(10):
             u = i / 9.0
-            root = Vector((sx * (0.18 + 0.078 * u), -0.24 + u * 0.46, 1.215 + 0.045 * math.sin(u * math.pi)))
-            length = 0.25 + 0.09 * math.sin(u * math.pi * 0.85)
-            lat = sx * (0.032 + 0.008 * (i % 2))
+            root = Vector((sx * (0.15 + 0.095 * u), -0.25 + u * 0.47, 1.215 + 0.045 * math.sin(u * math.pi)))
+            length = 0.26 + 0.09 * math.sin(u * math.pi * 0.85)
+            lat = sx * (0.026 + 0.008 * (i % 2))
             drop = -0.095 - 0.018 * (1.0 - u)
             mid = root + Vector((lat * 1.15, length * 0.52, drop * 0.40))
-            tip = root + Vector((lat * 0.60, length, drop))
+            tip = root + Vector((lat * 0.55, length, drop))
             mat = feather_pearl if i < 7 else feather_cyan
             bind(feather_blade(f"Covert_{side}_{i:02d}", root, mid, tip,
-                               width=0.082, thickness=0.017, blade_normal=out_n,
+                               width=0.092, thickness=0.014, blade_normal=out_n,
                                material=mat, n_stations=4),
                  f"WingCoverts.{side}")
 
@@ -838,7 +846,7 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
             tip = root + Vector((lat * 0.4 - sx * 0.018 * u, length, drop))
             mat = (feather_cyan, feather_cyan, feather_cyan, feather_lav, feather_lav, feather_pink, feather_pink, feather_pink)[i]
             bind(feather_blade(f"Secondary_{side}_{i:02d}", root, mid, tip,
-                               width=0.076, thickness=0.015, blade_normal=out_n,
+                               width=0.076, thickness=0.012, blade_normal=out_n,
                                material=mat, n_stations=5),
                  f"SecondaryFan.{side}")
 
@@ -853,7 +861,7 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
             tip = root + Vector((lat * 0.2 - sx * 0.025 * u, length, drop))
             mat = (feather_cyan, feather_lav, feather_lav, feather_pink, feather_pink, feather_pink, feather_lav)[i]
             bind(feather_blade(f"PrimaryInner_{side}_{i:02d}", root, mid, tip,
-                               width=0.072, thickness=0.014, blade_normal=out_n,
+                               width=0.072, thickness=0.011, blade_normal=out_n,
                                material=mat, n_stations=5),
                  f"PrimaryFan2.{side}")
 
@@ -868,7 +876,7 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
             tip = root + Vector((-sx * (0.015 + 0.030 * u), length, drop + 0.024 * u))
             mat = (feather_pink, feather_pink, feather_lav, feather_lav, feather_cyan, feather_cyan, feather_gold, feather_gold)[i]
             bind(feather_blade(f"PrimaryOuter_{side}_{i:02d}", root, mid, tip,
-                               width=0.062, thickness=0.013, blade_normal=out_n,
+                               width=0.062, thickness=0.010, blade_normal=out_n,
                                material=mat, n_stations=5),
                  f"PrimaryFan1.{side}")
 
@@ -925,13 +933,13 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
     bind(hair_ribbon(
         "TailRoot",
         [
-            Vector((0.0, 0.56, 1.06)),
-            Vector((0.0, 0.78, 1.14)),
-            Vector((0.0, 0.98, 1.01)),
+            Vector((0.0, 0.50, 1.05)),
+            Vector((0.0, 0.70, 1.11)),
+            Vector((0.0, 0.94, 1.01)),
             Vector((0.0, 1.06, 0.72)),
             Vector((0.0, 1.22, 0.42)),
         ],
-        width_base=0.074, thick_base=0.052, material=mane_lav, samples=8, seg=6,
+        width_base=0.074, thick_base=0.048, material=mane_lav, samples=10, seg=10,
         hint=Vector((1, 0, 0)),
     ), "TailBase")
 
@@ -960,10 +968,10 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
     lb_out_grid: list[list[Any]] = []
     lb_in_grid: list[list[Any]] = []
 
-    _CROUP_STATIONS = BODY_SPEC[2:6]  # y = 0.59, 0.49, 0.36, 0.20
+    _CROUP_STATIONS = BODY_SPEC[2:6]  # y = 0.55, 0.47, 0.36, 0.18
 
     def _croup_pt(u_c: float, v_c: float, offset_m: float) -> Vector:
-        y = 0.56 - u_c * 0.34
+        y = 0.52 - u_c * 0.30
         s_a, s_b = _CROUP_STATIONS[0], _CROUP_STATIONS[1]
         for k in range(len(_CROUP_STATIONS) - 1):
             if _CROUP_STATIONS[k][0] >= y >= _CROUP_STATIONS[k + 1][0]:
@@ -977,7 +985,7 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         t_pinch = s_a[6] + (s_b[6] - s_a[6]) * f
         b_full = s_a[7] + (s_b[7] - s_a[7]) * f
         # Centered cleanly on the rounded right butt cheek: above thigh blend, below folded wing!
-        phi = math.radians(-22.0 + v_c * 46.0)
+        phi = math.radians(-30.0 + v_c * 66.0)
         ang = math.pi - phi
         dx, dz = _body_shape_fn(rx, rzt, rzb, t_pinch, b_full, 0.0)(ang)
         nx, nz = -math.cos(phi), math.sin(phi)

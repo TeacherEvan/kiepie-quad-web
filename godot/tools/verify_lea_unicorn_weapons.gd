@@ -482,6 +482,129 @@ func _run() -> void:
 		rm_holder.queue_free()
 		await process_frame
 
+	# ---- 5. Building destruction, HornBeam chassis-height pierce & wide-building UnicornBoom ----
+	var settings3 := root.get_node_or_null("Settings")
+	if settings3 != null:
+		settings3.call("set_value", "gameplay", "reduced_motion", false)
+	var db_script := load("res://src/DestructibleBuilding.gd") as Script
+	var combat_script := load("res://src/game/CombatController.gd") as Script
+	var hb_script := load("res://src/game/HornBoltProjectile.gd") as Script
+	if db_script != null and combat_script != null and hb_script != null:
+		var db1 := StaticBody3D.new()
+		db1.name = "VerifyLeaDestructible1"
+		var col1 := CollisionShape3D.new()
+		var box1 := BoxShape3D.new()
+		box1.size = Vector3(7.2, 4.8, 5.6)
+		col1.shape = box1
+		db1.add_child(col1)
+		db1.set_script(db_script)
+		db1.position = Vector3(0.0, 2.4, -12.0)
+		holder.add_child(db1)
+		await process_frame
+
+		var owner_bike := Node3D.new()
+		owner_bike.add_to_group("bike")
+		owner_bike.set("player_id", "p_lea_test")
+		holder.add_child(owner_bike)
+
+		var cc := Node3D.new()
+		cc.set_script(combat_script)
+		cc.set("bike", owner_bike)
+		cc.set("practice_mode", true)
+		holder.add_child(cc)
+		await process_frame
+
+		var hb: Node = hb_script.new()
+		hb.set("owner_id", "p_lea_test")
+		hb.set("damage", 50.0)
+		hb.set("velocity", Vector3(0.0, 0.0, -40.0))
+		cc.call("_on_projectile_hit", db1, Vector3(0.0, 1.0, -9.2), hb)
+		_check(bool(db1.get("_intact")), "DestructibleBuilding survives first 50-dmg HornBolt hit")
+		cc.call("_on_projectile_hit", db1, Vector3(0.0, 1.0, -9.2), hb)
+		_check(not bool(db1.get("_intact")), "DestructibleBuilding collapses after >= 100 cumulative HornBolt damage")
+		hb.free()
+
+	if db_script != null and beam_script != null:
+		var beam_owner := Node3D.new()
+		beam_owner.add_to_group("bike")
+		beam_owner.position = Vector3.ZERO
+		holder.add_child(beam_owner)
+
+		var target_bike := StaticBody3D.new()
+		target_bike.add_to_group("bike")
+		target_bike.set("player_id", "p_target_beam")
+		var tcol := CollisionShape3D.new()
+		var tbox := BoxShape3D.new()
+		tbox.size = Vector3(1.2, 1.0, 1.6)
+		tcol.shape = tbox
+		target_bike.add_child(tcol)
+		target_bike.position = Vector3(0.0, 0.55, 10.0)
+		holder.add_child(target_bike)
+
+		var db_beam := StaticBody3D.new()
+		var dbcol := CollisionShape3D.new()
+		var dbox := BoxShape3D.new()
+		dbox.size = Vector3(7.2, 4.8, 5.6)
+		dbcol.shape = dbox
+		db_beam.add_child(dbcol)
+		db_beam.set_script(db_script)
+		db_beam.position = Vector3(0.0, 2.4, 18.0)
+		holder.add_child(db_beam)
+
+		var wall := StaticBody3D.new()
+		var wcol := CollisionShape3D.new()
+		var wbox := BoxShape3D.new()
+		wbox.size = Vector3(10.0, 6.0, 2.0)
+		wcol.shape = wbox
+		wall.add_child(wcol)
+		wall.position = Vector3(0.0, 3.0, 26.0)
+		holder.add_child(wall)
+		await process_frame
+
+		var beam: Node = beam_script.new()
+		holder.add_child(beam)
+		beam.call("setup", "p_lea_test", beam_owner, Vector3(0.0, 0.62, 0.0), Vector3(0.0, 0.0, 1.0),
+				60.0, 85.0, "tok_beam_bldg", Color(1.0, 0.45, 0.92), 4.5, "horn_beam")
+		var max_beam_len := 0.0
+		for _f in range(55):
+			await physics_frame
+			if is_instance_valid(beam):
+				var bm := beam.get("_beam") as MeshInstance3D
+				if bm != null:
+					max_beam_len = maxf(max_beam_len, bm.scale.z)
+			if not bool(db_beam.get("_intact")) and max_beam_len > 0.0:
+				break
+		_check(not bool(db_beam.get("_intact")), "HornBeam smashes DestructibleBuilding in its path")
+		_check(max_beam_len >= 20.0 and max_beam_len <= 27.0, "HornBeam visual stops on solid wall behind building (len=%.1f)" % max_beam_len)
+
+	if db_script != null and boom_script != null:
+		var db_wide := StaticBody3D.new()
+		var dwcol := CollisionShape3D.new()
+		var dwbox := BoxShape3D.new()
+		dwbox.size = Vector3(7.2, 4.8, 5.6)
+		dwcol.shape = dwbox
+		db_wide.add_child(dwcol)
+		db_wide.set_script(db_script)
+		db_wide.position = Vector3(8.5, 2.4, 0.0)
+		holder.add_child(db_wide)
+
+		var flyer2 := RigidBody3D.new()
+		flyer2.collision_layer = 1
+		flyer2.collision_mask = 1
+		holder.add_child(flyer2)
+		await process_frame
+
+		var boom2: Node = boom_script.new()
+		holder.add_child(boom2)
+		boom2.call("setup", "p_lea_test", flyer2, Vector3.ZERO, 105.0,
+				"tok_boom_wide", Color(1.0, 0.55, 0.88), 0.05, 7.5, "unicorn_boom")
+		for _f in range(30):
+			await physics_frame
+			if not bool(db_wide.get("_intact")) and not flyer2.freeze:
+				break
+		_check(not bool(db_wide.get("_intact")), "UnicornBoom smashes wide DestructibleBuilding within 7.5m footprint")
+		_check(not flyer2.freeze and flyer2.collision_layer == 1, "UnicornBoom restores flyer physics & collision after blast")
+
 	holder.queue_free()
 	await process_frame
 	_restore()

@@ -85,30 +85,30 @@ def _flourish_polygon() -> list[tuple[float, float]]:
 
 def main() -> None:
     rng = random.Random(666)
-    # 1. Obsidian weathered cloth base
-    base = Image.new("RGBA", (SW, SH), (19, 15, 24, 255))
+    # 1. Obsidian weathered cloth base with vertical drapery & ember hem scorch
+    base = Image.new("RGBA", (SW, SH), (16, 12, 20, 255))
     px = base.load()
     for y in range(SH):
         ny = y / float(SH - 1)
-        # Subtle vertical fold shading + crimson scorch toward tattered hem
-        scorch = max(0.0, (ny - 0.68) / 0.32) ** 1.6
+        scorch = max(0.0, (ny - 0.60) / 0.40) ** 1.45
         for x in range(SW):
             nx = x / float(SW - 1)
-            fold = 0.5 + 0.5 * math.sin(nx * math.pi * 7.0 + ny * 2.4)
+            fold = 0.5 + 0.5 * math.sin(nx * math.pi * 8.0 + ny * 2.2)
+            pleat = 0.5 + 0.5 * math.cos(nx * math.pi * 5.0)
             weave = ((x // 4 + y // 4) % 2) * 2
-            r = int(16 + 9 * fold + 48 * scorch + weave)
-            g = int(12 + 6 * fold + 4 * scorch + weave)
-            b = int(22 + 11 * fold - 8 * scorch + weave)
+            r = int(14 + 10 * fold + 6 * pleat + 72 * scorch + weave)
+            g = int(10 + 5 * fold + 3 * pleat + 6 * scorch + weave)
+            b = int(18 + 12 * fold + 6 * pleat - 6 * scorch + weave)
             px[x, y] = (max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b)), 255)
 
     # Subtle weathered scratch/fray lines on cloth
     wdraw = ImageDraw.Draw(base, "RGBA")
-    for _ in range(42):
+    for _ in range(56):
         sx0 = rng.randint(0, SW - 1)
-        sy0 = rng.randint(int(SH * 0.55), SH - 1)
-        sl = rng.randint(int(SH * 0.08), int(SH * 0.25))
-        wdraw.line([(sx0, sy0), (sx0 + rng.randint(-18, 18), min(SH - 1, sy0 + sl))],
-                   fill=(72, 14, 22, 65), width=rng.randint(3, 8))
+        sy0 = rng.randint(int(SH * 0.50), SH - 1)
+        sl = rng.randint(int(SH * 0.08), int(SH * 0.28))
+        wdraw.line([(sx0, sy0), (sx0 + rng.randint(-20, 20), min(SH - 1, sy0 + sl))],
+                   fill=(110, 18, 28, 78), width=rng.randint(3, 8))
 
     # 2. Build "Ewaldt" glyph mask in supersampled coordinates
     x0, y0 = SW * 0.08, SH * 0.22
@@ -140,7 +140,7 @@ def main() -> None:
         odraw.line(p + [p[0]], fill=(14, 5, 8, 255), width=14, joint="curve")
     base = Image.alpha_composite(base, outline)
 
-    # Metallic molten bone-silver top -> blood-crimson bottom fill
+    # Metallic molten bone-silver top -> blazing crimson core -> dark blood-iron bottom fill
     mask = Image.new("L", (SW, SH), 0)
     mdraw = ImageDraw.Draw(mask)
     for p in polys + [flourish]:
@@ -153,16 +153,21 @@ def main() -> None:
     gspan = max(1, gy1 - gy0)
     for y in range(gy0, min(SH, gy1 + 1)):
         t = max(0.0, min(1.0, (y - gy0) / gspan))
-        if t < 0.42:
-            k = t / 0.42
-            r = int(248 - 10 * k)
-            g = int(240 - 150 * k)
-            b = int(232 - 175 * k)
+        if t < 0.30:
+            k = t / 0.30
+            r = 255
+            g = int(248 - 140 * k)
+            b = int(240 - 165 * k)
+        elif t < 0.72:
+            k = (t - 0.30) / 0.42
+            r = int(255 - 15 * k)
+            g = int(108 - 92 * k)
+            b = int(75 - 55 * k)
         else:
-            k = (t - 0.42) / 0.58
-            r = int(238 - 42 * k)
-            g = int(90 - 76 * k)
-            b = int(57 - 42 * k)
+            k = (t - 0.72) / 0.28
+            r = int(240 - 85 * k)
+            g = int(16 - 10 * k)
+            b = int(20 - 8 * k)
         for x in range(SW):
             gpx[x, y] = (r, g, b, 255)
 
