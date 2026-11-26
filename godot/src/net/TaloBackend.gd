@@ -38,12 +38,12 @@ var _kill_window: Dictionary = {}     # killer -> Array of sec timestamps (60 s,
 var _hurt_log: Dictionary = {}        # sender -> Array of sec timestamps (1 s, max 24)
 var _lap_timestamps: Dictionary = {}  # racer -> sec timestamp of last scored lap (host only)
 const HEARTBEAT_INTERVAL_S := 20.0
-const STALE_LOBBY_S := 90.0
+const STALE_LOBBY_S := PROTO.STALE_LOBBY_S
 const HOST_ACK_TIMEOUT_MS := 2000
 const SOCKET_IDENTIFY_TIMEOUT_MS := 10000
 const HOST_POLL_INTERVAL_S := 15.0
 const MAX_USED_TOKENS := 512
-const MIN_LAP_SECONDS := 12.0
+const MIN_LAP_SECONDS := PROTO.MIN_LAP_SECONDS
 const GUEST_LAP_RETRY_S := 2.5
 const MAX_RECONNECT_ATTEMPTS := 5
 
@@ -227,6 +227,10 @@ func _on_socket_closed(_code: int, _reason: String) -> void:
 				if _channel_id != closed_id or _prop_gen != closed_gen or _channel_id <= 0:
 					break
 				if ch != null:
+					if not protocol_ok(ch):
+						backend_error.emit("Protocol mismatch after reconnect — room is on a different game version")
+						leave_lobby_channel()
+						break
 					_channel = ch
 				_load_state()
 				_emit_state()
@@ -556,6 +560,13 @@ func _try_join(channel, args: Dictionary, expected_gen: int = -1) -> bool:
 		return false
 	if joined == null:
 		return false
+	var post_settings := _parse_dict(str(joined.get_prop("settings", "{}")))
+	var post_max := clampi(int(post_settings.get("max_players", max_players)), 2, 8)
+	var post_roster := _parse_dict(str(joined.get_prop("roster", "{}")))
+	var over_cap := int(joined.member_count) > post_max or (not post_roster.has(user_id) and post_roster.size() >= post_max)
+	if not protocol_ok(joined) or str(joined.get_prop("status", "waiting")) != "waiting" or over_cap:
+		Talo.channels.leave(int(channel.id))
+		return false
 	_channel = joined
 	_channel_id = int(channel.id)
 	_state_seq = 0
@@ -651,6 +662,10 @@ func _load_state() -> void:
 		"winner_id": str(_channel.get_prop("winner_id", "")),
 	}
 	_roster = _parse_dict(_channel.get_prop("roster", "{}"))
+	var hb := float(str(_channel.get_prop("heartbeat", "0")))
+	var hb_fresh := hb <= 0.0 or (Time.get_unix_time_from_system() - hb) <= STALE_LOBBY_S
+	if new_host != "" and _roster.has(new_host) and hb_fresh:
+		_host_lost_emitted = false
 
 
 ## Single-writer queue for channel-prop writes. The heartbeat and the
@@ -830,10 +845,10 @@ func _register_kill(args: Dictionary) -> Dictionary:
 		_roster[target] = victim
 	var status := str(_lobby.get("status", "waiting"))
 	var winner := ""
-	var target_kills := maxi(1, int(s_dict.get("kill_target", 10)))
-	if gmode != "death_race" and score >= target_kills:
+	var outcome := PROTO.evaluate_outcome(_lobby, _roster, killer)
+	if bool(outcome["finished"]):
 		status = "finished"
-		winner = killer
+		winner = str(outcome["winner_id"])
 		_lobby["status"] = status
 		_lobby["winner_id"] = winner
 	var op_channel := _channel_id
@@ -887,10 +902,10 @@ func _register_lap(args: Dictionary) -> Dictionary:
 	_roster[racer] = row
 	var status := str(_lobby.get("status", "waiting"))
 	var winner := ""
-	var target_laps := maxi(1, int(s_dict.get("lap_target", 3)))
-	if laps >= target_laps:
+	var outcome := PROTO.evaluate_outcome(_lobby, _roster, racer)
+	if bool(outcome["finished"]):
 		status = "finished"
-		winner = racer
+		winner = str(outcome["winner_id"])
 		_lobby["status"] = status
 		_lobby["winner_id"] = winner
 	await _apply_props()
@@ -914,15 +929,7 @@ func _time_up() -> Dictionary:
 	if started <= 0.0 or Time.get_unix_time_from_system() - started < float(limit):
 		return {}
 	var op_channel := _channel_id
-	var best := ""
-	var best_score := -1
-	var uids := _roster.keys()
-	uids.sort()  # deterministic tie-break: lowest user_id wins a score tie
-	for uid in uids:
-		var s := int((_roster[uid] as Dictionary).get("score", 0))
-		if s > best_score:
-			best = str(uid)
-			best_score = s
+	var best := PROTO.pick_leader(_roster)
 	_lobby["status"] = "finished"
 	_lobby["winner_id"] = best
 	await _apply_props()
@@ -950,7 +957,7 @@ func _send(kind: String, payload: Dictionary) -> void:
 	# Offline-safe: offline tests stage _channel_id = 1, _channel = null.
 	if _channel_id <= 0 or _channel == null:
 		return
-	Talo.channels.send_message(_channel_id, JSON.stringify({"k": kind, "p": payload}))
+	Talo.channels.send_message(_channel_id, JSON.stringify({"k": kind, "v": PROTOCOL_VERSION, "p": payload}))
 
 
 func _on_socket_message(res: String, data: Dictionary) -> void:
@@ -989,6 +996,8 @@ func _on_socket_message(res: String, data: Dictionary) -> void:
 	if not (parsed is Dictionary):
 		return
 	var msg: Dictionary = parsed as Dictionary
+	if msg.has("v") and str(msg.get("v", "")) != PROTOCOL_VERSION:
+		return
 	var kind := str(msg.get("k", ""))
 	var payload: Variant = msg.get("p", {})
 	match kind:

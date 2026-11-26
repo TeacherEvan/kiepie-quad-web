@@ -1,0 +1,931 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "surgical-audit-v3-swarm",
+          "version": "3.0.0",
+          "informationUri": "https://github.com/TeacherEvan/surgical-audit",
+          "rules": [
+            {
+              "id": "KQ-SW-P2-1",
+              "name": "HostLossLatchNeverCleared",
+              "shortDescription": {
+                "text": "Host-loss latch cleared only on join/leave; reconnect path never clears it, causing permanent host-loss blindness"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "KQ-SW-P2-2",
+              "name": "TriplicatedWinFSM",
+              "shortDescription": {
+                "text": "Win-transition FSM hand-copied across TaloBackend, MatchState and MockBackend"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "KQ-SW-P2-3",
+              "name": "BoomerangFirstHitRaySweep",
+              "shortDescription": {
+                "text": "3-ray blade sweep breaks on first non-empty ray; far centre hit shadows near side rider"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "KQ-SW-P2-4",
+              "name": "HazardTickOvershootDiscard",
+              "shortDescription": {
+                "text": "_tick_accum reset to 0.0 discards overshoot; cadence is frame-rate dependent"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "KQ-SW-P2-5",
+              "name": "RaceFinishLatchUnboundedAwait",
+              "shortDescription": {
+                "text": "_finishing_lap latch held across two unbounded awaits with no timeout or generation guard"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "KQ-SW-P2-6",
+              "name": "JoinCapacityTOCTOU",
+              "shortDescription": {
+                "text": "Cached member_count checked before awaited join with no post-join revalidation"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "KQ-SW-P2-7",
+              "name": "ProtocolVersionOnlyAtJoin",
+              "shortDescription": {
+                "text": "PROTOCOL_VERSION stamped at join but never revalidated on reconnect; wire envelope has no version"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-1",
+              "name": "WriteOnlyLobbyId",
+              "shortDescription": {
+                "text": "_lobby_id written twice and never read; fourth copy of lobby identity"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-2",
+              "name": "DuplicatedMagicConstants",
+              "shortDescription": {
+                "text": "Literal 52.0 SHOT_SPEED and duplicated STALE_LOBBY_S/MIN_LAP_SECONDS across modules"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-3",
+              "name": "60HzReticleRaycast",
+              "shortDescription": {
+                "text": "Meteor reticle aim recomputed every physics tick with group scan and raycast"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-4",
+              "name": "KeysArrayPerFrame",
+              "shortDescription": {
+                "text": "Dictionary.keys() allocates a new Array every rendered frame"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-5",
+              "name": "TouchInputPerFrameArrays",
+              "shortDescription": {
+                "text": "Per-frame Array allocation in analog input hot path"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-6",
+              "name": "SplashMediaNotReleased",
+              "shortDescription": {
+                "text": "drop() never pauses or clears video src; detached media keeps decoding"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-7",
+              "name": "StaleBundleSizeDocs",
+              "shortDescription": {
+                "text": "AGENTS.md still documents 4,279,216 B / 4.5 MiB abort vs actual 4,686,096 B / 5.0 MiB guard"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-8",
+              "name": "EmptyVehiclePreference",
+              "shortDescription": {
+                "text": "sanitize_preference(\"\") returned as valid, overriding player choice via hash deal"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-9",
+              "name": "FalseHitMarkerSoloBlast",
+              "shortDescription": {
+                "text": "Hazard ignition sets hit_any_enemy on owner id alone, emitting a false hit marker in solo play"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-10",
+              "name": "NonAtomicExportVerifierWrites",
+              "shortDescription": {
+                "text": "Final blend/glb/stl written in place; crash leaves truncated shipped binary"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-11",
+              "name": "BeaconAccumulatorDrift",
+              "shortDescription": {
+                "text": "Beacon tick accumulator zeroes instead of subtracting; cadence drifts at low fps"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-12",
+              "name": "TimeUpGuardLeak",
+              "shortDescription": {
+                "text": "_time_up_called not cleared on lobby-id mismatch or set_lobby; reset_time_limit_guard has no callers"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-13",
+              "name": "ParseEmptyVsMalformed",
+              "shortDescription": {
+                "text": "parse_dict returns {} for both empty and malformed JSON; unguarded Dictionary casts"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-14",
+              "name": "UnvalidatedChannelBody",
+              "shortDescription": {
+                "text": "TaloChannel.new(body[channel]) has no is Dictionary guard despite HTTP 200"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-15",
+              "name": "MockMirrorBackendGate",
+              "shortDescription": {
+                "text": "Mock backend forces null channel and never exercises real I/O rejection"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-16",
+              "name": "ForgedFrameBypassesParser",
+              "shortDescription": {
+                "text": "Forged JSON fed directly to _on_socket_message, bypassing Talo typed parser"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-17",
+              "name": "PresenceOnlyAssertions",
+              "shortDescription": {
+                "text": "Majority of test_kiepie_pad assertions are is_not_null presence checks"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-18",
+              "name": "GlobalStateRestoreBypass",
+              "shortDescription": {
+                "text": "Global reduced_motion restore skipped on early quit(2) path"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-19",
+              "name": "HappyPathCannonGate",
+              "shortDescription": {
+                "text": "Cannon gate has 8 assertions and zero negative/boundary signals"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-20",
+              "name": "LiteralMarkerCoupling",
+              "shortDescription": {
+                "text": "SW patch test asserts literal marker substrings rather than behavior"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-21",
+              "name": "SingleSampleTimeWindow",
+              "shortDescription": {
+                "text": "dust_ring sampled only at 0.35 s; slow-ramp peak invisible"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "KQ-SW-P3-22",
+              "name": "ChargeSparksEmitBackward",
+              "shortDescription": {
+                "text": "Particle direction Vector3(0,0,1) in -Z-forward basis streams sparks out of the rear"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "KQ-SW-P2-1",
+          "level": "error",
+          "message": {
+            "text": "[KQ-SW-P2-1] Host-loss latch cleared only on join/leave; reconnect path never clears it, causing permanent host-loss blindness"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 186,
+                  "endLine": 233
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P2-2",
+          "level": "error",
+          "message": {
+            "text": "[KQ-SW-P2-2] Win-transition FSM hand-copied across TaloBackend, MatchState and MockBackend"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/MatchState.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 280,
+                  "endLine": 314
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P2-3",
+          "level": "error",
+          "message": {
+            "text": "[KQ-SW-P2-3] 3-ray blade sweep breaks on first non-empty ray; far centre hit shadows near side rider"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/BoomerangGuitar.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 544,
+                  "endLine": 559
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P2-4",
+          "level": "error",
+          "message": {
+            "text": "[KQ-SW-P2-4] _tick_accum reset to 0.0 discards overshoot; cadence is frame-rate dependent"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/HazardPit.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 124,
+                  "endLine": 127
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P2-5",
+          "level": "error",
+          "message": {
+            "text": "[KQ-SW-P2-5] _finishing_lap latch held across two unbounded awaits with no timeout or generation guard"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/RaceTracker.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 147,
+                  "endLine": 171
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P2-6",
+          "level": "error",
+          "message": {
+            "text": "[KQ-SW-P2-6] Cached member_count checked before awaited join with no post-join revalidation"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 550,
+                  "endLine": 559
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P2-7",
+          "level": "error",
+          "message": {
+            "text": "[KQ-SW-P2-7] PROTOCOL_VERSION stamped at join but never revalidated on reconnect; wire envelope has no version"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 634,
+                  "endLine": 653
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-1",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-1] _lobby_id written twice and never read; fourth copy of lobby identity"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/SupabaseClient.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 22,
+                  "endLine": 92
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-2",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-2] Literal 52.0 SHOT_SPEED and duplicated STALE_LOBBY_S/MIN_LAP_SECONDS across modules"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/ArenaNet.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 429,
+                  "endLine": 429
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-3",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-3] Meteor reticle aim recomputed every physics tick with group scan and raycast"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/SideCannons.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 284,
+                  "endLine": 328
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-4",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-4] Dictionary.keys() allocates a new Array every rendered frame"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/SideCannons.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 291,
+                  "endLine": 292
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-5",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-5] Per-frame Array allocation in analog input hot path"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/TouchControls.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 298,
+                  "endLine": 351
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-6",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-6] drop() never pauses or clears video src; detached media keeps decoding"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "index.html",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 81,
+                  "endLine": 81
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-7",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-7] AGENTS.md still documents 4,279,216 B / 4.5 MiB abort vs actual 4,686,096 B / 5.0 MiB guard"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "AGENTS.md",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 167,
+                  "endLine": 167
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-8",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-8] sanitize_preference(&quot;&quot;) returned as valid, overriding player choice via hash deal"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/KiepieBike.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 258,
+                  "endLine": 261
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-9",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-9] Hazard ignition sets hit_any_enemy on owner id alone, emitting a false hit marker in solo play"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/CombatAoe.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 80,
+                  "endLine": 158
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-10",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-10] Final blend/glb/stl written in place; crash leaves truncated shipped binary"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/repair_and_verify.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 69,
+                  "endLine": 81
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-11",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-11] Beacon tick accumulator zeroes instead of subtracting; cadence drifts at low fps"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/DestructibleBuilding.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 202,
+                  "endLine": 206
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-12",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-12] _time_up_called not cleared on lobby-id mismatch or set_lobby; reset_time_limit_guard has no callers"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/MatchState.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 71,
+                  "endLine": 106
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-13",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-13] parse_dict returns {} for both empty and malformed JSON; unguarded Dictionary casts"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloProtocol.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 16,
+                  "endLine": 20
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-14",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-14] TaloChannel.new(body[channel]) has no is Dictionary guard despite HTTP 200"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/net/TaloBackend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 689,
+                  "endLine": 693
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-15",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-15] Mock backend forces null channel and never exercises real I/O rejection"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_talo_backend.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 33,
+                  "endLine": 48
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-16",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-16] Forged JSON fed directly to _on_socket_message, bypassing Talo typed parser"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_audit_regressions.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 54,
+                  "endLine": 84
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-17",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-17] Majority of test_kiepie_pad assertions are is_not_null presence checks"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tests/test_kiepie_pad.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 22,
+                  "endLine": 29
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-18",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-18] Global reduced_motion restore skipped on early quit(2) path"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_evan_weapons.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 65,
+                  "endLine": 509
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-19",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-19] Cannon gate has 8 assertions and zero negative/boundary signals"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_cannons.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 27,
+                  "endLine": 45
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-20",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-20] SW patch test asserts literal marker substrings rather than behavior"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/test_patch_web_sw.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 99,
+                  "endLine": 106
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-21",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-21] dust_ring sampled only at 0.35 s; slow-ramp peak invisible"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/tools/verify_audit_regressions.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 360,
+                  "endLine": 368
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "KQ-SW-P3-22",
+          "level": "warning",
+          "message": {
+            "text": "[KQ-SW-P3-22] Particle direction Vector3(0,0,1) in -Z-forward basis streams sparks out of the rear"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "godot/src/game/HornBeam.gd",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 188,
+                  "endLine": 188
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "auditDate": "2026-11-25",
+        "snapshotSha256": "856acd5d156a639ce1b5ec4193b9528c9af18644c7b48a66991855db789d2820",
+        "healthScore": 89,
+        "riskLevel": "LOW",
+        "counts": {
+          "p0": 0,
+          "p1": 0,
+          "p2": 7,
+          "p3": 22
+        },
+        "mKillPct": 75.0
+      }
+    }
+  ]
+}

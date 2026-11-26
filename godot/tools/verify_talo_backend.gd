@@ -459,5 +459,63 @@ func _initialize() -> void:
 			"P3-1: leave erases uid from _kill_last_base")
 	jg_tb.free()
 
+	# [P2-A1] _load_state clears _host_lost_emitted when host is in roster and heartbeat is fresh.
+	var hl_tb := _new_backend()
+	get_root().add_child(hl_tb)
+	hl_tb.set("_host_lost_emitted", true)
+	var hl_now_s := str(int(Time.get_unix_time_from_system()))
+	var roster_json := JSON.stringify({"1": {"user_id": "1"}, "2": {"user_id": "2"}})
+	hl_tb.set("_channel", FakeChannel.new(2, 1, "", {
+		"code": "ABC12", "name": "test", "host_id": "1",
+		"status": "playing", "heartbeat": hl_now_s, "roster": roster_json,
+	}))
+	hl_tb.call("_load_state")
+	_check(not bool(hl_tb.get("_host_lost_emitted")),
+			"P2-A1: _load_state clears _host_lost_emitted on healthy host re-sync")
+	hl_tb.set("_host_lost_emitted", true)
+	hl_tb.set("_channel", FakeChannel.new(1, 1, "", {
+		"code": "ABC12", "name": "test", "host_id": "1",
+		"status": "playing", "heartbeat": "100", "roster": roster_json,
+	}))
+	hl_tb.call("_load_state")
+	_check(bool(hl_tb.get("_host_lost_emitted")),
+			"P2-A1: _load_state keeps _host_lost_emitted when heartbeat is stale")
+	hl_tb.free()
+
+	# [P2-A2] TaloProtocol.evaluate_outcome + pick_leader parity.
+	var proto := load("res://src/net/TaloProtocol.gd") as GDScript
+	if proto != null:
+		var br_out: Dictionary = proto.call("evaluate_outcome",
+				{"status": "playing", "settings": {"game_mode": "battle_royale", "kill_target": 5}},
+				{"1": {"score": 5}, "2": {"score": 4}}, "1")
+		_check(bool(br_out.get("finished", false)) and str(br_out.get("winner_id", "")) == "1",
+				"P2-A2: evaluate_outcome finishes battle_royale at kill_target")
+		var dr_out: Dictionary = proto.call("evaluate_outcome",
+				{"status": "playing", "settings": {"game_mode": "death_race", "lap_target": 3}},
+				{"2": {"laps": 3, "score": 3}}, "2")
+		_check(bool(dr_out.get("finished", false)) and str(dr_out.get("winner_id", "")) == "2",
+				"P2-A2: evaluate_outcome finishes death_race at lap_target")
+		var tie_win := str(proto.call("pick_leader", {"2": {"score": 4}, "1": {"score": 4}}))
+		_check(tie_win == "1", "P2-A2: pick_leader breaks ties deterministically by lowest user_id")
+
+	# [P2-E1] _on_socket_message drops mismatched protocol version v and accepts current v.
+	var pv_tb := _new_backend()
+	get_root().add_child(pv_tb)
+	var pv_sig := [0]
+	pv_tb.connect("broadcast_received", func(_e: String, _p: Variant) -> void: pv_sig[0] += 1)
+	await pv_tb.call("_on_socket_message", "v1.channels.message", {
+		"channel": {"id": 1},
+		"playerAlias": {"id": 2},
+		"message": JSON.stringify({"k": "shot", "v": "999", "p": {"id": "2"}}),
+	})
+	_check(pv_sig[0] == 0, "P2-E1: _on_socket_message drops explicit mismatched protocol version")
+	await pv_tb.call("_on_socket_message", "v1.channels.message", {
+		"channel": {"id": 1},
+		"playerAlias": {"id": 2},
+		"message": JSON.stringify({"k": "shot", "v": str(pv_tb.get("PROTOCOL_VERSION")), "p": {"id": "2"}}),
+	})
+	_check(pv_sig[0] == 1, "P2-E1: _on_socket_message accepts matching protocol version")
+	pv_tb.free()
+
 	print("talo backend contract: %d failure(s)" % _failures)
 	quit(1 if _failures > 0 else 0)

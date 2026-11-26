@@ -541,21 +541,27 @@ func _physics_process(delta: float) -> void:
 	var sweep_dir := velocity.normalized() if velocity.length_squared() > 1e-8 else Vector3.FORWARD
 	var sweep_right := sweep_dir.cross(Vector3.UP)
 	sweep_right = sweep_right.normalized() if sweep_right.length_squared() > 1e-6 else Vector3.RIGHT
-	var result: Dictionary = {}
+	var best: Dictionary = {}
+	var best_d2 := INF
 	for offset_x in [0.0, 0.38, -0.38]:
 		var off := sweep_right * float(offset_x)
 		_ray_query.from = from + off
 		_ray_query.to = to + off
-		result = world.direct_space_state.intersect_ray(_ray_query)
-		if not result.is_empty():
-			break
-	if result.is_empty():
+		var hit: Dictionary = world.direct_space_state.intersect_ray(_ray_query)
+		if hit.is_empty():
+			continue
+		var hit_col: Object = hit.get("collider", null)
+		if is_instance_valid(owner_node) and hit_col == owner_node:
+			continue
+		var hit_pos: Vector3 = hit.get("position", to)
+		var d2 := hit_pos.distance_squared_to(from)
+		if d2 < best_d2:
+			best_d2 = d2
+			best = hit
+	if best.is_empty():
 		global_position = to
 		return
-	var collider: Object = result.get("collider", null)
-	var point: Vector3 = result.get("position", to)
-	if is_instance_valid(owner_node) and collider == owner_node:
-		global_position = to
-		return
-	_on_contact(collider, point, result.get("normal", Vector3.UP))
+	var collider: Object = best.get("collider", null)
+	var point: Vector3 = best.get("position", to)
+	_on_contact(collider, point, best.get("normal", Vector3.UP))
 	global_position = point + velocity.normalized() * 0.06

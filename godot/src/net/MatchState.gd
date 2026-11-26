@@ -3,6 +3,7 @@ extends Node
 ## All score / win / respawn rules read from here, never from a peer.
 
 const KT := preload("res://src/core/KiepieTime.gd")
+const PROTO := preload("res://src/net/TaloProtocol.gd")
 
 signal roster_changed()
 signal lobby_changed()
@@ -179,16 +180,7 @@ func my_score() -> int:
 
 
 func leader_id() -> String:
-	var best := ""
-	var best_score := -1
-	var uids := players.keys()
-	uids.sort()  # deterministic tie-break: lowest user_id wins a score tie
-	for uid in uids:
-		var s := int((players[uid] as Dictionary).get("score", 0))
-		if s > best_score:
-			best = str(uid)
-			best_score = s
-	return best
+	return PROTO.pick_leader(players)
 
 
 func scoreboard() -> Array:

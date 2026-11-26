@@ -14,6 +14,7 @@ const HORN_BEAM := preload("res://src/game/HornBeam.gd")
 const UNICORN_BOOM := preload("res://src/game/UnicornBoom.gd")
 const VFX := preload("res://src/game/VfxFactory.gd")
 const KT := preload("res://src/core/KiepieTime.gd")
+const SIDE_CANNONS := preload("res://src/game/SideCannons.gd")
 const SEND_HZ := 15.0
 const SPAWN_ORDER := [0, 4, 2, 6, 1, 5, 3, 7]
 
@@ -425,8 +426,7 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 	var dmg := Match.damage() * VehicleRegistry.damage_multiplier(vehicle)
 	var shot_color := Color(1.0, 0.82, 0.28) if lea else (Color(0.95, 0.10, 0.46) if evan else (Color(1.0, 0.9, 0.25) if pogo else (Color(0.68, 1.0, 0.20) if aston else Color(1.0, 0.35, 0.25))))
 	var proj := _acquire_remote_proj(proj_script)
-	# Keep in sync with SideCannons.SHOT_SPEED.
-	proj.setup(owner_id, _remote.get(owner_id), o, d, 52.0, dmg,
+	proj.setup(owner_id, _remote.get(owner_id), o, d, SIDE_CANNONS.SHOT_SPEED, dmg,
 			str(p.get("token", "")), shot_color)
 	if combat != null and combat.has_method("_on_projectile_hit"):
 		proj.on_hit = Callable(combat, "_on_projectile_hit")

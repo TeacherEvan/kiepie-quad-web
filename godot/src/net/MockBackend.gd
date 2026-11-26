@@ -3,6 +3,8 @@ class_name MockBackend
 ## Offline stand-in for the Supabase backend. Used automatically when no project
 ## URL is configured, so every headless gate runs without network access.
 
+const PROTO := preload("res://src/net/TaloProtocol.gd")
+
 signal broadcast_received(event: String, payload: Variant)
 signal postgres_change(data: Dictionary)
 signal backend_error(message: String)
@@ -34,7 +36,7 @@ var _last_kill_at := -100.0
 var _kill_last_base: Dictionary = {}
 var _kill_times: Array = []
 var _lap_timestamps: Dictionary = {}
-const MIN_LAP_SECONDS := 12.0
+const MIN_LAP_SECONDS := PROTO.MIN_LAP_SECONDS
 
 
 func _ready() -> void:
@@ -190,11 +192,11 @@ func _mock_register_kill(args: Dictionary) -> Dictionary:
 		"record": shooter_row,
 	})
 	var winner = null
-	var target_score := int(s_dict.get("kill_target", 10))
-	if gmode != "death_race" and scores[shooter] >= target_score:
+	var outcome := PROTO.evaluate_outcome(lobby, players, shooter)
+	if bool(outcome["finished"]):
 		lobby["status"] = "finished"
-		lobby["winner_id"] = shooter
-		winner = shooter
+		lobby["winner_id"] = str(outcome["winner_id"])
+		winner = str(outcome["winner_id"])
 	return {
 		"ok": true, "score": scores[shooter], "kills": kills[shooter], "winner_id": winner,
 		"lobby_status": lobby["status"],
@@ -236,11 +238,11 @@ func _mock_register_lap(args: Dictionary) -> Dictionary:
 		"record": racer_row,
 	})
 	var winner = null
-	var target_laps := maxi(1, int(s_dict.get("lap_target", 3)))
-	if laps[racer] >= target_laps:
+	var outcome := PROTO.evaluate_outcome(lobby, players, racer)
+	if bool(outcome["finished"]):
 		lobby["status"] = "finished"
-		lobby["winner_id"] = racer
-		winner = racer
+		lobby["winner_id"] = str(outcome["winner_id"])
+		winner = str(outcome["winner_id"])
 	return {
 		"ok": true, "score": laps[racer], "laps": laps[racer], "winner_id": winner,
 		"lobby_status": lobby["status"],

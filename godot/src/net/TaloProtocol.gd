@@ -3,6 +3,7 @@ extends RefCounted
 
 const PROTOCOL_VERSION := "3"
 const STALE_LOBBY_S := 90.0
+const MIN_LAP_SECONDS := 12.0
 
 
 static func new_code() -> String:
@@ -110,3 +111,40 @@ static func prune_rate_window(timestamps: Array, now_s: float, window_s: float, 
 		return {"ok": false, "kept": kept}
 	kept.append(now_s)
 	return {"ok": true, "kept": kept}
+
+
+static func pick_leader(roster: Dictionary) -> String:
+	var best := ""
+	var best_score := -1
+	var uids := roster.keys()
+	uids.sort()  # deterministic tie-break: lowest user_id wins a score tie
+	for uid in uids:
+		var s := int((roster[uid] as Dictionary).get("score", 0))
+		if s > best_score:
+			best = str(uid)
+			best_score = s
+	return best
+
+
+static func evaluate_outcome(lobby: Dictionary, roster: Dictionary, actor_id: String = "") -> Dictionary:
+	if str(lobby.get("status", "")) == "finished":
+		return {"finished": false, "winner_id": str(lobby.get("winner_id", ""))}
+	var s_dict := lobby.get("settings", {}) as Dictionary
+	var gmode := str(s_dict.get("game_mode", "battle_royale"))
+	var target_kills := maxi(1, int(s_dict.get("kill_target", 10)))
+	var target_laps := maxi(1, int(s_dict.get("lap_target", 3)))
+	var uids: Array = []
+	if actor_id != "" and roster.has(actor_id):
+		uids = [actor_id]
+	else:
+		uids = roster.keys()
+		uids.sort()
+	for uid in uids:
+		var row: Dictionary = roster[uid] as Dictionary
+		if gmode == "death_race":
+			if int(row.get("laps", 0)) >= target_laps:
+				return {"finished": true, "winner_id": str(uid)}
+		else:
+			if int(row.get("score", 0)) >= target_kills:
+				return {"finished": true, "winner_id": str(uid)}
+	return {"finished": false, "winner_id": ""}

@@ -121,16 +121,22 @@ func _physics_process(delta: float) -> void:
 	if _occupants.is_empty():
 		_tick_accum = 0.0
 		return
-	_tick_accum += delta
-	if _tick_accum < tick_interval:
-		return
-	_tick_accum = 0.0
-	for i in range(_occupants.size() - 1, -1, -1):
-		var b := _occupants[i]
-		if not is_instance_valid(b) or not b.visible:
-			_occupants.remove_at(i)
-			continue
-		_damage_bike(b)
+	var dt := clampf(delta, 0.0, 0.1)
+	var step := maxf(0.05, tick_interval)
+	_tick_accum += dt
+	var ticks := 0
+	while _tick_accum >= step and ticks < 4:
+		_tick_accum -= step
+		ticks += 1
+		for i in range(_occupants.size() - 1, -1, -1):
+			var b := _occupants[i]
+			if not is_instance_valid(b) or not b.visible:
+				_occupants.remove_at(i)
+				continue
+			_damage_bike(b)
+		if _occupants.is_empty():
+			_tick_accum = 0.0
+			break
 
 
 func _damage_bike(bike_node: Node3D) -> void:
