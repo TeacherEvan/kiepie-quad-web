@@ -133,15 +133,18 @@ func _run() -> void:
 	_check(bike != null and str(bike.get("vehicle_profile")) == "pogo",
 			"Single-player Death Race roster guarantees Nardus assignment even for mock-host")
 
-	# LoopZone physics check: entering LoopZone sets bike.loop_up != Vector3.ZERO
+	# LoopZone physics check: entering LoopZone inside the loop sets bike.loop_up != Vector3.ZERO
 	var loop_zone := dr.get_node_or_null("TrackLoop0/LoopZone") as Area3D
 	if loop_zone != null and bike != null:
+		var saved_loop_xf := bike.global_transform
+		bike.global_position = loop_zone.to_global(Vector3(0.0, 5.0, 8.0))
 		loop_zone.call("_on_body_entered", bike)
 		loop_zone.call("_physics_process", 0.016)
 		var lup: Vector3 = bike.get("loop_up")
 		_check(lup.length() > 0.9, "LoopZone computes centripetal loop_up vector on bike (len=%.2f)" % lup.length())
 		loop_zone.call("_on_body_exited", bike)
 		_check((bike.get("loop_up") as Vector3).length() < 0.01, "Exiting LoopZone clears bike.loop_up")
+		bike.global_transform = saved_loop_xf
 
 	# ---- 4. Arsenal: Rocket Launcher (1.5s CD, 2x dmg, 4.5m blast) & Meteor Shower (6s CD, 2s fall, massive dmg)
 	var reload_bar := hud.get_node_or_null("ReloadBar") as ProgressBar if hud != null else null
@@ -800,6 +803,135 @@ func _run() -> void:
 			and dr.get_node_or_null("CircuitTrack/ChevronSerpent") != null
 			and dr.get_node_or_null("CircuitTrack/ChevronSwitchback") != null,
 			"Upgraded DeathRace has perimeter containment walls and physical S-chicane chevron boards")
+
+	# [P2-C2] HazardPit preserves overshoot across uneven delta ticks; [P2-C3] RaceTracker has RPC timeout/gen guard.
+	var hp_script := load("res://src/game/HazardPit.gd") as GDScript
+	if hp_script != null:
+		var hp := hp_script.new() as Node3D
+		hp.set("tick_interval", 0.5)
+		var dummy_occ := Node3D.new()
+		var typed_occ: Array[Node3D] = [dummy_occ]
+		hp.set("_occupants", typed_occ)
+		for _t in range(7):
+			hp.call("_physics_process", 0.08)
+		var rem := float(hp.get("_tick_accum"))
+		_check(is_equal_approx(rem, 0.06), "HazardPit preserves tick overshoot (got %.3f)" % rem)
+		dummy_occ.free()
+		hp.free()
+	var rt_node := dr.get_node_or_null("RaceTracker")
+	_check(rt_node != null and "LAP_RPC_TIMEOUT_S" in rt_node and "_lap_rpc_gen" in rt_node,
+			"RaceTracker exposes LAP_RPC_TIMEOUT_S and _lap_rpc_gen latch guard")
+
+	# ---- 8. Mobile 60fps sky-only regression: horizontal OOB recovery, spawn sanitization,
+	# LoopZone distant-bike pruning, FollowCam singular/bad-delta/OOB recovery, Aston CP 2/4
+	# HazardPit1 death+frozen-respawn+TrackLoop1 60fps stability, and WebGL2 FBO/step guards.
+	if bike != null and cam_rig != null and combat != null and tracker != null:
+		var cam_node2 := cam_rig.get_node_or_null("Camera3D") as Camera3D
+		# 8a. Horizontal OOB snaps bike back inside DeathRace stadium bounds + snaps camera
+		bike.call("set_spawn", Transform3D(Basis(Vector3.UP, deg_to_rad(-90.0)), Vector3(14.0, 0.65, 62.0)))
+		bike.global_position = Vector3(195.0, 1.0, 0.0)
+		PhysicsServer3D.body_set_state(bike.get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, bike.global_transform)
+		await physics_frame
+		cam_rig.call("_process", 1.0 / 60.0)
+		_check(absf(bike.global_position.x) <= 135.0 and absf(bike.global_position.z) <= 115.0
+				and cam_rig.global_position.distance_to(bike.global_position) < 12.0,
+				"Horizontal OOB (+X=195m) snaps bike back into stadium and snaps FollowCam (pos=%s)" % str(bike.global_position))
+
+		bike.global_position = Vector3(0.0, 1.0, 160.0)
+		PhysicsServer3D.body_set_state(bike.get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, bike.global_transform)
+		await physics_frame
+		cam_rig.call("_process", 1.0 / 60.0)
+		_check(absf(bike.global_position.x) <= 135.0 and absf(bike.global_position.z) <= 115.0,
+				"Horizontal OOB (+Z=160m) snaps bike back into stadium (pos=%s)" % str(bike.global_position))
+
+		# 8b. set_spawn rejects NaN, singular, inverted, and OOB transforms
+		var good_spawn := Transform3D(Basis(Vector3.UP, deg_to_rad(-90.0)), Vector3(14.0, 0.65, 62.0))
+		bike.call("set_spawn", good_spawn)
+		bike.call("set_spawn", Transform3D(Basis.IDENTITY, Vector3(NAN, 0.6, 0.0)))
+		bike.call("set_spawn", Transform3D(Basis(Vector3.ZERO, Vector3.ZERO, Vector3.ZERO), Vector3(0.0, 0.6, 0.0)))
+		bike.call("set_spawn", Transform3D(Basis(Vector3.RIGHT, PI), Vector3(0.0, 0.6, 0.0)))
+		bike.call("set_spawn", Transform3D(Basis.IDENTITY, Vector3(260.0, 0.6, 0.0)))
+		var kept_sp: Transform3D = bike.call("_safe_spawn")
+		_check(kept_sp.origin.distance_to(good_spawn.origin) < 0.05 and kept_sp.basis.y.dot(Vector3.UP) > 0.99,
+				"KiepieBike.set_spawn rejects NaN/singular/inverted/OOB spawns and keeps valid checkpoint")
+
+		# 8c. LoopZone prunes a bike that teleported/respawned out of the loop before body_exited flushed
+		var lz1 := dr.get_node_or_null("TrackLoop1/LoopZone") as Area3D
+		if lz1 != null:
+			bike.call("reset_bike")
+			lz1.call("_on_body_entered", bike)
+			bike.set("loop_up", Vector3(0.0, 0.0, 1.0))
+			lz1.call("_physics_process", 1.0 / 60.0)
+			_check((bike.get("loop_up") as Vector3).length() < 0.01
+					and not (lz1.get("_bikes") as Array).has(bike),
+					"LoopZone prunes distant/teleported bike and clears stale loop_up immediately")
+
+		# 8d. FollowCam recovers from zero-scale child Camera3D, zero/NaN delta, and singular target basis
+		if cam_node2 != null:
+			cam_node2.transform = Transform3D(Basis(Vector3.ZERO, Vector3.ZERO, Vector3.ZERO), Vector3(0, 0, 0))
+			cam_node2.cull_mask = 0
+		cam_rig.call("_process", 0.0)
+		cam_rig.call("_process", NAN)
+		_check(cam_rig.global_transform.is_finite() and absf(cam_rig.global_transform.basis.determinant()) > 0.5
+				and (cam_node2 == null or (cam_node2.transform.is_finite()
+					and absf(cam_node2.transform.basis.determinant()) > 0.5
+					and cam_node2.cull_mask != 0 and cam_node2.near >= 0.1 and cam_node2.far <= 600.0)),
+				"FollowCam recovers child Camera3D zero-scale/cull_mask and survives 0/NaN delta")
+
+		# 8e. Aston Martin BIG-BEN at CP 2/4: HazardPit1 death + frozen frames + respawn + TrackLoop1 @ 60fps
+		var settings_node := root.get_node("Settings")
+		settings_node.call("set_value", "gameplay", "vehicle", "AstonMartin")
+		bike.call("refresh_vehicle_assignment")
+		tracker.set("race_finished", false)
+		tracker.set("next_checkpoint", 0)
+		var cp0_dr := dr.get_node_or_null("Checkpoint0") as Area3D
+		var cp1_dr := dr.get_node_or_null("Checkpoint1") as Area3D
+		if cp0_dr != null and cp1_dr != null:
+			tracker.call("_on_checkpoint_entered", 0, cp0_dr, bike)
+			tracker.call("_on_checkpoint_entered", 1, cp1_dr, bike)
+		combat.call("reset_state")
+		combat.call("_die", "hazard-pit")
+		for _ff in range(12):
+			await physics_frame
+			cam_rig.call("_process", 1.0 / 60.0)
+		combat.call("_respawn")
+		for _rf in range(6):
+			await physics_frame
+			cam_rig.call("_process", 1.0 / 60.0)
+		var respawn_ok := str(bike.get("vehicle_profile")) == "aston" and bike.visible and not bike.freeze \
+				and bike.global_transform.is_finite() and cam_rig.global_position.is_finite() \
+				and cam_rig.global_position.distance_to(bike.global_position) < 12.0 \
+				and absf(bike.global_position.x) <= 135.0 and absf(bike.global_position.z) <= 115.0
+		_check(respawn_ok,
+				"Aston Martin CP 2/4 frozen death -> respawn keeps visible bike & tight camera at 60fps")
+
+		# Drive Aston Martin through TrackLoop1 at 60fps stepping
+		bike.call("set_spawn", Transform3D(Basis(Vector3.UP, deg_to_rad(-90.0)), Vector3(-10.0, 0.1, 76.2)))
+		bike.call("reset_bike")
+		for _lf in range(6):
+			await physics_frame
+		bike.linear_velocity = Vector3(-25.0, 0.0, 0.0)
+		Input.action_press("move_forward")
+		Input.action_press("turbo")
+		var loop1_ok := true
+		for _lf in range(180):
+			await physics_frame
+			cam_rig.call("_process", 1.0 / 60.0)
+			if not bike.global_position.is_finite() or not cam_rig.global_position.is_finite() \
+					or absf(cam_rig.global_transform.basis.determinant()) < 0.5 \
+					or absf(bike.global_position.x) > 135.0 or absf(bike.global_position.z) > 115.0:
+				loop1_ok = false
+				break
+		Input.action_release("move_forward")
+		Input.action_release("turbo")
+		_check(loop1_ok, "Aston Martin completes TrackLoop1 @60fps with finite bike & camera inside stadium")
+
+		# 8f. Settings mobile WebGL2 safety + project.godot physics catch-up cap
+		_check(settings_node.has_method("_is_mobile_web"),
+				"Settings exposes _is_mobile_web() WebGL2 FBO guard")
+		_check(int(ProjectSettings.get_setting("physics/common/max_physics_steps_per_frame", 8)) <= 4
+				and int(ProjectSettings.get_setting("rendering/anti_aliasing/quality/msaa_3d", 0)) == 0,
+				"project.godot caps max_physics_steps_per_frame<=4 and disables msaa_3d for mobile 60fps stability")
 
 	dr.free()
 	match_node.set("lobby", prev_lobby)

@@ -50,28 +50,63 @@ static func _vec_ok(v: Vector3) -> bool:
 
 
 func _ensure_clean_basis() -> void:
-	if not global_transform.basis.is_finite() or absf(global_transform.basis.determinant()) < 0.01:
+	var b := global_transform.basis
+	if not b.is_finite() or absf(b.determinant()) < 0.5 or absf(b.determinant()) > 2.0:
 		var pos := global_position if _vec_ok(global_position) else Vector3.ZERO
 		global_transform = Transform3D(Basis.IDENTITY, pos)
 
 
+func _ensure_camera_healthy() -> void:
+	if not is_finite(fov_base) or fov_base < 30.0 or fov_base > 110.0:
+		fov_base = 62.0
+	if _cam == null:
+		return
+	var cb := _cam.transform.basis
+	if not _cam.transform.is_finite() or absf(cb.determinant()) < 0.5 or absf(cb.determinant()) > 2.0:
+		_cam.transform = Transform3D.IDENTITY
+	if not _cam.current:
+		_cam.current = true
+	if not is_finite(_cam.near) or _cam.near < 0.1 or _cam.near > 1.0:
+		_cam.near = 0.15
+	if not is_finite(_cam.far) or _cam.far < 200.0 or _cam.far > 600.0:
+		_cam.far = 520.0
+	if _cam.cull_mask == 0:
+		_cam.cull_mask = 0xFFFFF
+	if not is_finite(_cam.fov) or _cam.fov < 25.0 or _cam.fov > 120.0:
+		_cam.fov = clampf(fov_base, 30.0, 110.0)
+
+
+func _target_pose_ok() -> bool:
+	if _target == null or not is_instance_valid(_target):
+		return false
+	var xf := _target.global_transform
+	if not _vec_ok(xf.origin) or not xf.basis.is_finite() or absf(xf.basis.determinant()) <= 0.01:
+		return false
+	if _target.has_method("_is_pose_valid") and not bool(_target.call("_is_pose_valid", xf)):
+		return false
+	return true
+
+
 func _ready() -> void:
 	add_to_group("camera_rig")
-	fov_base = float(Settings.get_value("video", "fov", 62.0))
+	var raw_fov := float(Settings.get_value("video", "fov", 62.0))
+	fov_base = clampf(raw_fov, 30.0, 110.0) if is_finite(raw_fov) else 62.0
 	if Settings.has_signal("changed") and not Settings.is_connected("changed", _on_settings_changed):
 		Settings.connect("changed", _on_settings_changed)
 	_target = get_node_or_null(target_path) as Node3D
 	_cam = get_node_or_null("Camera3D") as Camera3D
 	if _cam != null:
-		_cam.near = maxf(_cam.near, 0.1)
-		_cam.far = minf(_cam.far, 600.0)
+		_cam.near = clampf(_cam.near, 0.15, 0.5)
+		_cam.far = minf(_cam.far, 520.0)
+	_ensure_camera_healthy()
 	_radius = orbit_radius
 
 
 func snap_to_target() -> void:
 	if _target == null or not is_instance_valid(_target):
 		return
-	if not _vec_ok(_target.global_position) or not _target.global_transform.basis.is_finite():
+	if not _vec_ok(_target.global_position) or not _target.global_transform.basis.is_finite() \
+			or absf(_target.global_transform.basis.determinant()) <= 0.01:
 		return
 	_ensure_clean_basis()
 	_spectate_target = null
@@ -84,12 +119,9 @@ func snap_to_target() -> void:
 		fwd = Vector3.BACK
 	_follow_dir = fwd.normalized()
 	global_position = _target.global_transform.origin - _follow_dir * distance + Vector3.UP * height
+	_ensure_camera_healthy()
 	if _cam != null:
-		if not _cam.transform.is_finite():
-			_cam.transform = Transform3D.IDENTITY
 		_cam.position = Vector3.ZERO
-		if not _cam.current:
-			_cam.current = true
 		_cam.fov = clampf(fov_base, 30.0, 110.0)
 	_safe_look_at(_target.global_transform.origin + Vector3.UP * look_offset.y, Vector3.UP)
 
@@ -101,13 +133,15 @@ func _exit_tree() -> void:
 
 func _on_settings_changed(section: String, key: String, value: Variant) -> void:
 	if section == "*":
-		fov_base = float(Settings.get_value("video", "fov", 62.0))
+		var raw_fov := float(Settings.get_value("video", "fov", 62.0))
+		fov_base = clampf(raw_fov, 30.0, 110.0) if is_finite(raw_fov) else 62.0
 	elif section == "video" and key == "fov":
-		fov_base = float(value)
+		var raw_fov := float(value)
+		fov_base = clampf(raw_fov, 30.0, 110.0) if is_finite(raw_fov) else 62.0
 
 func toggle_view() -> void:
 	mode = "free" if mode == "follow" else "follow"
-	if mode == "free" and _target:
+	if mode == "free" and _target and _vec_ok(global_position) and _vec_ok(_target.global_position):
 		# seed the orbit from wherever the camera currently is
 		var d := global_position - _target.global_position
 		_radius = clampf(d.length(), 2.6, 15.0)
@@ -124,7 +158,7 @@ func _safe_look_at(look_target: Vector3, desired_up: Vector3) -> void:
 	var look_dir := to_target.normalized()
 	var up_vec := desired_up.normalized() if (_vec_ok(desired_up) and desired_up.length_squared() > 1e-4) else Vector3.UP
 	if absf(look_dir.dot(up_vec)) > 0.96:
-		if _target != null and is_instance_valid(_target):
+		if _target != null and is_instance_valid(_target) and _target.global_transform.basis.is_finite():
 			var bike_up := _target.global_transform.basis.y.normalized()
 			if bike_up.length_squared() > 0.5 and absf(look_dir.dot(bike_up)) <= 0.96:
 				up_vec = bike_up
@@ -137,11 +171,18 @@ func _safe_look_at(look_target: Vector3, desired_up: Vector3) -> void:
 		else:
 			up_vec = Vector3.RIGHT
 	look_at(look_target, up_vec)
+	_ensure_clean_basis()
 
 
 func _process(delta: float) -> void:
 	if _target == null or not is_instance_valid(_target):
 		return
+	var dt := clampf(delta, 0.0001, 0.05) if is_finite(delta) else (1.0 / 60.0)
+	_ensure_camera_healthy()
+	if not is_finite(_yaw) or not is_finite(_pitch) or not is_finite(_radius):
+		_yaw = 0.7
+		_pitch = 0.42
+		_radius = orbit_radius
 	if _spectate_target != null:
 		if not is_instance_valid(_spectate_target) or not _vec_ok(_spectate_target.global_position) or Time.get_ticks_msec() / 1000.0 >= _spectate_until:
 			_spectate_target = null
@@ -152,26 +193,20 @@ func _process(delta: float) -> void:
 			_safe_look_at(_spectate_target.global_position + look_offset, Vector3.UP)
 			if _cam != null:
 				_cam.position = Vector3.ZERO
-			_shake = move_toward(_shake, 0.0, delta * 3.0)
+			_shake = move_toward(_shake, 0.0, dt * 3.0)
 			return
-	if not _vec_ok(_target.global_position) or not _target.global_transform.basis.is_finite():
+	if not _target_pose_ok():
 		if _target.has_method("reset_bike"):
 			_target.call("reset_bike")
+		snap_to_target()
 		return
-	var dt := minf(delta, 0.05)
 	var turbo := bool(_target.get("turbo_active")) and not Settings.reduced_motion()
 	var spd := (_target as RigidBody3D).linear_velocity.length() if _target is RigidBody3D else 0.0
 	if not is_finite(spd):
 		spd = 0.0
 	var speed_fov := clampf((spd - 10.0) / 26.0, 0.0, 1.0) * 5.0 if not Settings.reduced_motion() else 0.0
-	var want_fov := fov_base + speed_fov + (fov_kick if turbo else 0.0)
+	var want_fov := clampf(fov_base + speed_fov + (fov_kick if turbo else 0.0), 30.0, 115.0)
 	if _cam:
-		if not _cam.transform.is_finite():
-			_cam.transform = Transform3D.IDENTITY
-		if not _cam.current:
-			_cam.current = true
-		if not is_finite(_cam.fov) or _cam.fov < 20.0 or _cam.fov > 140.0:
-			_cam.fov = clampf(fov_base, 30.0, 110.0)
 		_cam.fov = lerpf(_cam.fov, want_fov, 1.0 - exp(-6.0 * dt))
 
 	var target_up := Vector3.UP

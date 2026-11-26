@@ -75,17 +75,31 @@ func _ready() -> void:
 	call_deferred("_sync_mobile_scale")
 
 
-func _is_mobile_auto() -> bool:
+func _is_mobile_web() -> bool:
 	if DisplayServer.get_name() == "headless":
 		return false
-	if str(get_value("video", "quality", "auto")) != "auto":
+	return OS.has_feature("web") and (
+		DisplayServer.is_touchscreen_available()
+		or OS.has_feature("web_android")
+		or OS.has_feature("web_ios")
+		or OS.has_feature("mobile")
+	)
+
+
+func _is_mobile_auto() -> bool:
+	if not _is_mobile_web():
 		return false
-	return OS.has_feature("web") and (DisplayServer.is_touchscreen_available() or OS.has_feature("mobile"))
+	return str(get_value("video", "quality", "auto")) == "auto"
 
 
 func effective_resolution_scale() -> float:
-	var scale := float(get_value("video", "resolution_scale", 1.0))
-	return 1.0 if _is_mobile_auto() else scale
+	# Never allocate a sub-1.0 offscreen 3D FBO on mobile WebGL2: Godot 4.3
+	# gl_compatibility drops 3D geometry (sky-only) on Mali/Adreno/WebKit when
+	# scaling_3d_scale != 1.0 across viewport/fullscreen resizes or 60fps swaps.
+	if _is_mobile_web():
+		return 1.0
+	var raw := float(get_value("video", "resolution_scale", 1.0))
+	return clampf(raw, 0.5, 1.0) if is_finite(raw) else 1.0
 
 
 func effective_shadows() -> bool:
@@ -94,8 +108,11 @@ func effective_shadows() -> bool:
 
 
 func effective_glow() -> bool:
-	var on := bool(get_value("video", "glow", true))
-	return false if _is_mobile_auto() else on
+	# Disable HDR RGBA16F glow FBO on mobile WebGL2 regardless of preset to
+	# prevent gl_compatibility mobile FBO invalidation leaving only sky + HUD.
+	if _is_mobile_web():
+		return false
+	return bool(get_value("video", "glow", true))
 
 
 func _install_web_back_bridge() -> void:
@@ -211,17 +228,19 @@ func _sync_mobile_scale_now() -> void:
 	var dpr := 1.0
 	if OS.has_feature("web") and Engine.has_singleton("JavaScriptBridge"):
 		var raw := float(JavaScriptBridge.eval("window.devicePixelRatio || 1", true))
-		if raw > 0.0:
-			dpr = raw
+		if is_finite(raw) and raw > 0.0:
+			dpr = clampf(raw, 0.5, 6.0)
 	elif OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios"):
-		dpr = maxf(1.0, DisplayServer.screen_get_scale())
+		dpr = clampf(DisplayServer.screen_get_scale(), 1.0, 6.0)
 	var css := px / dpr
 	if css.x >= 1000.0 and css.y >= 540.0:
 		win.content_scale_factor = 1.0
+		_apply_resolution_scale()
 		return
 	var stretch := minf(px.x / 1280.0, px.y / 720.0)
-	if stretch > 0.0:
+	if is_finite(stretch) and stretch > 0.0:
 		win.content_scale_factor = clampf(dpr / stretch, 1.0, 4.5)
+	_apply_resolution_scale()
 
 
 func _on_node_added(node: Node) -> void:
@@ -249,12 +268,17 @@ func _apply_shadows_to_tree() -> void:
 
 
 func _apply_resolution_scale() -> void:
+	if _is_mobile_web():
+		# Lock 90/120 Hz mobile VRR displays to 60 fps so WebGL2 matches the
+		# 60 Hz physics step without half-step drift or swapchain stalls.
+		Engine.max_fps = 60
 	var vp := get_viewport()
 	if vp != null:
 		var scale := effective_resolution_scale()
 		vp.scaling_3d_scale = scale
 		if scale < 1.0 or OS.has_feature("web"):
 			vp.msaa_3d = Viewport.MSAA_DISABLED
+			vp.use_hdr_2d = false
 
 
 func _apply_glow_to_tree() -> void:

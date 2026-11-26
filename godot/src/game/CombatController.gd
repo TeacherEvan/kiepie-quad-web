@@ -241,6 +241,20 @@ func _die(by: String) -> void:
 					(w as VehicleWheel3D).steering = 0.0
 	bike.linear_velocity = Vector3.ZERO
 	bike.angular_velocity = Vector3.ZERO
+	if "loop_up" in bike:
+		bike.set("loop_up", Vector3.ZERO)
+	if "loop_tangent" in bike:
+		bike.set("loop_tangent", Vector3.ZERO)
+	if "loop_center_pull" in bike:
+		bike.set("loop_center_pull", Vector3.ZERO)
+	if "_dodge_time" in bike:
+		bike.set("_dodge_time", 0.0)
+	if "_dodge_elapsed" in bike:
+		bike.set("_dodge_elapsed", 0.0)
+	if "turbo_active" in bike:
+		bike.set("turbo_active", false)
+	if "overdrive_active" in bike:
+		bike.set("overdrive_active", false)
 	if bike.get_rid().is_valid():
 		PhysicsServer3D.body_set_state(bike.get_rid(), PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO)
 		PhysicsServer3D.body_set_state(bike.get_rid(), PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
@@ -265,8 +279,8 @@ func _respawn() -> void:
 	var in_race := tree != null and tree.get_first_node_in_group("race_tracker") != null
 	var pos := Vector3(0.0, 0.6, 0.0)
 	if in_race:
-		var sp_xf: Variant = bike.get("_spawn")
-		if sp_xf is Transform3D:
+		var sp_xf: Variant = bike.call("_safe_spawn") if bike.has_method("_safe_spawn") else bike.get("_spawn")
+		if sp_xf is Transform3D and (sp_xf as Transform3D).origin.is_finite():
 			pos = (sp_xf as Transform3D).origin
 	else:
 		var points := tree.get_nodes_in_group("spawn_point") if tree != null else []
@@ -281,16 +295,14 @@ func _respawn() -> void:
 		else:
 			pos = Vector3(randf_range(-25.0, 25.0), 0.6, randf_range(-25.0, 25.0))
 			bike.set_spawn(Transform3D(Basis.IDENTITY, pos))
-	# reset_bike() zeroes wheel force/brake/steer, clears dodge state and pushes
-	# the spawn transform into PhysicsServer3D — direct global_transform writes
-	# get overwritten on the next physics sync step.
-	# reset_bike() zeroes wheel force/brake/steer, clears dodge state, pushes
-	# the spawn transform into PhysicsServer3D and snaps FollowCam. Keep
-	# collision disabled until after unfreezing to avoid VehicleBody3D NaN.
+	# Keep collision disabled while unfreezing BEFORE reset_bike() so
+	# PhysicsServer3D applies transform/zero-velocity/wake to a live rigid body
+	# (BODY_STATE_SLEEPING=false is a no-op on a frozen static body) and
+	# VehicleBody3D never steps frozen with active wheel contacts.
 	bike.collision_layer = 0
 	bike.collision_mask = 0
-	bike.reset_bike()
 	bike.freeze = false
+	bike.reset_bike()
 	var ep: Variant = bike.get("_engine_player")
 	if ep is AudioStreamPlayer3D:
 		(ep as AudioStreamPlayer3D).stream_paused = false
@@ -360,7 +372,19 @@ func reset_state() -> void:
 			cannons.call("reset_cooldowns")
 	if "overdrive_active" in bike:
 		bike.set("overdrive_active", false)
+	if "turbo_active" in bike:
+		bike.set("turbo_active", false)
+	if "loop_up" in bike:
+		bike.set("loop_up", Vector3.ZERO)
+	if "loop_tangent" in bike:
+		bike.set("loop_tangent", Vector3.ZERO)
+	if "loop_center_pull" in bike:
+		bike.set("loop_center_pull", Vector3.ZERO)
+	if "_dodge_time" in bike:
+		bike.set("_dodge_time", 0.0)
 	bike.freeze = false
+	if bike.has_method("_is_pose_valid") and not bool(bike.call("_is_pose_valid", bike.global_transform)):
+		bike.reset_bike()
 	var ep: Variant = bike.get("_engine_player")
 	if ep is AudioStreamPlayer3D:
 		(ep as AudioStreamPlayer3D).stream_paused = false

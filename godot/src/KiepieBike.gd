@@ -44,6 +44,9 @@ var _assigned_vehicle: StringName = &""
 
 var _steer := 0.0
 var _spawn := Transform3D.IDENTITY
+var _fallback_spawn := Transform3D(Basis.IDENTITY, Vector3(0.0, 0.6, 0.0))
+var _bound_x := 145.0
+var _bound_z := 145.0
 var _turbo_blend := 0.0
 var _steer_sensitivity := 1.0
 var _dodge_time := 0.0
@@ -97,7 +100,13 @@ func _enter_tree() -> void:
 
 func _ready() -> void:
 	add_to_group("bike") # group is not persisted in the baked .tscn; register at runtime
-	_spawn = global_transform
+	_init_world_bounds()
+	if _is_pose_valid(global_transform):
+		var clean_init := Transform3D(global_transform.basis.orthonormalized(), global_transform.origin)
+		_spawn = clean_init
+		_fallback_spawn = clean_init
+	else:
+		_spawn = _fallback_spawn
 	_steer_sensitivity = clampf(float(Settings.get_value("controls", "steer_sensitivity", 1.0)), 0.3, 2.0)
 	Settings.changed.connect(_on_settings_changed)
 	if typeof(Match) != TYPE_NIL and Match != null and Match.has_signal("roster_changed"):
@@ -548,11 +557,36 @@ func _physics_process(delta: float) -> void:
 	for key in _wheel_nodes.keys():
 		var node: Node3D = _wheel_nodes[key]
 		if node and is_finite(roll):
-			node.rotate_x(roll)
+			node.rotate_x(clampf(roll, -2.0, 2.0))
+			if not node.basis.is_finite() or absf(node.basis.determinant()) <= 0.01:
+				node.basis = Basis.IDENTITY
+			else:
+				var scl := node.scale
+				node.basis = node.basis.orthonormalized()
+				if scl.is_finite() and not scl.is_equal_approx(Vector3.ONE) and scl.length_squared() > 1e-4:
+					node.scale = scl
+
+func _init_world_bounds() -> void:
+	var parent := get_parent()
+	if parent == null:
+		return
+	var ground := parent.get_node_or_null("Ground")
+	if ground == null:
+		return
+	for child in ground.get_children():
+		if child is CollisionShape3D and (child as CollisionShape3D).shape is BoxShape3D:
+			var sz := ((child as CollisionShape3D).shape as BoxShape3D).size
+			if sz.is_finite() and sz.x > 10.0 and sz.z > 10.0:
+				_bound_x = clampf(sz.x * 0.5 + 10.0, 60.0, 215.0)
+				_bound_z = clampf(sz.z * 0.5 + 10.0, 60.0, 215.0)
+				return
+
 
 func _safe_spawn() -> Transform3D:
-	if _spawn.origin.is_finite() and _spawn.basis.is_finite() and absf(_spawn.basis.determinant()) > 0.01:
+	if _is_pose_valid(_spawn) and _spawn.basis.y.normalized().dot(Vector3.UP) >= 0.3:
 		return Transform3D(_spawn.basis.orthonormalized(), _spawn.origin)
+	if _is_pose_valid(_fallback_spawn):
+		return Transform3D(_fallback_spawn.basis.orthonormalized(), _fallback_spawn.origin)
 	return Transform3D(Basis.IDENTITY, Vector3(0.0, 0.6, 0.0))
 
 
@@ -561,7 +595,9 @@ func _is_pose_valid(xf: Transform3D) -> bool:
 		return false
 	if absf(xf.basis.determinant()) <= 0.01:
 		return false
-	if xf.origin.y < -12.0 or xf.origin.y > 45.0 or xf.origin.length() > 320.0:
+	if xf.origin.y < -10.0 or xf.origin.y > 38.0:
+		return false
+	if absf(xf.origin.x) > _bound_x or absf(xf.origin.z) > _bound_z:
 		return false
 	return true
 
@@ -576,8 +612,14 @@ func _notify_camera_snap() -> void:
 
 
 func set_spawn(t: Transform3D) -> void:
-	## Used by the multiplayer respawn system to move the reset point.
-	_spawn = t
+	## Used by the multiplayer respawn system and Death Race checkpoints to move
+	## the reset point. Rejects non-finite, singular, inverted, or OOB poses.
+	if not _is_pose_valid(t):
+		return
+	var b := t.basis.orthonormalized()
+	if not b.is_finite() or absf(b.determinant()) <= 0.5 or b.y.dot(Vector3.UP) < 0.3:
+		return
+	_spawn = Transform3D(b, t.origin)
 
 
 func reset_bike() -> void:
@@ -714,8 +756,9 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var basis := state.transform.basis.orthonormalized()
 	var up := basis.y.normalized()
 	var spd := state.linear_velocity.length()
-	var dt_scale := clampf(state.step * 60.0, 0.25, 4.0)
-	var safe_step := clampf(state.step, 0.001, 0.05)
+	var raw_step := state.step if is_finite(state.step) else (1.0 / 60.0)
+	var dt_scale := clampf(raw_step * 60.0, 0.25, 4.0)
+	var safe_step := clampf(raw_step, 0.001, 0.05)
 	var in_loop_zone := loop_up.is_finite() and loop_up.length_squared() > 0.25
 	var loop_active := in_loop_zone and spd > 8.0
 	if not loop_active:
@@ -770,5 +813,20 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		if is_finite(effort):
 			basis = Basis(Quaternion(axis.normalized(), effort)) * basis
 			basis = basis.orthonormalized()
-			if basis.is_finite():
+			if basis.is_finite() and absf(basis.determinant()) > 0.5:
 				state.transform = Transform3D(basis, state.transform.origin)
+	# Final post-integration velocity sanity clamp: loop/drag/damping must never
+	# leave non-finite or runaway velocities for the C++ VehicleWheel3D solver.
+	if not state.linear_velocity.is_finite() or not state.angular_velocity.is_finite():
+		state.transform = _safe_spawn()
+		state.linear_velocity = Vector3.ZERO
+		state.angular_velocity = Vector3.ZERO
+		loop_up = Vector3.ZERO
+		loop_tangent = Vector3.ZERO
+		loop_center_pull = Vector3.ZERO
+		call_deferred("_notify_camera_snap")
+		return
+	if state.linear_velocity.length() > 85.0:
+		state.linear_velocity = state.linear_velocity.normalized() * 85.0
+	if state.angular_velocity.length() > 25.0:
+		state.angular_velocity = state.angular_velocity.normalized() * 25.0

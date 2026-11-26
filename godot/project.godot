@@ -26,10 +26,13 @@ window/stretch/aspect="expand"
 window/handheld/orientation=0
 
 [physics]
+common/max_physics_steps_per_frame=4
 3d/default_gravity=9.81
 
 [rendering]
 renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+anti_aliasing/quality/msaa_3d=0
 
 [input]
 move_forward={

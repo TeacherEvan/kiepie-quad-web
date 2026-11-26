@@ -9,6 +9,8 @@ signal checkpoint_cleared(cp_index: int, total_checkpoints: int)
 signal lap_completed(completed_laps: int, lap_target: int)
 signal race_won(winner_id: String)
 
+const LAP_RPC_TIMEOUT_S := 5.0
+
 @export var local_bike_path: NodePath = ^"../KiepieBike"
 @export var default_lap_target := 3
 
@@ -25,6 +27,7 @@ var _injected_solo_uid := ""
 var _finishing_lap := false
 var _lap_pending := false
 var _lap_retry_gen := 0
+var _lap_rpc_gen := 0
 
 
 func _ready() -> void:
@@ -38,6 +41,8 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	_lap_rpc_gen += 1
+	_finishing_lap = false
 	if Match != null and Match.has_signal("roster_changed") and Match.is_connected("roster_changed", _on_roster_changed):
 		Match.disconnect("roster_changed", _on_roster_changed)
 	# Never pollute the global Match autoload with synthetic solo-mode rows after leaving.
@@ -118,6 +123,20 @@ func lap_target() -> int:
 	return maxi(1, default_lap_target)
 
 
+func _safe_upright_spawn(area: Area3D) -> Transform3D:
+	if area == null or not is_instance_valid(area):
+		return Transform3D(Basis.IDENTITY, Vector3(0.0, 0.65, 0.0))
+	var pos := area.global_position
+	var b := area.global_transform.basis
+	if not pos.is_finite() or not b.is_finite() or absf(b.determinant()) <= 0.01:
+		return Transform3D(Basis.IDENTITY, Vector3(0.0, 0.65, 0.0))
+	var fwd := Vector3(b.z.x, 0.0, b.z.z)
+	fwd = fwd.normalized() if fwd.length_squared() > 1e-4 else Vector3.BACK
+	var right := Vector3.UP.cross(fwd).normalized()
+	var upright := Basis(right, Vector3.UP, fwd).orthonormalized()
+	return Transform3D(upright, pos + Vector3(0.0, 0.65, 0.0))
+
+
 func _on_checkpoint_entered(cp_idx: int, cp_area: Area3D, body: Node) -> void:
 	if race_finished or body != _bike or _bike == null:
 		return
@@ -126,9 +145,7 @@ func _on_checkpoint_entered(cp_idx: int, cp_area: Area3D, body: Node) -> void:
 	next_checkpoint += 1
 	# Advance respawn transform to this checkpoint facing along its forward (+Z) axis
 	if _bike.has_method("set_spawn"):
-		var spawn_xf := Transform3D(cp_area.global_transform.basis.orthonormalized(),
-				cp_area.global_position + Vector3(0.0, 0.65, 0.0))
-		_bike.call("set_spawn", spawn_xf)
+		_bike.call("set_spawn", _safe_upright_spawn(cp_area))
 	var sfx := get_node_or_null("/root/Sfx")
 	if sfx != null and sfx.has_method("play"):
 		sfx.call("play", "pickup", -2.0, 1.15)
@@ -148,9 +165,22 @@ func _on_finish_line_entered(body: Node) -> void:
 	var was_live_match := Match != null and Match.is_playing()
 	var lap_pending := false
 	if was_live_match:
+		_lap_rpc_gen += 1
+		var rpc_gen := _lap_rpc_gen
+		if get_tree() != null:
+			var w_self: WeakRef = weakref(self)
+			get_tree().create_timer(LAP_RPC_TIMEOUT_S).timeout.connect(func() -> void:
+				var me := w_self.get_ref() as Node
+				if me == null or not is_instance_valid(me):
+					return
+				if int(me.get("_lap_rpc_gen")) == rpc_gen and bool(me.get("_finishing_lap")):
+					me.set("_lap_rpc_gen", rpc_gen + 1)
+					me.set("_finishing_lap", false))
 		var shot_res: Dictionary = await Match.issue_shot()
 		if not is_inside_tree():
 			_finishing_lap = false
+			return
+		if _lap_rpc_gen != rpc_gen:
 			return
 		var tok := str(shot_res.get("token", ""))
 		if tok == "":
@@ -160,6 +190,8 @@ func _on_finish_line_entered(body: Node) -> void:
 		var lap_res: Dictionary = await Match.register_lap(tok)
 		if not is_inside_tree():
 			_finishing_lap = false
+			return
+		if _lap_rpc_gen != rpc_gen:
 			return
 		var err := str(lap_res.get("reason", lap_res.get("error", "")))
 		if err in ["rate_limited", "wrong_mode", "lobby_not_playing", "invalid_token", "token_consumed"] \
@@ -174,9 +206,7 @@ func _on_finish_line_entered(body: Node) -> void:
 	completed_laps += 1
 	var target := lap_target()
 	if _finish_line != null and _bike.has_method("set_spawn"):
-		var spawn_xf := Transform3D(_finish_line.global_transform.basis.orthonormalized(),
-				_finish_line.global_position + Vector3(0.0, 0.65, 0.0))
-		_bike.call("set_spawn", spawn_xf)
+		_bike.call("set_spawn", _safe_upright_spawn(_finish_line))
 	var sfx := get_node_or_null("/root/Sfx")
 	if sfx != null and sfx.has_method("play"):
 		sfx.call("play", "kill" if completed_laps >= target else "pickup")

@@ -58,14 +58,37 @@ func _physics_process(_delta: float) -> void:
 	if _bikes.is_empty():
 		return
 	var bx := global_transform.basis
+	if not bx.is_finite() or absf(bx.determinant()) <= 0.01:
+		return
 	var pruned := false
 	for i in range(_bikes.size() - 1, -1, -1):
 		var b := _bikes[i]
-		if not is_instance_valid(b) or not b.global_position.is_finite():
+		if not is_instance_valid(b) or not b.global_position.is_finite() or not b.visible:
+			if is_instance_valid(b):
+				if "loop_up" in b:
+					b.set("loop_up", Vector3.ZERO)
+				if "loop_tangent" in b:
+					b.set("loop_tangent", Vector3.ZERO)
+				if "loop_center_pull" in b:
+					b.set("loop_center_pull", Vector3.ZERO)
 			_bikes.remove_at(i)
 			pruned = true
 			continue
 		var lp := to_local(b.global_position)
+		if not lp.is_finite() or absf(lp.x) > loop_half_width + 4.0 \
+				or absf(lp.z) > loop_radius + 6.0 or lp.y < -3.0 or lp.y > loop_radius * 2.5 + 4.0:
+			# Bike teleported/respawned/reset out of the loop before body_exited
+			# flushed: clear loop normals immediately instead of pulling it sideways.
+			if "loop_up" in b:
+				b.set("loop_up", Vector3.ZERO)
+			if "loop_tangent" in b:
+				b.set("loop_tangent", Vector3.ZERO)
+			if "loop_center_pull" in b:
+				b.set("loop_center_pull", Vector3.ZERO)
+			_climbed.erase(b.get_instance_id())
+			_bikes.remove_at(i)
+			pruned = true
+			continue
 		var bid := b.get_instance_id()
 		if lp.y > 4.0:
 			_climbed[bid] = true
