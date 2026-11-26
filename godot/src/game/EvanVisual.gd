@@ -125,6 +125,10 @@ func is_guitar_out() -> bool:
 
 func get_guitar_world_pos() -> Vector3:
 	if is_instance_valid(_guitar_anchor):
+		if _guitar_anchor is MeshInstance3D:
+			var aabb := (_guitar_anchor as MeshInstance3D).get_aabb()
+			if aabb.size.length_squared() > 1e-6:
+				return _guitar_anchor.global_transform * aabb.get_center()
 		return _guitar_anchor.global_position
 	if is_instance_valid(_host):
 		return _host.global_position + Vector3(0.0, 1.05, 0.0)
@@ -169,7 +173,7 @@ func on_boomerang_caught(was_caught: bool = true) -> void:
 		if _settings != null and _settings.has_method("quality_multiplier"):
 			q = float(_settings.call("quality_multiplier"))
 		if q > 0.0:
-			VFX.impact(_fx_parent(), get_guitar_world_pos(), Color(1.0, 0.14, 0.52), Vector3.UP, "metal")
+			VFX.impact(_fx_parent(), get_guitar_world_pos(), Color(1.0, 0.14, 0.22), Vector3.UP, "metal")
 	if _bike != null and is_inside_tree():
 		var sfx := get_node_or_null("/root/Sfx")
 		if sfx != null and sfx.has_method("play"):

@@ -230,18 +230,24 @@ func _start_beam() -> void:
 	_ray = PhysicsRayQueryParameters3D.new()
 	_ray.collide_with_areas = false
 	_ray.collide_with_bodies = true
-	_ray.exclude = [(owner_node as CollisionObject3D).get_rid()] \
-			if (is_instance_valid(owner_node) and owner_node is CollisionObject3D) else []
+	var exclude_rids: Array[RID] = []
+	if is_instance_valid(owner_node) and owner_node is CollisionObject3D:
+		exclude_rids.append((owner_node as CollisionObject3D).get_rid())
+	_ray.exclude = exclude_rids
 	# The visual beam leaves the horn tip (~1.8-1.9 m) but a horizontal ray at that
 	# height sails over every bike hitbox (top ~0.95 m). Trace at chassis height
-	# while the additive beam mesh stays anchored at the horn. The same -1.05 m
-	# correction is derived from the broadcast origin on remote proxies.
-	var trace_origin := global_position + Vector3(0.0, -1.05, 0.0)
+	# (y + 0.62 m on real bike owners) while the additive beam mesh connects the
+	# horn tip cleanly to the real impact point.
+	var trace_origin := global_position + Vector3(0.0, -1.15, 0.0)
+	if is_instance_valid(owner_node) and owner_node is Node3D and owner_node.is_in_group("bike"):
+		trace_origin = (owner_node as Node3D).global_position + Vector3(0.0, 0.62, 0.0) + _direction * 0.45
 	var endpoint := trace_origin + _direction * MAX_LENGTH
-	# Probe the whole line once (up to MAX_TARGETS) so every bike on it is hit,
-	# and advance past each collider to avoid hitting the same body twice.
+	# Probe the whole line once (up to MAX_TARGETS), excluding each hit RID so
+	# wide boxes never double-hit or trap the ray, and stop on solid walls/cover.
 	var cursor := trace_origin
 	var direct_bike: Node = null
+	var wall_stop := endpoint
+	var has_wall_stop := false
 	for _i in range(MAX_TARGETS):
 		_ray.from = cursor
 		_ray.to = endpoint
@@ -253,31 +259,43 @@ func _start_beam() -> void:
 			break
 		var collider: Object = result.get("collider", null)
 		var point: Vector3 = result.get("position", endpoint)
-		if collider is Node and not _hit_nodes.has(collider as Node):
-			_hit_nodes.append(collider as Node)
-			var is_bike := (collider as Node).is_in_group("bike")
-			var is_direct := is_bike and direct_bike == null
-			if is_direct:
-				direct_bike = collider as Node
-			# Only the FIRST rider on the line is a lethal direct hit. Everyone
-			# else takes the launcher's flat 90 damage through on_hit — the same
-			# rule as the other rocket-slot weapons, not a multi-kill laser.
-			_apply_hit(collider as Node, point, is_direct)
+		if collider is CollisionObject3D:
+			exclude_rids.append((collider as CollisionObject3D).get_rid())
+			_ray.exclude = exclude_rids
+		var is_pierce := false
+		if collider is Node:
+			var col_node := collider as Node
+			is_pierce = col_node.is_in_group("bike") or col_node.is_in_group("hazard") or col_node.is_in_group("destructible")
+			if not _hit_nodes.has(col_node):
+				_hit_nodes.append(col_node)
+				var is_bike := col_node.is_in_group("bike")
+				var is_direct := is_bike and direct_bike == null
+				if is_direct:
+					direct_bike = col_node
+				# Only the FIRST rider on the line is a lethal direct hit. Everyone
+				# else takes the launcher's flat 90 damage through on_hit — the same
+				# rule as the other rocket-slot weapons, not a multi-kill laser.
+				_apply_hit(col_node, point, is_direct)
+		if not is_pierce:
+			wall_stop = point
+			has_wall_stop = true
+			break
 		cursor = point + _direction * 0.12
 		if cursor.distance_to(trace_origin) >= MAX_LENGTH:
 			break
-	var end_point := cursor if cursor != trace_origin else endpoint
-	var span: float = clampf(end_point.distance_to(global_position), 0.5, MAX_LENGTH)
+	var vis_end := wall_stop if has_wall_stop else endpoint
+	var vis_vec := vis_end - global_position
+	var span: float = clampf(vis_vec.length(), 0.5, MAX_LENGTH)
+	var vis_dir := vis_vec.normalized() if vis_vec.length_squared() > 1e-6 else _direction
 	_beam = MeshInstance3D.new()
 	_beam.name = "PlasmaBeam"
 	_beam.mesh = _beam_mesh
 	_beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_beam.basis = Basis.looking_at(_direction, Vector3.UP if absf(_direction.y) < 0.99 else Vector3.FORWARD)
+	_beam.basis = Basis.looking_at(vis_dir, Vector3.UP if absf(vis_dir.y) < 0.99 else Vector3.FORWARD)
 	# Basis.looking_at aims local -Z at the firing direction, so a box scaled on
-	# local Z extends toward -_direction from its centre. Centre it FORWARD of
-	# the horn (+_direction) so the additive glow travels with the damage ray
-	# instead of shooting out the rear of the unicorn.
-	_beam.position = _direction * (span * 0.5)
+	# local Z extends toward -vis_dir from its centre. Centre it FORWARD of
+	# the horn (+vis_dir) so the additive glow connects horn tip to hit point.
+	_beam.position = vis_dir * (span * 0.5)
 	# The supplied blast radius governs the beam's visible width (and therefore
 	# its readability); damage itself uses the launcher's flat blast damage.
 	var width_scale := maxf(0.25, blast_radius / 4.5)
@@ -336,6 +354,9 @@ func _apply_hit(collider: Node, point: Vector3, is_direct: bool) -> void:
 		if controller != null and controller.has_method("take_lethal_hit"):
 			var lethal_tok := ("%s:v%s" % [_base_token, target_id]) if _base_token != "" else ""
 			controller.call("take_lethal_hit", owner_id, point, lethal_tok)
+	if collider.is_in_group("destructible"):
+		if collider.has_method("smash"):
+			collider.call("smash", _direction * 16.0)
 	if not collider.is_in_group("bike") and not collider.is_in_group("hazard"):
 		var fx := get_parent() as Node3D
 		if fx == null and get_tree() != null:
@@ -373,6 +394,20 @@ func _physics_process(delta: float) -> void:
 		return
 	_age += delta
 	if not _beaming:
+		if is_instance_valid(owner_node) and owner_node is Node3D and owner_node.is_in_group("bike"):
+			var on := owner_node as Node3D
+			var fwd := on.global_transform.basis.z
+			var in_loop := "loop_up" in on and (on.get("loop_up") as Vector3).length_squared() > 0.01
+			if not in_loop and absf(fwd.y) < 0.18:
+				fwd.y = 0.0
+			if fwd.length_squared() > 1e-6:
+				_direction = fwd.normalized()
+				velocity = _direction * velocity.length()
+			var model := on.get_node_or_null("Model")
+			if model != null and model.has_method("get_horn_world_pos"):
+				global_position = (model.call("get_horn_world_pos") as Vector3) + _direction * 0.12
+			if _charge != null:
+				_charge.basis = Basis.looking_at(_direction, Vector3.UP if absf(_direction.y) < 0.99 else Vector3.FORWARD)
 		if _charge_ring != null:
 			var t := clampf(_age / CHARGE_TIME, 0.0, 1.0)
 			var s := 0.45 + t * 1.55

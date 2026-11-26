@@ -865,6 +865,7 @@ func _impact_vfx(fx: Node3D, reduced: bool, quality: float) -> void:
 				Color(0.92, 0.06, 0.14), blast_radius * 0.90, 0.24)
 		return
 	var ground_pos := Vector3(target_pos.x, ground_y + 0.06, target_pos.z)
+	VFX.scorch(fx, ground_pos, 2.35)
 	VFX._ring_quad(fx, ground_pos, blast_radius * 0.68,
 			Color(1.0, 0.10, 0.16, 0.94), 1.95, 0.36)
 	VFX._ring_quad(fx, Vector3(target_pos.x, ground_y + 0.16, target_pos.z),

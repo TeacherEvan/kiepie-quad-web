@@ -592,10 +592,6 @@ func _detonate() -> void:
 	if _detonated:
 		return
 	_detonated = true
-	_end_owner_flight(true)
-	var model := owner_node.get_node_or_null("Model") if is_instance_valid(owner_node) else null
-	if model != null and model.has_method("on_boom_land"):
-		model.call("on_boom_land")
 	if is_in_group("meteor_strike"):
 		remove_from_group("meteor_strike")
 	_release_light()
@@ -608,6 +604,17 @@ func _detonate() -> void:
 	var reduced := Settings.reduced_motion()
 	var quality := Settings.quality_multiplier()
 	var fx := _resolve_fx_parent()
+	var tree := get_tree()
+	# Smash buildings & resolve AOE BEFORE restoring owner collision so Lea
+	# lands cleanly in the cleared crater instead of colliding with an intact box.
+	if tree != null:
+		COMBAT_AOE.apply_lethal_blast(tree, fx, target_pos, blast_radius,
+				owner_id, owner_node, token, true)
+	_end_owner_flight(true)
+	var model := owner_node.get_node_or_null("Model") if is_instance_valid(owner_node) else null
+	if model != null and model.has_method("on_boom_land"):
+		model.call("on_boom_land")
+
 	if fx != null:
 		_spawn_impact_vfx(fx, target_pos, blast_radius, reduced, quality)
 		# Radial blast impulse on nearby loose RigidBody3D debris.
@@ -636,21 +643,18 @@ func _detonate() -> void:
 			sfx.call("play", "explosion", 4.2, 0.94)
 			sfx.call("play", "pickup", 2.2, 1.42)
 
-	var cam := get_tree().get_first_node_in_group("camera_rig") if get_tree() != null else null
+	var cam := tree.get_first_node_in_group("camera_rig") if tree != null else null
 	if cam != null and cam.has_method("add_shake"):
 		var cam_dist := (cam as Node3D).global_position.distance_to(target_pos) if cam is Node3D else 0.0
 		cam.call("add_shake", 1.45 * clampf(1.0 - cam_dist / 90.0, 0.25, 1.0))
 
-	if not reduced and get_tree() != null:
-		KT.trigger_hitstop(get_tree(), 0.20, 0.070)
+	if not reduced and tree != null:
+		KT.trigger_hitstop(tree, 0.20, 0.070)
 
 	impacted.emit(target_pos)
-	var tree := get_tree()
 	if tree == null:
 		queue_free()
 		return
-	COMBAT_AOE.apply_lethal_blast(tree, fx, target_pos, blast_radius,
-			owner_id, owner_node, token, true)
 	if not reduced and _flight != null:
 		_flight.visible = false
 	var kill_tween := create_tween()
@@ -697,17 +701,17 @@ static func _spawn_impact_vfx(fx: Node3D, p_target_pos: Vector3, p_blast_radius:
 	if quality >= 0.5:
 		var imp_light := OmniLight3D.new()
 		imp_light.name = "BoomImpactLight"
-		imp_light.light_color = Color(1.0, 0.72, 0.94)
-		imp_light.light_energy = 52.0
-		imp_light.omni_range = 30.0
+		imp_light.light_color = Color(1.0, 0.62, 0.90)
+		imp_light.light_energy = 26.0
+		imp_light.omni_range = 28.0
 		imp_light.position = Vector3(p_target_pos.x, ground_y + 2.0, p_target_pos.z)
 		imp_light.add_to_group("vfx_light")
 		fx.add_child(imp_light)
 		VFX._cap_group(fx, "vfx_light", VFX.MAX_IMPACT_LIGHTS)
 		var w_light: WeakRef = weakref(imp_light)
 		var lt := imp_light.create_tween()
-		lt.tween_property(imp_light, "light_color", Color(1.0, 0.42, 0.84), 0.24)
-		lt.parallel().tween_property(imp_light, "light_energy", 18.0, 0.24)
+		lt.tween_property(imp_light, "light_color", Color(1.0, 0.36, 0.80), 0.24)
+		lt.parallel().tween_property(imp_light, "light_energy", 10.0, 0.24)
 		lt.tween_property(imp_light, "light_energy", 0.0, 0.48)
 		lt.tween_callback(func() -> void:
 			var l := w_light.get_ref() as Node
@@ -716,12 +720,12 @@ static func _spawn_impact_vfx(fx: Node3D, p_target_pos: Vector3, p_blast_radius:
 					l.remove_from_group("vfx_light")
 				l.queue_free())
 
-	# 2. Blinding incandescent supernova core flash (billboards + 3D white-hot core).
+	# 2. Blinding incandescent supernova core flash (billboards + 3D white-gold core).
 	VFX.S._flash_billboard(fx, Vector3(p_target_pos.x, ground_y + 0.95, p_target_pos.z),
-			6.4, Color(1.0, 0.98, 0.88, 1.0), 0.22)
+			5.4, Color(1.0, 0.96, 0.80, 0.92), 0.18)
 	VFX.S._flash_billboard(fx, Vector3(p_target_pos.x, ground_y + 1.25, p_target_pos.z),
-			8.8, Color(1.0, 0.44, 0.88, 0.94), 0.34)
-	var core_mat := VFX._additive(Color(1.0, 0.98, 0.88, 0.98), 6.2)
+			7.8, Color(1.0, 0.38, 0.84, 0.78), 0.30)
+	var core_mat := VFX._additive(Color(1.0, 0.95, 0.76, 0.90), 3.4)
 	core_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var core := MeshInstance3D.new()
 	core.name = "BoomCoreFlash"
@@ -729,15 +733,15 @@ static func _spawn_impact_vfx(fx: Node3D, p_target_pos: Vector3, p_blast_radius:
 	core.material_override = core_mat
 	core.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	core.position = Vector3(p_target_pos.x, ground_y + 0.55, p_target_pos.z)
-	core.scale = Vector3.ONE * 0.55
+	core.scale = Vector3.ONE * 0.50
 	fx.add_child(core)
 	var ct := core.create_tween()
-	ct.tween_property(core, "scale", Vector3.ONE * (p_blast_radius * 0.56), 0.22).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
-	ct.parallel().tween_property(core_mat, "albedo_color", Color(1.0, 0.84, 0.40, 0.0), 0.22)
+	ct.tween_property(core, "scale", Vector3.ONE * (p_blast_radius * 0.48), 0.18).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	ct.parallel().tween_property(core_mat, "albedo_color", Color(1.0, 0.80, 0.36, 0.0), 0.18)
 	ct.tween_callback(core.queue_free)
 
 	# 3. Volumetric expanding multi-shell plasma / rainbow shockwave dome.
-	var dome_mat := VFX._additive(Color(1.0, 0.86, 0.56, 0.90), 3.8)
+	var dome_mat := VFX._additive(Color(1.0, 0.24, 0.78, 0.56), 2.4)
 	dome_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var dome := MeshInstance3D.new()
 	dome.name = "BoomShockwaveDome"
@@ -749,10 +753,10 @@ static func _spawn_impact_vfx(fx: Node3D, p_target_pos: Vector3, p_blast_radius:
 	fx.add_child(dome)
 	var dt := dome.create_tween()
 	dt.tween_property(dome, "scale", Vector3.ONE * (p_blast_radius * 1.25), 0.42).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
-	dt.parallel().tween_property(dome_mat, "albedo_color", Color(1.0, 0.32, 0.84, 0.0), 0.42)
+	dt.parallel().tween_property(dome_mat, "albedo_color", Color(1.0, 0.22, 0.76, 0.0), 0.42)
 	dt.tween_callback(dome.queue_free)
 
-	var shell_mat := VFX._additive(Color(0.42, 0.92, 1.0, 0.78), 3.4)
+	var shell_mat := VFX._additive(Color(0.28, 0.88, 1.0, 0.44), 2.2)
 	shell_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var shell := MeshInstance3D.new()
 	shell.name = "BoomRainbowShell"
@@ -764,11 +768,11 @@ static func _spawn_impact_vfx(fx: Node3D, p_target_pos: Vector3, p_blast_radius:
 	fx.add_child(shell)
 	var st := shell.create_tween()
 	st.tween_property(shell, "scale", Vector3.ONE * (p_blast_radius * 1.02), 0.52).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
-	st.parallel().tween_property(shell_mat, "albedo_color", Color(0.66, 0.30, 1.0, 0.0), 0.52)
+	st.parallel().tween_property(shell_mat, "albedo_color", Color(0.58, 0.28, 1.0, 0.0), 0.52)
 	st.tween_callback(shell.queue_free)
 
 	# 4. Towering 20 m radiant energy sky-pillar + incandescent core shaft.
-	var pil_mat := VFX._additive(Color(1.0, 0.52, 0.90, 0.90), 3.8)
+	var pil_mat := VFX._additive(Color(1.0, 0.36, 0.84, 0.58), 2.4)
 	pil_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var pillar := MeshInstance3D.new()
 	pillar.name = "BoomSkyPillar"
@@ -780,10 +784,10 @@ static func _spawn_impact_vfx(fx: Node3D, p_target_pos: Vector3, p_blast_radius:
 	fx.add_child(pillar)
 	var pt := pillar.create_tween()
 	pt.tween_property(pillar, "scale", Vector3(0.12, 1.12, 0.12), 0.60).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	pt.parallel().tween_property(pil_mat, "albedo_color", Color(1.0, 0.86, 0.42, 0.0), 0.60)
+	pt.parallel().tween_property(pil_mat, "albedo_color", Color(1.0, 0.78, 0.38, 0.0), 0.60)
 	pt.tween_callback(pillar.queue_free)
 
-	var pcore_mat := VFX._additive(Color(1.0, 0.98, 0.86, 0.96), 6.0)
+	var pcore_mat := VFX._additive(Color(1.0, 0.95, 0.72, 0.85), 3.8)
 	pcore_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var pcore := MeshInstance3D.new()
 	pcore.name = "BoomSkyPillarCore"
@@ -795,7 +799,7 @@ static func _spawn_impact_vfx(fx: Node3D, p_target_pos: Vector3, p_blast_radius:
 	fx.add_child(pcore)
 	var pct := pcore.create_tween()
 	pct.tween_property(pcore, "scale", Vector3(0.06, 1.15, 0.06), 0.44).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
-	pct.parallel().tween_property(pcore_mat, "albedo_color", Color(0.55, 0.92, 1.0, 0.0), 0.44)
+	pct.parallel().tween_property(pcore_mat, "albedo_color", Color(0.45, 0.90, 1.0, 0.0), 0.44)
 	pct.tween_callback(pcore.queue_free)
 
 	# 5. Three staggered Mach ground shockwave rings + elevated sky-pillar halo.

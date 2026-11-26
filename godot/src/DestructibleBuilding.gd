@@ -9,11 +9,15 @@ const MAX_BUILDING_DEBRIS := 56
 signal smashed(building_name: String)
 
 @export var hit_speed := 3.2           ## minimum bike speed (m/s) to smash
+@export var max_health := 100.0        ## projectile damage required to collapse
 @export var debris_pieces := 14
 @export var building_name := "Building"
 
 var _intact := true
+var _health := 100.0
 var _body_size := Vector3.ONE
+var _base_main_pos := Vector3.ZERO
+var _damage_mat: StandardMaterial3D = null
 var _beacon: MeshInstance3D = null
 var _beacon_t := 0.0
 var _beacon_tick := 0.0
@@ -47,6 +51,10 @@ static func _ensure_debris_pool() -> void:
 
 func _ready() -> void:
 	add_to_group("destructible")
+	_health = max_health
+	var main_block := get_node_or_null("MainBlock") as Node3D
+	if main_block != null:
+		_base_main_pos = main_block.position
 	# StaticBody3D has no signals, so impact detection is done with a child Area3D
 	# trigger that wraps the building volume. The StaticBody3D itself stays solid
 	# so intact buildings still block the bike.
@@ -90,10 +98,54 @@ func _on_body_entered(body: Node) -> void:
 	if speed >= hit_speed:
 		smash()
 
+func take_damage(amount: float, impulse: Vector3 = Vector3.ZERO, hit_point: Vector3 = Vector3.ZERO) -> void:
+	if not _intact or not is_finite(amount) or amount <= 0.0:
+		return
+	_health -= amount
+	if _health <= 0.0:
+		smash(impulse)
+		return
+	var main_block := get_node_or_null("MainBlock") as MeshInstance3D
+	if main_block != null:
+		if _damage_mat == null and main_block.mesh != null:
+			var src := main_block.get_active_material(0)
+			if src is StandardMaterial3D:
+				_damage_mat = (src as StandardMaterial3D).duplicate() as StandardMaterial3D
+				main_block.material_override = _damage_mat
+		if _damage_mat != null:
+			var frac := clampf(_health / maxf(1.0, max_health), 0.0, 1.0)
+			var shade := lerpf(0.62, 1.0, frac)
+			_damage_mat.albedo_color = Color(shade, shade, shade, 1.0)
+			_damage_mat.emission_enabled = true
+			_damage_mat.emission = Color(1.0, 0.45, 0.16)
+			_damage_mat.emission_energy_multiplier = 0.55
+			var w_mat: WeakRef = weakref(_damage_mat)
+			var ft := main_block.create_tween()
+			ft.tween_property(_damage_mat, "emission_energy_multiplier", 0.0, 0.09)
+			ft.tween_callback(func() -> void:
+				var m := w_mat.get_ref() as StandardMaterial3D
+				if m != null:
+					m.emission_enabled = false)
+		if not Settings.reduced_motion():
+			var jolt := Vector3(randf_range(-0.07, 0.07), 0.0, randf_range(-0.07, 0.07))
+			main_block.position = _base_main_pos + jolt
+			var jt := main_block.create_tween()
+			jt.tween_property(main_block, "position", _base_main_pos, 0.10)
+	var sfx := get_node_or_null("/root/Sfx")
+	if sfx != null:
+		var sfx_pos := hit_point if hit_point != Vector3.ZERO else global_position
+		if sfx.has_method("play_3d"):
+			sfx.call("play_3d", "impact", sfx_pos, -4.0, 0.78)
+		elif sfx.has_method("play"):
+			sfx.call("play", "impact", -4.0, 0.78)
+
+
 func smash(impulse: Vector3 = Vector3.ZERO) -> void:
 	if not _intact:
 		return
 	_intact = false
+	collision_layer = 0
+	collision_mask = 0
 	set_process(false)
 	# report the smash first, so the HUD counts it even if debris code fails
 	var hud := get_tree().get_first_node_in_group("hud") if get_tree() != null else null

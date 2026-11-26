@@ -56,7 +56,7 @@ const PROFILES := {
 	},
 	"evan": {
 		"muzzles": [["RiffMuzzle_L", "RiffMuzzle_L", -0.085], ["RiffMuzzle_R", "RiffMuzzle_R", 0.085]],
-		"color": Color(0.95, 0.10, 0.46), "banana": false,
+		"color": Color(1.0, 0.12, 0.28), "banana": false,
 	},
 	"lea": {
 		"muzzles": [["HornMuzzle_L", "HornMuzzle_L", -0.026], ["HornMuzzle_R", "HornMuzzle_R", 0.026]],
@@ -170,6 +170,27 @@ func _find_named(root: Node, wanted: String) -> Node3D:
 		if found != null:
 			return found
 	return null
+
+
+func _muzzle_world_pos(muzzle: Node3D) -> Vector3:
+	if muzzle is MeshInstance3D and muzzle.position.length_squared() < 1e-4:
+		var aabb := (muzzle as MeshInstance3D).get_aabb()
+		if aabb.size.length_squared() > 1e-6:
+			return muzzle.global_transform * aabb.get_center()
+	return muzzle.global_position
+
+
+func _aim_forward() -> Vector3:
+	if owner_node == null or not is_instance_valid(owner_node):
+		return Vector3.BACK
+	var fwd := owner_node.global_transform.basis.z
+	var in_loop := false
+	if "loop_up" in owner_node:
+		var lu: Variant = owner_node.get("loop_up")
+		in_loop = lu is Vector3 and (lu as Vector3).length_squared() > 0.01
+	if not in_loop and absf(fwd.y) < 0.18:
+		fwd.y = 0.0
+	return fwd.normalized() if fwd.length_squared() > 1e-6 else Vector3.BACK
 
 
 func _exit_tree() -> void:
@@ -588,23 +609,27 @@ func fire() -> void:
 		var muzzle: Node3D = _muzzles[i]
 		if not is_instance_valid(muzzle):
 			continue
+		var flash_pos := _muzzle_world_pos(muzzle)
+		if weapon_profile == "lea" and evan_model != null and evan_model.has_method("get_horn_world_pos"):
+			flash_pos = evan_model.call("get_horn_world_pos") as Vector3
 		if i < _muzzle_flashes.size() and is_instance_valid(_muzzle_flashes[i]) and not Settings.reduced_motion() and Settings.quality_multiplier() > 0.0:
-			_muzzle_flashes[i].position = owner_node.to_local(muzzle.global_position)
+			_muzzle_flashes[i].position = owner_node.to_local(flash_pos)
 			_muzzle_flashes[i].restart()
 			_muzzle_flashes[i].emitting = true
-		if active_weapon == "primary" and not bool(_profile["banana"]) and weapon_profile != "evan":
+		if active_weapon == "primary" and not bool(_profile["banana"]) and weapon_profile != "evan" and weapon_profile != "lea":
 			var side := -1.0 if i == 0 else 1.0
-			VFX.casing(fx_parent, muzzle.global_position, right_vec * side + Vector3(0, 0.35, 0))
+			VFX.casing(fx_parent, flash_pos, right_vec * side + Vector3(0, 0.35, 0))
 
 	if active_weapon == "rocket":
 		# Rocket Launcher: NARDUS = massive cigar, BIG-BEN = cash bag, Quad =
 		# finned rocket. All three share the lethal-direct / 90%-blast rules.
-		var dir := owner_node.global_transform.basis.z.normalized()
+		var dir := _aim_forward()
 		var muzzle_pos := owner_node.global_position + Vector3(0.0, 0.68, 0.0) + dir * 0.85
 		if not _muzzles.is_empty() and is_instance_valid(_muzzles[0]):
-			muzzle_pos = _muzzles[0].global_position
+			muzzle_pos = _muzzle_world_pos(_muzzles[0])
 			if _muzzles.size() >= 2 and is_instance_valid(_muzzles[1]):
-				muzzle_pos = (_muzzles[0].global_position + _muzzles[1].global_position) * 0.5
+				muzzle_pos = (_muzzle_world_pos(_muzzles[0]) + _muzzle_world_pos(_muzzles[1])) * 0.5
+			muzzle_pos.y = maxf(muzzle_pos.y, owner_node.global_position.y + 0.45)
 		# Flat 90% health loss in the blast; direct hits are handled lethally in
 		# RocketProjectile._detonate(). Match.damage() does not scale rockets.
 		var rocket_dmg := ROCKET.BLAST_DAMAGE
@@ -612,8 +637,8 @@ func fire() -> void:
 		# boomerangs back. Wire kind stays "rocket" so the existing multiplayer
 		# protocol, token and anti-cheat validation are unchanged.
 		var is_boomerang := weapon_profile == "evan"
-		if is_boomerang and evan_model != null and evan_model.has_method("get_guitar_world_pos"):
-			muzzle_pos = (evan_model.call("get_guitar_world_pos") as Vector3) + dir * 0.55
+		if is_boomerang:
+			muzzle_pos = owner_node.global_position + Vector3(0.0, 0.72, 0.0) + dir * 0.75
 		# LEA's rocket slot is a charged straight-line horn beam. It uses the
 		# same "rocket" wire kind, cooldown, token and blast radius.
 		var is_horn_beam := weapon_profile == "lea"
@@ -699,24 +724,39 @@ func fire() -> void:
 		var muzzle: Node3D = _muzzles[i]
 		if not is_instance_valid(muzzle) or not is_instance_valid(owner_node) or not is_instance_valid(fx_parent):
 			continue
-		var forward := owner_node.global_transform.basis.z.normalized()
-		var right := owner_node.global_transform.basis.x.normalized()
+		var forward := _aim_forward()
+		var right := owner_node.global_transform.basis.x
+		if is_zero_approx(forward.y):
+			right.y = 0.0
+		right = right.normalized() if right.length_squared() > 1e-6 else Vector3.RIGHT
 		var side := -1.0 if i == 0 else 1.0
 		var dir := (forward + right * side * spread).normalized()
-		# Lea's horn meshes sit ~1.8 m above the bike, but every bike hitbox tops
-		# out near 0.9 m. Muzzle flashes stay at the horn (cosmetic); damage rays
-		# start at chassis height so rapid bolts can actually hit riders. The
-		# same origin is broadcast, so remote reconstruction matches exactly.
-		var shot_origin := muzzle.global_position
+		# Lea's horn and Evan's skinned guitar muzzles sit away from chassis center;
+		# fire physics rays at chassis height while visually converging from the
+		# real horn/guitar anchor so bolts/soundwaves never shoot into asphalt or
+		# sail over bike hitboxes.
+		var shot_origin := _muzzle_world_pos(muzzle)
+		var vis_origin := shot_origin
+		var has_vis_origin := false
 		if weapon_profile == "lea":
-			shot_origin = owner_node.global_position + Vector3(0.0, 0.55, 0.0) \
-					+ forward * 0.45 + right * side * 0.10
+			shot_origin = owner_node.global_position + Vector3(0.0, 0.62, 0.0) \
+					+ forward * 0.50 + right * side * 0.10
+			vis_origin = (evan_model.call("get_horn_world_pos") as Vector3) \
+					if (evan_model != null and evan_model.has_method("get_horn_world_pos")) else _muzzle_world_pos(muzzle)
+			has_vis_origin = true
+		elif weapon_profile == "evan":
+			shot_origin = owner_node.global_position + Vector3(0.0, 0.65, 0.0) \
+					+ forward * 0.55 + right * side * 0.12
+			vis_origin = _muzzle_world_pos(muzzle)
+			has_vis_origin = true
 		# _acquire_pooled_proj() replaces a slot whose script differs, so Evan's
 		# sound waves share the pool safely with the other vehicle profiles.
 		var proj := _acquire_pooled_proj(proj_script, fx_parent)
 		var barrel_tok := ("%s:b%d" % [token, i]) if token != "" else ""
 		proj.setup(owner_id, owner_node, shot_origin, dir,
 				speed, dmg, barrel_tok, _color)
+		if has_vis_origin and proj.has_method("set_visual_origin"):
+			proj.call("set_visual_origin", vis_origin)
 		if hit_callback.is_valid():
 			proj.on_hit = hit_callback
 		if not practice:
@@ -768,7 +808,7 @@ func _ensure_muzzle_flashes() -> void:
 		pm.color_ramp = VFX._ramp([Color(1, 0.94, 0.65, 1.0), VFX.COL_AMBER, Color(VFX.COL_EMBER.r, VFX.COL_EMBER.g, VFX.COL_EMBER.b, 0.0)])
 		p.process_material = pm
 		p.draw_pass_1 = VFX._sprite_quad(true, "flare", 0.45)
-		p.position = owner_node.to_local(muzzle.global_position)
+		p.position = owner_node.to_local(_muzzle_world_pos(muzzle))
 		owner_node.add_child(p)
 		_muzzle_flashes.append(p)
 

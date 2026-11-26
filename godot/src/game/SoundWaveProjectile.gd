@@ -17,13 +17,14 @@ var owner_node: Node
 var velocity := Vector3.ZERO
 var damage := 30.0
 var token := ""
-var hit_color := Color(1.0, 0.12, 0.52)
+var hit_color := Color(1.0, 0.12, 0.28)
 var on_hit: Callable
 
 var _age := 0.0
 var _life := 2.2
 var _inert := true  # setup() re-arms; a degenerate-direction wave stays inert
 var pooled := false
+var _vis_offset := Vector3.ZERO
 var _wave: Node3D
 var _rings: Array[MeshInstance3D] = []
 var _core: MeshInstance3D
@@ -162,6 +163,9 @@ func _rearm_wave() -> void:
 	visible = true
 	set_physics_process(true)
 	_age = 0.0
+	_vis_offset = Vector3.ZERO
+	if _wave != null:
+		_wave.position = Vector3.ZERO
 	if _inert:
 		_recycle()
 		return
@@ -196,11 +200,28 @@ func _recycle() -> void:
 	set_physics_process(false)
 	on_hit = Callable()
 	owner_node = null
+	_vis_offset = Vector3.ZERO
+	if _wave != null:
+		_wave.position = Vector3.ZERO
 	if _trail != null:
 		_trail.emitting = false
 	_release_light()
 	if not pooled:
 		queue_free()
+
+
+func set_visual_origin(world_pos: Vector3) -> void:
+	if Settings.reduced_motion() or not is_finite(world_pos.x + world_pos.y + world_pos.z):
+		_vis_offset = Vector3.ZERO
+		if _wave != null:
+			_wave.position = Vector3.ZERO
+		return
+	var off := world_pos - global_position
+	if off.length_squared() > 6.25:
+		off = off.normalized() * 2.5
+	_vis_offset = off
+	if _wave != null:
+		_wave.position = _vis_offset
 
 
 func _build_wave() -> void:
@@ -211,6 +232,7 @@ func _build_wave() -> void:
 		return
 	_wave = Node3D.new()
 	_wave.name = "SoundWave"
+	_wave.position = _vis_offset
 	add_child(_wave)
 	var mats: Array = _get_ring_materials(hit_color)
 	for i in range(RING_COUNT):
@@ -316,6 +338,11 @@ func _physics_process(delta: float) -> void:
 	if _age >= _life:
 		_recycle()
 		return
+	if _wave != null and _vis_offset.length_squared() > 1e-4:
+		_vis_offset *= exp(-26.0 * minf(delta, 0.05))
+		if _vis_offset.length_squared() < 1e-4:
+			_vis_offset = Vector3.ZERO
+		_wave.position = _vis_offset
 	_animate_rings()
 	var world := get_world_3d()
 	if world == null:

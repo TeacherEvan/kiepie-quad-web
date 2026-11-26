@@ -424,10 +424,16 @@ func _spawn_remote_shot(p: Dictionary) -> void:
 		return
 	var proj_script: GDScript = HORN_BOLT if lea else (SOUNDWAVE if evan else (BANANA if pogo else PROJECTILE))
 	var dmg := Match.damage() * VehicleRegistry.damage_multiplier(vehicle)
-	var shot_color := Color(1.0, 0.82, 0.28) if lea else (Color(0.95, 0.10, 0.46) if evan else (Color(1.0, 0.9, 0.25) if pogo else (Color(0.68, 1.0, 0.20) if aston else Color(1.0, 0.35, 0.25))))
+	var shot_color := Color(1.0, 0.82, 0.28) if lea else (Color(1.0, 0.12, 0.28) if evan else (Color(1.0, 0.9, 0.25) if pogo else (Color(0.68, 1.0, 0.20) if aston else Color(1.0, 0.35, 0.25))))
 	var proj := _acquire_remote_proj(proj_script)
 	proj.setup(owner_id, _remote.get(owner_id), o, d, SIDE_CANNONS.SHOT_SPEED, dmg,
 			str(p.get("token", "")), shot_color)
+	if proj.has_method("set_visual_origin") and (lea or evan):
+		var sender_model := sender.get_node_or_null("Model")
+		if lea and sender_model != null and sender_model.has_method("get_horn_world_pos"):
+			proj.call("set_visual_origin", sender_model.call("get_horn_world_pos") as Vector3)
+		elif evan and sender_model != null and sender_model.has_method("get_guitar_world_pos"):
+			proj.call("set_visual_origin", sender_model.call("get_guitar_world_pos") as Vector3)
 	if combat != null and combat.has_method("_on_projectile_hit"):
 		proj.on_hit = Callable(combat, "_on_projectile_hit")
 

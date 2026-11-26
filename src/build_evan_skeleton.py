@@ -133,20 +133,20 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
             ob.data.update()
         return ob
 
-    # -------------------------------------------------------------- materials
-    bone_ivory = make_mat("BoneIvory", (0.95, 0.91, 0.80), 0.56, emission=0.025, coat=0.12)
-    bone_shadow = make_mat("BoneShadow", (0.62, 0.58, 0.50), 0.78)
-    socket_dark = make_mat("EyeSocket", (0.012, 0.014, 0.018), 0.85)
-    eye_ember = make_mat("EyeEmber", (1.0, 0.10, 0.08), 0.20, emission=2.2)
-    magenta = make_mat("MohawkMagenta", (0.92, 0.04, 0.14), 0.38, emission=0.22)
-    mohawk_tip = make_mat("MohawkTipDark", (0.14, 0.02, 0.07), 0.58, emission=0.02)
-    guitar_red = make_mat("GuitarRed", (0.88, 0.035, 0.045), 0.14, metallic=0.18,
-                          emission=0.08, coat=0.65, coat_rough=0.08)
-    guitar_cream = make_mat("GuitarCream", (0.96, 0.94, 0.88), 0.36)
-    fretboard = make_mat("Fretboard", (0.14, 0.08, 0.05), 0.58)
-    chrome = make_mat("Chrome", (0.88, 0.91, 0.95), 0.14, 0.96)
-    strap_brown = make_mat("StrapLeather", (0.14, 0.055, 0.05), 0.68)
-    cape_inner = make_mat("CapeInner", (0.28, 0.025, 0.035), 0.78, emission=0.02)
+    # -------------------------------------------------------------- materials (calibrated contrast)
+    bone_ivory = make_mat("BoneIvory", (0.92, 0.87, 0.75), 0.52, emission=0.01, coat=0.14)
+    bone_shadow = make_mat("BoneShadow", (0.46, 0.42, 0.35), 0.82)
+    socket_dark = make_mat("EyeSocket", (0.010, 0.010, 0.014), 0.88)
+    eye_ember = make_mat("EyeEmber", (1.0, 0.14, 0.06), 0.16, emission=3.2)
+    magenta = make_mat("MohawkMagenta", (0.96, 0.05, 0.18), 0.34, emission=0.28)
+    mohawk_tip = make_mat("MohawkTipDark", (0.12, 0.015, 0.05), 0.55, emission=0.02)
+    guitar_red = make_mat("GuitarRed", (0.90, 0.03, 0.04), 0.12, metallic=0.24,
+                          emission=0.10, coat=0.78, coat_rough=0.06)
+    guitar_cream = make_mat("GuitarCream", (0.96, 0.94, 0.88), 0.34)
+    fretboard = make_mat("Fretboard", (0.14, 0.08, 0.05), 0.56)
+    chrome = make_mat("Chrome", (0.90, 0.93, 0.97), 0.12, 0.96)
+    strap_brown = make_mat("StrapLeather", (0.14, 0.055, 0.05), 0.66)
+    cape_inner = make_mat("CapeInner", (0.34, 0.025, 0.035), 0.76, emission=0.04)
 
     cape_outer = bpy.data.materials.new(name="CapeEwaldt")
     _cape_tree = ensure_node_tree(cape_outer)
@@ -471,7 +471,7 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
                     (sx * 0.041, -0.148, 1.633), (0.030, 0.022, 0.031),
                     socket_dark, 10, 7, rot=(0.0, sx * 0.14, 0.0)), "Head")
         bind(sphere(f"EyeEmber_{'L' if sx > 0 else 'R'}",
-                    (sx * 0.038, -0.148, 1.615), (0.0085, 0.006, 0.0085),
+                    (sx * 0.040, -0.166, 1.633), (0.0115, 0.0085, 0.0115),
                     eye_ember, 6, 5), "Head")
     bind(sphere("Skull_Nose", (0.0, -0.165, 1.592), (0.020, 0.020, 0.028),
                 socket_dark, 8, 6), "Head")
@@ -503,18 +503,19 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
         bind(box(f"ToothLower_{ti + 2}", (tx, ty, 1.505), (0.010, 0.009, 0.014),
                  bone_ivory, rot=(0.0, 0.0, -ang)), "Head")
 
-    # Two-tone spiky punk mohawk: 11 tall central spikes + 14 feathered side spikes
+    # Two-tone swept flame punk mohawk: 11 curved tapered central blades + 14 feathered side spikes
     for i in range(11):
         u = (i / 10.0 - 0.5) * 1.95
         base = Vector((0.0, -0.045 + math.sin(u) * 0.11, 1.655 + math.cos(u) * 0.115))
         radial = (base - Vector((0.0, -0.045, 1.648))).normalized()
-        h = 0.135 + 0.065 * math.cos(u * 0.85)
-        mid = base + radial * (h * 0.62)
-        tip = base + radial * h + Vector((0.0, 0.018 * u, 0.0))
-        bind(cyl(f"MohawkB_{i:02d}", tuple((base + mid) * 0.5), 0.017, (mid - base).length,
+        sweep = Vector((0.0, 0.042 * (0.4 + max(0.0, u)), 0.012))
+        h = 0.145 + 0.070 * math.cos(u * 0.85)
+        mid = base + radial * (h * 0.58) + sweep * 0.35
+        tip = base + radial * h + sweep
+        bind(cyl(f"MohawkB_{i:02d}", tuple((base + mid) * 0.5), 0.018, (mid - base).length,
                  magenta, rot=tuple((mid - base).normalized().to_track_quat("Z", "Y").to_euler()),
-                 vertices=5, radius2=0.008), "Head")
-        bind(cyl(f"MohawkT_{i:02d}", tuple((mid + tip) * 0.5), 0.0085, (tip - mid).length,
+                 vertices=5, radius2=0.009), "Head")
+        bind(cyl(f"MohawkT_{i:02d}", tuple((mid + tip) * 0.5), 0.009, (tip - mid).length,
                  mohawk_tip, rot=tuple((tip - mid).normalized().to_track_quat("Z", "Y").to_euler()),
                  vertices=5, radius2=0.001), "Head")
     for sx in (-1.0, 1.0):
@@ -574,10 +575,10 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
         bind(box(f"Scapula_{'L' if sx > 0 else 'R'}",
                  (sx * 0.095, 0.052, 1.355), (0.088, 0.014, 0.125),
                  bone_ivory, rot=(0.08, sx * 0.16, sx * -0.12)), "UpperChest")
-        # Sculpted pelvis iliac wing + ischial arch
+        # Sculpted pelvis iliac wing (anatomically flattened flare) + ischial arch
         bind(sphere(f"Ilium_{'L' if sx > 0 else 'R'}",
-                    (sx * 0.092, -0.012, 0.962), (0.068, 0.082, 0.068),
-                    bone_ivory, 10, 7, rot=(0.2, sx * 0.35, sx * 0.22)), "Hips")
+                    (sx * 0.088, -0.008, 0.962), (0.042, 0.078, 0.064),
+                    bone_ivory, 10, 7, rot=(0.2, sx * 0.42, sx * 0.28)), "Hips")
         bind(tube(f"Ischium_{'L' if sx > 0 else 'R'}",
                   [Vector((sx * 0.095, -0.02, 0.92)),
                    Vector((sx * 0.065, -0.035, 0.875)),
@@ -599,8 +600,18 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
         fu, fv = _orthonormal_frame(f_dir)
         bind(anatomical_bone(f"Radius.{side}", f_h + fu * 0.013, f_t + fu * 0.013,
                              0.013, 0.019, bone_ivory, 6, False), f"ForeArm.{side}")
-        bind(anatomical_bone(f"Ulna.{side}", f_h - fu * 0.013, f_t - fu * 0.013,
-                             0.012, 0.018, bone_shadow, 6, False), f"ForeArm.{side}")
+        # Spiked rockstar wrist cuff around distal forearm
+        cuff_pos = f_t - f_dir * 0.032
+        bind(cyl(f"WristCuff_{side}", tuple(cuff_pos), 0.029, 0.038, strap_brown,
+                 rot=tuple(f_dir.to_track_quat("Z", "Y").to_euler()), vertices=8), f"ForeArm.{side}")
+        for sp_i in range(4):
+            ang_s = sp_i * (math.pi * 0.5) + 0.4
+            sp_dir = (fu * math.cos(ang_s) + fv * math.sin(ang_s)).normalized()
+            sp_base = cuff_pos + sp_dir * 0.026
+            sp_tip = sp_base + sp_dir * 0.018
+            bind(cyl(f"WristSpike_{side}_{sp_i}", tuple((sp_base + sp_tip) * 0.5),
+                     0.005, 0.018, chrome, vertices=5, radius2=0.001,
+                     rot=tuple(sp_dir.to_track_quat("Z", "Y").to_euler())), f"ForeArm.{side}")
 
         h_h = bone_heads[f"Hand.{side}"]
         h_t = bone_tails[f"Hand.{side}"]
@@ -634,8 +645,8 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
 
         ft_h = bone_heads[f"Foot.{side}"]
         ft_t = bone_tails[f"Foot.{side}"]
-        bind(sphere(f"Calcaneus.{side}", (ft_h.x, ft_h.y + 0.024, ft_h.z - 0.045),
-                    (0.024, 0.034, 0.026), bone_ivory, 8, 6), f"Foot.{side}")
+        bind(sphere(f"Calcaneus.{side}", (ft_h.x, ft_h.y + 0.016, ft_h.z - 0.034),
+                    (0.022, 0.030, 0.024), bone_ivory, 8, 6), f"Foot.{side}")
         bind(anatomical_bone(f"Foot.{side}", ft_h, ft_t, 0.022, 0.028, bone_ivory, 6, False),
              f"Foot.{side}")
         to_h = bone_heads[f"Toes.{side}"]
@@ -701,11 +712,14 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
     g(box("GuitarNeck", (0.285, 0.0, 0.008), (0.46, 0.056, 0.030), fretboard))
     g(box("GuitarHeadstock", (0.575, 0.008, 0.008), (0.125, 0.072, 0.024), guitar_red,
           rot=(0.0, 0.0, math.radians(-8.0))))
-    # Single cream pickup + 6 pole pieces + chrome bridge + 2 knobs
+    # Dual cream humbucker pickups + 6 pole pieces + chrome bridge + whammy bar + 2 knobs
     g(box("Pickup_0", (0.015, 0.0, 0.031), (0.040, 0.105, 0.012), guitar_cream))
+    g(box("Pickup_1", (-0.052, 0.0, 0.031), (0.038, 0.102, 0.012), guitar_cream))
     for pi in range(6):
         g(cyl(f"Pole_{pi}", (0.015, -0.035 + pi * 0.014, 0.038), 0.0032, 0.004, chrome, vertices=6))
     g(box("Bridge", (-0.095, 0.0, 0.032), (0.026, 0.095, 0.012), chrome))
+    g(cyl("WhammyBar", (-0.120, -0.045, 0.048), 0.004, 0.072, chrome,
+          vertices=6, rot=(0.0, math.radians(-68.0), math.radians(-18.0))))
     for ki, (kx, ky) in enumerate(((-0.065, -0.105), (-0.115, -0.125))):
         g(cyl(f"Knob_{ki}", (kx, ky, 0.034), 0.013, 0.014, chrome, vertices=10))
     # 12 frets + 4 pearl inlays
@@ -744,29 +758,35 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
     for ob in guitar_parts:
         bind(ob, "UpperChest")
 
-    # Sinuous trailing cable bound to Hips
+    # Smooth flowing trailing cable coiled cleanly to hip/belt clip
     cable_ob = bind(tube("GuitarCable", [
         Vector((-0.17, -0.20, 0.90)),
-        Vector((-0.24, -0.16, 0.72)),
-        Vector((-0.21, -0.06, 0.52)),
-        Vector((-0.26, 0.04, 0.34)),
-        Vector((-0.20, 0.12, 0.16)),
-        Vector((-0.22, 0.16, 0.04)),
+        Vector((-0.22, -0.18, 0.78)),
+        Vector((-0.24, -0.11, 0.67)),
+        Vector((-0.23, -0.02, 0.62)),
+        Vector((-0.21, 0.05, 0.66)),
+        Vector((-0.18, 0.09, 0.74)),
+        Vector((-0.15, 0.10, 0.82)),
+        Vector((-0.13, 0.09, 0.88)),
     ], 0.0055, strap_brown, 6), "Hips")
     guitar_set = set(guitar_parts) | {cable_ob}
 
-    # -------------------------------------------------------------- torn "Ewaldt" cape (watertight closed solid)
-    CAPE_NU, CAPE_NV = 12, 9
+    # -------------------------------------------------------------- torn "Ewaldt" cape (watertight billowing pleated cloak)
+    CAPE_NU, CAPE_NV = 16, 10
     CAPE_THICK = 0.008
-    # Jagged torn hem profile (13 columns): sharp spikes & deep V-notches >= 0.34 m above floor
+    # Jagged torn hem profile (17 columns): sharp asymmetric shreds & deep V-notches >= 0.34 m above floor
     hem_z_profile = [
-        0.46, 0.36, 0.56, 0.40, 0.62, 0.38, 0.52, 0.35, 0.60, 0.41, 0.55, 0.37, 0.48,
+        0.48, 0.34, 0.54, 0.39, 0.60, 0.36, 0.52, 0.35, 0.58,
+        0.37, 0.55, 0.36, 0.61, 0.40, 0.53, 0.35, 0.47,
     ]
     bm_cape = bmesh.new()
     uv_cape = bm_cape.loops.layers.uv.new("UVMap")
     cape_v_ratios: dict[int, float] = {}
     outer_grid: list[list[Any]] = []
     inner_grid: list[list[Any]] = []
+    z_top = 1.445
+    z_hem_min = 0.34
+    z_hem_band = 0.64
     for j in range(CAPE_NV + 1):
         v_coord = j / float(CAPE_NV)
         outer_row: list[Any] = []
@@ -774,17 +794,24 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
         for i in range(CAPE_NU + 1):
             u_coord = i / float(CAPE_NU)
             # u=0 -> +X (Evan's left, viewer's left on back -> 'E'); u=1 -> -X ('t')
-            half_w = 0.31 - 0.11 * (v_coord ** 1.15)
+            half_w = 0.33 - 0.13 * (v_coord ** 1.15)
             px = (1.0 - 2.0 * u_coord) * half_w
             z_hem = hem_z_profile[i]
-            pz = z_hem + (1.435 - z_hem) * v_coord
-            # Drape back cleanly clear of Scapula/Spinous_* + gentle billowing folds
-            y_collar = 0.055 + 0.025 * math.cos((u_coord - 0.5) * math.pi)
-            y_hem = 0.285 + 0.024 * math.sin(u_coord * math.pi * 4.0)
-            py = y_hem + (y_collar - y_hem) * v_coord + 0.036 * math.sin(v_coord * math.pi)
+            if v_coord >= 0.28:
+                pz = z_hem_band + (z_top - z_hem_band) * ((v_coord - 0.28) / 0.72)
+            else:
+                pz = z_hem + (z_hem_band - z_hem) * (v_coord / 0.28)
+            v_uv = max(0.0, min(1.0, (pz - z_hem_min) / (z_top - z_hem_min)))
+            # Wrap upper collar around shoulders (hugging UpperChest) + billowing vertical drapery pleats
+            shoulder_wrap = -0.022 * ((2.0 * u_coord - 1.0) ** 2) * (v_coord ** 1.4)
+            y_collar = 0.068 + 0.018 * math.cos((u_coord - 0.5) * math.pi)
+            y_hem = 0.305 + 0.022 * math.sin(u_coord * math.pi * 4.0)
+            pleat = math.sin(u_coord * math.pi * 5.0) * 0.028 * (1.0 - v_coord)
+            billow = 0.045 * math.sin(v_coord * math.pi)
+            py = y_hem + (y_collar - y_hem) * v_coord + billow + pleat + shoulder_wrap
             v_out = bm_cape.verts.new((px, py + CAPE_THICK * 0.5, pz))
             v_in = bm_cape.verts.new((px, py - CAPE_THICK * 0.5, pz))
-            outer_row.append((v_out, u_coord, v_coord))
+            outer_row.append((v_out, u_coord, v_uv))
             inner_row.append(v_in)
         outer_grid.append(outer_row)
         inner_grid.append(inner_row)
@@ -1245,6 +1272,7 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
     depsgraph = bpy.context.evaluated_depsgraph_get()
     verts = 0
     faces = 0
+    tris = 0
     non_manifold = 0
     gmin = Vector((float("inf"),) * 3)
     gmax = Vector((float("-inf"),) * 3)
@@ -1254,6 +1282,7 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
         bm.transform(ob.matrix_world)
         verts += len(bm.verts)
         faces += len(bm.faces)
+        tris += sum(max(1, len(f.verts) - 2) for f in bm.faces)
         non_manifold += sum(1 for e in bm.edges if not e.is_manifold)
         for v in bm.verts:
             for i in range(3):
@@ -1262,9 +1291,10 @@ def build_evan(argv: list[str] | None = None) -> dict[str, Any]:
         bm.free()
     arm.animation_data.use_nla = True
     dims = [round(gmax[i] - gmin[i], 6) for i in range(3)]
-    print(f"[QA] verts={verts} faces={faces} non_manifold_edges={non_manifold} "
+    print(f"[QA] verts={verts} faces={faces} tris={tris} non_manifold_edges={non_manifold} "
           f"minZ={gmin.z:.4f} bbox={dims}")
-    assert faces < 10000, f"Evan mesh exceeded 10k tri budget ({faces} faces)"
+    assert tris < 10000 and faces < 10000, f"Evan mesh exceeded 10k tri budget ({tris} tris, {faces} faces)"
+    assert non_manifold == 0, f"Evan mesh has {non_manifold} non-manifold edges"
 
     ground_shift = -gmin.z
     if abs(ground_shift) > 1e-9:

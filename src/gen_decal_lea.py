@@ -70,24 +70,24 @@ def _draw_tapered_ribbon(draw: ImageDraw.ImageDraw, pts: list[tuple[float, float
 def main() -> None:
     img = Image.new("RGBA", (SW, SH), (0, 0, 0, 0))
     text = "Lea"
-    font = load_font(860)
-    stroke_w = 64
+    font = load_font(920)
+    stroke_w = 68
 
     tmp = ImageDraw.Draw(img)
     bbox = tmp.textbbox((0, 0), text, font=font, stroke_width=stroke_w)
     tw = bbox[2] - bbox[0]
     th = bbox[3] - bbox[1]
     tx = (SW - tw) // 2 - bbox[0]
-    ty = int(SH * 0.43 - th / 2) - bbox[1]
+    ty = int(SH * 0.42 - th / 2) - bbox[1]
 
     # Thick deep royal-plum outer branded outline for crisp legibility on pearl coat
     outline = Image.new("RGBA", (SW, SH), (0, 0, 0, 0))
     odraw = ImageDraw.Draw(outline)
-    odraw.text((tx, ty), text, font=font, fill=(36, 6, 52, 255),
-               stroke_width=stroke_w, stroke_fill=(36, 6, 52, 255))
+    odraw.text((tx, ty), text, font=font, fill=(32, 4, 48, 255),
+               stroke_width=stroke_w, stroke_fill=(32, 4, 48, 255))
     img = Image.alpha_composite(img, outline)
 
-    # Vivid sunlit-gold -> hot-rose-magenta -> royal-violet gradient inside glyphs
+    # Gleaming sunlit-gold top bevel -> hot-rose-magenta -> royal-violet gradient
     grad = Image.new("RGBA", (SW, SH), (0, 0, 0, 0))
     gpx = grad.load()
     y0 = max(0, ty + bbox[1])
@@ -95,16 +95,21 @@ def main() -> None:
     span = max(1, y1 - y0)
     for y in range(y0, y1 + 1):
         t = (y - y0) / span
-        if t < 0.42:
-            k = t / 0.42
+        if t < 0.24:
+            k = t / 0.24
             r = 255
-            g = int(228 - 160 * k)
-            b = int(96 + 76 * k)
+            g = int(244 - 72 * k)
+            b = int(146 - 10 * k)
+        elif t < 0.56:
+            k = (t - 0.24) / 0.32
+            r = 255
+            g = int(172 - 120 * k)
+            b = int(136 + 52 * k)
         else:
-            k = (t - 0.42) / 0.58
-            r = int(255 - 102 * k)
-            g = int(68 - 22 * k)
-            b = int(172 + 83 * k)
+            k = (t - 0.56) / 0.44
+            r = int(255 - 118 * k)
+            g = int(52 - 18 * k)
+            b = int(188 + 67 * k)
         for x in range(SW):
             gpx[x, y] = (r, g, b, 255)
 

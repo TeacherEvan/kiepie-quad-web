@@ -498,7 +498,22 @@ func _on_projectile_hit(collider: Object, point: Vector3, projectile: Node) -> v
 		if (collider as Node).has_method("ignite"):
 			(collider as Node).call("ignite", owner_id, token)
 			_play_sfx("impact")
-		if owner_id == Supabase.user_id or (practice_mode and (owner_id == "" or owner_id == str(bike.get("player_id")))):
+		if owner_id == Supabase.user_id or (practice_mode and (owner_id == "" or (is_instance_valid(bike) and owner_id == str(bike.get("player_id"))))):
+			hit_confirmed.emit()
+		return
+	elif collider is Node and (collider as Node).is_in_group("destructible"):
+		var db := collider as Node
+		var dmg_v: Variant = projectile.get("damage")
+		var dmg := float(dmg_v) if dmg_v != null else 30.0
+		var vel_v: Variant = projectile.get("velocity")
+		var push := Vector3.UP * 6.0
+		if vel_v is Vector3 and (vel_v as Vector3).length_squared() > 1e-4:
+			push = (vel_v as Vector3).normalized() * 12.0
+		if db.has_method("take_damage"):
+			db.call("take_damage", dmg, push, point)
+		elif db.has_method("smash"):
+			db.call("smash", push)
+		if owner_id == Supabase.user_id or (practice_mode and (owner_id == "" or (is_instance_valid(bike) and owner_id == str(bike.get("player_id"))))):
 			hit_confirmed.emit()
 		return
 	if target_id == "":

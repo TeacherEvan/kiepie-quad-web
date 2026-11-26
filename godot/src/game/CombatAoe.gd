@@ -7,6 +7,21 @@ class_name CombatAoe
 const VFX := preload("res://src/game/VfxFactory.gd")
 
 
+static func _distance_sq_to_destructible(db: Node3D, center: Vector3) -> float:
+	var sz_v: Variant = db.get("_body_size")
+	if sz_v is Vector3 and (sz_v as Vector3).length_squared() > 1e-4:
+		var sz := sz_v as Vector3
+		var half := sz * 0.5
+		var lp := db.to_local(center)
+		var closest := Vector3(
+			clampf(lp.x, -half.x, half.x),
+			clampf(lp.y, 0.0, sz.y),
+			clampf(lp.z, -half.z, half.z)
+		)
+		return lp.distance_squared_to(closest)
+	return db.global_position.distance_squared_to(center)
+
+
 static func apply_blast(tree: SceneTree, fx: Node3D, center: Vector3, radius: float,
 		base_damage: float, full_frac: float, edge_mult: float, owner_id: String,
 		owner_node: Variant, token: String, skip_owner: bool = true,
@@ -84,10 +99,14 @@ static func apply_blast(tree: SceneTree, fx: Node3D, center: Vector3, radius: fl
 			if not is_instance_valid(d) or not (d is Node3D):
 				continue
 			var db := d as Node3D
-			if db.global_position.distance_squared_to(center) <= radius * radius and db.has_method("smash"):
+			if not bool(db.get("_intact")) if "_intact" in db else false:
+				continue
+			if _distance_sq_to_destructible(db, center) <= radius * radius and db.has_method("smash"):
 				var diff := db.global_position - center
 				var push_dir := diff.normalized() if diff.length_squared() > 1e-6 else Vector3.UP
 				db.call("smash", push_dir * smash_impulse)
+				if owner_id != "" and owner_id == local_uid:
+					hit_any_enemy = true
 
 	if hit_any_enemy:
 		var local_combat := tree.get_first_node_in_group("local_combat")
@@ -173,10 +192,14 @@ static func apply_lethal_blast(tree: SceneTree, fx: Node3D, center: Vector3,
 		if not is_instance_valid(d) or not (d is Node3D):
 			continue
 		var db := d as Node3D
-		if db.global_position.distance_squared_to(center) <= radius * radius and db.has_method("smash"):
+		if not bool(db.get("_intact")) if "_intact" in db else false:
+			continue
+		if _distance_sq_to_destructible(db, center) <= radius * radius and db.has_method("smash"):
 			var diff := db.global_position - center
 			var push_dir := diff.normalized() if diff.length_squared() > 1e-6 else Vector3.UP
 			db.call("smash", push_dir * 16.0)
+			if owner_id != "" and owner_id == local_uid:
+				hit_any_enemy = true
 
 	if hit_any_enemy:
 		var local_combat := tree.get_first_node_in_group("local_combat")
