@@ -30,8 +30,9 @@ def load_font(size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.load_default()
 
 
-def _draw_sparkle(draw: ImageDraw.ImageDraw, cx: float, cy: float, r: float, fill: tuple[int, int, int, int]) -> None:
-    ir = r * 0.25
+def _draw_sparkle(draw: ImageDraw.ImageDraw, cx: float, cy: float, r: float,
+                  fill: tuple[int, int, int, int]) -> None:
+    ir = r * 0.24
     pts = [
         (cx, cy - r), (cx + ir, cy - ir),
         (cx + r, cy), (cx + ir, cy + ir),
@@ -41,24 +42,49 @@ def _draw_sparkle(draw: ImageDraw.ImageDraw, cx: float, cy: float, r: float, fil
     draw.polygon(pts, fill=fill)
 
 
+def _cubic_bezier(p0: tuple[float, float], p1: tuple[float, float],
+                  p2: tuple[float, float], p3: tuple[float, float],
+                  steps: int = 40) -> list[tuple[float, float]]:
+    pts: list[tuple[float, float]] = []
+    for i in range(steps + 1):
+        t = i / steps
+        mt = 1.0 - t
+        x = (mt**3) * p0[0] + 3 * (mt**2) * t * p1[0] + 3 * mt * (t**2) * p2[0] + (t**3) * p3[0]
+        y = (mt**3) * p0[1] + 3 * (mt**2) * t * p1[1] + 3 * mt * (t**2) * p2[1] + (t**3) * p3[1]
+        pts.append((x, y))
+    return pts
+
+
+def _draw_tapered_ribbon(draw: ImageDraw.ImageDraw, pts: list[tuple[float, float]],
+                         w_start: float, w_mid: float, w_end: float,
+                         fill: tuple[int, int, int, int]) -> None:
+    n = len(pts)
+    for i, (x, y) in enumerate(pts):
+        t = i / max(1, n - 1)
+        r = (w_start * (1.0 - 2 * t) + w_mid * (2 * t)) if t < 0.5 else (
+            w_mid * (2.0 - 2 * t) + w_end * (2 * t - 1.0))
+        r = max(2.0, r)
+        draw.ellipse((x - r, y - r, x + r, y + r), fill=fill)
+
+
 def main() -> None:
     img = Image.new("RGBA", (SW, SH), (0, 0, 0, 0))
     text = "Lea"
-    font = load_font(780)
-    stroke_w = 56
+    font = load_font(860)
+    stroke_w = 64
 
     tmp = ImageDraw.Draw(img)
     bbox = tmp.textbbox((0, 0), text, font=font, stroke_width=stroke_w)
     tw = bbox[2] - bbox[0]
     th = bbox[3] - bbox[1]
     tx = (SW - tw) // 2 - bbox[0]
-    ty = int(SH * 0.44 - th / 2) - bbox[1]
+    ty = int(SH * 0.43 - th / 2) - bbox[1]
 
     # Thick deep royal-plum outer branded outline for crisp legibility on pearl coat
     outline = Image.new("RGBA", (SW, SH), (0, 0, 0, 0))
     odraw = ImageDraw.Draw(outline)
-    odraw.text((tx, ty), text, font=font, fill=(37, 7, 50, 255),
-               stroke_width=stroke_w, stroke_fill=(37, 7, 50, 255))
+    odraw.text((tx, ty), text, font=font, fill=(36, 6, 52, 255),
+               stroke_width=stroke_w, stroke_fill=(36, 6, 52, 255))
     img = Image.alpha_composite(img, outline)
 
     # Vivid sunlit-gold -> hot-rose-magenta -> royal-violet gradient inside glyphs
@@ -69,16 +95,16 @@ def main() -> None:
     span = max(1, y1 - y0)
     for y in range(y0, y1 + 1):
         t = (y - y0) / span
-        if t < 0.45:
-            k = t / 0.45
+        if t < 0.42:
+            k = t / 0.42
             r = 255
-            g = int(224 - 161 * k)
-            b = int(102 + 62 * k)
+            g = int(228 - 160 * k)
+            b = int(96 + 76 * k)
         else:
-            k = (t - 0.45) / 0.55
-            r = int(255 - 100 * k)
-            g = int(63 - 19 * k)
-            b = int(164 + 91 * k)
+            k = (t - 0.42) / 0.58
+            r = int(255 - 102 * k)
+            g = int(68 - 22 * k)
+            b = int(172 + 83 * k)
         for x in range(SW):
             gpx[x, y] = (r, g, b, 255)
 
@@ -90,25 +116,26 @@ def main() -> None:
     fill_layer.paste(grad, (0, 0), mask)
     img = Image.alpha_composite(img, fill_layer)
 
-    # Bold curved golden flourish + 4-point sparkle stars
+    # Smooth tapered golden calligraphic flourish + 4-point sparkle stars
     decor = Image.new("RGBA", (SW, SH), (0, 0, 0, 0))
     ddraw = ImageDraw.Draw(decor)
-    sy = min(SH - 180, ty + bbox[3] + 55)
-    swoosh_pts = [
-        (SW * 0.14, sy + 18),
-        (SW * 0.36, sy + 52),
-        (SW * 0.60, sy + 36),
-        (SW * 0.86, sy - 16),
-    ]
-    ddraw.line(swoosh_pts, fill=(37, 7, 50, 255), width=62, joint="curve")
-    ddraw.line(swoosh_pts, fill=(255, 218, 86, 255), width=32, joint="curve")
+    sy = min(SH - 210, ty + bbox[3] + 58)
+    swoosh_pts = _cubic_bezier(
+        (SW * 0.11, sy + 20),
+        (SW * 0.36, sy + 72),
+        (SW * 0.66, sy + 24),
+        (SW * 0.90, sy - 34),
+        steps=220,
+    )
+    _draw_tapered_ribbon(ddraw, swoosh_pts, 24, 42, 20, (36, 6, 52, 255))
+    _draw_tapered_ribbon(ddraw, swoosh_pts, 10, 23, 8, (255, 222, 88, 255))
 
     for sx, s_y, sr_out, sr_in, col in (
-        (SW * 0.14, SH * 0.22, 68, 42, (255, 224, 102, 255)),
-        (SW * 0.86, SH * 0.24, 62, 38, (255, 86, 178, 255)),
-        (SW * 0.83, SH * 0.78, 52, 32, (255, 216, 98, 255)),
+        (SW * 0.14, SH * 0.21, 82, 48, (255, 226, 98, 255)),
+        (SW * 0.87, SH * 0.22, 74, 44, (255, 84, 182, 255)),
+        (SW * 0.82, SH * 0.80, 62, 36, (108, 224, 255, 255)),
     ):
-        _draw_sparkle(ddraw, sx, s_y, sr_out, (37, 7, 50, 255))
+        _draw_sparkle(ddraw, sx, s_y, sr_out, (36, 6, 52, 255))
         _draw_sparkle(ddraw, sx, s_y, sr_in, col)
     img = Image.alpha_composite(img, decor)
 
@@ -118,7 +145,7 @@ def main() -> None:
     for y in range(H):
         for x in range(W):
             r, g, b, a = opx[x, y]
-            opx[x, y] = (r, g, b, 255) if a >= 110 else (0, 0, 0, 0)
+            opx[x, y] = (r, g, b, 255) if a >= 115 else (0, 0, 0, 0)
     opx[0, 0] = (0, 0, 0, 0)
 
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)

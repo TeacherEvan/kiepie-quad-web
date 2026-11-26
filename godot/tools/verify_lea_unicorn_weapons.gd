@@ -1,7 +1,7 @@
 extends SceneTree
 ## Gate: LEA UNICORN's bespoke arsenal — horn rapid-fire bolts, charged straight
-## horn beam, the Unicorn Boom flight strike, the shared lethal AOE resolver,
-## and SideCannons' "lea" profile wiring. Fully offline (mock backend only).
+## horn beam, the Unicorn Boom aerial flight & supernova landing bang, the shared
+## lethal AOE resolver, and SideCannons' "lea" profile wiring. Offline mock only.
 
 const SAV := "user://settings.cfg"
 const BAK := "user://settings.cfg.lea-weapons-gate-backup"
@@ -116,6 +116,7 @@ func _run() -> void:
 	var boom_script := _load(P_BOOM, "UnicornBoom")
 	var aoe_script := _load(P_AOE, "CombatAoe")
 	var cannons_script := _load(P_CANNONS, "SideCannons")
+	var vfx_script: GDScript = load("res://src/game/VfxFactory.gd")
 
 	# ---- 1. Horn rapid fire: setup propagation and degenerate-direction guard.
 	if bolt_script != null:
@@ -180,7 +181,6 @@ func _run() -> void:
 		bad.call("setup", "lea-owner", holder, Vector3.ZERO, Vector3(0, 0, 1),
 				38.0, NAN, "beam-bad", Color.WHITE)
 		_check(bool(bad.get("_inert")), "horn beam rejects NaN damage (fail closed)")
-		# setup() self-frees rejected nodes; no second queue_free() here.
 
 		var target := TargetBody.new()
 		target.name = "BeamTarget"
@@ -196,8 +196,7 @@ func _run() -> void:
 		var sink := LethalSink.new()
 		sink.name = "CombatController"
 		target.add_child(sink)
-		# A second rider on the same line must take beam damage but NOT a
-		# lethal direct hit — one rocket-slot shot must not queue-kill everyone.
+
 		var second := TargetBody.new()
 		second.name = "BeamSecondTarget"
 		second.player_id = "lea-weapons-gate"
@@ -227,21 +226,20 @@ func _run() -> void:
 		_check(charge_vortex != null and charge_vortex.position.is_zero_approx()
 				and charge_ring != null and charge_ring.position.z < -0.1,
 				"horn beam charge ring offsets along ChargeVortex local forward axis")
+		var sparks := beam.get_node_or_null("ChargeVortex/ChargeSparks") as GPUParticles3D
+		if sparks != null and sparks.process_material is ParticleProcessMaterial:
+			_check((sparks.process_material as ParticleProcessMaterial).direction.z < 0.0,
+					"horn beam charge sparks emit along ChargeVortex local -Z forward axis")
 		beam.on_hit = Callable(self, "_on_beam_hit")
 		for _i in range(48):
 			await physics_frame
 			if not is_instance_valid(beam) or bool(beam.get("_beaming")):
 				break
 		_check(bool(beam.get("_beaming")), "horn beam transitions from charge to straight beam")
-		# Visual-skin contract (Plastic Surgery): the additive beam must sit on
-		# the forward half of the firing ray. Basis.looking_at aims local -Z at
-		# the direction, so an inverted centre sign draws the glow out the rear.
 		var beam_mesh := beam.get_node_or_null("PlasmaBeam") as MeshInstance3D
 		if beam_mesh != null:
 			var fwd := Vector3(0, 0, -1)
 			var half := beam_mesh.scale.z * 0.5
-			# global_transform already carries the beam's Z scale — multiplying
-			# the basis by `half` again double-counts it.
 			var far_a := beam_mesh.global_transform * Vector3(0, 0, -0.5)
 			var far_b := beam_mesh.global_transform * Vector3(0, 0, 0.5)
 			_check(maxf(far_a.dot(fwd), far_b.dot(fwd)) > half * 0.9
@@ -268,7 +266,6 @@ func _run() -> void:
 		bad_boom.call("setup", "lea-owner", holder, Vector3.ZERO,
 				NAN, "boom-bad", Color.WHITE, 2.0, 7.5)
 		_check(not bool(bad_boom.get("_armed")), "unicorn boom rejects NaN damage")
-		# setup() self-frees rejected nodes; no second queue_free() here.
 
 		var owner_bike := BikeStub.new()
 		_owner_bike = owner_bike
@@ -303,6 +300,7 @@ func _run() -> void:
 		var o_sink := LethalSink.new(); o_sink.name = "CombatController"; outside.add_child(o_sink)
 		var p_sink := LethalSink.new(); p_sink.name = "CombatController"; proxy.add_child(p_sink)
 		await process_frame
+
 		var boom := Node3D.new()
 		boom.set_script(boom_script)
 		holder.add_child(boom)
@@ -312,6 +310,11 @@ func _run() -> void:
 				"unicorn boom arms and clamps an oversized radius to 7.5 m")
 		_check(boom.is_in_group("meteor_strike"),
 				"unicorn boom joins the meteor_strike telegraph group")
+		var tele := holder.get_node_or_null("BoomTelegraph")
+		_check(tele != null and tele.get_node_or_null("OuterRing") != null
+				and tele.get_node_or_null("CountdownRing") != null
+				and tele.get_node_or_null("RuneRing") != null,
+				"unicorn boom spawns pulsing ground telegraph (OuterRing + CountdownRing + RuneRing)")
 		boom.call("_detonate")
 		_check(v_sink.calls.size() == 1
 				and str(v_sink.calls[0].get("token", "")) == "boom-tok:vlea-weapons-gate",
@@ -322,9 +325,12 @@ func _run() -> void:
 		if is_instance_valid(boom):
 			boom.set_physics_process(false)
 			boom.queue_free()
+		await process_frame
 
-		# Real VehicleBody3D aerial flight proof: Lea Unicorn itself flies
-		# through the air, lands upright at target_pos, and kills targets there.
+		# ---- 3b. Real VehicleBody3D aerial flight + supernova landing bang + auto wing fold.
+		var fx_arena := Node3D.new()
+		fx_arena.name = "BoomFlightArena"
+		holder.add_child(fx_arena)
 		var flyer := VehicleBody3D.new()
 		flyer.name = "LeaFlyer"
 		flyer.set("player_id", "lea-flyer")
@@ -332,39 +338,98 @@ func _run() -> void:
 		flyer.collision_mask = 1
 		flyer.position = Vector3(0.0, 0.6, 0.0)
 		flyer.add_to_group("bike")
-		holder.add_child(flyer)
+		fx_arena.add_child(flyer)
+		var lea_vis_glb := (load("res://assets/Lea_Unicorn.glb") as PackedScene).instantiate() as Node3D
+		lea_vis_glb.set_script(load("res://src/game/LeaVisual.gd"))
+		lea_vis_glb.name = "Model"
+		flyer.add_child(lea_vis_glb)
+
 		var fly_target := BikeStub.new()
 		fly_target.name = "BoomFlyTarget"
 		fly_target.set("player_id", "lea-weapons-gate")
 		fly_target.position = Vector3(0.0, 0.5, 18.0)
 		fly_target.add_to_group("bike")
-		holder.add_child(fly_target)
+		fx_arena.add_child(fly_target)
 		var fly_sink := LethalSink.new()
 		fly_sink.name = "CombatController"
 		fly_target.add_child(fly_sink)
+
+		var debris := RigidBody3D.new()
+		debris.name = "LooseDebris"
+		debris.mass = 2.0
+		debris.position = Vector3(3.0, 0.5, 18.0)
+		fx_arena.add_child(debris)
 		await process_frame
+
 		var fly_boom := Node3D.new()
 		fly_boom.set_script(boom_script)
-		holder.add_child(fly_boom)
+		fx_arena.add_child(fly_boom)
 		fly_boom.call("setup", "lea-flyer", flyer, Vector3(0.0, 0.0, 18.0),
 				105.0, "boom-fly-tok", Color(1, 0.55, 0.88), 0.40, 7.5)
+		_check(bool(lea_vis_glb.call("is_wings_open")),
+				"UnicornBoom flight opens Lea's wings during takeoff/flight")
 		var max_y := flyer.global_position.y
 		for _f in range(60):
 			await physics_frame
 			max_y = maxf(max_y, flyer.global_position.y)
 			if not is_instance_valid(fly_boom) or bool(fly_boom.get("_detonated")):
 				break
-		_check(max_y > 4.0, "UnicornBoom physically flies the unicorn through the air (max_y=%.2f)" % max_y)
+		await physics_frame
+		_check(max_y > 4.5, "UnicornBoom physically flies the unicorn through the air (max_y=%.2f)" % max_y)
 		var land_xz := Vector2(flyer.global_position.x, flyer.global_position.z - 18.0).length()
 		_check(land_xz < 0.25, "UnicornBoom lands the unicorn at target_pos (err=%.3f)" % land_xz)
 		_check(flyer.global_transform.basis.y.y > 0.99 and not flyer.freeze and flyer.collision_layer == 1,
 				"UnicornBoom restores upright unfrozen physics & collision after landing")
 		_check(fly_sink.calls.size() == 1, "UnicornBoom damages/kills target at landing zone")
+		_check(not bool(lea_vis_glb.call("is_wings_open"))
+				and float(lea_vis_glb.get("_boom_cd")) == 0.0,
+				"UnicornBoom touchdown automatically calls on_boom_land() to fold wings")
+		_check(fx_arena.get_node_or_null("BoomShockwaveDome") != null
+				and fx_arena.get_node_or_null("BoomRainbowShell") != null
+				and fx_arena.get_node_or_null("BoomSkyPillar") != null
+				and fx_arena.get_node_or_null("BoomCoreFlash") != null,
+				"UnicornBoom supernova landing spawns Dome, RainbowShell, 20m SkyPillar & CoreFlash")
+		_check(debris.linear_velocity.length() > 1.0,
+				"UnicornBoom detonation applies radial impulse to nearby loose RigidBody3D debris")
+		var max_scorch := int(vfx_script.get("MAX_SCORCH")) if vfx_script != null else 12
+		var max_lights := int(vfx_script.get("MAX_IMPACT_LIGHTS")) if vfx_script != null else 8
+		var scorch_n := get_nodes_in_group("vfx_scorch").size()
+		var light_n := get_nodes_in_group("vfx_light").size()
+		_check(scorch_n >= 1 and scorch_n <= max_scorch,
+				"UnicornBoom spawns ground scorch respecting MAX_SCORCH (%d/%d)" % [scorch_n, max_scorch])
+		_check(light_n <= max_lights,
+				"UnicornBoom respects MAX_IMPACT_LIGHTS cap (%d/%d)" % [light_n, max_lights])
+		var imp_light_ref: Node = fx_arena.get_node_or_null("BoomImpactLight")
+		_check(imp_light_ref != null and imp_light_ref.is_in_group("vfx_light"),
+				"UnicornBoom spawns BoomImpactLight in vfx_light group")
 		if is_instance_valid(fly_boom):
 			fly_boom.set_physics_process(false)
 			fly_boom.queue_free()
-		flyer.queue_free()
-		fly_target.queue_free()
+		# Wait past the 0.72 s impact light tween after UnicornBoom is freed to prove
+		# static cleanup lambdas execute with zero invalid-instance errors.
+		for _w in range(55):
+			await physics_frame
+			if not is_instance_valid(imp_light_ref):
+				break
+		_check(not is_instance_valid(imp_light_ref),
+				"BoomImpactLight cleans up & leaves vfx_light after UnicornBoom frees")
+
+		# ---- 3c. Early abort/teardown mid-flight must safely unfreeze & fold wings.
+		var abort_boom := Node3D.new()
+		abort_boom.set_script(boom_script)
+		fx_arena.add_child(abort_boom)
+		abort_boom.call("setup", "lea-flyer", flyer, Vector3(0.0, 0.0, 32.0),
+				105.0, "boom-abort-tok", Color(1, 0.55, 0.88), 1.5, 7.5)
+		await physics_frame
+		_check(flyer.freeze and bool(lea_vis_glb.call("is_wings_open")),
+				"mid-flight freeze & open wings armed before abort")
+		abort_boom.queue_free()
+		await process_frame
+		_check(not flyer.freeze and flyer.collision_layer == 1
+				and not bool(lea_vis_glb.call("is_wings_open")),
+				"mid-flight teardown safely restores physics, collision & folds wings")
+		fx_arena.queue_free()
+		await process_frame
 
 	if aoe_script != null:
 		_check(aoe_script.has_method("apply_blast") and aoe_script.has_method("apply_lethal_blast"),
@@ -386,27 +451,36 @@ func _run() -> void:
 				"lea meteor label is UNICORN BOOM")
 		probe.free()
 
-	# ---- 5. Reduced-motion safety: both visuals must still arm without VFX.
+	# ---- 5. Reduced-motion safety: both visuals arm cleanly, no dome/pillar storm.
 	var settings2: Node = root.get_node_or_null("Settings")
 	if settings2 != null and beam_script != null and boom_script != null:
 		settings2.call("set_value", "gameplay", "reduced_motion", true)
+		var rm_holder := Node3D.new()
+		rm_holder.name = "ReducedMotionHolder"
+		holder.add_child(rm_holder)
 		var b2 := Node3D.new()
 		b2.set_script(beam_script)
-		holder.add_child(b2)
-		b2.call("setup", "lea-owner", holder, Vector3.ZERO, Vector3(0, 0, -1),
+		rm_holder.add_child(b2)
+		b2.call("setup", "lea-owner", rm_holder, Vector3.ZERO, Vector3(0, 0, -1),
 				38.0, 90.0, "reduced-beam", Color.WHITE)
 		_check(not bool(b2.get("_inert")), "horn beam arms safely with reduced motion")
 		if is_instance_valid(b2):
 			b2.set_physics_process(false); b2.queue_free()
 		var u2 := Node3D.new()
 		u2.set_script(boom_script)
-		holder.add_child(u2)
+		rm_holder.add_child(u2)
 		u2.call("setup", "lea-owner", _owner_bike, Vector3.ZERO,
 				105.0, "reduced-boom", Color.WHITE, 0.2, 7.5)
 		_check(bool(u2.get("_armed")), "unicorn boom arms safely with reduced motion")
 		u2.call("_detonate")
+		_check(rm_holder.get_node_or_null("BoomShockwaveDome") == null
+				and rm_holder.get_node_or_null("BoomSkyPillar") == null
+				and rm_holder.get_node_or_null("BoomCoreFlash") == null,
+				"reduced motion suppresses UnicornBoom dome, sky-pillar & flash storm")
 		if is_instance_valid(u2):
 			u2.set_physics_process(false); u2.queue_free()
+		rm_holder.queue_free()
+		await process_frame
 
 	holder.queue_free()
 	await process_frame

@@ -4,7 +4,45 @@ Concrete done-vs-pending ledger. Companion to [project-plan.md](project-plan.md)
 navigation in [index.md](index.md). Statuses are evidence-backed: commit hashes,
 gate names, or live checks — not assumptions.
 
-**Last verified:** 2026-11-25 — full gate suite **33/33** green, `web_hygiene OK`, `_check_scripts.gd` clean (Lea Unicorn + Evan boomerang throw/catch sync and Devil Hand detail).
+**Last verified:** 2026-11-26 — full gate suite **33/33** green (`scene_sync OK`, `web_hygiene OK`, `_check_scripts.gd` 55/55 clean, `gdunit` 6/6, `touch_multitouch` xvfb 0 failures) covering Lea Unicorn AAA equine sculpt & supernova `UnicornBoom`, Mobile 60fps sky-only disappearing-visuals fix, and Swarm Surgical Audit P2 + P3 remediation.
+
+## 2026-11-26 — Mobile 60fps Sky-Only / 0 km/h Disappearing-Visuals Fix
+
+- **Mobile WebGL2 FBO / HDR / 60fps Lock (`godot/src/core/Settings.gd`, `godot/project.godot`):**
+  - Added `_is_mobile_web()` (`web_android`/`web_ios` — `OS.has_feature("mobile")` is false on Godot 4.3 Web) and enforced `effective_resolution_scale() == 1.0`, `effective_glow() == false`, `vp.msaa_3d = MSAA_DISABLED`, `vp.use_hdr_2d = false`, `Engine.max_fps = 60`, finite DPR clamping, and viewport-resize re-apply across all quality presets so sub-1.0 3D FBOs or `RGBA16F` glow FBOs cannot drop 3D meshes to sky-only on mobile WebGL2.
+  - Set `physics/common/max_physics_steps_per_frame = 4`, `msaa_3d = 0`, and `rendering_method.mobile = "gl_compatibility"` in `godot/project.godot`.
+- **Scene-Aware Horizontal OOB, Spawn Validation & Loop/Respawn/Camera Recovery (`KiepieBike.gd`, `RaceTracker.gd`, `LoopZone.gd`, `CombatController.gd`, `FollowCam.gd`):**
+  - Derived scene-aware `_bound_x/_bound_z` from `Ground` collider (`135×115` DeathRace, `60×60` Arena, `210×210` TestRide) with tighter vertical bounds `[-10, 38]`, strict `set_spawn()` / `_safe_spawn()` + upright `_safe_upright_spawn()` in `RaceTracker.gd`, post-integration finite/velocity clamping, and orthonormalized wheel roll.
+  - Pruned distant/hidden bikes in `LoopZone.gd`, cleared loop/dodge/turbo state on `_die()` and unfroze before `reset_bike()` in `CombatController._respawn()`, and added `_ensure_camera_healthy()` + `_target_pose_ok()` recovery in `FollowCam.gd`.
+- **Gates:** Added section 8 regression suite (9 mobile-60fps/OOB/LoopZone/FollowCam/Aston CP 2/4 checks) in `godot/tools/verify_deathrace.gd`; `run_gates.sh` **33/33 green**.
+
+## 2026-11-26 — Lea Unicorn AAA Sculpted Equine Rebuild, Closed Default Wings & Supernova `UnicornBoom` Landing
+
+- **AAA Sculpted Equine Anatomy & Wings (`src/build_lea_unicorn.py`, `src/gen_decal_lea.py`):**
+  - Rebuilt parametric equine loft with athletic muscular chest/brisket, prominent withers, saddle dip, rounded croup, arched Andalusian neck, flush blended upper shoulders/haunches (zero flat peg-leg caps), recessed sapphire eyes, continuous 3-flute helically-spiralled golden horn tapering to glowing `HornTip`, flowing S-curved mane/tail locks, and crisp unobstructed `"Lea"` brand (`assets/decal_lea_brand.png`) on the `-X` right butt cheek.
+  - Rest pose, `Idle_Breathe`, `Locomotion_Gallop`, and `Action_WingSpread` keep the plush covert-mantled wings strictly CLOSED (`|WingHand.L.tail.x| = 0.24 < 0.55`) cleanly above `LeaBrand`; `UnicornBoom_Flight` unfurls a soaring 33-feather layered rainbow angelic wing fan (`|x| = 1.207 m`, `z = 2.181 m`).
+  - **QA & Telemetry:** `QA_debrief_lea.json` **APPROVED** (`payload_sha256: 174be5bc49ea973bbadc3a3b74331b244803d230475a6a3a53bafb25c935cf37`) — `4,725` verts, `5,180` Blender faces, **`8,914` tris** (`< 10,000`), `non_manifold_edges = 0`, `minZ = 0.000`, bbox `[0.626, 2.750, 2.026] m`, `52` bones, `4` NLA clips, `15/15` landmarks, plain non-Draco GLB = **545 KB** (`godot/assets/Lea_Unicorn.glb`).
+- **Closed-Wing Runtime, Horn Alignment & Supernova Landing Bang (`LeaVisual.gd`, `UnicornBoom.gd`, `HornBeam.gd`, `HornBoltProjectile.gd`):**
+  - `LeaVisual.gd` locks closed wings across idle/gallop/reverse/turbo/normal jumps/`HornBeam` charge (`is_wings_open()`), fixes sequential cooldown stacking, adds snappy `trigger_boom()` unfurl + `on_boom_land()` fold/squash/hoof dust ring for local & remote bikes, and fixes `get_horn_world_pos()` (`y = 1.91 m`).
+  - `UnicornBoom.gd` adds takeoff burst, `APEX_HEIGHT = 8.5 m` diving arc with `RainbowTrail`/`StarlightWake`, multi-part ground telegraph, and supernova touchdown (`BoomShockwaveDome`, `BoomRainbowShell`, 20 m `BoomSkyPillar` + `BoomSkyPillarCore`, `BoomCoreFlash`, 3 staggered Mach ground rings, `BoomImpactLight`, scorch crater, layered audio, shake, hitstop, radial debris impulse, `reduced_motion()`/`quality_multiplier()` guards).
+  - `HornBeam.gd` adds incandescent `BeamCore`, muzzle flare burst, dynamic light decay, and laser fire SFX; `HornBoltProjectile.gd` unifies `VFX.impact`.
+- **Gates & Visual Proof:** Strengthened `verify_lea_unicorn.gd` (`77` checks) and `verify_lea_unicorn_weapons.gd` (`51` checks); verified Blender 6-angle renders + real Godot 4.3 xvfb grounded/flight/supernova captures; full `run_gates.sh` **33/33 green**.
+
+## 2026-11-26 — Swarm Surgical Audit Remediation
+
+Source report: [audits/kiepie-quad-surgical-audit-2026-11-25-swarm.md](audits/kiepie-quad-surgical-audit-2026-11-25-swarm.md) + [SARIF](audits/kiepie-quad-surgical-audit-2026-11-25-swarm.sarif) (89/100 LOW; 0 P0 / 0 P1 / 7 P2 / 22 P3).
+
+| ID | Finding (severity) | Disposition | Evidence |
+| --- | --- | --- | --- |
+| P2-A1 | `TaloBackend._host_lost_emitted` never cleared on reconnect re-sync | **Fixed** — `_load_state()` clears latch when host is in `_roster` and heartbeat is fresh | `TaloBackend.gd`, `verify_talo_backend.gd` |
+| P2-A2 | Win-transition FSM & leader tie-break duplicated across 3 modules | **Fixed** — extracted `TaloProtocol.evaluate_outcome()` and `TaloProtocol.pick_leader()` | `TaloProtocol.gd`, `TaloBackend.gd`, `MockBackend.gd`, `MatchState.gd`, `verify_talo_backend.gd` |
+| P2-C1 | `BoomerangGuitar` 3-ray sweep breaks on first hit instead of nearest | **Fixed** — evaluates all 3 offsets and picks minimum `distance_squared_to(from)` | `BoomerangGuitar.gd` |
+| P2-C2 | `HazardPit._tick_accum = 0.0` discards overshoot | **Fixed** — bounded `while` subtraction with `clampf(delta, 0.0, 0.1)` | `HazardPit.gd`, `verify_deathrace.gd` |
+| P2-C3 | `RaceTracker._finishing_lap` latch held across unbounded `await`s | **Fixed** — added `LAP_RPC_TIMEOUT_S` (5.0 s) watchdog + `_lap_rpc_gen` generation guard | `RaceTracker.gd`, `verify_deathrace.gd` |
+| P2-D2 | `TaloBackend._try_join()` TOCTOU over-capacity join | **Fixed** — post-join revalidation of `protocol_ok`, `waiting` status, `member_count`, and roster cap | `TaloBackend.gd` |
+| P2-E1 | `PROTOCOL_VERSION` unchecked on reconnect & socket messages | **Fixed** — reconnect `protocol_ok(ch)` check + `"v"` stamped in `_send()` and checked in `_on_socket_message()` | `TaloBackend.gd`, `verify_talo_backend.gd` |
+| P3-NEW | `HornBeam` `ChargeSparks` emitted along local `+Z` (backward) | **Fixed** — changed `pm.direction` to `Vector3(0, 0, -1)` | `HornBeam.gd`, `verify_lea_unicorn_weapons.gd` |
+| P3-A4 | Duplicated `SHOT_SPEED`, `STALE_LOBBY_S`, `MIN_LAP_SECONDS` | **Fixed** — `ArenaNet` uses `SIDE_CANNONS.SHOT_SPEED`; `TaloBackend`/`MockBackend` share `TaloProtocol` constants | `ArenaNet.gd`, `TaloProtocol.gd`, `TaloBackend.gd`, `MockBackend.gd` |
 
 ## 2026-11-25 — Lea Unicorn sleek anatomical rebuild, bold `"Lea"` brand & real aerial `UnicornBoom` flight
 

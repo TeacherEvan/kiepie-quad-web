@@ -1,7 +1,9 @@
 extends SceneTree
 ## Gate: LEA UNICORN — preference-only registry contract, 52-joint winged rig
 ## with 4 baked clips, landmark anchors, ground datum/tri budget, MainMenu
-## selector, runtime shell swap + LeaVisual hooks, and bounded remote speed.
+## selector, runtime shell swap + strict closed-wings contract across idle,
+## gallop, reverse, turbo, normal jumps & charge, open wings strictly on
+## UnicornBoom + immediate fold on touchdown, and bounded remote speed.
 
 const SAV := "user://settings.cfg"
 const BAK := "user://settings.cfg.lea-gate-backup"
@@ -208,14 +210,17 @@ func _run() -> void:
 		mm.queue_free()
 		await process_frame
 
-	# ---- 5. Runtime swap + animation hooks in a fresh scene.
+	# ---- 5. Runtime swap + strict closed-wings & animation contract in TestRide.
 	settings.call("set_value", "gameplay", "vehicle", "LeaUnicorn")
 	var scene: PackedScene = load("res://scenes/TestRide.tscn")
 	var ride := scene.instantiate() as Node3D
 	root.add_child(ride)
-	for _i in range(5):
+	for _i in range(45):
 		await physics_frame
-	var bike := ride.get_node_or_null("KiepieBike") as Node3D
+		var b_tmp := ride.get_node_or_null("KiepieBike")
+		if b_tmp != null and b_tmp.has_method("_grounded") and bool(b_tmp.call("_grounded")):
+			break
+	var bike := ride.get_node_or_null("KiepieBike") as VehicleBody3D
 	_check(bike != null, "bike node exists after swap")
 	if bike != null:
 		_check(str(bike.get("vehicle_profile")) == "lea", "vehicle_profile == lea after swap")
@@ -227,16 +232,85 @@ func _run() -> void:
 			_check(script != null and str(script.resource_path).ends_with("LeaVisual.gd"),
 					"Model carries LeaVisual.gd")
 			var horn_pos: Vector3 = lea_model.call("get_horn_world_pos")
-			_check(is_finite(horn_pos.x + horn_pos.y + horn_pos.z),
-					"get_horn_world_pos is finite")
+			_check(is_finite(horn_pos.x + horn_pos.y + horn_pos.z) and horn_pos.y > 1.0,
+					"get_horn_world_pos is finite and elevated (y=%.2f)" % horn_pos.y)
+
+			# Idle keeps wings strictly closed.
+			bike.linear_velocity = Vector3.ZERO
+			bike.set("turbo_active", false)
+			lea_model.call("_physics_process", 0.016)
+			_check(str(lea_model.get("_last_clip")) == "Idle_Breathe"
+					and not bool(lea_model.call("is_wings_open")),
+					"idle keeps wings closed (Idle_Breathe)")
+
+			# Forward gallop keeps wings closed.
+			bike.linear_velocity = bike.global_transform.basis.z * 8.0
+			lea_model.call("_physics_process", 0.016)
+			_check(str(lea_model.get("_last_clip")) == "Locomotion_Gallop"
+					and not bool(lea_model.call("is_wings_open")),
+					"gallop keeps wings closed (Locomotion_Gallop)")
+
+			# Reverse backpedal keeps wings closed with negative playback rate.
+			bike.linear_velocity = -bike.global_transform.basis.z * 4.5
+			for _r in range(10):
+				lea_model.call("_physics_process", 0.05)
+			_check(str(lea_model.get("_last_clip")) == "Locomotion_Gallop"
+					and float(lea_model.get("_anim_rate")) < 0.0
+					and not bool(lea_model.call("is_wings_open")),
+					"reverse backpedals gallop with wings closed")
+
+			# Turbo driving keeps wings closed.
+			bike.linear_velocity = bike.global_transform.basis.z * 14.0
+			bike.set("turbo_active", true)
+			lea_model.call("_physics_process", 0.016)
+			_check(str(lea_model.get("_last_clip")) == "Locomotion_Gallop"
+					and not bool(lea_model.call("is_wings_open")),
+					"turbo driving keeps wings closed (not UnicornBoom_Flight)")
+			bike.set("turbo_active", false)
+
+			# Normal ramp jump (airborne) keeps wings closed.
+			lea_model.set("_air_time", 0.35)
+			bike.linear_velocity = bike.global_transform.basis.z * 10.0 + Vector3(0.0, 4.5, 0.0)
+			lea_model.call("_physics_process", 0.016)
+			_check(str(lea_model.get("_last_clip")) != "UnicornBoom_Flight"
+					and not bool(lea_model.call("is_wings_open")),
+					"normal ramp jump keeps wings closed (not UnicornBoom_Flight)")
+			bike.linear_velocity = Vector3.ZERO
+			lea_model.set("_air_time", 0.0)
+
+			# HornBeam charge plays closed-wing stance, expires cleanly in ~0.72 s (no double lockout).
 			lea_model.call("trigger_charge", 1.0)
 			_check(float(lea_model.get("_charge_cd")) > 0.0
-					and str(lea_model.get("_last_clip")) == "Action_WingSpread",
-					"trigger_charge arms wing-spread clip and lockout")
-			lea_model.call("trigger_boom")
+					and str(lea_model.get("_last_clip")) == "Action_WingSpread"
+					and not bool(lea_model.call("is_wings_open")),
+					"trigger_charge arms charge stance without opening wings")
+			for _c in range(10):
+				lea_model.call("_physics_process", 0.08)
+			_check(float(lea_model.get("_charge_cd")) == 0.0
+					and float(lea_model.get("_action_cd")) == 0.0
+					and str(lea_model.get("_last_clip")) == "Idle_Breathe",
+					"charge lockout clears cleanly in ~0.72s with no double-wait")
+
+			# UnicornBoom is the ONLY trigger that opens wings, and charge cannot clobber it.
+			lea_model.call("trigger_boom", 2.0)
 			_check(float(lea_model.get("_boom_cd")) > 0.0
-					and str(lea_model.get("_last_clip")) == "UnicornBoom_Flight",
-					"trigger_boom arms the flight clip and lockout")
+					and str(lea_model.get("_last_clip")) == "UnicornBoom_Flight"
+					and bool(lea_model.call("is_wings_open")),
+					"trigger_boom opens wings via UnicornBoom_Flight")
+			lea_model.call("trigger_charge", 1.0)
+			_check(str(lea_model.get("_last_clip")) == "UnicornBoom_Flight"
+					and bool(lea_model.call("is_wings_open")),
+					"trigger_charge cannot interrupt active UnicornBoom flight")
+
+			# Touchdown immediately folds wings closed and fires squash impulse.
+			lea_model.set("_squash_v", 0.0)
+			lea_model.call("on_boom_land")
+			_check(float(lea_model.get("_boom_cd")) == 0.0
+					and not bool(lea_model.call("is_wings_open"))
+					and str(lea_model.get("_last_clip")) != "UnicornBoom_Flight"
+					and float(lea_model.get("_squash_v")) > 2.0,
+					"on_boom_land immediately folds wings closed and triggers landing squash")
+
 		var combat: Node = bike.get_node_or_null("CombatController")
 		var cannons: Node = combat.get("cannons") if combat != null else null
 		_check(cannons != null and str(cannons.get("weapon_profile")) == "lea",
@@ -244,7 +318,7 @@ func _run() -> void:
 	ride.queue_free()
 	await process_frame
 
-	# ---- 6. Remote-proxy speed estimator must stay finite and bounded.
+	# ---- 6. Remote-proxy speed estimator & closed/open wing transitions.
 	var remote_host := StaticBody3D.new()
 	root.add_child(remote_host)
 	var remote_model := (load("res://assets/Lea_Unicorn.glb") as PackedScene).instantiate() as Node3D
@@ -257,6 +331,17 @@ func _run() -> void:
 	var remote_speed := float(remote_model.get("_remote_speed"))
 	_check(is_finite(remote_speed) and remote_speed >= 0.0 and remote_speed <= 60.0,
 			"remote Lea speed estimate stays finite and bounded (%.3f)" % remote_speed)
+	_check(not bool(remote_model.call("is_wings_open"))
+			and str(remote_model.get("_last_clip")) != "UnicornBoom_Flight",
+			"remote Lea keeps wings closed during movement")
+	remote_model.call("trigger_boom", 1.8)
+	_check(bool(remote_model.call("is_wings_open"))
+			and str(remote_model.get("_last_clip")) == "UnicornBoom_Flight",
+			"remote Lea opens wings on trigger_boom")
+	remote_model.call("on_boom_land")
+	_check(not bool(remote_model.call("is_wings_open"))
+			and str(remote_model.get("_last_clip")) != "UnicornBoom_Flight",
+			"remote Lea folds wings immediately on on_boom_land")
 	remote_host.queue_free()
 	await process_frame
 

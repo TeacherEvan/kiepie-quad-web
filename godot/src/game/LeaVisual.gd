@@ -3,9 +3,10 @@ extends Node3D
 ##
 ## Drives the four baked NLA clips (Idle_Breathe, Locomotion_Gallop,
 ## Action_WingSpread, UnicornBoom_Flight) with speed-coupled gallop playback,
-## reverse backpedalling, charge wing-expansion and a one-shot leap/flight for
-## the Unicorn Boom special. Purely cosmetic: physics stats stay identical to
-## KiepieBike, and the same driver works on local and remote proxies.
+## reverse backpedalling, horn-charge stance (wings stay closed), and a one-shot
+## winged flight for the Unicorn Boom 3rd special — the ONLY state that opens
+## her wings. Purely cosmetic: physics stats stay identical to KiepieBike, and
+## the same driver works on both local VehicleBody3D and remote proxies.
 ## Attach to the instantiated Lea_Unicorn.glb root.
 
 const MAX_FRAME_DT := 0.1
@@ -15,6 +16,11 @@ const CLIP_IDLE := "Idle_Breathe"
 const CLIP_GALLOP := "Locomotion_Gallop"
 const CLIP_SPREAD := "Action_WingSpread"
 const CLIP_BOOM := "UnicornBoom_Flight"
+
+const BLEND_LOCOMOTION := 0.20
+const BLEND_CHARGE := 0.08
+const BLEND_BOOM_OPEN := 0.10
+const BLEND_BOOM_FOLD := 0.13
 
 const VFX := preload("res://src/game/VfxFactory.gd")
 
@@ -38,6 +44,7 @@ var _base_scale := Vector3.ONE
 
 var _pitch := 0.0
 var _roll := 0.0
+var _yaw_lean := 0.0
 var _squash := 0.0
 var _squash_v := 0.0
 var _recoil := 0.0
@@ -87,32 +94,48 @@ func _ready() -> void:
 	_anim.speed_scale = 1.0
 
 
+func is_wings_open() -> bool:
+	## True strictly during the UnicornBoom 3rd special flight window.
+	return _boom_cd > 0.0 and _last_clip == CLIP_BOOM
+
+
 func get_horn_world_pos() -> Vector3:
 	if is_instance_valid(_horn_anchor):
+		if _horn_anchor is MeshInstance3D:
+			var aabb := (_horn_anchor as MeshInstance3D).get_aabb()
+			if aabb.size.length_squared() > 1e-6:
+				return _horn_anchor.global_transform * aabb.get_center()
 		return _horn_anchor.global_position
 	if is_instance_valid(_host):
-		return _host.global_position + Vector3(0.0, 1.9, -0.6)
-	return global_position + Vector3(0.0, 1.9, -0.6)
+		return _host.global_position + _host.global_transform.basis.z * 1.255 + Vector3(0.0, 1.91, 0.0)
+	return global_position + global_transform.basis.z * 1.255 + Vector3(0.0, 2.02, 0.0)
 
 
 func trigger_charge(strength: float = 1.0) -> void:
 	## HornBeam.setup() calls this for both the local rider and remote proxies.
+	## Plays the closed-wing horn-charge stance; never opens wings or interrupts UnicornBoom.
 	_recoil_v += 2.4 * clampf(strength, 0.0, 2.0)
+	if _boom_cd > 0.0:
+		return
 	if _anim == null or not _anim.has_animation(CLIP_SPREAD):
 		return
 	_charge_cd = 0.72
-	_action_cd = 0.72
+	_action_cd = _charge_cd
 	_anim_rate = 1.0 if not _reduced else 0.60
 	_anim.speed_scale = _anim_rate
-	_anim.play(CLIP_SPREAD, 0.05)
+	_anim.play(CLIP_SPREAD, BLEND_CHARGE)
 	_last_clip = CLIP_SPREAD
 
 
 func trigger_boom(duration: float = 2.05) -> void:
 	## UnicornBoom.setup() calls this for the local rider and remote proxies.
-	_recoil_v += 3.2
+	## This is the ONLY entry point that plays UnicornBoom_Flight (wings open).
+	_recoil_v += 3.0
+	if not _reduced:
+		_squash_v -= 2.4
 	if _anim == null or not _anim.has_animation(CLIP_BOOM):
 		return
+	_charge_cd = 0.0
 	_boom_cd = maxf(1.35, duration)
 	_action_cd = _boom_cd
 	var boom_anim := _anim.get_animation(CLIP_BOOM)
@@ -120,8 +143,43 @@ func trigger_boom(duration: float = 2.05) -> void:
 		boom_anim.loop_mode = Animation.LOOP_LINEAR
 	_anim_rate = 1.0 if not _reduced else 0.55
 	_anim.speed_scale = _anim_rate
-	_anim.play(CLIP_BOOM, 0.04)
+	_anim.play(CLIP_BOOM, BLEND_BOOM_OPEN)
 	_last_clip = CLIP_BOOM
+
+
+func on_boom_land() -> void:
+	## Called on UnicornBoom touchdown (local & remote): immediately crossfade
+	## wings smoothly back closed, slam landing squash spring, and kick up a
+	## crisp hoof dust ring.
+	_boom_cd = 0.0
+	_charge_cd = 0.0
+	_action_cd = 0.0
+	_fold_to_locomotion(BLEND_BOOM_FOLD)
+	if not _reduced:
+		_squash_v += 5.2
+		if _host != null and _host.is_inside_tree():
+			var q := 1.0
+			if _settings != null and _settings.has_method("quality_multiplier"):
+				q = float(_settings.call("quality_multiplier"))
+			if q > 0.0:
+				VFX.dust_ring(_fx_parent(), _host.global_position, 1.35, 5.4)
+
+
+func _fold_to_locomotion(blend: float) -> void:
+	if _anim == null:
+		_last_clip = ""
+		return
+	var want := CLIP_GALLOP if _is_galloping else CLIP_IDLE
+	if not _anim.has_animation(want):
+		want = CLIP_IDLE
+	if _anim.has_animation(want):
+		var target_rate := 1.0 * (0.55 if _reduced else 1.0)
+		_anim_rate = target_rate
+		_anim.speed_scale = _anim_rate
+		_anim.play(want, blend)
+		_last_clip = want
+	else:
+		_last_clip = ""
 
 
 static func _exp_decay(current: float, target: float, rate: float, dt: float) -> float:
@@ -203,22 +261,26 @@ func _physics_process(delta: float) -> void:
 	_prev_fwd_speed = fwd_speed
 	_smooth_accel = _exp_decay(_smooth_accel, raw_accel, 7.5, dt)
 
-	if not grounded:
-		_air_time += dt
+	if _boom_cd <= 0.0:
+		if not grounded:
+			_air_time += dt
+		else:
+			if not _was_grounded and _air_time > 0.16 and _prev_vy < -2.0:
+				var impact := clampf(-_prev_vy * 0.08, 0.20, 0.75) * motion_scale
+				_squash_v += 2.6 * impact
+				if not _reduced and _settings != null and _settings.has_method("quality_multiplier"):
+					var q := float(_settings.call("quality_multiplier"))
+					if q > 0.0:
+						VFX.dust_ring(_fx_parent(), _host.global_position, 0.85, 3.2)
+			_air_time = 0.0
+		_was_grounded = grounded
+		_prev_vy = vy
 	else:
-		if not _was_grounded and _air_time > 0.16 and _prev_vy < -2.0:
-			var impact := clampf(-_prev_vy * 0.08, 0.20, 0.75) * motion_scale
-			_squash_v += 2.6 * impact
-			if not _reduced and _settings != null and _settings.has_method("quality_multiplier"):
-				var q := float(_settings.call("quality_multiplier"))
-				if q > 0.0:
-					VFX.dust_ring(_fx_parent(), _host.global_position, 0.85, 3.2)
 		_air_time = 0.0
-	_was_grounded = grounded
-	_prev_vy = vy
+		_was_grounded = true
 
 	var sq := _spring(_squash, _squash_v, 0.0, 140.0, 11.5, dt)
-	_squash = clampf(sq.x, -0.18, 0.22)
+	_squash = clampf(sq.x, -0.18, 0.24)
 	_squash_v = sq.y
 	var rec := _spring(_recoil, _recoil_v, 0.0, 120.0, 10.0, dt)
 	_recoil = clampf(rec.x, -0.20, 0.24)
@@ -226,18 +288,19 @@ func _physics_process(delta: float) -> void:
 
 	var speed_lean := clampf(speed * 0.010, 0.0, 0.18) * (-0.5 if (_bike != null and fwd_speed < -0.75) else 1.0)
 	var accel_lean := clampf(-_smooth_accel * 0.008, -0.09, 0.11)
-	var air_lean := clampf(-vy * 0.025, -0.16, 0.16) * (1.0 if not grounded else 0.0)
+	var air_lean := clampf(-vy * 0.025, -0.16, 0.16) * (1.0 if (not grounded and _boom_cd <= 0.0) else 0.0)
 	var target_pitch := (speed_lean + accel_lean + air_lean - _recoil * 0.45) * motion_scale
 	var target_roll := clampf(-steer * clampf(0.25 + speed * 0.022, 0.20, 0.42), -0.22, 0.22) * motion_scale
 	var target_yaw := clampf(-steer * 0.22, -0.14, 0.14) * motion_scale
 	_pitch = _exp_decay(_pitch, target_pitch, 10.0, dt)
 	_roll = _exp_decay(_roll, target_roll, 11.0, dt)
-	rotation = _base_rot + Vector3(_pitch, target_yaw, _roll)
+	_yaw_lean = _exp_decay(_yaw_lean, target_yaw, 10.0, dt)
+	rotation = _base_rot + Vector3(_pitch, _yaw_lean, _roll)
 	var sq_xz := 1.0 + _squash * 0.55
 	scale = Vector3(_base_scale.x * sq_xz, _base_scale.y * (1.0 - _squash), _base_scale.z * sq_xz)
 	position = _base_pos - Vector3(0.0, maxf(0.0, _squash) * 0.18, 0.0)
 
-	if grounded and speed > 0.55:
+	if grounded and speed > 0.55 and _boom_cd <= 0.0:
 		_gallop_phase += absf(_anim_rate) * dt * 1.25
 		if _gallop_phase >= 100.0:
 			_gallop_phase = fmod(_gallop_phase, 100.0)
@@ -253,38 +316,46 @@ func _physics_process(delta: float) -> void:
 							- _host.global_transform.basis.z * 0.20 + Vector3(0.0, 0.06, 0.0)
 					VFX.roost(_fx_parent(), hoof_pos, _host.global_transform.basis.z)
 
-	if _charge_cd > 0.0:
-		_charge_cd = maxf(0.0, _charge_cd - dt)
-		if _charge_cd > 0.0:
-			return
+	# Action lockouts: boom (wings open) takes priority over charge (wings closed).
+	# Never stack _action_cd sequentially after _charge_cd or _boom_cd.
+	var exit_blend := BLEND_LOCOMOTION
 	if _boom_cd > 0.0:
 		_boom_cd = maxf(0.0, _boom_cd - dt)
+		_action_cd = maxf(_boom_cd, _charge_cd)
 		if _boom_cd > 0.0:
 			return
-	if _action_cd > 0.0:
-		_action_cd = maxf(0.0, _action_cd - dt)
-		if _action_cd > 0.0:
+		_last_clip = ""
+		exit_blend = BLEND_BOOM_FOLD
+	elif _charge_cd > 0.0:
+		_charge_cd = maxf(0.0, _charge_cd - dt)
+		_action_cd = _charge_cd
+		if _charge_cd > 0.0:
 			return
 		_last_clip = ""
+		exit_blend = 0.15
+	else:
+		_action_cd = 0.0
 
 	if _is_galloping and speed < 0.35:
 		_is_galloping = false
 	elif not _is_galloping and speed > 0.55:
 		_is_galloping = true
 	var reversing := _bike != null and fwd_speed < -0.55
+	# Wings strictly closed for ALL non-UnicornBoom states (idle, gallop, reverse,
+	# turbo, and normal ramp jumps only ever play CLIP_IDLE or CLIP_GALLOP).
 	var want := CLIP_IDLE
 	var rate := 1.0
 	if turbo and not _reduced:
-		want = CLIP_BOOM
-		rate = clampf(1.10 + speed * 0.06, 1.10, 2.20)
+		want = CLIP_GALLOP
+		rate = clampf(1.45 + speed * 0.08, 1.45, 3.0) * (-1.0 if reversing else 1.0)
 	elif not grounded and _air_time > 0.14 and not _reduced:
-		want = CLIP_BOOM
-		rate = 1.0
+		want = CLIP_GALLOP
+		rate = 1.20
 	elif _is_galloping:
 		want = CLIP_GALLOP
 		rate = clampf(0.50 + speed * 0.115, 0.50, 2.65) * (-1.0 if reversing else 1.0)
 	_anim_rate = _exp_decay(_anim_rate, rate * (0.55 if _reduced else 1.0), 12.0, dt)
 	_anim.speed_scale = _anim_rate
 	if want != _last_clip and _anim.has_animation(want):
-		_anim.play(want, 0.22)
+		_anim.play(want, exit_blend)
 		_last_clip = want

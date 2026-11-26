@@ -35,12 +35,15 @@ var _charge: Node3D = null
 var _vortex: GPUParticles3D = null
 var _charge_ring: MeshInstance3D = null
 var _beam: MeshInstance3D = null
+var _beam_core: MeshInstance3D = null
 var _light: OmniLight3D = null
 var _hit_nodes: Array[Node] = []
 var _ray: PhysicsRayQueryParameters3D = null
 
 static var _beam_mesh: BoxMesh = null
 static var _beam_mat: StandardMaterial3D = null
+static var _beam_core_mesh: BoxMesh = null
+static var _beam_core_mat: StandardMaterial3D = null
 static var _spark_mesh: SphereMesh = null
 static var _spark_ramp: GradientTexture1D = null
 static var _ring_mesh: TorusMesh = null
@@ -53,11 +56,11 @@ static func _ensure_meshes() -> void:
 
 static func _bm_setup() -> void:
 	var bm := BoxMesh.new()
-	bm.size = Vector3(0.34, 0.34, 1.0)
+	bm.size = Vector3(0.36, 0.36, 1.0)
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(0.62, 0.96, 1.0, 0.92)
 	mat.emission_enabled = true
-	mat.emission = Color(0.30, 0.82, 1.0)
+	mat.emission = Color(0.30, 0.84, 1.0)
 	mat.emission_energy_multiplier = 6.5
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -66,6 +69,22 @@ static func _bm_setup() -> void:
 	bm.material = mat
 	_beam_mesh = bm
 	_beam_mat = mat
+
+	var bcm := BoxMesh.new()
+	bcm.size = Vector3(0.14, 0.14, 1.0)
+	var cmat := StandardMaterial3D.new()
+	cmat.albedo_color = Color(1.0, 0.98, 0.90, 0.98)
+	cmat.emission_enabled = true
+	cmat.emission = Color(0.92, 0.98, 1.0)
+	cmat.emission_energy_multiplier = 9.0
+	cmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	cmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	cmat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	cmat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	bcm.material = cmat
+	_beam_core_mesh = bcm
+	_beam_core_mat = cmat
+
 	var sm := SphereMesh.new()
 	sm.radius = 0.055
 	sm.height = 0.11
@@ -185,7 +204,7 @@ func _build_charge() -> void:
 		_vortex.local_coords = true
 		_vortex.visibility_aabb = AABB(Vector3(-1.4, -1.4, -1.4), Vector3(2.8, 2.8, 2.8))
 		var pm := ParticleProcessMaterial.new()
-		pm.direction = Vector3(0.0, 0.0, 1.0)
+		pm.direction = Vector3(0.0, 0.0, -1.0)
 		pm.spread = 0.0
 		pm.gravity = Vector3.ZERO
 		pm.initial_velocity_min = 0.8
@@ -213,7 +232,7 @@ func _start_beam() -> void:
 	_ray.collide_with_bodies = true
 	_ray.exclude = [(owner_node as CollisionObject3D).get_rid()] \
 			if (is_instance_valid(owner_node) and owner_node is CollisionObject3D) else []
-	# The visual beam leaves the horn tip (~1.9 m) but a horizontal ray at that
+	# The visual beam leaves the horn tip (~1.8-1.9 m) but a horizontal ray at that
 	# height sails over every bike hitbox (top ~0.95 m). Trace at chassis height
 	# while the additive beam mesh stays anchored at the horn. The same -1.05 m
 	# correction is derived from the broadcast origin on remote proxies.
@@ -252,6 +271,7 @@ func _start_beam() -> void:
 	_beam = MeshInstance3D.new()
 	_beam.name = "PlasmaBeam"
 	_beam.mesh = _beam_mesh
+	_beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_beam.basis = Basis.looking_at(_direction, Vector3.UP if absf(_direction.y) < 0.99 else Vector3.FORWARD)
 	# Basis.looking_at aims local -Z at the firing direction, so a box scaled on
 	# local Z extends toward -_direction from its centre. Centre it FORWARD of
@@ -260,9 +280,33 @@ func _start_beam() -> void:
 	_beam.position = _direction * (span * 0.5)
 	# The supplied blast radius governs the beam's visible width (and therefore
 	# its readability); damage itself uses the launcher's flat blast damage.
-	_beam.scale = Vector3(blast_radius / 4.5, blast_radius / 4.5, span)
+	var width_scale := maxf(0.25, blast_radius / 4.5)
+	_beam.scale = Vector3(width_scale, width_scale, span)
 	add_child(_beam)
+
+	_beam_core = MeshInstance3D.new()
+	_beam_core.name = "BeamCore"
+	_beam_core.mesh = _beam_core_mesh
+	_beam_core.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_beam.add_child(_beam_core)
+
 	_ensure_light()
+	if is_instance_valid(_light):
+		_light.light_energy = 7.2
+		_light.omni_range = 9.0
+	if not Settings.reduced_motion():
+		var fx := get_parent() as Node3D
+		if fx == null and get_tree() != null:
+			fx = get_tree().current_scene as Node3D
+		if fx != null:
+			VFX.S._flash_billboard(fx, global_position + _direction * 0.25, 1.85,
+					Color(0.82, 0.98, 1.0, 0.96), 0.14)
+	var sfx := get_node_or_null("/root/Sfx")
+	if sfx != null:
+		if sfx.has_method("play_3d"):
+			sfx.call("play_3d", "fire", global_position, 2.0, 1.38)
+		elif sfx.has_method("play"):
+			sfx.call("play", "fire", 2.0, 1.38)
 
 
 func _apply_hit(collider: Node, point: Vector3, is_direct: bool) -> void:
@@ -316,6 +360,7 @@ func _finish() -> void:
 	if _beam != null:
 		_beam.queue_free()
 		_beam = null
+		_beam_core = null
 	queue_free()
 
 
@@ -332,7 +377,8 @@ func _physics_process(delta: float) -> void:
 			var t := clampf(_age / CHARGE_TIME, 0.0, 1.0)
 			var s := 0.45 + t * 1.55
 			_charge_ring.scale = Vector3(s, s, 1.0)
-			_charge_ring.rotation.z += delta * 6.0
+			if not Settings.reduced_motion():
+				_charge_ring.rotation.z += delta * 6.0
 		if _age >= CHARGE_TIME:
 			_start_beam()
 		return
@@ -343,5 +389,13 @@ func _physics_process(delta: float) -> void:
 			mat = _beam_mat.duplicate() as StandardMaterial3D
 			_beam.material_override = mat
 		mat.albedo_color.a = 0.92 * (1.0 - t)
+		if _beam_core != null:
+			var cmat := _beam_core.material_override as StandardMaterial3D
+			if cmat == null:
+				cmat = _beam_core_mat.duplicate() as StandardMaterial3D
+				_beam_core.material_override = cmat
+			cmat.albedo_color.a = 0.98 * (1.0 - t)
+		if is_instance_valid(_light):
+			_light.light_energy = 7.2 * (1.0 - t)
 	if _age >= CHARGE_TIME + BEAM_TIME:
 		_finish()

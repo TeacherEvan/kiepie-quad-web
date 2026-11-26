@@ -353,7 +353,7 @@ func _physics_process(delta: float) -> void:
 			var fx := get_parent() as Node3D
 			if fx == null and get_tree() != null:
 				fx = get_tree().current_scene as Node3D
-			VfxFactory.impact(fx, point, hit_color, velocity.normalized(), surface, n)
+			VFX.impact(fx, point, hit_color, velocity.normalized(), surface, n)
 	if _trail != null:
 		_trail.emitting = false
 	_release_light()
