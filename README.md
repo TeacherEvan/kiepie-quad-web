@@ -417,8 +417,8 @@ runs on every PR via `.github/workflows/gates.yml`.
 
 The web shell carries a **themed loading surface**: `web-assets/dashboard_bg.jpg` (navy quad
 ghost + grid, behind the progress bar) and `web-assets/kiepie-quad-splash.mp4` (12.5 s, 1280x720,
-1.73 MiB — Blender showcase of the vehicles + their signature abilities, rendered via
-the `surgical-media` pipeline; vehicle coverage reflects the clip's render date). The splash autoplays **muted on every launch** (no `localStorage`
+about 1.0 MiB — Blender showcase of all five vehicles with readable names and signature-kit
+captions, built by `src/build_intro_splash.py`). The splash autoplays **muted on every launch** (no `localStorage`
 once-only suppression or query-param workaround), is skippable by click/touch, `Esc`, `Space`,
 `Enter`, or when the clip ends, and `prefers-reduced-motion` removes it instantly. The same markup
 is embedded in `html/head_include` so a re-export reproduces it; root `index.html` ships it

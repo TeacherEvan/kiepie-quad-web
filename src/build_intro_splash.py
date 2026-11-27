@@ -4,15 +4,17 @@ Build the 12.5-second (300 frames @ 24 fps, 1280x720) action-packed intro splash
 video for Kiepie-Quad (`web-assets/kiepie-quad-splash.mp4`) using Blender 5.3.0
 EEVEE + Compositor + 48 kHz stereo SFX/procedural audio mix.
 
-Showcases all 3 playable vehicles and their signature weapon kits:
+Showcases all five selectable vehicles and their signature weapon kits:
   1. Kiepie Quad (`Kiepie_Bike.glb`) — Twin Autocannons + Massive Cyan-White Lightning Strike
   2. NARDUS (`Pogo_Nardus.blend`) — Pogo Hop, Turbo Wing-Flap + Banana Cannons + Fiery Meteor Shower
   3. BIG-BEN F1 (`Aston_Martin.glb`) — F1 Autocannons + Small `$` Cash Bag Rockets + Giant `$` Cash Bag Meteor Strike
+  4. EVAN THE SKELETON (`Evan_Skeleton.glb`) — Sound Waves + Boomerang Guitar + Devil Hand
+  5. LEA UNICORN (`Lea_Unicorn.glb`) — Horn Sparks + Horn Beam + Unicorn Boom
 
 Usage:
-  # Preview 6 keyframes across all 5 acts:
+  # Preview keyframes across all 5 vehicle beats and the finale:
   blender -b -noaudio -P src/build_intro_splash.py -- \
-      --preview-frames 42,95,145,168,205,275 --frames-dir /tmp/kiepie_splash_preview
+      --preview-frames 42,95,145,198,218,275 --frames-dir /tmp/kiepie_splash_preview
 
   # Render frame range (e.g. parallel shards):
   blender -b -noaudio -P src/build_intro_splash.py -- --start 0 --end 99 --frames-dir /tmp/kiepie_splash_frames
@@ -176,35 +178,28 @@ def synthesize_audio(wav_out: Path) -> None:
     for k, dt in enumerate((0.0, 0.12, 0.24, 0.38)):
         _mix_clip(buf_l, buf_r, pickup, 6.68 + dt, gain=0.65 - 0.1 * k, pan=(-0.25 + 0.18 * k), sr=sr)
 
-    # Act 4 (7.71 - 9.54s, f=185..229): 3-Vehicle Ultimate Showdown (Lightning + Cash Bags + Meteors)
-    _mix_clip(buf_l, buf_r, turbo, 7.75, gain=0.52, pan=0.0, sr=sr)
-    _add_thunderclap(buf_l, buf_r, 8.05, gain=0.75, pan=-0.35, sr=sr, seed=202)
-    _mix_clip(buf_l, buf_r, impact, 8.30, gain=0.68, pan=0.0, sr=sr)
-    _mix_clip(buf_l, buf_r, explosion, 8.55, gain=0.72, pan=0.35, sr=sr)
-    _mix_clip(buf_l, buf_r, pickup, 8.60, gain=0.60, pan=0.35, sr=sr)
-    _mix_clip(buf_l, buf_r, pop, 8.85, gain=0.60, pan=-0.1, sr=sr)
+    # Act 4 (7.71 - 9.54s, f=185..229): Evan guitar throw and Lea horn/boom accents.
+    _mix_clip(buf_l, buf_r, turbo, 7.74, gain=0.38, pan=-0.15, sr=sr)
+    _mix_clip(buf_l, buf_r, cannon, 7.92, gain=0.36, pan=-0.15, sr=sr)
+    _mix_clip(buf_l, buf_r, impact, 8.22, gain=0.46, pan=0.0, sr=sr)
+    _mix_clip(buf_l, buf_r, pickup, 8.70, gain=0.50, pan=0.15, sr=sr)
+    _mix_clip(buf_l, buf_r, pop, 9.02, gain=0.40, pan=0.15, sr=sr)
+    _mix_clip(buf_l, buf_r, explosion, 9.28, gain=0.48, pan=0.15, sr=sr)
 
-    # Act 5 (9.58 - 12.5s, f=230..299): Mega Detonation + Mushroom Cloud + 3D Title Slam
-    rng = random.Random(42)
-    for i in range(int(9.0 * sr), n_samples):
+    # Act 5 (9.58 - 12.5s, f=230..299): five-vehicle hero lineup and title.
+    _mix_clip(buf_l, buf_r, turbo, 9.62, gain=0.16, pan=0.0, sr=sr)
+    _mix_clip(buf_l, buf_r, pickup, 10.30, gain=0.42, pan=0.0, sr=sr)
+    for i in range(int(9.58 * sr), n_samples):
         t = i / sr
-        if 9.0 <= t < 9.65:
-            p = (t - 9.0) / 0.65
-            freq = 120.0 + 540.0 * (p ** 2)
-            s = 0.34 * p * math.sin(2.0 * math.pi * freq * t)
-            buf_l[i] += s
-            buf_r[i] += s
-        elif t >= 9.65:
-            dt = t - 9.65
-            env = math.exp(-dt * 0.85)
-            sub = 0.85 * env * math.sin(2.0 * math.pi * (50.0 * math.exp(-dt * 0.4) + 28.0) * dt)
-            noise = 0.32 * math.exp(-dt * 1.4) * (rng.random() * 2.0 - 1.0)
-            buf_l[i] += sub + noise
-            buf_r[i] += sub + noise
-
-    _mix_clip(buf_l, buf_r, explosion, 9.65, gain=0.95, pan=0.0, sr=sr)
-    _add_thunderclap(buf_l, buf_r, 9.72, gain=0.65, pan=-0.2, sr=sr, seed=303)
-    _mix_clip(buf_l, buf_r, pickup, 10.35, gain=0.55, pan=0.2, sr=sr)
+        elapsed = t - 9.58
+        fade_in = min(1.0, elapsed / 0.45)
+        fade_out = min(1.0, max(0.0, (12.5 - t) / 0.55))
+        s = fade_in * fade_out * (
+            0.07 * math.sin(2.0 * math.pi * 196.0 * elapsed)
+            + 0.045 * math.sin(2.0 * math.pi * 293.66 * elapsed)
+        )
+        buf_l[i] += s
+        buf_r[i] += s
 
     # Soft-clip & fade out last 0.4s
     fade_start = int((dur_s - 0.4) * sr)
@@ -228,12 +223,49 @@ def encode_video(frames_dir: Path) -> None:
     synthesize_audio(wav_path)
     OUT_MP4.parent.mkdir(parents=True, exist_ok=True)
     tmp_mp4 = OUT_MP4.with_suffix(".tmp.mp4")
+    # Keep the vehicle and kit readable on the web splash, where video controls
+    # can cover the lower edge on small screens. Render cards as transparent
+    # PNGs so this also works with FFmpeg builds that omit the drawtext filter.
+    cards = [
+        (0.00, 2.70, "KIEPIE QUAD", "Machine Gun  |  Finned Rocket  |  Lightning Strike", (56, 205, 235)),
+        (2.71, 5.20, "NARDUS", "Banana Cannons  |  Cigar Rocket  |  Meteor Shower", (250, 113, 186)),
+        (5.21, 7.70, "BIG-BEN F1", "F1 Autocannon  |  Cash Bag Launcher  |  Cash Bag Drop", (164, 220, 102)),
+        (7.71, 8.64, "EVAN THE SKELETON", "Sound Waves  |  Boomerang Guitar  |  Devil Hand", (246, 102, 168)),
+        (8.65, 9.57, "LEA UNICORN", "Horn Sparks  |  Horn Beam  |  Unicorn Boom", (246, 208, 111)),
+        (9.58, 12.50, "KIEPIE-QUAD", "Five rides. One arena. Choose your signature kit.", (164, 183, 255)),
+    ]
+    from PIL import Image, ImageDraw, ImageFont
+
+    overlay_dir = frames_dir / "overlays"
+    overlay_dir.mkdir(parents=True, exist_ok=True)
+    font_path = FONT_PATH or "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    title_font = ImageFont.truetype(font_path, 32)
+    detail_font = ImageFont.truetype(font_path, 21)
+    for frame in range(TOTAL_FRAMES):
+        t = frame / FPS
+        card = next((c for c in cards if c[0] <= t < c[1]), None)
+        overlay = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
+        if card:
+            _, _, title, detail, accent = card
+            draw = ImageDraw.Draw(overlay)
+            card_right = 1004 if frame >= int(9.58 * FPS) else 804
+            card_alpha = 255 if frame >= int(9.58 * FPS) else 220
+            draw.rounded_rectangle((44, 38, card_right, 154), radius=14, fill=(10, 18, 32, card_alpha))
+            draw.rounded_rectangle((44, 38, 52, 154), radius=4, fill=(*accent, 255))
+            draw.text((72, 51), title, font=title_font, fill=(255, 255, 255, 255))
+            draw.text((72, 105), detail, font=detail_font, fill=(229, 237, 248, 255))
+        overlay.save(overlay_dir / f"overlay_{frame:04d}.png", optimize=True)
     cmd = [
         "ffmpeg",
         "-y",
         "-framerate", str(FPS),
         "-i", str(frames_dir / "frame_%04d.png"),
+        "-framerate", str(FPS),
+        "-i", str(overlay_dir / "overlay_%04d.png"),
         "-i", str(wav_path),
+        "-filter_complex", "[0:v][1:v]overlay=0:0:format=auto[v]",
+        "-map", "[v]",
+        "-map", "2:a",
         "-c:v", "libx264",
         "-pix_fmt", "yuv420p",
         "-crf", "28",
@@ -310,6 +342,27 @@ def build_and_render(args: argparse.Namespace) -> None:
         if "Wheel_" in o.name:
             aston_wheels.append(o)
 
+    # 4. Import both preference-only vehicles for their feature beats and finale.
+    before = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=str(ROOT / "godot" / "assets" / "Evan_Skeleton.glb"))
+    evan_objs = list(set(bpy.data.objects) - before)
+    evan_root = bpy.data.objects.new("EvanRoot", None)
+    scene.collection.objects.link(evan_root)
+    for o in evan_objs:
+        o.rotation_mode = "XYZ"
+        if o.parent is None:
+            o.parent = evan_root
+
+    before = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=str(ROOT / "godot" / "assets" / "Lea_Unicorn.glb"))
+    lea_objs = list(set(bpy.data.objects) - before)
+    lea_root = bpy.data.objects.new("LeaRoot", None)
+    scene.collection.objects.link(lea_root)
+    for o in lea_objs:
+        o.rotation_mode = "XYZ"
+        if o.parent is None:
+            o.parent = lea_root
+
     # Configure EEVEE + Render
     scene.render.engine = "BLENDER_EEVEE"
     scene.eevee.taa_render_samples = 4
@@ -339,7 +392,7 @@ def build_and_render(args: argparse.Namespace) -> None:
     rl = ng.nodes.new("CompositorNodeRLayers")
     g_bloom = ng.nodes.new("CompositorNodeGlare")
     g_bloom.inputs["Type"].default_value = "Bloom"
-    g_bloom.inputs["Threshold"].default_value = 1.15
+    g_bloom.inputs["Threshold"].default_value = 2.8
     out = ng.nodes.new("NodeGroupOutput")
     ng.links.new(rl.outputs["Image"], g_bloom.inputs["Image"])
     ng.links.new(g_bloom.outputs["Image"], out.inputs["Image"])
@@ -390,7 +443,7 @@ def build_and_render(args: argparse.Namespace) -> None:
     scene.collection.objects.link(sun_obj)
 
     rim_data = bpy.data.lights.new("RimCool", type="AREA")
-    rim_data.energy = 520.0
+    rim_data.energy = 540.0
     rim_data.color = (0.28, 0.76, 1.0)
     rim_data.size = 12.0
     rim_data.use_shadow = False
@@ -400,7 +453,7 @@ def build_and_render(args: argparse.Namespace) -> None:
     scene.collection.objects.link(rim_obj)
 
     fill_data = bpy.data.lights.new("FrontFill", type="AREA")
-    fill_data.energy = 340.0
+    fill_data.energy = 440.0
     fill_data.color = (1.0, 0.90, 0.76)
     fill_data.size = 10.0
     fill_data.use_shadow = False
@@ -432,17 +485,22 @@ def build_and_render(args: argparse.Namespace) -> None:
     track.up_axis = "UP_Y"
 
     # Shared VFX Materials
-    mat_tracer = make_emissive("TracerMat", (0.20, 0.95, 1.0, 1.0), 12.0)
-    mat_banana = make_emissive("BananaMat", (1.0, 0.86, 0.05, 1.0), 4.2)
+    mat_tracer = make_emissive("TracerMat", (0.20, 0.95, 1.0, 1.0), 6.0)
+    mat_banana = make_emissive("BananaMat", (1.0, 0.86, 0.05, 1.0), 1.7)
     mat_meteor = make_emissive("MeteorMat", (1.0, 0.30, 0.04, 1.0), 10.0)
-    mat_flare = make_emissive("SolarFlareMat", (1.0, 0.92, 0.68, 1.0), 28.0)
-    mat_nuke = make_emissive("NukeFireMat", (1.0, 0.34, 0.04, 1.0), 5.2)
-    mat_shock = make_emissive("ShockRingMat", (1.0, 0.68, 0.22, 1.0), 5.0)
+    mat_flare = make_emissive("SolarFlareMat", (1.0, 0.92, 0.68, 1.0), 9.0)
+    mat_nuke = make_emissive("NukeFireMat", (1.0, 0.34, 0.04, 1.0), 2.8)
+    mat_shock = make_emissive("ShockRingMat", (1.0, 0.68, 0.22, 1.0), 2.4)
 
     # Lightning Strike Materials (Kiepie Quad signature ultimate)
-    mat_bolt_core = make_emissive("BoltCoreMat", (0.58, 0.96, 1.0, 1.0), 14.0)
-    mat_bolt_halo = make_emissive("BoltHaloMat", (0.08, 0.65, 1.0, 1.0), 4.2)
-    mat_bolt_ring = make_emissive("BoltRingMat", (0.18, 0.85, 1.0, 1.0), 5.5)
+    mat_bolt_core = make_emissive("BoltCoreMat", (0.58, 0.96, 1.0, 1.0), 7.0)
+    mat_bolt_halo = make_emissive("BoltHaloMat", (0.08, 0.65, 1.0, 1.0), 2.2)
+    mat_bolt_ring = make_emissive("BoltRingMat", (0.18, 0.85, 1.0, 1.0), 2.7)
+
+    # New vehicle accents use the same clean, restrained glow as the older kit VFX.
+    mat_evan_wave = make_emissive("EvanWaveMat", (1.0, 0.10, 0.48, 1.0), 3.8)
+    mat_lea_beam = make_emissive("LeaBeamMat", (1.0, 0.80, 0.22, 1.0), 4.8)
+    mat_lea_boom = make_emissive("LeaBoomMat", (0.78, 0.45, 1.0, 1.0), 3.2)
 
     # Cash Bag Materials (BIG-BEN F1 signature rockets & ultimate)
     mat_burlap = make_pbr(
@@ -652,6 +710,12 @@ def build_and_render(args: argparse.Namespace) -> None:
     gold_coins = spawn_pool("GoldCoin", 16, "coin", mat_gold_coin)
     cash_rings = spawn_pool("CashRing", 2, "torus", mat_cash_ring)
     meteors = spawn_pool("Meteor", 6, "sphere", mat_meteor)
+    evan_waves = spawn_pool("EvanWave", 3, "torus", mat_evan_wave)
+    lea_boom_ring = spawn_pool("LeaBoomRing", 1, "torus", mat_lea_boom)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=16, radius=0.045, depth=1.0, location=(0.0, 0.0, -50.0))
+    lea_beam = bpy.context.active_object
+    lea_beam.name = "LeaHornBeam"
+    lea_beam.data.materials.append(mat_lea_beam)
 
     bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=3, radius=1.0, location=(0, 26, -50))
     solar_sphere = bpy.context.active_object
@@ -689,9 +753,11 @@ def build_and_render(args: argparse.Namespace) -> None:
     title_obj.rotation_euler = (math.radians(90), 0.0, 0.0)
     title_mat = make_pbr(
         "TitleMat",
-        (0.03, 0.04, 0.07, 1.0),
+        (0.18, 0.24, 0.34, 1.0),
         roughness=0.16,
         metallic=0.92,
+        emit_color=(0.72, 0.84, 1.0, 1.0),
+        emit_strength=0.32,
     )
     title_obj.data.materials.append(title_mat)
 
@@ -754,9 +820,10 @@ def build_and_render(args: argparse.Namespace) -> None:
                 ring.scale = (rs, rs, 0.25)
 
     def hide_all_vfx():
-        for grp in (tracers, bananas, cash_rockets, cash_trails, dollar_bills, gold_coins, cash_rings, meteors):
+        for grp in (tracers, bananas, cash_rockets, cash_trails, dollar_bills, gold_coins, cash_rings, meteors, evan_waves, lea_boom_ring):
             for o in grp:
                 o.location = (0.0, 0.0, -50.0)
+        lea_beam.location = (0.0, 0.0, -50.0)
         giant_cash_bag_1.location = (0.0, 0.0, -50.0)
         giant_cash_bag_2.location = (0.0, 0.0, -50.0)
         hide_lightning(lightning_1)
@@ -775,9 +842,12 @@ def build_and_render(args: argparse.Namespace) -> None:
 
     def apply_frame(f: int) -> None:
         hide_all_vfx()
+        cam_data.lens = 32.0
         quad_root.location = (0.0, 0.0, -50.0)
         nardus_root.location = (0.0, 0.0, -50.0)
         aston_root.location = (0.0, 0.0, -50.0)
+        evan_root.location = (0.0, 0.0, -50.0)
+        lea_root.location = (0.0, 0.0, -50.0)
         if nardus_arm_l:
             nardus_arm_l.rotation_euler = (0.0, 0.0, 0.0)
         if nardus_arm_r:
@@ -815,7 +885,7 @@ def build_and_render(args: argparse.Namespace) -> None:
                 place_lightning(lightning_1, strike_pos, lp, f, scale=0.95)
                 flare_light.location = (strike_pos[0], strike_pos[1], 3.5)
                 flare_data.color = (0.45, 0.94, 1.0)
-                flare_data.energy = 1600.0 * (1.0 - 0.45 * lp) * (0.75 + 0.25 * abs(math.sin(f * 2.3)))
+                flare_data.energy = 520.0 * (1.0 - 0.35 * lp) * (0.75 + 0.25 * abs(math.sin(f * 2.3)))
 
         elif f < 125:
             # -----------------------------------------------------------------
@@ -827,7 +897,7 @@ def build_and_render(args: argparse.Namespace) -> None:
             nardus_root.rotation_euler = (
                 math.radians(9.0 * math.cos(t * math.pi * 4.0)),
                 0.0,
-                math.radians(-148.0 + 38.0 * t),
+                math.radians(-8.0 + 16.0 * t),
             )
             flap = math.sin(f * 0.85) * 0.65
             if nardus_arm_l:
@@ -836,18 +906,18 @@ def build_and_render(args: argparse.Namespace) -> None:
                 nardus_arm_r.rotation_euler = (0.0, -flap, 0.0)
 
             cam_obj.location = (nardus_root.location.x - 3.3, nardus_root.location.y - 4.1, 2.0)
-            cam_target.location = (nardus_root.location.x, nardus_root.location.y, 1.15 + hop * 0.45)
+            cam_target.location = (nardus_root.location.x - 1.5, nardus_root.location.y, 1.15 + hop * 0.45)
 
             for i, bn in enumerate(bananas):
                 phase = ((f * 0.22 + i * 0.14) % 1.0)
                 side = (-1.0 if i % 2 == 0 else 1.0) * (0.55 + 0.22 * (i % 3))
                 bn.location = nardus_root.location + Vector((
                     side - 1.4 * phase,
-                    -0.8 - 4.5 * phase,
+                    0.5 + 2.5 * phase,
                     0.95 + 0.65 * math.sin(phase * math.pi),
                 ))
                 bn.rotation_euler = (f * 0.35 + i, f * 0.28, f * 0.45 + i * 0.5)
-                bn.scale = (0.95, 0.95, 0.95)
+                bn.scale = (0.42, 0.42, 0.42)
 
         elif f < 185:
             # -----------------------------------------------------------------
@@ -900,128 +970,78 @@ def build_and_render(args: argparse.Namespace) -> None:
                     place_cash_explosion((strike_xy[0], strike_xy[1], 0.0), exp_p, f, bill_count=36)
                     flare_light.location = (strike_xy[0], strike_xy[1], 3.0)
                     flare_data.color = (0.35, 1.0, 0.45)
-                    flare_data.energy = 1100.0 * (1.0 - 0.55 * exp_p)
+                    flare_data.energy = 520.0 * (1.0 - 0.45 * exp_p)
 
         elif f < 230:
             # -----------------------------------------------------------------
-            # Act 4 (f = 185..229): 3-VEHICLE ULTIMATE SHOWDOWN!
-            # All 3 vehicles charge forward while Lightning + Giant Cash Bag + Meteors strike!
+            # Act 4 (f = 185..229): fast feature cards for EVAN and LEA.
+            # Each gets a clean close-up and a distinct visual for the kit.
             # -----------------------------------------------------------------
-            t = (f - 185) / 44.0
-
-            # Left: Kiepie Quad (angled toward camera-left so full profile reads)
-            quad_root.location = (-2.35, -1.8 + 2.6 * t, 0.0)
-            quad_root.rotation_euler = (0.0, 0.0, math.radians(-35.0))
-            spin_wheels(quad_wheels, f, 0.55)
-
-            # Center: Nardus on Pogo
-            hop = abs(math.sin(t * math.pi * 3.5)) * 0.95
-            nardus_root.location = (0.0, -1.5 + 2.6 * t, hop)
-            nardus_root.rotation_euler = (0.0, 0.0, math.radians(15.0))
-            flap = math.sin(f * 0.9) * 0.6
-            if nardus_arm_l:
-                nardus_arm_l.rotation_euler = (0.0, flap, 0.0)
-            if nardus_arm_r:
-                nardus_arm_r.rotation_euler = (0.0, -flap, 0.0)
-
-            # Right: BIG-BEN F1 (angled 3/4 toward camera-right)
-            aston_root.location = (2.35, -1.8 + 2.6 * t, 0.0)
-            aston_root.rotation_euler = (0.0, 0.0, math.radians(35.0))
-            spin_wheels(aston_wheels, f, 0.65)
-
-            cam_obj.location = (0.0, -6.8 + 2.2 * t, 2.35)
-            cam_target.location = (0.0, 0.8 + 2.2 * t, 1.25)
-
-            # Quad's Massive Lightning Strike on Left-Rear
-            place_lightning(lightning_1, (-4.5, 4.8, 0.0), min(1.0, t * 1.5), f, scale=0.95)
-
-            # Nardus's Bananas & Fiery Meteors in Center-Rear
-            for i in range(4):
-                phase = ((f * 0.25 + i * 0.25) % 1.0)
-                bn = bananas[i]
-                bn.location = (
-                    -0.75 + 0.5 * i,
-                    nardus_root.location.y - 0.8 - 3.2 * phase,
-                    0.95 + 0.55 * math.sin(phase * math.pi),
-                )
-                bn.rotation_euler = (f * 0.3, f * 0.4, f * 0.5)
-                bn.scale = (0.85, 0.85, 0.85)
-            for i, mt in enumerate(meteors):
-                phase = (((f - 185) * 0.045 + i * 0.16) % 1.0)
-                mx = -1.8 + i * 0.72
-                my = 5.5 + (i % 2) * 1.6
-                mz = 10.5 * (1.0 - phase)
-                mt.location = (mx, my, max(0.45, mz))
-                mt.scale = (0.55, 0.55, 0.55)
-
-            # BIG-BEN F1's Cash Bag Rockets & Giant '$' Cash Bag Explosion on Right-Rear
-            for i in range(2):
-                phase = ((f * 0.20 + i * 0.5) % 1.0)
-                rk = cash_rockets[i]
-                rk.location = (2.1 + 0.7 * i, aston_root.location.y - 1.1 - 3.0 * phase, 0.50)
-                rk.rotation_euler = (0.0, 0.0, 0.0)
-            giant_cash_bag_2.location = (4.5, 4.8, 0.0)
-            giant_cash_bag_2.rotation_euler = (0.0, 0.0, math.radians(-15.0))
-            place_cash_explosion((4.5, 4.8, 0.0), min(1.0, t * 1.4), f, bill_count=28)
-
-            flare_light.location = (0.0, 5.0, 4.5)
-            flare_data.color = (0.65, 0.95, 1.0) if (f % 2 == 0) else (1.0, 0.78, 0.35)
-            flare_data.energy = 1400.0
+            if f < 208:
+                t = (f - 185) / 22.0
+                evan_root.location = (0.0, -1.1 + 0.35 * t, 0.0)
+                evan_root.scale = (0.86, 0.86, 0.86)
+                evan_root.rotation_euler = (0.0, 0.0, math.radians(8.0 * math.sin(t * math.pi)))
+                cam_obj.location = (3.0, -6.3, 1.75)
+                cam_target.location = (0.0, -0.1, 1.15)
+                for i, wave_ring in enumerate(evan_waves):
+                    wave_ring.location = (0.0, -1.7 - 0.3 * i, 1.15)
+                    wave_ring.rotation_euler = (math.radians(90), 0.0, 0.0)
+                    size = 0.45 + ((t * 1.2 + i * 0.33) % 1.0) * 0.72
+                    wave_ring.scale = (size, size, size)
+            else:
+                t = (f - 208) / 21.0
+                lea_root.location = (0.0, -1.2 + 0.55 * t, 0.0)
+                lea_root.scale = (0.82, 0.82, 0.82)
+                lea_root.rotation_euler = (0.0, 0.0, math.radians(-5.0 + 8.0 * t))
+                cam_obj.location = (3.1, -6.6, 2.0)
+                cam_target.location = (0.0, -0.1, 1.0)
+                lea_beam.location = (0.0, -3.4, 1.25)
+                lea_beam.rotation_euler = (math.radians(90), 0.0, 0.0)
+                lea_beam.scale = (1.0, 1.0, 3.7)
+                lea_boom_ring[0].location = (0.0, -0.15, 0.08)
+                ring_size = 0.8 + 3.8 * min(1.0, t * 1.25)
+                lea_boom_ring[0].scale = (ring_size, ring_size, 0.3)
 
         else:
             # -----------------------------------------------------------------
-            # Act 5 (f = 230..299): MEGA DETONATION, MUSHROOM CLOUD & "Kiepie-Quad" 3D TITLE SLAM!
-            # All 3 vehicles framed heroically beneath the 3D title!
+            # Act 5 (f = 230..299): all five vehicles under the title card.
             # -----------------------------------------------------------------
-            cam_obj.location = (0.0, -8.2, 2.2)
-            cam_target.location = (0.0, 4.0, 2.1)
+            cam_obj.location = (0.0, -11.6, 2.6)
+            cam_target.location = (0.0, -1.2, 1.05)
+            cam_data.lens = 38.0
 
-            # Hero trio formation in foreground (facing 3/4 toward camera so all 3 read clearly!)
-            quad_root.location = (-1.95, -2.5, 0.0)
-            quad_root.rotation_euler = (0.0, 0.0, math.radians(-38.0))
-            nardus_root.location = (0.0, -3.1, 0.16 * abs(math.sin((f - 230) * 0.22)))
-            nardus_root.rotation_euler = (0.0, 0.0, math.radians(12.0))
-            aston_root.location = (1.95, -2.5, 0.0)
-            aston_root.rotation_euler = (0.0, 0.0, math.radians(38.0))
+            # Wide five-vehicle lineup (small, consistent turns keep every silhouette readable).
+            quad_root.location = (-3.8, -1.2, 0.0)
+            quad_root.rotation_euler = (0.0, 0.0, math.radians(-28.0))
+            quad_root.scale = (0.78, 0.78, 0.78)
+            nardus_root.location = (-1.85, -1.2, 0.10 * abs(math.sin((f - 230) * 0.22)))
+            nardus_root.rotation_euler = (0.0, 0.0, math.radians(8.0))
+            nardus_root.scale = (0.74, 0.74, 0.74)
+            aston_root.location = (0.05, -1.2, 0.0)
+            aston_root.rotation_euler = (0.0, 0.0, math.radians(28.0))
+            aston_root.scale = (0.63, 0.63, 0.63)
+            evan_root.location = (1.9, -1.2, 0.0)
+            evan_root.rotation_euler = (0.0, 0.0, math.radians(5.0))
+            evan_root.scale = (0.82, 0.82, 0.82)
+            lea_root.location = (3.8, -1.2, 0.0)
+            lea_root.rotation_euler = (0.0, 0.0, math.radians(90.0))
+            lea_root.scale = (0.74, 0.74, 0.74)
+            spin_wheels(quad_wheels, f, 0.55)
+            spin_wheels(aston_wheels, f, 0.58)
 
-            if f < 245:
-                p = (f - 230) / 14.0
-                solar_sphere.location = (0.0, 18.0, 5.5)
-                s = 0.8 + 4.2 * (p ** 1.5)
-                solar_sphere.scale = (s, s, s)
-                flare_light.location = (0.0, 14.0, 6.0)
-                flare_data.color = (1.0, 0.85, 0.45)
-                flare_data.energy = 4500.0 * (p ** 1.4)
-            else:
-                p = min(1.0, (f - 245) / 36.0)
-                flare_light.location = (0.0, 14.0, 6.0)
-                flare_data.color = (1.0, 0.75, 0.35)
-                flare_data.energy = max(900.0, 3200.0 * (1.0 - p * 0.65))
-
-                # Mushroom stem & cap
-                stem_h = 1.2 + 7.2 * p
-                nuke_stem.location = (0.0, 19.0, stem_h * 0.5)
-                nuke_stem.scale = (1.0 + 0.5 * p, 1.0 + 0.5 * p, stem_h)
-                nuke_cap.location = (0.0, 19.0, stem_h + 1.1)
-                cap_r = 1.8 + 3.8 * (p ** 0.72)
-                nuke_cap.scale = (cap_r, cap_r, cap_r * 0.56)
-
-                # Shockwave ring
-                shock_ring.location = (0.0, 19.0, 0.12)
-                sr_scale = 2.0 + 12.0 * p
-                shock_ring.scale = (sr_scale, sr_scale, 0.25)
-
-                # Flanking signature accents: Lightning on Left + Giant Cash Bag & Dollar Bills on Right
-                place_lightning(lightning_2, (-6.2, 10.5, 0.0), p, f, scale=0.88)
-                giant_cash_bag_1.location = (5.8, 8.5, 0.0)
-                giant_cash_bag_1.scale = (2.1, 2.1, 2.1)
-                giant_cash_bag_1.rotation_euler = (0.0, 0.0, math.radians(-20.0))
-                place_cash_explosion((5.8, 8.5, 0.0), p, f, bill_count=24)
+            p = min(1.0, max(0.0, (f - 230) / 69.0))
+            flare_light.location = (0.0, 2.0, 4.0)
+            flare_data.color = (0.58, 0.72, 1.0)
+            flare_data.energy = 240.0 + 160.0 * math.sin(math.pi * p)
+            shock_ring.location = (0.0, 1.7, 0.08)
+            ring_size = 4.6 + 0.22 * math.sin(f * 0.12)
+            shock_ring.scale = (ring_size, ring_size, 0.22)
 
             if f >= 248:
                 tp = min(1.0, (f - 248) / 18.0)
                 ease = 1.0 - (1.0 - tp) ** 3
-                title_obj.location = (0.0, -0.5, 2.65 + (1.0 - ease) * 3.0)
+                title_obj.location = (0.0, 1.8, 3.25 + (1.0 - ease) * 2.2)
                 sc = 0.45 + 0.55 * ease
                 title_obj.scale = (sc, sc, sc)
 
