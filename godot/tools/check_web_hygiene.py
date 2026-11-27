@@ -126,6 +126,10 @@ def main() -> int:
             tag = splash_tag.group(0).lower()
             if "autoplay" not in tag or "muted" not in tag:
                 failures.append("index.html splash video must be autoplay+muted for Web autoplay policy")
+            if "data-portrait-src=web-assets/kiepie-quad-splash-portrait.mp4" not in tag:
+                failures.append("index.html splash video missing the portrait mobile source")
+        if "w.innerHeight>w.innerWidth" not in html or "vid.dataset.portraitSrc" not in html:
+            failures.append("index.html splash video must select its portrait source before loading on portrait screens")
         if "prefers-reduced-motion" not in html:
             failures.append("index.html missing prefers-reduced-motion splash bypass")
         if "kiepie_splash_seen" in html:

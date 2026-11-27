@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Build the 15-second (360 frames @ 24 fps, 1280x720) action-packed intro splash
-video for Kiepie-Quad (`web-assets/kiepie-quad-splash.mp4`) using Blender 5.3.0
+Build the 15-second (360 frames @ 24 fps) action-packed intro splash video for
+Kiepie-Quad (`web-assets/kiepie-quad-splash.mp4`, landscape 1280x720, or
+`web-assets/kiepie-quad-splash-portrait.mp4`, portrait 720x1280) using Blender 5.3.0
 EEVEE + Compositor + 48 kHz stereo SFX/procedural audio mix.
 
 Showcases all five selectable vehicles and their signature weapon kits:
@@ -23,6 +24,10 @@ Usage:
 
   # Encode frames + audio to web-assets/kiepie-quad-splash.mp4:
   python3 src/build_intro_splash.py --encode-only --frames-dir /tmp/kiepie_splash_frames
+
+  # Render and encode the mobile-first 9:16 variant:
+  blender -b -noaudio --threads 4 -P src/build_intro_splash.py -- --portrait --start 0 --end 359 --frames-dir /tmp/kiepie_splash_portrait
+  python3 src/build_intro_splash.py --portrait --encode-only --frames-dir /tmp/kiepie_splash_portrait
 """
 
 from __future__ import annotations
@@ -40,6 +45,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT_MP4 = ROOT / "web-assets" / "kiepie-quad-splash.mp4"
+OUT_PORTRAIT_MP4 = ROOT / "web-assets" / "kiepie-quad-splash-portrait.mp4"
 SFX_DIR = ROOT / "godot" / "assets" / "sfx"
 _FONT_CANDIDATES = (
     "/usr/share/fonts/truetype/roboto/unhinted/RobotoTTF/Roboto-Black.ttf",
@@ -65,6 +71,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--end", type=int, default=TOTAL_FRAMES - 1)
     p.add_argument("--preview-frames", type=str, default="")
     p.add_argument("--encode-only", action="store_true")
+    p.add_argument("--portrait", action="store_true", help="Render/encode the mobile 9:16 splash variant.")
     return p.parse_args(argv)
 
 
@@ -253,11 +260,13 @@ def synthesize_audio(wav_out: Path) -> None:
         wf.writeframes(bytes(pcm))
 
 
-def encode_video(frames_dir: Path) -> None:
+def encode_video(frames_dir: Path, portrait: bool = False) -> None:
     wav_path = frames_dir / "splash_audio.wav"
     synthesize_audio(wav_path)
-    OUT_MP4.parent.mkdir(parents=True, exist_ok=True)
-    tmp_mp4 = OUT_MP4.with_suffix(".tmp.mp4")
+    width, height = (720, 1280) if portrait else (WIDTH, HEIGHT)
+    output_path = OUT_PORTRAIT_MP4 if portrait else OUT_MP4
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_mp4 = output_path.with_suffix(".tmp.mp4")
     # Keep type in the open upper-left area and render cards as transparent PNGs.
     # This also works with FFmpeg builds that omit the drawtext filter.
     cards = [
@@ -273,11 +282,11 @@ def encode_video(frames_dir: Path) -> None:
     overlay_dir = frames_dir / "overlays"
     overlay_dir.mkdir(parents=True, exist_ok=True)
     font_path = FONT_PATH or "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    title_font = ImageFont.truetype(font_path, 38)
-    category_font = ImageFont.truetype(font_path, 15)
-    detail_font = ImageFont.truetype(font_path, 21)
-    final_title_font = ImageFont.truetype(font_path, 46)
-    final_detail_font = ImageFont.truetype(font_path, 22)
+    title_font = ImageFont.truetype(font_path, 44 if portrait else 38)
+    category_font = ImageFont.truetype(font_path, 22 if portrait else 15)
+    detail_font = ImageFont.truetype(font_path, 28 if portrait else 21)
+    final_title_font = ImageFont.truetype(font_path, 58 if portrait else 46)
+    final_detail_font = ImageFont.truetype(font_path, 26 if portrait else 22)
     vehicle_accents = (
         (56, 205, 235), (250, 113, 186), (164, 220, 102),
         (246, 102, 168), (246, 208, 111),
@@ -285,33 +294,57 @@ def encode_video(frames_dir: Path) -> None:
     for frame in range(TOTAL_FRAMES):
         t = frame / FPS
         card = next((c for c in cards if c[0] <= t < c[1]), None)
-        overlay = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
+        overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         if card:
             start, end, title, abilities, accent = card
             draw = ImageDraw.Draw(overlay)
-            panel = (44, 28, 478, 254) if abilities else (44, 28, 1236, 174)
+            if portrait:
+                panel = (38, 62, 682, 350) if abilities else (34, 240, 686, 646)
+            else:
+                panel = (44, 28, 478, 254) if abilities else (44, 28, 1236, 174)
             draw.rounded_rectangle(panel, radius=18, fill=(5, 13, 27, 225), outline=(255, 255, 255, 32), width=1)
-            draw.rounded_rectangle((44, 28, 53, panel[3]), radius=4, fill=(*accent, 255))
+            draw.rounded_rectangle((panel[0], panel[1], panel[0] + 9, panel[3]), radius=4, fill=(*accent, 255))
             if abilities:
                 index = cards.index(card) + 1
-                draw.text((76, 42), f"SELECTABLE RIDE     /     {index:02d} OF 05", font=category_font, fill=(*accent, 255))
-                draw.text((76, 61), title, font=title_font, fill=(255, 255, 255, 255))
+                if portrait:
+                    card_left, card_top = 38, 62
+                    draw.text((card_left + 30, card_top + 24), f"SELECTABLE RIDE     /     {index:02d} OF 05", font=category_font, fill=(*accent, 255))
+                    draw.text((card_left + 30, card_top + 52), title, font=title_font, fill=(255, 255, 255, 255))
+                    row_y, row_gap, row_left, row_right, label_x, value_x = 162, 54, 58, 662, 78, 204
+                else:
+                    draw.text((76, 42), f"SELECTABLE RIDE     /     {index:02d} OF 05", font=category_font, fill=(*accent, 255))
+                    draw.text((76, 61), title, font=title_font, fill=(255, 255, 255, 255))
+                    row_y, row_gap, row_left, row_right, label_x, value_x = 110, 41, 68, 454, 80, 177
                 for col, (kind, ability) in enumerate(abilities):
-                    y = 110 + col * 41
-                    draw.rounded_rectangle((68, y, 454, y + 34), radius=8, fill=(255, 255, 255, 14), outline=(255, 255, 255, 24), width=1)
-                    draw.text((80, y + 8), kind, font=category_font, fill=(*accent, 255))
-                    draw.text((177, y + 5), ability, font=detail_font, fill=(245, 248, 255, 255))
+                    y = row_y + col * row_gap
+                    row_height = 44 if portrait else 34
+                    draw.rounded_rectangle((row_left, y, row_right, y + row_height), radius=8, fill=(255, 255, 255, 14), outline=(255, 255, 255, 24), width=1)
+                    draw.text((label_x, y + (11 if portrait else 8)), kind, font=category_font, fill=(*accent, 255))
+                    draw.text((value_x, y + (7 if portrait else 5)), ability, font=detail_font, fill=(245, 248, 255, 255))
             else:
                 eyebrow = "FIVE RIDES     /     ONE ARENA"
                 title_box = draw.textbbox((0, 0), title, font=final_title_font)
                 eyebrow_box = draw.textbbox((0, 0), eyebrow, font=category_font)
-                draw.text(((WIDTH - (eyebrow_box[2] - eyebrow_box[0])) / 2, 38), eyebrow, font=category_font, fill=(*accent, 255))
-                draw.text(((WIDTH - (title_box[2] - title_box[0])) / 2, 55), title, font=final_title_font, fill=(255, 255, 255, 255))
-                for i, color in enumerate(vehicle_accents):
-                    x0 = 76 + i * 224
-                    draw.rounded_rectangle((x0, 129, x0 + 208, 139), radius=5, fill=(*color, 255))
+                if portrait:
+                    draw.text(((width - (eyebrow_box[2] - eyebrow_box[0])) / 2, 270), eyebrow, font=category_font, fill=(*accent, 255))
+                    draw.text(((width - (title_box[2] - title_box[0])) / 2, 306), title, font=final_title_font, fill=(255, 255, 255, 255))
+                    names = ("KIEPIE QUAD", "NARDUS", "BIG-BEN F1", "EVAN THE SKELETON", "LEA UNICORN")
+                    for i, (name, color) in enumerate(zip(names, vehicle_accents)):
+                        y = 396 + i * 43
+                        draw.rounded_rectangle((88, y, 632, y + 36), radius=10, fill=(255, 255, 255, 12), outline=(255, 255, 255, 26), width=1)
+                        draw.rounded_rectangle((88, y, 96, y + 36), radius=4, fill=(*color, 255))
+                        draw.text((116, y + 6), name, font=final_detail_font, fill=(245, 248, 255, 255))
+                else:
+                    draw.text(((width - (eyebrow_box[2] - eyebrow_box[0])) / 2, 38), eyebrow, font=category_font, fill=(*accent, 255))
+                    draw.text(((width - (title_box[2] - title_box[0])) / 2, 55), title, font=final_title_font, fill=(255, 255, 255, 255))
+                    for i, color in enumerate(vehicle_accents):
+                        x0 = 76 + i * 224
+                        draw.rounded_rectangle((x0, 129, x0 + 208, 139), radius=5, fill=(*color, 255))
             progress = max(0.0, min(1.0, (t - start) / (end - start)))
-            progress_left, progress_right, progress_y = (66, 456, 245) if abilities else (66, 1214, 168)
+            if portrait:
+                progress_left, progress_right, progress_y = (58, 662, 330) if abilities else (62, 658, 632)
+            else:
+                progress_left, progress_right, progress_y = (66, 456, 245) if abilities else (66, 1214, 168)
             draw.rounded_rectangle((progress_left, progress_y, progress_right, progress_y + 3), radius=2, fill=(255, 255, 255, 35))
             draw.rounded_rectangle((progress_left, progress_y, progress_left + int((progress_right - progress_left) * progress), progress_y + 3), radius=2, fill=(*accent, 220))
         overlay.save(overlay_dir / f"overlay_{frame:04d}.png", optimize=True)
@@ -334,15 +367,16 @@ def encode_video(frames_dir: Path) -> None:
         "-c:a", "aac",
         "-b:a", "96k",
         "-shortest",
+        "-s", f"{width}x{height}",
         str(tmp_mp4),
     ]
     try:
         subprocess.run(cmd, check=True, timeout=120)
-        os.replace(tmp_mp4, OUT_MP4)
+        os.replace(tmp_mp4, output_path)
     except BaseException:
         tmp_mp4.unlink(missing_ok=True)
         raise
-    print(f"Encoded {OUT_MP4} ({OUT_MP4.stat().st_size / 1024:.1f} KiB)")
+    print(f"Encoded {output_path} ({output_path.stat().st_size / 1024:.1f} KiB)")
 
 
 # ---------------------------------------------------------------------------
@@ -428,8 +462,9 @@ def build_and_render(args: argparse.Namespace) -> None:
     # Configure EEVEE + Render
     scene.render.engine = "BLENDER_EEVEE"
     scene.eevee.taa_render_samples = 4
-    scene.render.resolution_x = WIDTH
-    scene.render.resolution_y = HEIGHT
+    render_width, render_height = (720, 1280) if args.portrait else (WIDTH, HEIGHT)
+    scene.render.resolution_x = render_width
+    scene.render.resolution_y = render_height
     scene.render.resolution_percentage = 100
     scene.render.fps = FPS
     scene.frame_start = 0
@@ -551,6 +586,7 @@ def build_and_render(args: argparse.Namespace) -> None:
     scene.collection.objects.link(cam_target)
     cam_data = bpy.data.cameras.new("SplashCam")
     cam_data.lens = 42.0
+    cam_data.sensor_fit = "VERTICAL" if args.portrait else "HORIZONTAL"
     cam_data.clip_end = 500.0
     cam_obj = bpy.data.objects.new("SplashCam", cam_data)
     scene.collection.objects.link(cam_obj)
@@ -1020,6 +1056,7 @@ def build_and_render(args: argparse.Namespace) -> None:
     def show_hero_stage(center, accent_index: int) -> None:
         accent = stage_accents[accent_index]
         stage_root.location = (center[0], center[1], 0.0)
+        stage_root.scale = (0.72, 0.72, 0.72) if args.portrait else (1.0, 1.0, 1.0)
         stage_halo.hide_render = False
         stage_rim.data.materials[0] = accent
         stage_halo.data.materials[0] = accent
@@ -1055,9 +1092,14 @@ def build_and_render(args: argparse.Namespace) -> None:
             show_hero_stage(quad_root.location, 0)
             bpy.context.view_layer.update()
 
-            cam_obj.location = (quad_root.location.x + 1.85, quad_root.location.y - 3.2, 2.15)
-            cam_target.location = (quad_root.location.x + 0.10, quad_root.location.y + 0.10, 0.82)
-            cam_data.lens = 40.0
+            if args.portrait:
+                cam_obj.location = (quad_root.location.x + 1.45, quad_root.location.y - 5.75, 3.15)
+                cam_target.location = (quad_root.location.x + 0.10, quad_root.location.y + 0.10, 2.05)
+                cam_data.lens = 24.0
+            else:
+                cam_obj.location = (quad_root.location.x + 1.85, quad_root.location.y - 3.2, 2.15)
+                cam_target.location = (quad_root.location.x + 0.10, quad_root.location.y + 0.10, 0.82)
+                cam_data.lens = 40.0
 
             # Twin cyan autocannon tracers
             for i, tr in enumerate(tracers):
@@ -1095,9 +1137,14 @@ def build_and_render(args: argparse.Namespace) -> None:
                 nardus_arm_r.rotation_euler = (0.0, -flap, 0.0)
 
             show_hero_stage(nardus_root.location, 1)
-            cam_obj.location = (nardus_root.location.x + 1.55, nardus_root.location.y - 4.0, 2.15)
-            cam_target.location = (nardus_root.location.x, nardus_root.location.y + 0.08, 1.36 + hop * 0.30)
-            cam_data.lens = 31.5
+            if args.portrait:
+                cam_obj.location = (nardus_root.location.x + 1.25, nardus_root.location.y - 5.65, 3.35)
+                cam_target.location = (nardus_root.location.x, nardus_root.location.y + 0.08, 2.12 + hop * 0.18)
+                cam_data.lens = 24.0
+            else:
+                cam_obj.location = (nardus_root.location.x + 1.55, nardus_root.location.y - 4.0, 2.15)
+                cam_target.location = (nardus_root.location.x, nardus_root.location.y + 0.08, 1.36 + hop * 0.30)
+                cam_data.lens = 31.5
             # Hold Nardus's front-facing source pose while the shot uses its own hop.
             scene.frame_set(120)
 
@@ -1138,9 +1185,14 @@ def build_and_render(args: argparse.Namespace) -> None:
             show_hero_stage(aston_root.location, 2)
             bpy.context.view_layer.update()
 
-            cam_obj.location = (aston_root.location.x - 1.9, aston_root.location.y - 3.45, 1.95)
-            cam_target.location = (aston_root.location.x, aston_root.location.y + 0.05, 0.72)
-            cam_data.lens = 38.0
+            if args.portrait:
+                cam_obj.location = (aston_root.location.x - 1.5, aston_root.location.y - 5.65, 3.05)
+                cam_target.location = (aston_root.location.x, aston_root.location.y + 0.05, 2.0)
+                cam_data.lens = 24.0
+            else:
+                cam_obj.location = (aston_root.location.x - 1.9, aston_root.location.y - 3.45, 1.95)
+                cam_target.location = (aston_root.location.x, aston_root.location.y + 0.05, 0.72)
+                cam_data.lens = 38.0
 
             # Small '$' Cash Bag Rockets fired horizontally from BIG-BEN F1's front muzzles
             for i, bag_rk in enumerate(cash_rockets):
@@ -1188,9 +1240,14 @@ def build_and_render(args: argparse.Namespace) -> None:
                 evan_root.scale = (0.96, 0.96, 0.96)
                 evan_root.rotation_euler = (0.0, 0.0, math.radians(5.0 * math.sin(t * math.pi)))
                 show_hero_stage(evan_root.location, 3)
-                cam_obj.location = (1.75, -3.55, 1.88)
-                cam_target.location = (0.0, -0.05, 1.12)
-                cam_data.lens = 40.0
+                if args.portrait:
+                    cam_obj.location = (1.35, -5.75, 3.05)
+                    cam_target.location = (0.0, -0.05, 2.0)
+                    cam_data.lens = 24.0
+                else:
+                    cam_obj.location = (1.75, -3.55, 1.88)
+                    cam_target.location = (0.0, -0.05, 1.12)
+                    cam_data.lens = 40.0
 
                 if t < 0.40:
                     play_rig_action(evan_rig, "Play_Strum", (t / 0.40 * 2.0) % 1.0)
@@ -1214,13 +1271,25 @@ def build_and_render(args: argparse.Namespace) -> None:
                     shock_ring.scale = (0.45 + 1.55 * rp, 0.45 + 1.55 * rp, 0.16)
             else:
                 t = (f - 240) / 59.0
-                lea_root.location = (0.0, -0.16 + 0.25 * t, 0.01 + 0.10 * abs(math.sin(t * math.pi * 1.5)))
+                flight = max(0.0, min(1.0, (t - 0.48) / 0.52))
+                flight = flight * flight * (3.0 - 2.0 * flight)
+                takeoff_lift = 0.95 * flight if args.portrait else 0.0
+                lea_root.location = (0.0, -0.16 + 0.25 * t, 0.01 + 0.10 * abs(math.sin(t * math.pi * 1.5)) + takeoff_lift)
                 lea_root.scale = (0.98, 0.98, 0.98)
-                lea_root.rotation_euler = (0.0, 0.0, math.radians(-4.0 + 7.0 * t))
+                lea_root.rotation_euler = (
+                    math.radians(-7.0 * flight) if args.portrait else 0.0,
+                    math.radians(5.0 * flight) if args.portrait else 0.0,
+                    math.radians(-4.0 + 7.0 * t),
+                )
                 show_hero_stage(lea_root.location, 4)
-                cam_obj.location = (1.75, -3.95, 2.10)
-                cam_target.location = (0.0, -0.04, 1.30)
-                cam_data.lens = 34.0
+                if args.portrait:
+                    cam_obj.location = (1.30 - 0.32 * flight, -5.9, 3.3 + 0.22 * flight)
+                    cam_target.location = (0.0, -0.04, 2.05 + 0.14 * flight)
+                    cam_data.lens = 23.5
+                else:
+                    cam_obj.location = (1.75, -3.95, 2.10)
+                    cam_target.location = (0.0, -0.04, 1.30)
+                    cam_data.lens = 34.0
 
                 if t < 0.25:
                     play_rig_action(lea_rig, "Locomotion_Gallop", t / 0.25)
@@ -1242,23 +1311,31 @@ def build_and_render(args: argparse.Namespace) -> None:
             # -----------------------------------------------------------------
             # Act 6 (f = 300..359): all five rides in one clean closing lineup.
             # -----------------------------------------------------------------
-            cam_obj.location = (0.0, -12.2, 3.35)
-            cam_target.location = (0.0, -1.1, 1.12)
-            cam_data.lens = 40.0
+            if args.portrait:
+                cam_obj.location = (0.0, -8.8, 4.6)
+                cam_target.location = (0.0, -1.1, 2.15)
+                cam_data.lens = 27.0
+                stage_root.location = (0.0, 0.8, 0.0)
+                stage_root.scale = (0.92, 0.92, 0.92)
+                stage_halo.hide_render = False
+            else:
+                cam_obj.location = (0.0, -12.2, 3.35)
+                cam_target.location = (0.0, -1.1, 1.12)
+                cam_data.lens = 40.0
 
-            quad_root.location = (-3.8, -1.4, 0.01)
+            quad_root.location = (-3.8, -1.4, 0.01) if not args.portrait else (0.0, 0.0, -50.0)
             quad_root.rotation_euler = (0.0, 0.0, math.radians(-25.0))
             quad_root.scale = (0.86, 0.86, 0.86)
-            nardus_root.location = (-1.9, -1.4, 0.01 + 0.10 * abs(math.sin((f - 300) * 0.22)))
+            nardus_root.location = (-1.9, -1.4, 0.01 + 0.10 * abs(math.sin((f - 300) * 0.22))) if not args.portrait else (0.0, 0.0, -50.0)
             nardus_root.rotation_euler = (0.0, 0.0, math.radians(4.0))
             nardus_root.scale = (0.80, 0.80, 0.80)
-            aston_root.location = (0.0, -1.4, 0.01)
+            aston_root.location = (0.0, -1.4, 0.01) if not args.portrait else (0.0, 0.0, -50.0)
             aston_root.rotation_euler = (0.0, 0.0, math.radians(24.0))
             aston_root.scale = (0.70, 0.70, 0.70)
-            evan_root.location = (1.9, -1.4, 0.01)
+            evan_root.location = (1.9, -1.4, 0.01) if not args.portrait else (0.0, 0.0, -50.0)
             evan_root.rotation_euler = (0.0, 0.0, math.radians(5.0))
             evan_root.scale = (0.88, 0.88, 0.88)
-            lea_root.location = (3.8, -1.4, 0.01)
+            lea_root.location = (3.8, -1.4, 0.01) if not args.portrait else (0.0, 0.0, -50.0)
             lea_root.rotation_euler = (0.0, 0.0, math.radians(90.0))
             lea_root.scale = (0.82, 0.82, 0.82)
             spin_wheels(quad_wheels, f, 0.55)
@@ -1274,8 +1351,9 @@ def build_and_render(args: argparse.Namespace) -> None:
             shock_ring.scale = (ring_size, ring_size, 0.12)
 
             # The imported rig clips keep the finale alive but subtle.
-            play_rig_action(evan_rig, "Idle_Sway", ((f - 300) % 48) / 47.0)
-            play_rig_action(lea_rig, "Idle_Breathe", ((f - 300) % 48) / 47.0)
+            if not args.portrait:
+                play_rig_action(evan_rig, "Idle_Sway", ((f - 300) % 48) / 47.0)
+                play_rig_action(lea_rig, "Idle_Breathe", ((f - 300) % 48) / 47.0)
 
     if args.preview_frames:
         target_frames = [int(x.strip()) for x in args.preview_frames.split(",") if x.strip()]
@@ -1292,7 +1370,7 @@ def build_and_render(args: argparse.Namespace) -> None:
 def main() -> None:
     args = parse_args()
     if args.encode_only:
-        encode_video(Path(args.frames_dir))
+        encode_video(Path(args.frames_dir), portrait=args.portrait)
     else:
         build_and_render(args)
 
