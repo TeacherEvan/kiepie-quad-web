@@ -157,14 +157,16 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   `all_resources`, so a plain `.cfg` is otherwise dropped and the plugin silently falls back to
   MockBackend. `html/head_include` carries the fullscreen-on-launch bridge
   and the web-shell splash: inline CSS/JS injecting `#splash` (autoplay-muted
-  `web-assets/kiepie-quad-splash.mp4`, click/touch/`Esc`/`Space`/`Enter` skip,
+  `web-assets/kiepie-quad-splash.mp4` (desktop, 1280x720) or
+  `web-assets/kiepie-quad-splash-portrait.mp4` (portrait, 720x1280), selected before loading by
+  screen orientation; click/touch/`Esc`/`Space`/`Enter` skip,
   plays on every launch (no localStorage suppression or query-param override), instant removal under
   `prefers-reduced-motion`). Root `index.html` ships the identical markup and the preset
   embeds it, so re-exports keep it. `web-assets/` (dashboard background + splash) lives
   **outside** `godot/` so the pck stays small — do not move those files into `godot/assets/`.
   (`window.__kiepieSetFullscreen`) that `Settings.gd` drives via `JavaScriptBridge` on Web
   (fullscreen is now default-on; `Settings` schema v2 migrates v1 configs) — don't clobber it
-  when editing the preset. Expect root `index.pck` ≈ **4.5–4.7 MiB** (after Evan's biomechanical running GLB + Lea Unicorn's non-Draco GLB) (`web-assets/kiepie-quad-splash.mp4` ≈ **1.82 MiB**, 15-second five-vehicle edition); `deploy_web.sh` aborts above **5.0 MiB** (raised from 4.5 MiB on 2026-11-25),
+  when editing the preset. Expect root `index.pck` ≈ **4.5–4.7 MiB** (after Evan's biomechanical running GLB + Lea Unicorn's non-Draco GLB) (`web-assets/kiepie-quad-splash.mp4` ≈ **1.82 MiB** and `web-assets/kiepie-quad-splash-portrait.mp4` ≈ **1.38 MiB**, 15-second editions; ≈ **3.20 MiB** combined); `deploy_web.sh` aborts above **5.0 MiB** (raised from 4.5 MiB on 2026-11-25),
   so check the printed size after adding assets (and update the script's expected-size note if it changes).
   Root `.vercelignore` uses a strict allowlist (`*`, `!index.*`, `!favicon.ico`, `!web-assets/`,
   `!web-assets/**`) so only Web runtime assets ship to Vercel (never `docs/`, `src/`, `godot/`,
