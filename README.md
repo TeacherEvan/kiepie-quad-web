@@ -416,9 +416,10 @@ auto-deploy to Vercel** (verified 2026-11-18, ~5 s per production deploy). The g
 runs on every PR via `.github/workflows/gates.yml`.
 
 The web shell carries a **themed loading surface**: `web-assets/dashboard_bg.jpg` (navy quad
-ghost + grid, behind the progress bar) and `web-assets/kiepie-quad-splash.mp4` (12.5 s, 1280x720,
-about 1.0 MiB — Blender showcase of all five vehicles with readable names and signature-kit
-captions, built by `src/build_intro_splash.py`). The splash autoplays **muted on every launch** (no `localStorage`
+ghost + grid, behind the progress bar) and `web-assets/kiepie-quad-splash.mp4` (15 s, 1280x720,
+five equal vehicle spotlights, imported Evan/Lea rig clips, signature-ability cards and an
+original arcade-orchestral score, about 1.82 MiB, built by `src/build_intro_splash.py`).
+The splash autoplays **muted on every launch** (no `localStorage`
 once-only suppression or query-param workaround), is skippable by click/touch, `Esc`, `Space`,
 `Enter`, or when the clip ends, and `prefers-reduced-motion` removes it instantly. The same markup
 is embedded in `html/head_include` so a re-export reproduces it; root `index.html` ships it
