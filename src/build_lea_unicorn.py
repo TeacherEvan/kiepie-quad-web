@@ -188,22 +188,24 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         return smooth(ob)
 
     # -------------------------------------------------------------- palette (anti-blowout PBR)
-    coat = make_mat("PearlCoat", (0.84, 0.88, 0.96), 0.36, emission=0.0, coat=0.30, coat_rough=0.20)
+    coat = make_mat("PearlCoat", (0.73, 0.791, 0.93), 0.44, emission=0.0, coat=0.22, coat_rough=0.27)
     muzzle_mat = make_mat("MuzzleVelvet", (0.86, 0.74, 0.84), 0.48, emission=0.0)
     ear_inner_mat = make_mat("EarInnerBlush", (0.94, 0.66, 0.82), 0.44, emission=0.02)
     dark_detail = make_mat("PupilDark", (0.015, 0.014, 0.032), 0.20, coat=0.48)
-    eye_blue = make_mat("EyeSapphire", (0.06, 0.48, 0.98), 0.06, emission=0.35, coat=0.86)
-    mane_pink = make_mat("ManePink", (0.98, 0.30, 0.70), 0.28, emission=0.04, coat=0.28)
-    mane_lav = make_mat("ManeLavender", (0.70, 0.42, 0.98), 0.28, emission=0.04, coat=0.28)
-    mane_cyan = make_mat("ManeCyan", (0.36, 0.84, 0.98), 0.26, emission=0.045, coat=0.28)
-    feather_pearl = make_mat("FeatherPearl", (0.87, 0.91, 0.98), 0.30, emission=0.01, coat=0.28)
-    feather_pink = make_mat("FeatherPink", (0.98, 0.42, 0.76), 0.26, emission=0.04, coat=0.28)
-    feather_lav = make_mat("FeatherLavender", (0.72, 0.48, 0.98), 0.26, emission=0.04, coat=0.28)
-    feather_cyan = make_mat("FeatherCyan", (0.36, 0.84, 0.98), 0.25, emission=0.045, coat=0.28)
-    feather_gold = make_mat("FeatherGold", (1.00, 0.78, 0.24), 0.22, metallic=0.45, emission=0.05, coat=0.34)
-    gold = make_mat("HornGold", (1.00, 0.74, 0.16), 0.15, metallic=0.90, emission=0.04, coat=0.45)
+    eye_blue = make_mat("EyeSapphire", (0.028, 0.16, 0.631), 0.10, emission=0.05, coat=0.72)
+    mane_pink = make_mat("ManePink", (0.871, 0.145, 0.456), 0.34, emission=0.01, coat=0.20, coat_rough=0.24)
+    mane_lav = make_mat("ManeLavender", (0.497, 0.258, 0.807), 0.34, emission=0.01, coat=0.20, coat_rough=0.24)
+    mane_cyan = make_mat("ManeCyan", (0.16, 0.673, 0.807), 0.32, emission=0.01, coat=0.20, coat_rough=0.24)
+    feather_pearl = make_mat("FeatherPearl", (0.62, 0.78, 0.98), 0.36, emission=0.005, coat=0.18, coat_rough=0.24)
+    feather_pink = mane_pink
+    feather_lav = mane_lav
+    feather_cyan = mane_cyan
+    feather_gold = make_mat("FeatherGold", (0.86, 0.60, 0.12), 0.30, metallic=0.45, emission=0.015, coat=0.24)
+    gold = make_mat("HornGold", (0.807, 0.479, 0.066), 0.18, metallic=0.88, emission=0.01, coat=0.35)
     horn_glow = make_mat("HornGlow", (1.00, 0.94, 0.58), 0.12, emission=1.18, coat=0.35)
-    hoof_gold = make_mat("HoofGold", (0.96, 0.70, 0.16), 0.20, metallic=0.88, emission=0.02, coat=0.38)
+    # Horn and hoof gold are the same visual material family. Sharing the
+    # horn's gold keeps the metallic read consistent and saves one GLB slot.
+    hoof_gold = gold
 
     lea_brand_mat = bpy.data.materials.new(name="LeaBrandMat")
     _lb_tree = ensure_node_tree(lea_brand_mat)
@@ -611,11 +613,11 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
                     dark_detail, 8, 5, rot=(math.radians(-26), 0.0, sx * math.radians(26))), "Skull")
 
         # Expressive enlarged sapphire eyes (tucked inside cheek silhouette, vivid in side/iso!)
-        bind(sphere(f"Eye_{side}", (sx * 0.086, -0.930, 1.515), (0.020, 0.041, 0.036),
+        bind(sphere(f"Eye_{side}", (sx * 0.086, -0.930, 1.515), (0.024, 0.046, 0.040),
                     eye_blue, 10, 6, rot=(math.radians(-10), 0.0, sx * math.radians(22))), "Skull")
-        bind(sphere(f"Pupil_{side}", (sx * 0.098, -0.942, 1.516), (0.012, 0.023, 0.024),
+        bind(sphere(f"Pupil_{side}", (sx * 0.100, -0.942, 1.516), (0.013, 0.025, 0.027),
                     dark_detail, 8, 5, rot=(math.radians(-10), 0.0, sx * math.radians(22))), "Skull")
-        bind(sphere(f"EyeGlint_{side}", (sx * 0.106, -0.951, 1.528), (0.006, 0.008, 0.007),
+        bind(sphere(f"EyeGlint_{side}", (sx * 0.110, -0.951, 1.531), (0.007, 0.009, 0.008),
                     coat, 6, 4), "Skull")
         # Sculpted upper pearl brow eyelid + dark arched lash line cradling the recessed eye
         lid_pts = [
@@ -792,9 +794,9 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
     # -------------------------------------------------------------- 4. Angelic multi-layered Pegasus wings
     # CLOSED at rest: compact, sleek swan mantle hugging the upper back & ending neatly around the croup
     # (NO jet-pack overhang past butt, NO bare white pipe gap, 100% above LeaBrand!).
-    # OPEN in UnicornBoom_Flight: cohesive soaring fan of 30 slender overlapping tapered feathers per wing!
+    # OPEN in UnicornBoom_Flight: cohesive soaring fan of 39 overlapping tapered feathers per wing!
     for side, sx in (("L", 1.0), ("R", -1.0)):
-        # Slim wing leading-edge core tucked DEEP inside plush pearl coverts (ZERO exposed white pipe!)
+        # Low-profile cyan leading edge blends into the layered feather fan.
         arm_spec = [
             (Vector((sx * 0.12, -0.32, 1.13)), 0.034, 0.038, {"Withers": 0.45, f"WingScapula.{side}": 0.55}),
             (Vector((sx * 0.18, -0.14, 1.20)), 0.026, 0.028, {f"WingScapula.{side}": 0.65, f"WingHumerus.{side}": 0.35}),
@@ -814,7 +816,7 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
             arm_stations.append((pt, u_a, v_a, _leg_shape_fn(rx, rz, rz)))
             arm_w.append(bw)
         wing_arm_ob, wing_arm_wmap = loft_sculpted(
-            f"Wing_{side}", arm_stations, feather_pearl, seg=8, weights_per_station=arm_w
+            f"Wing_{side}", arm_stations, feather_cyan, seg=8, weights_per_station=arm_w
         )
         bind(wing_arm_ob, f"WingHand.{side}", wing_arm_wmap)
 
@@ -826,12 +828,12 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
             root = Vector((sx * (0.15 + 0.095 * u), -0.25 + u * 0.47, 1.215 + 0.045 * math.sin(u * math.pi)))
             length = 0.26 + 0.09 * math.sin(u * math.pi * 0.85)
             lat = sx * (0.026 + 0.008 * (i % 2))
-            drop = -0.095 - 0.018 * (1.0 - u)
+            drop = 0.065 + 0.015 * (1.0 - u)
             mid = root + Vector((lat * 1.15, length * 0.52, drop * 0.40))
             tip = root + Vector((lat * 0.55, length, drop))
             mat = feather_pearl if i < 7 else feather_cyan
             bind(feather_blade(f"Covert_{side}_{i:02d}", root, mid, tip,
-                               width=0.092, thickness=0.014, blade_normal=out_n,
+                               width=0.105, thickness=0.016, blade_normal=out_n,
                                material=mat, n_stations=4),
                  f"WingCoverts.{side}")
 
@@ -846,9 +848,28 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
             tip = root + Vector((lat * 0.4 - sx * 0.018 * u, length, drop))
             mat = (feather_cyan, feather_cyan, feather_cyan, feather_lav, feather_lav, feather_pink, feather_pink, feather_pink)[i]
             bind(feather_blade(f"Secondary_{side}_{i:02d}", root, mid, tip,
-                               width=0.076, thickness=0.012, blade_normal=out_n,
+                               width=0.087, thickness=0.014, blade_normal=out_n,
                                material=mat, n_stations=5),
                  f"SecondaryFan.{side}")
+
+        # Inner tertials bridge the exposed leading edge into a broad, layered fan.
+        # These reuse existing PrimaryFan2 bones/materials, so they add surface area
+        # without adding draw calls or changing any runtime landmark.
+        root_mats = (feather_cyan, feather_cyan, feather_lav,
+                     feather_lav, feather_pink, feather_pink)
+        for i, mat in enumerate(root_mats):
+            u = i / 5.0
+            root = Vector((sx * (0.145 + 0.080 * u), -0.20 + u * 0.42,
+                           1.225 + 0.022 * math.sin(u * math.pi)))
+            length = 0.31 + 0.06 * u
+            drop = 0.045 + 0.025 * u
+            lat = sx * (0.028 + 0.006 * (i % 2))
+            mid = root + Vector((lat * 1.05, length * 0.52, drop * 0.45))
+            tip = root + Vector((lat * 0.45 - sx * 0.012 * u, length, drop))
+            bind(feather_blade(f"PrimaryRoot_{side}_{i:02d}", root, mid, tip,
+                               width=0.078, thickness=0.013, blade_normal=out_n,
+                               material=mat, n_stations=5),
+                 f"PrimaryFan2.{side}")
 
         # Row 3: Slender Inner Primaries (7 arched feathers on PrimaryFan2 bridging cleanly with ZERO gap!)
         for i in range(7):
@@ -861,7 +882,7 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
             tip = root + Vector((lat * 0.2 - sx * 0.025 * u, length, drop))
             mat = (feather_cyan, feather_lav, feather_lav, feather_pink, feather_pink, feather_pink, feather_lav)[i]
             bind(feather_blade(f"PrimaryInner_{side}_{i:02d}", root, mid, tip,
-                               width=0.072, thickness=0.011, blade_normal=out_n,
+                               width=0.082, thickness=0.013, blade_normal=out_n,
                                material=mat, n_stations=5),
                  f"PrimaryFan2.{side}")
 
@@ -876,7 +897,7 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
             tip = root + Vector((-sx * (0.015 + 0.030 * u), length, drop + 0.024 * u))
             mat = (feather_pink, feather_pink, feather_lav, feather_lav, feather_cyan, feather_cyan, feather_gold, feather_gold)[i]
             bind(feather_blade(f"PrimaryOuter_{side}_{i:02d}", root, mid, tip,
-                               width=0.062, thickness=0.010, blade_normal=out_n,
+                               width=0.072, thickness=0.012, blade_normal=out_n,
                                material=mat, n_stations=5),
                  f"PrimaryFan1.{side}")
 
@@ -891,7 +912,7 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
             Vector((0.128, -0.89, 1.52)),
             Vector((0.112, -0.87, 1.43)),
         ],
-        width_base=0.050, thick_base=0.024, material=mane_pink, samples=7, seg=6,
+        width_base=0.058, thick_base=0.028, material=mane_pink, samples=7, seg=6,
         twist_rad=0.40, hint=Vector((1, 0, 0)),
     ), "ManeTuft")
 
@@ -903,7 +924,7 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
             Vector((-0.102, -0.89, 1.59)),
             Vector((-0.106, -0.88, 1.50)),
         ],
-        width_base=0.034, thick_base=0.018, material=mane_lav, samples=5, seg=5,
+            width_base=0.040, thick_base=0.021, material=mane_lav, samples=5, seg=5,
         twist_rad=-0.35, hint=Vector((-1, 0, 0)),
     ), "ManeTuft")
 
@@ -923,8 +944,8 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         bone = "ManeTuft" if i < 3 else "ManeLock"
         bind(hair_ribbon(
             f"ManeStrand_{i:02d}", [c0, c1, c2, c3, c4],
-            width_base=0.062 if side_x > 0 else 0.044,
-            thick_base=0.027 if side_x > 0 else 0.020,
+            width_base=0.072 if side_x > 0 else 0.052,
+            thick_base=0.031 if side_x > 0 else 0.024,
             material=mane_mats[i % len(mane_mats)],
             samples=7, seg=5, twist_rad=side_x * 0.46, hint=Vector((side_x, 0, 0)),
         ), bone)
@@ -939,7 +960,7 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
             Vector((0.0, 1.06, 0.72)),
             Vector((0.0, 1.22, 0.42)),
         ],
-        width_base=0.074, thick_base=0.048, material=mane_lav, samples=10, seg=10,
+        width_base=0.084, thick_base=0.054, material=mane_lav, samples=10, seg=10,
         hint=Vector((1, 0, 0)),
     ), "TailBase")
 
@@ -956,7 +977,7 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         bone = "TailBase" if i < 4 else "TailEnd"
         bind(hair_ribbon(
             f"TailStrand_{i:02d}", [c0, c1, c2, c3, c4],
-            width_base=0.064, thick_base=0.028,
+            width_base=0.072, thick_base=0.032,
             material=mane_mats[i % len(mane_mats)],
             samples=7, seg=5, twist_rad=u * 0.40, hint=Vector((1, 0, 0)),
         ), bone)
@@ -1160,29 +1181,30 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
         for side in ("L", "R"):
             sign = 1.0 if side == "L" else -1.0
             out = open_amount
-            # Heroic wide & soaring angelic V-span
+            # Heroic wide & soaring angelic V-span. The larger scapula sweep
+            # gives the flight pose a clear silhouette beyond the body width.
             pb[f"WingScapula.{side}"].rotation_euler = (
-                0.58 * out + flap * 0.26,
+                0.10 * out + flap * 0.26,
                 sign * (0.34 * out),
-                -sign * (0.02 + 1.12 * out),
+                -sign * (0.02 + 1.24 * out),
             )
             pb[f"WingHumerus.{side}"].rotation_euler = (
-                0.24 * out + flap * 0.34,
+                0.62 * out + flap * 0.34,
                 sign * (0.08 * out),
-                -sign * (0.01 + 0.30 * out),
+                -sign * (0.01 + 0.34 * out),
             )
             pb[f"WingRadius.{side}"].rotation_euler = (
                 0.14 * out + flap * 0.24,
                 0.0,
-                -sign * (0.01 + 0.10 * out),
+                -sign * (0.01 + 0.12 * out),
             )
             pb[f"WingHand.{side}"].rotation_euler = (
                 0.10 * out + flap * 0.18,
                 0.0,
-                -sign * (0.01 + 0.04 * out),
+                -sign * (0.01 + 0.06 * out),
             )
             # SEAMLESS CONTINUOUS FAN: smooth closely-spaced tier pitches (-0.42 -> -0.44 -> -0.26 -> -0.09)
-            # so all 33 slender overlapping feathers form ONE cohesive angelic Pegasus wing (zero paddle gaps!)
+            # so all layered feathers form ONE cohesive angelic Pegasus wing (zero paddle gaps!)
             pb[f"WingCoverts.{side}"].rotation_euler = (
                 -0.42 * out + flap * 0.10,
                 sign * (-0.18 * out),
@@ -1317,8 +1339,8 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
     boom_rx = pose["WingHand.R"].tail.x
     boom_z = pose["WingHand.L"].tail.z
     print(f"[QA] boom WingHand L.x={boom_lx:.3f} R.x={boom_rx:.3f} z={boom_z:.3f} (idle_z={idle_z:.3f})")
-    assert boom_lx > 1.15 and boom_rx < -1.15, \
-        f"UnicornBoom_Flight did not open wings wide (>1.15m): L.x={boom_lx:.3f}, R.x={boom_rx:.3f}"
+    assert boom_lx > 1.20 and boom_rx < -1.20, \
+        f"UnicornBoom_Flight did not open wings wide (>1.20m): L.x={boom_lx:.3f}, R.x={boom_rx:.3f}"
     assert boom_z > idle_z + 0.30, \
         f"UnicornBoom_Flight did not lift wings high: {boom_z:.3f} vs {idle_z:.3f}"
     for pb in pose:
@@ -1417,7 +1439,7 @@ def build_lea(argv: list[str] | None = None) -> dict[str, Any]:
             "estimated_stories": 1, "roof_pitch_deg": 0.0,
             "wall_thickness_ext": 0.0, "wall_thickness_int": 0.0,
         },
-        "pbr_palette_srgb": ["#eff2ff", "#fa57b8", "#b87afa", "#66dbfa", "#fac238"],
+        "pbr_palette_srgb": ["#DEE6F7", "#F06AB5", "#B98BE8", "#6FD6E8", "#E8B84B"],
         "rig": {
             "bone_count": BONE_COUNT, "profile": "creature-winged-equine",
             "actions": list(ACTION_NAMES), "skinning": "smooth-sculpted-loft",

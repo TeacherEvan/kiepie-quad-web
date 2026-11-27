@@ -1,7 +1,9 @@
 # Kiepie Quad — Web
 
-Drive the Kiepie Bike (sport quad, Yamaha Blaster class) in your browser, or fight
-other players in the combat arena. Built with Godot 4.3, exported to HTML/WASM,
+Drive a sport quad, pogo brawler, F1 car or something weirder in your browser, or
+fight other players in the combat arena. **Five vehicles** (Kiepie QUAD — sport
+quad, Yamaha Blaster class — NARDUS, BIG-BEN F1, EVAN THE SKELETON, LEA UNICORN),
+each with its own 3-weapon kit. Built with Godot 4.3, exported to HTML/WASM,
 hosted on Vercel and installable as a PWA.
 
 ▶ **Live: https://kiepie-quad-web.vercel.app**
@@ -10,10 +12,16 @@ hosted on Vercel and installable as a PWA.
 
 - **Battle Royale (Default)** — 100×100 m multiplayer combat arena (plus **Practice** free-ride pad with ramps and smashable buildings). Create Lobby / Join Auto / Join by code; first rider to reach the elimination target wins.
 - **Death Race** — high-speed closed-circuit combat racetrack (`DeathRace.tscn`) featuring sweeping banked turns, 2 full 360° vertical stunt loops, 3 molten hazard pits, a pit stop service lane, 8 jump ramps, pickups, 4 ordered checkpoints, and a checkered Start/Finish Line gantry tracking laps. First racer to complete the target laps triggers the **Victory Splash video** (`web-assets/kiepie-victory-splash.mp4`) and wins.
-- **Arsenal (Both Modes & Practice)** — cycle weapons by pulling the **right analog stick back** on mobile (or pressing `Tab` / `V` / `1–3` on desktop), with a live **HUD Reload Bar** showing reloading status:
-  - **Machine Gun (Quad) / Dual Bananas (Nardus):** Rapid-fire primary (`0.20 s` / `0.40 s` cooldown, identical 150 DPS).
-  - **Rocket Launcher:** Fires once every **1.5 seconds**. A **direct hit is an instant kill**; anything else inside the **4.5 m blast radius loses 90% of its health** (flat `90` dmg). NARDUS launches a **massive Cigar** ("CIGAR LAUNCHER"), BIG-BEN keeps its **Cash Bag Launcher**, and the Quad fires a standard finned rocket.
-  - **Meteor Shower:** Fires once every **6.0 seconds** with practical forward ground-raycast aiming (and live 3D ground targeting reticle); drops a single flaming meteor from the sky with a **2.0-second fall delay** that detonates for **massive AOE damage** (`105` center damage across a `7.5 m` radius).
+- **Arsenal (Both Modes & Practice)** — every vehicle carries a **3-weapon kit** in three slots (`primary` / `rocket` / `meteor` wire kinds); cycle by pulling the **right analog stick back** on mobile (or pressing `Tab` / `V`, or `1` / `2` / `3` on desktop), with a live **HUD Reload Bar** + weapon label showing reload status. Base hit = host-configured `Match.damage()` (default `30`, clamped `10–100`; **NARDUS `2×`**); **both barrels fire per shot**. Wire protocol unchanged (`protocol_version` `3`).
+
+  | Slot | Cooldown | **Kiepie QUAD** | **NARDUS** | **BIG-BEN F1** | **EVAN THE SKELETON** | **LEA UNICORN** |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | **Primary** | `0.20 s` (`0.09 s` rapid); NARDUS `0.40 s`/`0.18 s`; EVAN `0.22 s`/`0.10 s`; LEA `0.16 s`/`0.08 s` | **MACHINE GUN** (bolt, 30 dmg) | **BANANA CANNON** (dual bananas, 60 dmg, `pop` SFX) | **F1 AUTOCANNON** | **RIFF BLASTER** (hot-pink sound waves) | **HORN RAPID FIRE** (golden horn sparks) |
+  | **Rocket** | `1.5 s` | **ROCKET LAUNCHER** (finned rocket) | **CIGAR LAUNCHER** (massive cigar) | **CASH BAG LAUNCHER** (cash bag) | **BOOMERANG GUITAR** (frisbee-spinning double-cutaway, 3-ray blade sweep, out-and-return, early-catch cooldown refund) | **HORN BEAM** (`0.55 s` vortex charge → `0.35 s` straight plasma beam, up to `8` targets in line, `55 m`) |
+  | **Special** | `6.0 s`, `2.0 s` telegraph, `7.5 m` zone | **LIGHTNING STRIKE** | **METEOR SHOWER** (flaming meteor from sky) | **CASH BAG DROP** (cash bag from sky) | **DEVIL HAND** (clawed hand erupts, drags victims underground, **instant kill**) | **UNICORN BOOM** (wing-spread sky leap + supernova touchdown, **instant kill**) |
+
+  - **Rocket slot (all vehicles):** fires once every **1.5 s**; a **direct hit is an instant kill** (ignores shield + spawn invulnerability); anything else inside the **4.5 m** blast radius takes **flat `90` damage** (`Match.damage()` does not scale rockets). Direct-hit lethality is **victim-authority** (`CombatController`); see Known limitations.
+  - **Special slot (all vehicles):** single AOE on a ground-raycast target (`12–44 m` aim, reticle shown); **`105` center damage** (`Match.damage() × 3.5`) across **`7.5 m`** after a **`2.0 s`** sky-fall/telegraph — **except** EVAN's **DEVIL HAND** and LEA's **UNICORN BOOM**, which are **instant-kill** zones (`CombatAoe.apply_lethal_blast`, fail-closed victim authority; the kill is unconditional inside `7.5 m`).
 
 ## Gameplay
 
@@ -30,21 +38,37 @@ Captured live from the practice track under the real renderer (WebGL2 via xvfb) 
 
 ## Vehicles
 
-Pick your preferred ride in `MainMenu` (`VehicleSelect`, persisted in Settings) or leave it on **AUTO (DEAL)** for a deterministic FNV-1a-32 hash draw:
+**Five vehicles.** Pick your preferred ride in `MainMenu` (`VehicleSelect`, persisted in Settings `gameplay/vehicle`, synced through the lobby row) or leave it on **AUTO (DEAL)** for a deterministic FNV-1a-32 hash draw. The AUTO pool is **three vehicles** (Kiepie QUAD / NARDUS / BIG-BEN F1); **NARDUS is guaranteed to at least one player** in every match (`VehicleRegistry.for_player_in_roster`). **EVAN THE SKELETON** and **LEA UNICORN** are **preference-only encores**: selectable and synced, deliberately excluded from AUTO (DEAL) so the deterministic hash never shifts. All five share the same vehicle handling, armour and Q/E cartwheel dodge; each keeps its own visual shell, rig and three-slot weapon kit. Weapon damage and cooldowns are listed in **Arsenal** above.
 
-- **Kiepie QUAD** — the blast quad. Photo-anchored dimensions, 22-inch tyres, twin side
-  cannons (30 damage, 0.20 s cooldown; rapid-fire pickup shaves it to 0.09 s).
-- **NARDUS** — a stocky pogo-stick brawler in a hot-pink Borat mankini (bold gold
-  **NARDUS** print across his bare back, belly peeking out and sloshing with every hop,
-  and cute, plump **slightly red butt cheeks** sticking out either side of the rear pink
-  thong strap). Guaranteed to be assigned to **at least one player** in every match (`VehicleRegistry.for_player_in_roster`), and **flaps his arms like a bird** whenever turbo is active. He fires **bananas** (60 damage — twice the cannon — at 0.40 s / 0.18 s
-  rapid cooldown). Identical top speed, acceleration, handling, armour and cartwheel dodge stats to the
-  QUAD — different attitude, same fight.
-- **BIG-BEN F1** — Aston Martin F1 car (`Aston_Martin.glb`) with F1 autocannons (`AstonMuzzle_L/R`) and rear `BIG-BEN` plate.
-- **EVAN THE SKELETON** — a mohawked skeleton guitarist on a bone-frame quad (`Evan_Skeleton.glb`), selectable in `MainMenu` (`VehicleSelect`). Preference-only: he is deliberately excluded from AUTO (DEAL) so the existing deterministic 3-vehicle hash assignment never shifts. 52-bone Godot humanoid rig with four baked clips (`Idle_Sway`, `Play_Strum`, `Headbang_Riff`, `Action_BigFinish`) driven by `EvanVisual.gd`.
-  - **Primary — RIFF BLASTER:** hot-pink sound waves ripple out of the guitar (`SoundWaveProjectile.gd`).
-  - **Rocket — BOOMERANG GUITAR:** he throws the guitar; it tears through everything it touches, then arcs back to him (`BoomerangGuitar.gd`).
-  - **Special — DEVIL HAND:** a crimson hand erupts from the ground in the target zone and drags everything inside the kill circle underground for an instant kill — same 6 s cooldown / 2 s telegraph / 7.5 m radius rules as Meteor Shower (`DevilHandStrike.gd`).
+### Kiepie QUAD — photo-anchored sport quad
+
+![Kiepie QUAD three-quarter layout: blue fenders, exposed frame, four knobby tyres and twin cannons](renders/vehicle-showcase/kiepie-quad.jpg)
+
+**Layout:** open steel-tube chassis, blue fenders, four 22-inch knobby tyres on 12-inch beadlock rims, twin side cannons and image-textured decals. The left and right muzzle anchors sit on the cannon bores. **Motion:** wheel roll and front steering; the shared ground-only Q/E dodge is a lateral leap and cartwheel. **Three-slot kit:** Machine Gun → finned Rocket Launcher → **Lightning Strike** ground-targeted AOE.
+
+### NARDUS — spring-loaded pogo brawler
+
+![NARDUS three-quarter layout: pink pogo character, center spring and banana launchers](renders/vehicle-showcase/nardus.jpg)
+
+**Layout:** articulated rider pivots above a telescoping stick and live-compression spring; gold NARDUS back print, pink mankini and banana muzzles complete the silhouette. **Motion:** procedural hop, spring compression, landing slam and turbo bird-wing flap. **Three-slot kit:** dual Banana Cannon → oversized Cigar Launcher → **Meteor Shower**. NARDUS deals twice the primary damage while keeping the shared vehicle handling.
+
+### BIG-BEN F1 — low-slung single-seater
+
+![BIG-BEN F1 rear three-quarter layout: dark green body, wide tyres, wings and rear plate](renders/vehicle-showcase/big-ben.jpg)
+
+**Layout:** dark green F1 body, front and rear wings, wide tyres, steerable front wheel pivots, `BIG-BEN` rear plate and `Exhaust_Tip`. The body shell is raised 6 cm over the wheels to preserve diffuser clearance. **Motion:** front wheels steer and all four wheels roll. **Three-slot kit:** F1 Autocannon → Cash Bag Launcher → **Cash Bag Drop**.
+
+### EVAN THE SKELETON — on-foot guitarist
+
+![EVAN THE SKELETON three-quarter layout: mohawked skeleton, guitar, strap and cape](renders/vehicle-showcase/evan.jpg)
+
+**Layout:** 52-joint anatomical skeleton with a two-tone mohawk, laughing skull, double-cutaway hot-pink guitar, leather strap and trailing cable; Evan runs on foot without a visible quad chassis. **Motion:** seven baked clips drive the stride, turbo headbang, leap, guitar throw and catch, with sub-stepped landing and sprint response. **Three-slot kit:** Riff Blaster sound waves → returning Boomerang Guitar → **Devil Hand**, a ground-erupting claw strike with an instant-kill zone.
+
+### LEA UNICORN — pearl-coated winged equine
+
+![LEA UNICORN in flight: layered pink, lavender and cyan wings, gold horn and hooves](renders/vehicle-showcase/lea-unicorn.jpg)
+
+**Layout:** 52-joint winged equine with a pearl coat, bright blue eyes, spiral gold horn, flowing pink/lavender/cyan mane and a layered 39-feather fan on each wing. Wings fold along the back at rest and spread for flight. **Motion:** speed-coupled gallop, reverse backpedal, charge wing-spread and UnicornBoom flight. **Three-slot kit:** golden Horn Rapid Fire → charged Horn Beam → **Unicorn Boom**, a wing-spread leap and supernova touchdown with an instant-kill zone.
 
 ## Quick facts — controls
 
@@ -52,8 +76,8 @@ Pick your preferred ride in `MainMenu` (`VehicleSelect`, persisted in Settings) 
 - `A` / `D` (or `←` / `→`) — steering
 - `S` / `↓` — brake, then reverse
 - `Space` — handbrake
-- `Shift` — **turbo** (hold while throttling): +30 % power, flames from the silencer
-- `F` / left mouse — **fire both side cannons** in the arena (cooldown-gated)
+- `Shift` — **turbo** (hold while throttling): +24 % engine power & higher top speed (28→33 m/s cap; OVERDRIVE → 1.38× / 36 m/s), flames from the silencer
+- `F` / left mouse — **fire your primary weapon** in the arena (cooldown-gated; `Tab`/`V`/`1–3` cycle your 3-weapon kit)
 - `C` — camera: chase ↔ free orbit (drag / scroll to zoom)
 - `R` — reset to spawn (also the on-screen Restart button)
 - On-screen touch overlay — **left analog** steer (push forward = turbo, pull back =
@@ -67,8 +91,10 @@ Each rider has 100 armour; a kill explodes the bike and respawns it at a random
 point after the lobby's respawn delay. The shooter gets the point. The arena has
 cover, ramps, destructible buildings, a radar, a scoreboard and a kill feed.
 
-Pickups spawn around the arena: **shield** (temporary invulnerability), **rapid**
-(faster cannons), **repair** (+45 armour) and **overdrive** (more power). Red fuel
+**8 pickups** spawn around the arena (2 of each): **shield** (`4 s`
+invulnerability), **rapid** (`8 s` faster cannons at each vehicle's rapid
+cooldown: `0.09 s` QUAD/F1, `0.18 s` NARDUS, `0.10 s` EVAN, `0.08 s` LEA), **repair** (+45 armour, capped at 100) and **overdrive** (`8 s`:
+counts as turbo, `1.38×` power, `36 m/s` top-speed cap). Red fuel
 drums explode when shot and chain-detonate nearby drums. Expect camera shake,
 hit-stop, damage numbers, tyre smoke, scorch marks and a full sound pack.
 
@@ -82,7 +108,7 @@ Defaults** to reset.
 ## Notes
 
 - Requires WebGL2 / a modern browser. Chrome, Firefox and Edge recommended.
-- Personal, non-commercial interactive model showcase of a Blaster-class sport quad.
+- Before commercial release, replace the Yamaha-marked `BLASTER` / `GAMING` quad decals in `assets/decal_blaster.png` and `assets/decal_gaming.png`; the other vehicle and character names shown here are project designs.
 - Vehicle is raycast-suspension (4 × VehicleWheel3D) — for games, not for racing lines.
 - A scoped Talo **game** key is embedded in the public Web build by design; it is not a
   secret. Never reuse an admin key or any credential with write access to other services.
@@ -106,7 +132,7 @@ Controls:
 | `S` / `↓` | Brake → reverse |
 | `A` / `D` (or `←`/`→`) | Steer |
 | `Space` | Handbrake |
-| `Shift` | **Turbo** — hold while throttling: +30 % power, flames from the silencer, "TURBO" flash on the HUD |
+| `Shift` | **Turbo** — hold while throttling: +24 % engine power & higher top speed (28→33 m/s cap), flames from the silencer, "TURBO" flash on the HUD |
 | `C` | Camera — chase ↔ free orbit (drag mouse / wheel to zoom) |
 | `Q` / `E` | Dodge left / right — lateral leap + cartwheel to evade attacks (ground-only, 1 s cooldown) |
 | `R` | Reset to spawn (also the on-screen **Restart** button) |
@@ -238,8 +264,11 @@ See `AGENTS.md` for toolchain details and exporter gotchas.
 ## Known limitations / roadmap
 
 - Front suspension is fixed; steering rotates the wheel meshes only (no tie-rod articulation).
-- No rider, no saddle animation, no swingarm animation (engine-loop audio ships in the sound pack).
+- **Kiepie QUAD** has no rider/saddle/swingarm animation (engine-loop audio ships in the sound pack); NARDUS/EVAN/LEA ship baked rigs + procedural secondary animation.
 - Buildings restack as static decor — demolition is once per run (no respawn).
+- Rocket direct-hit lethality is **victim authority**: the victim's own client resolves the hit;
+  at long range / interpolation skew shooter and victim can disagree (a victim may survive at low
+  armour); no attacker-asserted lethal event is trusted. See `AGENTS.md`.
 - No factory Yamaha dimensions were used (none were provided); everything stays within
   ±10 % of the photos.
 - Draco `.glb` exports retain normal-buffer sizes to stay cheap; re-baking texture compression
@@ -304,9 +333,10 @@ The game now boots into a **Main Menu** with `Practice` (the original free-ride/
 `Create Lobby`, `Join Auto`, `Join by code` and `Settings`. `Join Auto` finds a waiting lobby
 with a free slot and creates one if none exists.
 
-**Combat:** the Blender-authored twin side cannons fire with **F / left mouse** on desktop,
-and the **right analog pushed up** on mobile (left pad push-forward is turbo). Each bike has 100
-armour; the host-configured damage default is 30 per hit; cannons fire on a short cooldown, and
+**Combat:** each vehicle's primary weapon fires with **F / left mouse** on desktop,
+and the **right analog pushed up** on mobile (left pad push-forward is turbo); `Tab`/`V`/`1–3`
+cycle the **3-weapon kit** (see **Arsenal**). Each rider has 100
+armour; the host-configured damage default is 30 per hit; weapons fire on per-slot cooldowns, and
 a destroyed bike explodes and respawns at a random spawn point after the lobby's respawn delay.
 The shooter scores the kill; first to the lobby's kill target wins.
 The arena (~100 m) has cover, ten ramps (two designed gap-jump lines plus two cover hops),
@@ -321,11 +351,11 @@ state lives in host-owned channel props, and shots/kills flow over channel socke
 Scoring is host-authoritative client logic (no server-side validation). Lobbies are stamped with a
 `protocol_version` channel prop — clients on a different wire version never get mixed in
 (`join_auto` skips the channel; `join_by_code` reports a version error). Without a key the client
-uses a full offline `MockBackend`, so all 28 gates run without credentials. The old `supabase/`
+uses a full offline `MockBackend`, so all 33 gates run without credentials. The old `supabase/`
 migrations are retained for history only and are not deployed.
 
-**VFX pass:** effects are built by `godot/src/game/VfxFactory.gd` from five tiny sprites
-generated once at runtime (soft puff, spark streak, flare star, ground ring, noise smoke),
+**VFX pass:** effects are built by `godot/src/game/VfxFactory.gd` from seven tiny sprites
+generated once at runtime (soft puff, spark streak, flare star, ground ring, noise smoke, fire, scorch),
 so the Web pck does not grow. Explosions are staged (core flash → fireball → ember streaks →
 rising smoke, with cooling debris and a soft scorch), shots that hit scenery leave sparks and
 fading scars, and building smashes combine a glass flash, ground dust wave and staggered
@@ -353,7 +383,7 @@ proportional steer strength, large touch controls and quality presets
 **New gates:** `verify_cannons.gd`, `verify_settings.gd`, `verify_match_rules.gd`,
 `verify_combat.gd`, `verify_kill_flow.gd`, `verify_appeal.gd`, `verify_talo_backend.gd` and
 `verify_audit_regressions.gd`, `verify_controls.gd`, `verify_dodge.gd`, `verify_rollover.gd` and `verify_deathrace.gd` join the existing
-suite — `godot/tools/run_gates.sh` now runs 28 gates offline (24 headless gates plus GdUnit4,
+suite — `godot/tools/run_gates.sh` now runs 33 gates offline (29 headless gates plus GdUnit4,
 the `scene_sync` drift check, `web_hygiene` (`check_web_hygiene.py`), and one xvfb-windowed multi-touch gate, `verify_touch_multitouch.gd`).
 The new `verify_pogo.gd` locks the NARDUS vehicle: deterministic FNV-based assignment,
 runtime model swap in `KiepieBike._enter_tree`, pogo weapon profile (0.40 s cooldown, 2×
@@ -379,7 +409,7 @@ fire fixes, host-leave/join/reconnect handshakes, monotonic relay ticks and VFX 
 caching. Per-finding evidence and the remaining deferred items:
 [docs/task-status.md](docs/task-status.md).
 
-Web export produces `web/index.pck` (~3.88 MiB; the bundle check aborts above 4 MiB) plus PWA
+Web export produces `web/index.pck` (~4.5–4.8 MiB; the bundle check aborts above 5.0 MiB) plus PWA
 manifest/service worker. `web/` is a git-ignored staging folder; `godot/tools/deploy_web.sh --apply`
 syncs the bundle into the repo root, commits `index.*` and pushes `main` — **pushes to `main`
 auto-deploy to Vercel** (verified 2026-11-18, ~5 s per production deploy). The gate suite also
@@ -387,10 +417,10 @@ runs on every PR via `.github/workflows/gates.yml`.
 
 The web shell carries a **themed loading surface**: `web-assets/dashboard_bg.jpg` (navy quad
 ghost + grid, behind the progress bar) and `web-assets/kiepie-quad-splash.mp4` (12.5 s, 1280x720,
-3.55 MB — Blender showcase of all 3 vehicles + their signature abilities, rendered via
-the `surgical-media` pipeline). The splash autoplays **muted on every launch** (no `localStorage`
+1.73 MiB — Blender showcase of the vehicles + their signature abilities, rendered via
+the `surgical-media` pipeline; vehicle coverage reflects the clip's render date). The splash autoplays **muted on every launch** (no `localStorage`
 once-only suppression or query-param workaround), is skippable by click/touch, `Esc`, `Space`,
 `Enter`, or when the clip ends, and `prefers-reduced-motion` removes it instantly. The same markup
 is embedded in `html/head_include` so a re-export reproduces it; root `index.html` ships it
-directly. `web-assets/` lives outside `godot/` so the pck stays ~2.7 MB. `index.png` is the
+directly. `web-assets/` lives outside `godot/` so it never enters the pck. `index.png` is the
 themed 1200x900 (4:3) loading card (replacing the default Godot logo).
