@@ -166,7 +166,7 @@ godot-4.3 --headless --path godot --export-release "Web" "$PWD/web/index.html"
   **outside** `godot/` so the pck stays small — do not move those files into `godot/assets/`.
   (`window.__kiepieSetFullscreen`) that `Settings.gd` drives via `JavaScriptBridge` on Web
   (fullscreen is now default-on; `Settings` schema v2 migrates v1 configs) — don't clobber it
-  when editing the preset. Expect root `index.pck` ≈ **4.5–4.7 MiB** (after Evan's biomechanical running GLB + Lea Unicorn's non-Draco GLB) (`web-assets/kiepie-quad-splash.mp4` ≈ **1.82 MiB** and `web-assets/kiepie-quad-splash-portrait.mp4` ≈ **1.38 MiB**, 15-second editions; ≈ **3.20 MiB** combined); `deploy_web.sh` aborts above **5.0 MiB** (raised from 4.5 MiB on 2026-11-25),
+  when editing the preset. Expect root `index.pck` ≈ **4.5–4.7 MiB** (after Evan's biomechanical running GLB + Lea Unicorn's non-Draco GLB) (`web-assets/kiepie-quad-splash.mp4` ≈ **2.44 MiB** and `web-assets/kiepie-quad-splash-portrait.mp4` ≈ **1.92 MiB**, 15-second editions; ≈ **4.35 MiB** combined, mixed with `assets/splash_electric_guitar.wav`); `deploy_web.sh` aborts above **5.0 MiB** (raised from 4.5 MiB on 2026-11-25),
   so check the printed size after adding assets (and update the script's expected-size note if it changes).
   Root `.vercelignore` uses a strict allowlist (`*`, `!index.*`, `!favicon.ico`, `!web-assets/`,
   `!web-assets/**`) so only Web runtime assets ship to Vercel (never `docs/`, `src/`, `godot/`,

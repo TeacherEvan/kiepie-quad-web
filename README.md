@@ -417,9 +417,9 @@ runs on every PR via `.github/workflows/gates.yml`.
 
 The web shell carries a **themed loading surface**: `web-assets/dashboard_bg.jpg` (navy quad
 ghost + grid, behind the progress bar), the landscape `web-assets/kiepie-quad-splash.mp4`
-(15 s, 1280x720, about 1.82 MiB) and portrait `web-assets/kiepie-quad-splash-portrait.mp4`
-(15 s, 720x1280, about 1.38 MiB). Both show five equal vehicle spotlights, imported Evan/Lea rig
-clips, signature-ability cards and an original arcade-orchestral score. `src/build_intro_splash.py`
+(15 s, 1280x720, about 2.44 MiB) and portrait `web-assets/kiepie-quad-splash-portrait.mp4`
+(15 s, 720x1280, about 1.92 MiB). Both show five equal vehicle spotlights, imported Evan/Lea rig
+clips, signature-ability cards and a distorted electric guitar + SFX soundtrack (`assets/splash_electric_guitar.wav`). `src/build_intro_splash.py`
 builds both editions; the web shell selects the portrait cut before loading on tall screens and
 the landscape cut on wide screens.
 The splash autoplays **muted on every launch** (no `localStorage`
